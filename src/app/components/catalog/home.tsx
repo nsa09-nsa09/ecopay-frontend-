@@ -1,0 +1,143 @@
+import { Link } from "react-router";
+import { Card, Badge, WaveDivider } from "../ds-primitives";
+import { Smartphone, Wifi, Tv, Music, Sparkles, Bot, Lock } from "lucide-react";
+import { DigitalSubscriptionsAvailable } from "./digital-subscriptions";
+import { useI18n } from "../i18n-provider";
+
+const operators = [
+  { id: "beeline", name: "Beeline", plans: 4, rooms: 12, color: "#FFB800" },
+  { id: "activ", name: "Activ", plans: 5, rooms: 8, color: "#9B59B6" },
+  { id: "altel", name: "Altel", plans: 3, rooms: 6, color: "#E74C3C" },
+  { id: "tele2", name: "Tele2", plans: 3, rooms: 5, color: "#1A1A2E" },
+  { id: "kcell", name: "Kcell", plans: 0, rooms: 0, color: "#00A651" },
+];
+
+export function HomePage() {
+  const { t } = useI18n();
+  
+  const comingSoon = [
+    { name: t("videoStreaming"), icon: Tv, desc: "Netflix, IVI, Кинопоиск" },
+    { name: t("music"), icon: Music, desc: "Spotify, Яндекс Музыка" },
+    { name: t("aiTools"), icon: Bot, desc: "ChatGPT, Midjourney" },
+    { name: t("premiumApps"), icon: Sparkles, desc: "Canva, Notion, Figma" },
+  ];
+  
+  return (
+    <div>
+      {/* Hero */}
+      <div className="py-16 px-6" style={{ background: "var(--eco-surface)" }}>
+        <div className="max-w-[1200px] mx-auto text-center">
+          <h1 className="text-[32px] sm:text-[40px] tracking-tight" style={{ color: "var(--eco-text)" }}>
+            {t("heroTitle")} <span style={{ color: "var(--eco-primary)" }}>{t("heroTitleHighlight")}</span>
+          </h1>
+          <p className="text-[15px] mt-3 max-w-lg mx-auto" style={{ color: "var(--eco-text-secondary)" }}>
+            {t("heroSubtitle")}
+          </p>
+        </div>
+      </div>
+      <WaveDivider flip />
+
+      {/* Mobile Operators */}
+      <div className="max-w-[1200px] mx-auto px-6 py-12">
+        <div className="flex items-center gap-3 mb-2">
+          <Smartphone size={18} style={{ color: "var(--eco-primary)" }} />
+          <h2 className="text-[20px]" style={{ color: "var(--eco-text)" }}>{t("mobileOperators")}</h2>
+        </div>
+        <p className="text-[13px] mb-6" style={{ color: "var(--eco-text-secondary)" }}>
+          {t("familyGroupPlansAvailable")}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {operators.map((op) => (
+            <Link key={op.id} to={`/operator/${op.id}`} style={{ textDecoration: "none" }}>
+              <Card className="flex items-center gap-4 hover:shadow-sm transition-shadow cursor-pointer">
+                <div
+                  className="w-11 h-11 rounded-lg flex items-center justify-center text-[15px] shrink-0"
+                  style={{ background: op.color + "18", color: op.color }}
+                >
+                  {op.name.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[15px]" style={{ color: "var(--eco-text)" }}>{op.name}</div>
+                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                    {op.plans > 0 ? `${op.plans} ${t("plan")} · ${op.rooms} ${t("rooms")}` : t("noFamilyPlansAvailable")}
+                  </div>
+                </div>
+                {op.plans === 0 && <Badge variant="default">{t("na")}</Badge>}
+              </Card>
+            </Link>
+          ))}
+        </div>
+
+        {/* Home Internet placeholder */}
+        <div className="mt-10">
+          <div className="flex items-center gap-3 mb-2">
+            <Wifi size={18} style={{ color: "var(--eco-primary)" }} />
+            <h2 className="text-[20px]" style={{ color: "var(--eco-text)" }}>{t("homeInternet")}</h2>
+          </div>
+          <p className="text-[13px] mb-6" style={{ color: "var(--eco-text-secondary)" }}>
+            {t("bundledInternetPlans")}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {["Beeline Home", "iD Net", "Kazakhtelecom"].map((name) => (
+              <Card key={name} className="flex items-center gap-4 opacity-60">
+                <div className="w-11 h-11 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--eco-neutral-100)" }}>
+                  <Wifi size={18} style={{ color: "var(--eco-text-tertiary)" }} />
+                </div>
+                <div>
+                  <div className="text-[15px]" style={{ color: "var(--eco-text)" }}>{name}</div>
+                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("comingQ3")}</div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <WaveDivider />
+
+      {/* Coming Soon — Digital */}
+      <div style={{ background: "var(--eco-surface)" }} className="px-6 py-12">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-[20px]" style={{ color: "var(--eco-text)" }}>{t("digitalSubscriptions")}</h2>
+            <Badge variant="default">{t("comingSoon")}</Badge>
+          </div>
+          <p className="text-[13px] mb-6" style={{ color: "var(--eco-text-secondary)" }}>
+            Split streaming, music, AI tools — launching later in 2026
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {comingSoon.map((cat) => (
+              <div
+                key={cat.name}
+                className="rounded-xl p-5 flex flex-col items-center text-center gap-3 opacity-50 cursor-not-allowed"
+                style={{ background: "var(--eco-surface-raised)", border: "1px solid var(--eco-border)" }}
+              >
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "var(--eco-neutral-100)" }}>
+                  <cat.icon size={18} style={{ color: "var(--eco-text-tertiary)" }} />
+                </div>
+                <div>
+                  <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{cat.name}</div>
+                  <div className="text-[11px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{cat.desc}</div>
+                </div>
+                <Lock size={14} style={{ color: "var(--eco-text-tertiary)" }} />
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-4 mt-6 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: "var(--eco-brand-500)" }} />
+              Bundle includes home internet
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ background: "var(--eco-warning-500)" }} />
+              Promo price first month
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Digital Subscriptions — Available (Beta) */}
+      <DigitalSubscriptionsAvailable />
+    </div>
+  );
+}
