@@ -1,17 +1,32 @@
-HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+### Node / pnpm / npm / yarn ###
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.yarn-integrity
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+### Build output ###
+dist/
+build/
+.vite/
+.cache/
+
+### Logs ###
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+### Env ###
+.env
+.env.local
+.env.*.local
+!.env.example
+
+### OS ###
+.DS_Store
+Thumbs.db
 
 ### IntelliJ IDEA ###
 .idea
@@ -19,20 +34,9 @@ target/
 *.iml
 *.ipr
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
 ### VS Code ###
 .vscode/
 
-### .env ###
-.env
-
-.m2repo/
+### Misc ###
+*.tsbuildinfo
+coverage/
