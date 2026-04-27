@@ -249,7 +249,7 @@ const MODULES: ModuleChecklist[] = [
       { id: "pay-3", task: "Payment history with tabs", acceptance: ["Tab 1: My Payments — summary cards + transaction table", "Tab 2: All Transactions (admin) — 6-stat dashboard", "Tab 3: Receipt view — standalone + modal", "Period filter: this month, 3mo, 6mo, all-time", "CSV + PDF export buttons", "Copyable Intent/TXN/Refund IDs"], priority: "critical", status: "done" },
       { id: "pay-4", task: "Refund status page", acceptance: ["Refund timeline: initiated → processing → completed/denied", "Timeline shows each step with timestamp", "Estimated return: 3-5 business days", "Partial refund shows original + refund amounts"], priority: "must", status: "done" },
       { id: "pay-5", task: "Owner payout dashboard", acceptance: ["Total earned, pending, withdrawn amounts", "Payout history table with dates + amounts", "Minimum payout threshold: 5,000 ₸", "Bank account management (masked display)"], priority: "must", status: "done" },
-      { id: "pay-6", task: "Receipt print/PDF", acceptance: ["Print-ready layout with EcoSplit logo", "All IDs visible and copyable", "Date, amount, operator, plan, room ID, parties", "Separate URL for standalone receipt view"], priority: "must", status: "done" },
+      { id: "pay-6", task: "Receipt print/PDF", acceptance: ["Print-ready layout with EcoPay logo", "All IDs visible and copyable", "Date, amount, operator, plan, room ID, parties", "Separate URL for standalone receipt view"], priority: "must", status: "done" },
     ],
   },
   {

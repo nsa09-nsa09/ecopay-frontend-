@@ -28,7 +28,7 @@ const rooms: AdminRoom[] = [
     ownerMasked: "+7 7** *** ** 67", ownerFull: "+7 (777) 111-22-67",
     seats: 3, filled: 2, startDate: "2026-02-01", priceTotal: 11400, riskScore: 91,
     events: [
-      { time: "2026-04-01 14:00", action: "Room BLOCKED — compliance review", actor: "admin@ecosplit.kz" },
+      { time: "2026-04-01 14:00", action: "Room BLOCKED — compliance review", actor: "admin@ecopay.kz" },
       { time: "2026-03-28 09:00", action: "Dispute D-103 created by member", actor: "System" },
       { time: "2026-02-01 08:00", action: "Room activated", actor: "System" },
       { time: "2026-01-30 12:00", action: "Room created", actor: "Unknown" },

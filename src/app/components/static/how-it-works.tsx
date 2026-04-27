@@ -39,7 +39,7 @@ export function HowItWorksPage() {
       <div className="py-16 px-6" style={{ background: "var(--eco-surface)" }}>
         <div className="max-w-[900px] mx-auto text-center">
           <h1 className="text-[32px] sm:text-[40px] tracking-tight mb-4" style={{ color: "var(--eco-text)" }}>
-            How EcoSplit Works
+            How EcoPay Works
           </h1>
           <p className="text-[16px] max-w-[600px] mx-auto" style={{ color: "var(--eco-text-secondary)" }}>
             Join shared telecom plans in four simple steps. Save money without the hassle.
@@ -117,7 +117,7 @@ export function HowItWorksPage() {
                 Important: No User-to-User Chat
               </h3>
               <p className="text-[14px] leading-relaxed" style={{ color: "var(--eco-text-secondary)" }}>
-                EcoSplit does not provide direct messaging between users. All communication, questions, and coordination happen through official support tickets monitored by our team. This protects your privacy and ensures all interactions are secure and documented.
+                EcoPay does not provide direct messaging between users. All communication, questions, and coordination happen through official support tickets monitored by our team. This protects your privacy and ensures all interactions are secure and documented.
               </p>
             </div>
           </div>

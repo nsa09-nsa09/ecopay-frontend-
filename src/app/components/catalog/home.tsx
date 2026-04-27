@@ -1,8 +1,9 @@
 import { Link } from "react-router";
 import { Card, Badge, WaveDivider } from "../ds-primitives";
-import { Smartphone, Wifi, Tv, Music, Sparkles, Bot, Lock } from "lucide-react";
+import { Smartphone, Wifi, Tv, Music, Sparkles, Bot, Lock, UserPlus, CreditCard, CheckCircle, Search, Send, ShieldCheck } from "lucide-react";
 import { DigitalSubscriptionsAvailable } from "./digital-subscriptions";
 import { useI18n } from "../i18n-provider";
+import { useState } from "react";
 
 const operators = [
   { id: "beeline", name: "Beeline", plans: 4, rooms: 12, color: "#FFB800" },
@@ -14,6 +15,7 @@ const operators = [
 
 export function HomePage() {
   const { t } = useI18n();
+  const [activeGuide, setActiveGuide] = useState<"owners" | "members">("owners");
   
   const comingSoon = [
     { name: t("videoStreaming"), icon: Tv, desc: "Netflix, IVI, Кинопоиск" },
@@ -90,6 +92,163 @@ export function HomePage() {
               </Card>
             ))}
           </div>
+        </div>
+      </div>
+
+      <WaveDivider />
+
+      {/* How to Manage — Step by Step Guide */}
+      <div className="max-w-[1200px] mx-auto px-6 py-12">
+        <div className="text-center mb-10">
+          <h2 className="text-[24px] tracking-tight mb-2" style={{ color: "var(--eco-text)" }}>
+            {t("howToManage")}
+          </h2>
+          <p className="text-[14px] max-w-2xl mx-auto" style={{ color: "var(--eco-text-secondary)" }}>
+            {t("heroSubtitle")}
+          </p>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-3 justify-center mb-8">
+          <div className="inline-flex rounded-lg p-1" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}>
+            <button
+              className="px-5 py-2 rounded-md text-[14px] font-medium transition-all"
+              style={{
+                background: activeGuide === "owners" ? "var(--eco-primary)" : "transparent",
+                color: activeGuide === "owners" ? "#fff" : "var(--eco-text-secondary)",
+              }}
+              onClick={() => setActiveGuide("owners")}
+            >
+              {t("forOwnersGuide")}
+            </button>
+            <button
+              className="px-5 py-2 rounded-md text-[14px] font-medium transition-all"
+              style={{
+                background: activeGuide === "members" ? "var(--eco-primary)" : "transparent",
+                color: activeGuide === "members" ? "#fff" : "var(--eco-text-secondary)",
+              }}
+              onClick={() => setActiveGuide("members")}
+            >
+              {t("forMembersGuide")}
+            </button>
+          </div>
+        </div>
+
+        {/* Owner Steps */}
+        <div className={activeGuide === "owners" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" : "hidden"}>
+          {[
+            {
+              step: "1",
+              icon: Search,
+              title: t("ownerStep1Title"),
+              desc: t("ownerStep1Desc"),
+              color: "var(--eco-primary)",
+            },
+            {
+              step: "2",
+              icon: UserPlus,
+              title: t("ownerStep2Title"),
+              desc: t("ownerStep2Desc"),
+              color: "var(--eco-brand-600)",
+            },
+            {
+              step: "3",
+              icon: CreditCard,
+              title: t("ownerStep3Title"),
+              desc: t("ownerStep3Desc"),
+              color: "var(--eco-brand-700)",
+            },
+            {
+              step: "4",
+              icon: ShieldCheck,
+              title: t("ownerStep4Title"),
+              desc: t("ownerStep4Desc"),
+              color: "var(--eco-positive)",
+            },
+          ].map((item, idx) => (
+            <Card key={idx} className="relative overflow-hidden">
+              {/* Step number badge */}
+              <div
+                className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-bold"
+                style={{ background: item.color + "20", color: item.color }}
+              >
+                {item.step}
+              </div>
+
+              <div className="pt-4">
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+                  style={{ background: item.color + "18" }}
+                >
+                  <item.icon size={22} style={{ color: item.color }} />
+                </div>
+                <h3 className="text-[16px] mb-2 font-medium" style={{ color: "var(--eco-text)" }}>
+                  {item.title}
+                </h3>
+                <p className="text-[13px] leading-relaxed" style={{ color: "var(--eco-text-secondary)" }}>
+                  {item.desc}
+                </p>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Member Steps (hidden by default, would show when tab is clicked) */}
+        <div className={activeGuide === "members" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" : "hidden"}>
+          {[
+            {
+              step: "1",
+              icon: Search,
+              title: t("memberStep1Title"),
+              desc: t("memberStep1Desc"),
+              color: "var(--eco-primary)",
+            },
+            {
+              step: "2",
+              icon: Send,
+              title: t("memberStep2Title"),
+              desc: t("memberStep2Desc"),
+              color: "var(--eco-brand-600)",
+            },
+            {
+              step: "3",
+              icon: CreditCard,
+              title: t("memberStep3Title"),
+              desc: t("memberStep3Desc"),
+              color: "var(--eco-brand-700)",
+            },
+            {
+              step: "4",
+              icon: CheckCircle,
+              title: t("memberStep4Title"),
+              desc: t("memberStep4Desc"),
+              color: "var(--eco-positive)",
+            },
+          ].map((item, idx) => (
+            <Card key={idx} className="relative overflow-hidden">
+              <div
+                className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-bold"
+                style={{ background: item.color + "20", color: item.color }}
+              >
+                {item.step}
+              </div>
+
+              <div className="pt-4">
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+                  style={{ background: item.color + "18" }}
+                >
+                  <item.icon size={22} style={{ color: item.color }} />
+                </div>
+                <h3 className="text-[16px] mb-2 font-medium" style={{ color: "var(--eco-text)" }}>
+                  {item.title}
+                </h3>
+                <p className="text-[13px] leading-relaxed" style={{ color: "var(--eco-text-secondary)" }}>
+                  {item.desc}
+                </p>
+              </div>
+            </Card>
+          ))}
         </div>
       </div>
 

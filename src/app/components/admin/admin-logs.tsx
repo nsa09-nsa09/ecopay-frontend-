@@ -3,14 +3,14 @@ import { AdminLayout } from "./admin-layout";
 import { Shield } from "lucide-react";
 
 const logs = [
-  { time: "2026-04-03 09:30", actor: "admin@ecosplit.kz", action: "Viewed identifier for U-1003 (Timur B.)", reason: "Moderation review MQ-300", type: "REVEAL" },
-  { time: "2026-04-03 09:20", actor: "admin@ecosplit.kz", action: "Confirmed MQ-301 — Room R-2048", reason: "Price verified with Beeline catalog", type: "MODERATION" },
+  { time: "2026-04-03 09:30", actor: "admin@ecopay.kz", action: "Viewed identifier for U-1003 (Timur B.)", reason: "Moderation review MQ-300", type: "REVEAL" },
+  { time: "2026-04-03 09:20", actor: "admin@ecopay.kz", action: "Confirmed MQ-301 — Room R-2048", reason: "Price verified with Beeline catalog", type: "MODERATION" },
   { time: "2026-04-03 09:15", actor: "System", action: "Room R-2048 flagged for moderation (risk: 72)", reason: "Auto-trigger", type: "SYSTEM" },
-  { time: "2026-04-02 14:00", actor: "admin@ecosplit.kz", action: "Blocked room R-2045", reason: "Compliance violation — fake plan listing", type: "BLOCK" },
-  { time: "2026-04-02 11:00", actor: "support@ecosplit.kz", action: "Escalated T-1018 to dispute D-104", reason: "User requests refund, owner unresponsive", type: "ESCALATION" },
-  { time: "2026-04-01 16:00", actor: "admin@ecosplit.kz", action: "Banned user U-1004 (Saule R.)", reason: "Multiple fraud reports confirmed", type: "BAN" },
-  { time: "2026-04-01 10:30", actor: "support@ecosplit.kz", action: "Replied to T-1024", reason: "—", type: "TICKET" },
-  { time: "2026-03-31 09:00", actor: "admin@ecosplit.kz", action: "Initiated refund RF-200 (₸3,200)", reason: "Duplicate charge confirmed", type: "REFUND" },
+  { time: "2026-04-02 14:00", actor: "admin@ecopay.kz", action: "Blocked room R-2045", reason: "Compliance violation — fake plan listing", type: "BLOCK" },
+  { time: "2026-04-02 11:00", actor: "support@ecopay.kz", action: "Escalated T-1018 to dispute D-104", reason: "User requests refund, owner unresponsive", type: "ESCALATION" },
+  { time: "2026-04-01 16:00", actor: "admin@ecopay.kz", action: "Banned user U-1004 (Saule R.)", reason: "Multiple fraud reports confirmed", type: "BAN" },
+  { time: "2026-04-01 10:30", actor: "support@ecopay.kz", action: "Replied to T-1024", reason: "—", type: "TICKET" },
+  { time: "2026-03-31 09:00", actor: "admin@ecopay.kz", action: "Initiated refund RF-200 (₸3,200)", reason: "Duplicate charge confirmed", type: "REFUND" },
 ];
 
 const typeVariant: Record<string, "warning" | "danger" | "info" | "success" | "default"> = {

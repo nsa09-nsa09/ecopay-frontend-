@@ -185,7 +185,7 @@ const CONTRACTS: ScreenContract[] = [
       { name: "selected_method_id", type: "uuid | null", required: false, nullHandling: "Pre-select is_default", example: "pm_a1b2c3" },
       { name: "amount", type: "int (tiyn)", required: true, nullHandling: "—", example: "87250" },
       { name: "currency", type: "string", required: true, nullHandling: "'KZT'", example: "KZT" },
-      { name: "promo_code", type: "string | null", required: false, nullHandling: "No discount applied", example: "ECOSPLIT20" },
+      { name: "promo_code", type: "string | null", required: false, nullHandling: "No discount applied", example: "ECOPAY20" },
       { name: "discount_amount", type: "int (tiyn) | null", required: false, nullHandling: "0", example: "17450" },
       { name: "final_amount", type: "int (tiyn)", required: true, nullHandling: "= amount", example: "69800" },
       { name: "terms_accepted", type: "boolean", required: true, nullHandling: "false → disable pay button", example: "true" },

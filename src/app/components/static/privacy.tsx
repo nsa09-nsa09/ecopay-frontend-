@@ -144,7 +144,7 @@ export function PrivacyPage() {
             Privacy Questions?
           </h3>
           <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-            If you have questions about this privacy policy or how we handle your data, contact us at <strong style={{ color: "var(--eco-primary)" }}>privacy@ecosplit.kz</strong> or through our support system.
+            If you have questions about this privacy policy or how we handle your data, contact us at <strong style={{ color: "var(--eco-primary)" }}>privacy@ecopay.kz</strong> or through our support system.
           </p>
         </div>
       </div>

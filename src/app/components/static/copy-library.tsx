@@ -196,7 +196,7 @@ const COPY_CATEGORIES: CopyCategory[] = [
       { key: "secPrivacyNote", ru: "Мы не передаём ваши данные третьим лицам", kz: "Деректеріңізді үшінші тарапқа бермейміз", en: "We don't share your data with third parties", context: "Privacy reassurance in settings", tone: "reassuring" },
       { key: "secGeoPrivacy", ru: "Координаты не сохраняются и используются только для подбора", kz: "Координаталар сақталмайды және тек таңдау үшін қолданылады", en: "Your coordinates aren't stored — only used for matching", context: "Geolocation privacy note", tone: "reassuring" },
       { key: "secDataEncrypted", ru: "Все данные зашифрованы и защищены", kz: "Барлық деректер шифрланған және қорғалған", en: "All data is encrypted and protected", context: "Security footer note", tone: "reassuring" },
-      { key: "secFraudWarning", ru: "Не делитесь паролем или кодом подтверждения ни с кем, включая сотрудников EcoSplit", kz: "Құпиясөзіңізді немесе растау кодын ешкіммен, соның ішінде EcoSplit қызметкерлерімен бөліспеңіз", en: "Never share your password or verification code with anyone, including EcoSplit staff", context: "Anti-fraud warning in profile/settings", tone: "warning" },
+      { key: "secFraudWarning", ru: "Не делитесь паролем или кодом подтверждения ни с кем, включая сотрудников EcoPay", kz: "Құпиясөзіңізді немесе растау кодын ешкіммен, соның ішінде EcoPay қызметкерлерімен бөліспеңіз", en: "Never share your password or verification code with anyone, including EcoPay staff", context: "Anti-fraud warning in profile/settings", tone: "warning" },
       { key: "secVerifyIdentity", ru: "Подтвердите вашу личность для продолжения", kz: "Жалғаст��ру үшін жеке басыңызды растаңыз", en: "Verify your identity to continue", context: "Step-up auth prompt", tone: "neutral" },
       { key: "secRevealReason", ru: "Для просмотра полных данных укажите причину", kz: "Толық деректерді көру үшін себеп көрсетіңіз", en: "Provide a reason to reveal full data", context: "Admin PII reveal prompt", tone: "neutral" },
     ],
@@ -242,7 +242,7 @@ const COPY_CATEGORIES: CopyCategory[] = [
       { key: "notifDisputeFiled", ru: "Открыт спор по комнате {room}", kz: "{room} бөлмесі бойынша дау ашылды", en: "Dispute opened for room {room}", context: "Dispute filed notification", tone: "warning", placeholders: ["{room}"] },
       { key: "notifDisputeResolved", ru: "Спор #{id} закрыт", kz: "#{id} дау жабылды", en: "Dispute #{id} resolved", context: "Dispute resolution notification", tone: "positive", placeholders: ["{id}"] },
       { key: "notifMaintenance", ru: "Плановые работы {date} с {from} до {to}", kz: "{date} жоспарлы жұмыстар {from}–{to}", en: "Scheduled maintenance on {date}, {from}–{to}", context: "System maintenance notification", tone: "neutral", placeholders: ["{date}", "{from}", "{to}"] },
-      { key: "notifWelcome", ru: "Добро пожаловать в EcoSplit", kz: "EcoSplit-ке қош келдіңіз", en: "Welcome to EcoSplit", context: "First login welcome notification", tone: "celebratory" },
+      { key: "notifWelcome", ru: "Добро пожаловать в EcoPay", kz: "EcoPay-ге қош келдіңіз", en: "Welcome to EcoPay", context: "First login welcome notification", tone: "celebratory" },
     ],
   },
 
@@ -458,7 +458,7 @@ function ToneGuide() {
     { tone: "warning" as Tone, doText: "Be factual and direct. State the consequence clearly.", dontText: "Don't use scary language or ALL CAPS.", example: "Вход с нового устройства → Login from a new device" },
     { tone: "urgent" as Tone, doText: "Lead with the action needed. Make the path clear.", dontText: "Don't panic. Never use 'DANGER' or 'ALERT'.", example: "Это действие нельзя отменить → This can't be undone" },
     { tone: "empathetic" as Tone, doText: "Acknowledge frustration. Take responsibility.", dontText: "Don't deflect ('This is your bank's issue').", example: "Что-то пошло не так → Something went wrong" },
-    { tone: "celebratory" as Tone, doText: "Brief positive moment. Used sparingly for milestones.", dontText: "Don't use for routine actions. No emoji in copy.", example: "Добро пожаловать в EcoSplit → Welcome to EcoSplit" },
+    { tone: "celebratory" as Tone, doText: "Brief positive moment. Used sparingly for milestones.", dontText: "Don't use for routine actions. No emoji in copy.", example: "Добро пожаловать в EcoPay → Welcome to EcoPay" },
   ];
 
   return (
@@ -580,7 +580,7 @@ function PluralGuide() {
 /* ═══════ WRITING RULES ═══════ */
 function WritingRules() {
   const rules = [
-    { icon: Type, title: "Sentence case everywhere", desc: "Capitalize first word only. 'View all rooms' not 'View All Rooms'. Exception: proper nouns (EcoSplit, Beeline)." },
+    { icon: Type, title: "Sentence case everywhere", desc: "Capitalize first word only. 'View all rooms' not 'View All Rooms'. Exception: proper nouns (EcoPay, Beeline)." },
     { icon: Minus, title: "No exclamation marks", desc: "Errors, warnings, and even success messages use periods or no punctuation. Buttons never have punctuation." },
     { icon: Clock, title: "Max 2 sentences per state", desc: "Empty states, errors, confirmations: 1 title + 1 subtitle. Don't write essays in modals." },
     { icon: Zap, title: "Verb-first for buttons", desc: "'Pay now', 'Join room', 'Save changes'. Not 'Payment', 'Room joining', 'Changes'." },

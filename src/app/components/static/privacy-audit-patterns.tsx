@@ -460,7 +460,7 @@ function AuditTrailFrame() {
   const auditEntries = [
     {
       id: "aud-1",
-      actor: "admin@ecosplit.kz",
+      actor: "admin@ecopay.kz",
       role: "Admin",
       roleVariant: "danger" as const,
       timestamp: "2026-04-03 14:22:01",
@@ -480,7 +480,7 @@ function AuditTrailFrame() {
     },
     {
       id: "aud-3",
-      actor: "admin@ecosplit.kz",
+      actor: "admin@ecopay.kz",
       role: "Admin",
       roleVariant: "danger" as const,
       timestamp: "2026-04-02 18:03:12",
@@ -490,7 +490,7 @@ function AuditTrailFrame() {
     },
     {
       id: "aud-4",
-      actor: "admin@ecosplit.kz",
+      actor: "admin@ecopay.kz",
       role: "Admin",
       roleVariant: "danger" as const,
       timestamp: "2026-04-02 11:45:00",

@@ -108,7 +108,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                 <>
                   <div className="fixed inset-0" onClick={() => setProfileOpen(false)} />
                   <div className="absolute right-0 top-10 w-44 rounded-xl p-1 shadow-lg z-50" style={{ background: "var(--eco-bg)", border: "1px solid var(--eco-border)" }}>
-                    <div className="px-3 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>admin@ecosplit.kz</div>
+                    <div className="px-3 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>admin@ecopay.kz</div>
                     <div className="border-t my-1" style={{ borderColor: "var(--eco-border)" }} />
                     <Link
                       to="/admin-login"

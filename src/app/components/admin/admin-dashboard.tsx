@@ -12,10 +12,10 @@ const kpis = [
 
 const recentActivity = [
   { time: "10 min ago", action: "Room #R-2048 flagged for verification", actor: "System" },
-  { time: "25 min ago", action: "User Dana M. ban reviewed by Admin", actor: "admin@ecosplit.kz" },
-  { time: "1h ago", action: "Refund ₸5,199 initiated for Ticket T-1018", actor: "admin@ecosplit.kz" },
-  { time: "2h ago", action: "Dispute D-104 escalated from Ticket T-1018", actor: "support@ecosplit.kz" },
-  { time: "3h ago", action: "Room #R-2045 blocked — compliance review", actor: "admin@ecosplit.kz" },
+  { time: "25 min ago", action: "User Dana M. ban reviewed by Admin", actor: "admin@ecopay.kz" },
+  { time: "1h ago", action: "Refund ₸5,199 initiated for Ticket T-1018", actor: "admin@ecopay.kz" },
+  { time: "2h ago", action: "Dispute D-104 escalated from Ticket T-1018", actor: "support@ecopay.kz" },
+  { time: "3h ago", action: "Room #R-2045 blocked — compliance review", actor: "admin@ecopay.kz" },
 ];
 
 const quickStats = [

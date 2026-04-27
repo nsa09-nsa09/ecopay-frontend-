@@ -8,7 +8,7 @@ export function AboutPage() {
       <div className="py-16 px-6" style={{ background: "var(--eco-surface)" }}>
         <div className="max-w-[800px] mx-auto">
           <h1 className="text-[32px] sm:text-[40px] tracking-tight mb-4" style={{ color: "var(--eco-text)" }}>
-            About EcoSplit
+            About EcoPay
           </h1>
           <p className="text-[16px]" style={{ color: "var(--eco-text-secondary)" }}>
             Kazakhstan's trusted platform for shared telecom plans
@@ -28,7 +28,7 @@ export function AboutPage() {
             <div>
               <h2 className="text-[20px] mb-2" style={{ color: "var(--eco-text)" }}>Our Mission</h2>
               <p className="text-[14px] leading-relaxed" style={{ color: "var(--eco-text-secondary)" }}>
-                EcoSplit makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly bill—no contracts, no hassle.
+                EcoPay makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly bill—no contracts, no hassle.
               </p>
             </div>
           </div>
@@ -98,7 +98,7 @@ export function AboutPage() {
             <div className="flex items-start gap-3">
               <Mail size={18} className="mt-0.5 shrink-0" style={{ color: "var(--eco-primary)" }} />
               <div>
-                <p className="text-[14px]" style={{ color: "var(--eco-text)" }}>support@ecosplit.kz</p>
+                <p className="text-[14px]" style={{ color: "var(--eco-text)" }}>support@ecopay.kz</p>
               </div>
             </div>
 

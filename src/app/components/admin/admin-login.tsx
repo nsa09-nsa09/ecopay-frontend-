@@ -21,7 +21,7 @@ export function AdminLoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-[32px] tracking-tight mb-1" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
-            <span style={{ color: "var(--eco-primary)" }}>Eco</span>Split Portal
+            <span style={{ color: "var(--eco-primary)" }}>Eco</span>Pay Portal
           </div>
           <div className="text-[14px]" style={{ color: "var(--eco-text-tertiary)" }}>
             Administration & Support
@@ -54,7 +54,7 @@ export function AdminLoginPage() {
           <Input
             label="Email"
             type="email"
-            placeholder="admin@ecosplit.kz"
+            placeholder="admin@ecopay.kz"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -105,7 +105,7 @@ export function AdminLoginPage() {
           <div className="text-[13px] flex flex-col gap-1" style={{ color: "var(--eco-text)" }}>
             <div>
               <span style={{ color: "var(--eco-text-secondary)" }}>Login: </span>
-              <span style={{ fontFamily: "monospace" }}>admin@ecosplit.kz</span>
+              <span style={{ fontFamily: "monospace" }}>admin@ecopay.kz</span>
             </div>
             <div>
               <span style={{ color: "var(--eco-text-secondary)" }}>Password: </span>
@@ -118,7 +118,7 @@ export function AdminLoginPage() {
         </div>
 
         <div className="text-center mt-6 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-          © 2026 EcoSplit · Almaty, Kazakhstan
+          © 2026 EcoPay · Almaty, Kazakhstan
         </div>
       </div>
     </div>

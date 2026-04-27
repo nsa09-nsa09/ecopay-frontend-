@@ -170,7 +170,7 @@ export function I18nTypographyFixPage() {
               </div>
               <div className="flex items-baseline gap-3">
                 <span className="text-[12px] w-16 shrink-0" style={{ color: "var(--eco-text-tertiary)" }}>16px</span>
-                <span style={{ fontSize: "16px", color: "var(--eco-text)", lineHeight: 1.6 }}>Body text — base reading size for EcoSplit</span>
+                <span style={{ fontSize: "16px", color: "var(--eco-text)", lineHeight: 1.6 }}>Body text — base reading size for EcoPay</span>
               </div>
               <div className="flex items-baseline gap-3">
                 <span className="text-[12px] w-16 shrink-0" style={{ color: "var(--eco-text-tertiary)" }}>14px</span>
@@ -331,7 +331,7 @@ export function I18nTypographyFixPage() {
                 <div className="text-[12px] mb-2" style={{ color: "var(--eco-positive)" }}>AFTER (compact, no overflow)</div>
                 <div className="rounded-xl overflow-hidden" style={{ border: "2px solid var(--eco-positive)" }}>
                   <div className="p-3 flex items-center justify-between" style={{ background: "var(--eco-bg)", borderBottom: "1px solid var(--eco-border)" }}>
-                    <span className="text-[24px]" style={{ color: "var(--eco-text)", fontWeight: 700 }}><span style={{ color: "var(--eco-primary)" }}>Eco</span>Split</span>
+                    <span className="text-[24px]" style={{ color: "var(--eco-text)", fontWeight: 700 }}><span style={{ color: "var(--eco-primary)" }}>Eco</span>Pay</span>
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--eco-surface)" }}>
                         <Search size={16} style={{ color: "var(--eco-text-secondary)" }} />

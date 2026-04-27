@@ -1,7 +1,7 @@
-# EcoSplit: Reputation & Reviews Module — Implementation Summary
+# EcoPay: Reputation & Reviews Module — Implementation Summary
 
 ## Overview
-Successfully implemented the complete **Reputation & Reviews** module for the EcoSplit application, featuring public user profiles, review eligibility rules, leave review functionality, and reputation explanation system.
+Successfully implemented the complete **Reputation & Reviews** module for the EcoPay application, featuring public user profiles, review eligibility rules, leave review functionality, and reputation explanation system.
 
 **Access URL**: `/user/:id` (e.g., `/user/user-123`)
 
