@@ -1,6 +1,7 @@
 import { Card, Badge } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { ShieldCheck, Scale, Undo2, MessageSquare, Ban, Users, Home, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { GapBanner } from "../../../lib/ui/GapBanner";
 
 const kpis = [
   { label: "Moderation Queue", value: "3", change: "+1", up: true, icon: ShieldCheck, variant: "warning" as const },
@@ -28,6 +29,7 @@ export function AdminDashboardPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
+        <GapBanner label="AdminDashboardController is not implemented yet — KPIs and charts shown below are mock." />
         <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>Dashboard</h1>
 
         {/* KPI cards */}

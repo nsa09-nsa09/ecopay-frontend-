@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, Button, Badge, Modal, RoomStatusBadge } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { ShieldX, ShieldCheck, Eye, EyeOff, Shield, Clock, CheckCircle2, AlertTriangle, Users, Calendar, Lock } from "lucide-react";
+import { GapBanner } from "../../../lib/ui/GapBanner";
 
 type RoomEvent = { time: string; action: string; actor: string };
 
@@ -79,6 +80,7 @@ export function AdminRoomsPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
+        <GapBanner label="Full admin rooms list endpoint is not implemented yet — only moderation queue is available; data shown is mock." />
         <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>Rooms</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

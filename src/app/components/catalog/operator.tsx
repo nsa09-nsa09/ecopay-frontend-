@@ -1,7 +1,10 @@
 import { useParams, Link } from "react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, Badge, Pill, Button, Select, RoomStatusBadge, EmptyState, Tabs, WaveDivider } from "../ds-primitives";
 import { ArrowLeft, Users, Star, Filter } from "lucide-react";
+import { catalogApi } from "../../../lib/api/catalog";
+import { roomsApi } from "../../../lib/api/rooms";
 
 interface Plan {
   id: string;
@@ -89,11 +92,57 @@ const operatorData: Record<string, { name: string; color: string; plans: Plan[];
 
 export function OperatorPage() {
   const { id } = useParams<{ id: string }>();
-  const op = operatorData[id || ""] || operatorData.beeline;
   const [tab, setTab] = useState("Plans");
   const [priceFilter, setPriceFilter] = useState("all");
 
-  const noPlans = op.plans.length === 0;
+  const serviceQuery = useQuery({
+    queryKey: ["catalog", "service", id],
+    queryFn: () => catalogApi.service(id!),
+    enabled: Boolean(id),
+  });
+  const tariffsQuery = useQuery({
+    queryKey: ["catalog", "tariffs", id],
+    queryFn: () => catalogApi.tariffs(id!),
+    enabled: Boolean(id),
+  });
+  const roomsQuery = useQuery({
+    queryKey: ["rooms", "byService", id],
+    queryFn: () => roomsApi.list({ serviceId: id! }),
+    enabled: Boolean(id),
+  });
+
+  const fallback = operatorData[id || ""] || { name: "—", color: "#888", plans: [], rooms: [] };
+
+  const op = useMemo(() => {
+    const tariffs = tariffsQuery.data ?? [];
+    const rooms = roomsQuery.data ?? [];
+    const name = serviceQuery.data?.name ?? fallback.name;
+    return {
+      name,
+      color: fallback.color,
+      plans: tariffs.map<Plan>((t) => ({
+        id: t.id,
+        name: t.name,
+        persons: t.seats,
+        price: t.price,
+        perPerson: t.seats > 0 ? Math.round(t.price / t.seats) : t.price,
+        tags: t.features ?? [],
+      })),
+      rooms: rooms.map<Room>((r) => ({
+        id: String(r.id),
+        plan: r.serviceName ?? r.name,
+        owner: "—",
+        rating: 0,
+        seats: r.seats,
+        filled: r.filled,
+        price: r.pricePerMember,
+        status: r.status,
+      })),
+    };
+  }, [serviceQuery.data, tariffsQuery.data, roomsQuery.data, fallback]);
+
+  const isLoading = serviceQuery.isLoading || tariffsQuery.isLoading;
+  const noPlans = !isLoading && op.plans.length === 0;
 
   return (
     <div className="max-w-[1200px] mx-auto px-6 py-8">

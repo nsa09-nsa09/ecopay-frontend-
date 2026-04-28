@@ -1,33 +1,80 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Card, Badge, Button, RoomStatusBadge, Modal, Input, Stepper, WaveDivider } from "../ds-primitives";
 import { ArrowLeft, Users, Star, Calendar, Shield, AlertTriangle, Check, Clock, Eye, EyeOff } from "lucide-react";
+import { roomsApi, roomMembersApi } from "../../../lib/api/rooms";
+import { ApiError } from "../../../lib/api/client";
+import { useAuth } from "../../../lib/auth/AuthContext";
 
 export function RoomDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { user } = useAuth();
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinStep, setJoinStep] = useState(0);
   const [consent, setConsent] = useState(false);
+  const [identifier, setIdentifier] = useState("");
   const [joinDone, setJoinDone] = useState(false);
 
-  const room = {
-    plan: "Beeline Family 4",
-    operator: "Beeline",
-    status: "OPEN",
-    seats: 4,
-    filled: 3,
-    priceTotal: 19999,
-    perMember: 5000,
-    serviceFee: 199,
-    startDate: "2026-04-15",
-    owner: { name: "Aidar K.", rating: 4.8, rooms: 5, joined: "Jan 2026" },
-    cancellation: "Members can leave with 15-day notice before next billing cycle. Owner must maintain room for committed period.",
-    accessMethod: "eSIM / Operator account invite",
-  };
+  const roomQuery = useQuery({
+    queryKey: ["rooms", "detail", id],
+    queryFn: () => roomsApi.get(id!),
+    enabled: Boolean(id),
+  });
+  const r = roomQuery.data;
+
+  const SERVICE_FEE = 199;
+
+  const room = r
+    ? {
+        plan: r.name,
+        operator: r.operator ?? "—",
+        status: r.status,
+        seats: r.seats,
+        filled: r.filled,
+        priceTotal: r.pricePerMember * r.seats,
+        perMember: r.pricePerMember,
+        serviceFee: SERVICE_FEE,
+        startDate: r.startDate ?? "—",
+        owner: {
+          name: r.ownerId === user?.id ? "You" : "Owner",
+          rating: 0,
+          rooms: 0,
+          joined: "—",
+        },
+        cancellation:
+          "Members can leave with 15-day notice before next billing cycle. Owner must maintain room for committed period.",
+        accessMethod: "eSIM / Operator account invite",
+      }
+    : null;
+
+  const joinMutation = useMutation({
+    mutationFn: () => roomMembersApi.join(id!, { message: identifier }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rooms"] });
+      setJoinDone(true);
+      toast.success("Application submitted");
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof ApiError ? err.message : "Failed to join";
+      toast.error(msg);
+    },
+  });
+
+  if (roomQuery.isLoading) {
+    return <div className="max-w-[1200px] mx-auto px-6 py-8 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>Loading...</div>;
+  }
+  if (!room) {
+    return <div className="max-w-[1200px] mx-auto px-6 py-8 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>Room not found.</div>;
+  }
 
   return (
     <div className="max-w-[1200px] mx-auto px-6 py-8">
-      <Link to="/operator/beeline" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
-        <ArrowLeft size={14} /> Beeline
+      <Link to="/" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
+        <ArrowLeft size={14} /> Catalog
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -146,7 +193,13 @@ export function RoomDetailPage() {
 
             {joinStep === 0 && (
               <div className="flex flex-col gap-4">
-                <Input label="Telecom Identifier" placeholder="Phone number or contract ID" hint="e.g. +7 (707) 123-45-67" />
+                <Input
+                  label="Telecom Identifier"
+                  placeholder="Phone number or contract ID"
+                  hint="e.g. +7 (707) 123-45-67"
+                  value={identifier}
+                  onChange={(e: any) => setIdentifier(e.target.value)}
+                />
                 <label className="flex items-start gap-2 cursor-pointer">
                   <input type="checkbox" className="mt-0.5" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
                   <span className="text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
@@ -182,8 +235,13 @@ export function RoomDetailPage() {
                     <span style={{ color: "var(--eco-primary)" }}>₸5,199</span>
                   </div>
                 </Card>
-                <Button variant="primary" className="w-full" onClick={() => setJoinDone(true)}>
-                  Proceed to Payment
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  disabled={joinMutation.isPending}
+                  onClick={() => joinMutation.mutate()}
+                >
+                  {joinMutation.isPending ? "Submitting..." : "Submit Application"}
                 </Button>
                 <p className="text-[11px] text-center" style={{ color: "var(--eco-text-tertiary)" }}>
                   Payment processing is handled by a secure third-party provider
@@ -200,7 +258,7 @@ export function RoomDetailPage() {
             <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
               Your status is now <Badge variant="warning">PENDING</Badge>. The owner will grant access within 48h.
             </div>
-            <Button variant="secondary" className="mt-2" onClick={() => setJoinOpen(false)}>View My Status</Button>
+            <Button variant="secondary" className="mt-2" onClick={() => { setJoinOpen(false); navigate(`/rooms/member/${id}`); }}>View My Status</Button>
           </div>
         )}
       </Modal>

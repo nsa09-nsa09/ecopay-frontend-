@@ -1,17 +1,25 @@
 import { useState } from "react";
-import { Outlet, Link, useLocation } from "react-router";
+import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { Button, LanguageSwitcher, WaveDivider } from "./ds-primitives";
 import { User, Menu, X, Search } from "lucide-react";
 import { useI18n } from "./i18n-provider";
+import { useAuth } from "../../lib/auth/AuthContext";
 
 export function AppLayout() {
   const { language, setLanguage, t } = useI18n();
   const [mobileMenu, setMobileMenu] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, logout, role } = useAuth();
+  const isLoggedIn = isAuthenticated;
 
-  const isAuth = location.pathname.startsWith("/login") || location.pathname.startsWith("/register") || location.pathname.startsWith("/forgot");
-  const isLoggedIn = !isAuth && !location.pathname.startsWith("/login");
+  async function handleSignOut() {
+    setProfileOpen(false);
+    setMobileMenu(false);
+    await logout();
+    navigate("/login", { replace: true });
+  }
 
   const navItems = [
     { label: t("catalog"), path: "/" },
@@ -114,15 +122,24 @@ export function AppLayout() {
                           {item.label}
                         </Link>
                       ))}
+                      {(role === "ADMIN" || role === "STAFF") && (
+                        <Link
+                          to="/admin/dashboard"
+                          onClick={() => setProfileOpen(false)}
+                          className="block px-3 py-2 rounded-lg text-[13px]"
+                          style={{ color: "var(--eco-text-secondary)", textDecoration: "none" }}
+                        >
+                          Admin
+                        </Link>
+                      )}
                       <div className="border-t my-1" style={{ borderColor: "var(--eco-border)" }} />
-                      <Link
-                        to="/login"
-                        onClick={() => setProfileOpen(false)}
-                        className="block px-3 py-2 rounded-lg text-[13px]"
-                        style={{ color: "var(--eco-negative)", textDecoration: "none" }}
+                      <button
+                        onClick={handleSignOut}
+                        className="block w-full text-left px-3 py-2 rounded-lg text-[13px] cursor-pointer"
+                        style={{ color: "var(--eco-negative)", background: "transparent", border: 0 }}
                       >
                         {t("signOut")}
-                      </Link>
+                      </button>
                     </div>
                   </>
                 )}
@@ -193,9 +210,13 @@ export function AppLayout() {
                   <Link to="/profile" onClick={() => setMobileMenu(false)} className="block px-3 py-2 rounded-lg text-[14px]" style={{ color: "var(--eco-text-secondary)", textDecoration: "none" }}>
                     {t("profile")}
                   </Link>
-                  <Link to="/login" onClick={() => setMobileMenu(false)} className="block px-3 py-2 rounded-lg text-[14px] mt-1" style={{ color: "var(--eco-negative)", textDecoration: "none" }}>
+                  <button
+                    onClick={handleSignOut}
+                    className="block w-full text-left px-3 py-2 rounded-lg text-[14px] mt-1 cursor-pointer"
+                    style={{ color: "var(--eco-negative)", background: "transparent", border: 0 }}
+                  >
                     {t("signOut")}
-                  </Link>
+                  </button>
                 </div>
               </>
             ) : (

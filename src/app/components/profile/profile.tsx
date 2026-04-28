@@ -1,28 +1,41 @@
 import { useState } from "react";
 import { Card, Badge, Button, Tabs, EmptyState } from "../ds-primitives";
 import { Star, Shield, Users, Calendar, Lock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "../../../lib/auth/AuthContext";
+import { roomsApi } from "../../../lib/api/rooms";
 
 export function ProfilePage() {
   const [tab, setTab] = useState("Overview");
+  const { user } = useAuth();
+  const myRoomsQuery = useQuery({
+    queryKey: ["rooms", "my"],
+    queryFn: () => roomsApi.myMemberships(),
+    enabled: Boolean(user),
+  });
+
+  const memberships = myRoomsQuery.data ?? [];
+  const roomsCreated = memberships.filter((m) => m.myRole === "OWNER").length;
+  const roomsJoined = memberships.filter((m) => m.myRole === "MEMBER").length;
+
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.email || "—";
+  const initials = (fullName.match(/[A-ZА-Я]/gi) ?? ["U"]).slice(0, 2).join("").toUpperCase();
 
   const profile = {
-    name: "Aidar K.",
-    email: "aidar@example.com",
-    joined: "January 2026",
-    rating: 4.8,
-    reputation: 92,
-    roomsCreated: 3,
-    roomsJoined: 5,
-    reviewsCount: 7,
+    name: fullName,
+    email: user?.email ?? "",
+    joined: user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—",
+    rating: user?.ratingScore ?? 0,
+    reputation: Math.round((user?.ratingScore ?? 0) * 20),
+    roomsCreated,
+    roomsJoined,
+    reviewsCount: 0,
   };
 
-  const reviews = [
-    { id: "1", from: "Dana M.", rating: 5, text: "Great owner, fast access activation.", room: "Beeline Family 4", date: "2026-03-15", eligible: true },
-    { id: "2", from: "Timur B.", rating: 4, text: "Good communication, smooth process.", room: "Activ Family 5", date: "2026-02-20", eligible: true },
-    { id: "3", from: "Asel N.", rating: 5, text: "Very reliable. Recommended.", room: "Beeline Duo", date: "2026-01-10", eligible: true },
-  ];
+  // TODO: подключить, когда появится ReputationController (см. gap-list)
+  const reviews: { id: string; from: string; rating: number; text: string; room: string; date: string; eligible: boolean }[] = [];
 
-  const pendingReview = { room: "Altel Family 4", endDate: "2026-05-01", eligible: false };
+  const pendingReview = { room: "—", endDate: "—", eligible: false };
 
   return (
     <div className="max-w-[1200px] mx-auto px-6 py-8">
@@ -33,7 +46,7 @@ export function ProfilePage() {
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col items-center text-center gap-4">
             <div className="w-16 h-16 rounded-full flex items-center justify-center text-[20px]" style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)" }}>
-              AK
+              {initials}
             </div>
             <div>
               <div className="text-[16px]" style={{ color: "var(--eco-text)" }}>{profile.name}</div>
@@ -103,7 +116,16 @@ export function ProfilePage() {
             </div>
           )}
 
-          {tab === "Reviews" && (
+          {tab === "Reviews" && reviews.length === 0 && (
+            <div className="mt-6">
+              <EmptyState
+                title="Reviews module coming soon"
+                description="Reputation API on the backend is not yet implemented (see gap-list)."
+              />
+            </div>
+          )}
+
+          {tab === "Reviews" && reviews.length > 0 && (
             <div className="mt-6 flex flex-col gap-4">
               {/* Pending review - disabled */}
               <Card className="opacity-60">

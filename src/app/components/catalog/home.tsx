@@ -3,20 +3,42 @@ import { Card, Badge, WaveDivider } from "../ds-primitives";
 import { Smartphone, Wifi, Tv, Music, Sparkles, Bot, Lock, UserPlus, CreditCard, CheckCircle, Search, Send, ShieldCheck } from "lucide-react";
 import { DigitalSubscriptionsAvailable } from "./digital-subscriptions";
 import { useI18n } from "../i18n-provider";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { catalogApi } from "../../../lib/api/catalog";
 
-const operators = [
-  { id: "beeline", name: "Beeline", plans: 4, rooms: 12, color: "#FFB800" },
-  { id: "activ", name: "Activ", plans: 5, rooms: 8, color: "#9B59B6" },
-  { id: "altel", name: "Altel", plans: 3, rooms: 6, color: "#E74C3C" },
-  { id: "tele2", name: "Tele2", plans: 3, rooms: 5, color: "#1A1A2E" },
-  { id: "kcell", name: "Kcell", plans: 0, rooms: 0, color: "#00A651" },
-];
+const OPERATOR_COLORS: Record<string, string> = {
+  beeline: "#FFB800",
+  activ: "#9B59B6",
+  altel: "#E74C3C",
+  tele2: "#1A1A2E",
+  kcell: "#00A651",
+};
 
 export function HomePage() {
   const { t } = useI18n();
   const [activeGuide, setActiveGuide] = useState<"owners" | "members">("owners");
-  
+
+  const servicesQuery = useQuery({
+    queryKey: ["catalog", "services", "mobile"],
+    queryFn: () => catalogApi.services({ categoryId: "mobile" }),
+  });
+
+  const operators = useMemo(() => {
+    const list = servicesQuery.data ?? [];
+    return list.map((s) => {
+      const id = s.id;
+      const slug = s.operator?.toLowerCase() ?? "";
+      return {
+        id,
+        name: s.name,
+        plans: 0,
+        rooms: 0,
+        color: OPERATOR_COLORS[slug] ?? "var(--eco-primary)",
+      };
+    });
+  }, [servicesQuery.data]);
+
   const comingSoon = [
     { name: t("videoStreaming"), icon: Tv, desc: "Netflix, IVI, Кинопоиск" },
     { name: t("music"), icon: Music, desc: "Spotify, Яндекс Музыка" },

@@ -1,21 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Card, Button, Tabs, RoomStatusBadge, MemberStatusBadge, Badge, EmptyState, Select } from "../ds-primitives";
 import { Plus, Users, Clock, ArrowRight, Calendar, Filter, ChevronDown, ChevronUp } from "lucide-react";
-
-// ─── Mock Data ───
-const joinedRooms = [
-  { id: "r1", name: "Beeline Family 4", operator: "Beeline", status: "PENDING", myStatus: "PENDING", startDate: "2026-04-15", seats: 4, filled: 3, perMember: 5000 },
-  { id: "r2", name: "Activ Family 5", operator: "Activ", status: "ACTIVE", myStatus: "ACTIVE", startDate: "2026-03-01", seats: 5, filled: 5, perMember: 3200 },
-  { id: "r4", name: "Tele2 Duo", operator: "Tele2", status: "COMPLETED", myStatus: "ACTIVE", startDate: "2025-12-01", seats: 2, filled: 2, perMember: 4500 },
-  { id: "r5", name: "Kcell Group 3", operator: "Kcell", status: "BLOCKED", myStatus: "BLOCKED", startDate: "2026-02-01", seats: 3, filled: 2, perMember: 3800 },
-];
-
-const createdRooms = [
-  { id: "r3", name: "Beeline Family 4", operator: "Beeline", status: "OPEN", startDate: "2026-04-15", seats: 4, filled: 3, applicants: 1, perMember: 5000 },
-  { id: "r6", name: "Altel Family 6", operator: "Altel", status: "IN_VERIFICATION", startDate: "2026-04-20", seats: 6, filled: 1, applicants: 3, perMember: 2800 },
-  { id: "r7", name: "Activ Duo", operator: "Activ", status: "ACTIVE", startDate: "2026-03-10", seats: 2, filled: 2, applicants: 0, perMember: 6000 },
-];
+import { roomsApi } from "../../../lib/api/rooms";
+import { useAuth } from "../../../lib/auth/AuthContext";
 
 const STATUS_OPTIONS = [
   { value: "ALL", label: "All statuses" },
@@ -40,6 +29,50 @@ export function MyRoomsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [operatorFilter, setOperatorFilter] = useState("ALL");
+  const { user } = useAuth();
+
+  const myQuery = useQuery({
+    queryKey: ["rooms", "my"],
+    queryFn: () => roomsApi.myMemberships(),
+    enabled: Boolean(user),
+  });
+  const all = myQuery.data ?? [];
+
+  const joinedRooms = useMemo(
+    () =>
+      all
+        .filter((r) => r.ownerId !== user?.id)
+        .map((r) => ({
+          id: String(r.id),
+          name: r.name,
+          operator: r.operator ?? "—",
+          status: r.status,
+          myStatus: r.myStatus ?? "PENDING",
+          startDate: r.startDate ?? "",
+          seats: r.seats,
+          filled: r.filled,
+          perMember: r.pricePerMember,
+        })),
+    [all, user?.id],
+  );
+
+  const createdRooms = useMemo(
+    () =>
+      all
+        .filter((r) => r.ownerId === user?.id)
+        .map((r) => ({
+          id: String(r.id),
+          name: r.name,
+          operator: r.operator ?? "—",
+          status: r.status,
+          startDate: r.startDate ?? "",
+          seats: r.seats,
+          filled: r.filled,
+          applicants: 0,
+          perMember: r.pricePerMember,
+        })),
+    [all, user?.id],
+  );
 
   const filteredJoined = joinedRooms.filter((r) => {
     if (statusFilter !== "ALL" && r.status !== statusFilter) return false;

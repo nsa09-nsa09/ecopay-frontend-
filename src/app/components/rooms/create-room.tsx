@@ -1,21 +1,80 @@
-import { useState } from "react";
-import { Link } from "react-router";
+import { useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Card, Button, Input, Select, Stepper, Badge } from "../ds-primitives";
 import { ArrowLeft, AlertTriangle, Lock, Check, Shield, Info } from "lucide-react";
+import { catalogApi } from "../../../lib/api/catalog";
+import { roomsApi } from "../../../lib/api/rooms";
+import { ApiError } from "../../../lib/api/client";
 
 const stepLabels = ["Operator & Plan", "Room Settings", "Access Method", "Review"];
 
 export function CreateRoomPage() {
   const [step, setStep] = useState(0);
-  const [operator, setOperator] = useState("beeline");
-  const [plan, setPlan] = useState("family4");
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [params] = useSearchParams();
+
+  const servicesQuery = useQuery({
+    queryKey: ["catalog", "services"],
+    queryFn: () => catalogApi.services(),
+  });
+
+  const [serviceId, setServiceId] = useState(params.get("serviceId") ?? "");
+  const [tariffId, setTariffId] = useState(params.get("tariffId") ?? "");
+
+  const tariffsQuery = useQuery({
+    queryKey: ["catalog", "tariffs", serviceId],
+    queryFn: () => catalogApi.tariffs(serviceId),
+    enabled: Boolean(serviceId),
+  });
+
+  const services = servicesQuery.data ?? [];
+  const tariffs = tariffsQuery.data ?? [];
+  const selectedTariff = useMemo(
+    () => tariffs.find((t) => t.id === tariffId),
+    [tariffs, tariffId],
+  );
+
   const [seats, setSeats] = useState("4");
   const [priceModel, setPriceModel] = useState("total");
   const [totalPrice, setTotalPrice] = useState("19999");
-  const [startDate, setStartDate] = useState("2026-04-15");
+  const [startDate, setStartDate] = useState("");
   const [access, setAccess] = useState("esim");
   const [confirmed, setConfirmed] = useState(false);
   const [published, setPublished] = useState(false);
+
+  // Sync seats/price defaults when tariff selected
+  useMemo(() => {
+    if (selectedTariff) {
+      setSeats(String(selectedTariff.seats));
+      setTotalPrice(String(selectedTariff.price));
+    }
+  }, [selectedTariff]);
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      roomsApi.create({
+        serviceId,
+        tariffPlanId: tariffId,
+        name: selectedTariff
+          ? `${services.find((s) => s.id === serviceId)?.name ?? ""} ${selectedTariff.name}`.trim()
+          : "Room",
+        startDate: startDate || undefined,
+      }),
+    onSuccess: (room) => {
+      qc.invalidateQueries({ queryKey: ["rooms"] });
+      toast.success("Room published");
+      setPublished(true);
+      // Send to owner detail
+      setTimeout(() => navigate(`/rooms/owner/${room.id}`), 600);
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof ApiError ? err.message : "Failed to create room";
+      toast.error(msg);
+    },
+  });
 
   if (published) {
     return (
@@ -75,28 +134,32 @@ export function CreateRoomPage() {
             <Select
               label="Operator / Provider"
               options={[
-                { value: "beeline", label: "Beeline" },
-                { value: "activ", label: "Activ" },
-                { value: "altel", label: "Altel" },
-                { value: "tele2", label: "Tele2" },
+                { value: "", label: services.length ? "Select operator" : "Loading..." },
+                ...services.map((s) => ({ value: s.id, label: s.name })),
               ]}
-              value={operator}
-              onChange={(e) => setOperator(e.target.value)}
+              value={serviceId}
+              onChange={(e) => { setServiceId(e.target.value); setTariffId(""); }}
             />
             <Select
               label="Plan Type"
               options={[
-                { value: "family4", label: "Family 4 — ₸19,999/mo" },
-                { value: "family6", label: "Family 6 — ₸23,999/mo" },
-                { value: "duo", label: "Duo Bundle — ₸15,999/mo" },
+                { value: "", label: tariffs.length ? "Select plan" : (serviceId ? "Loading..." : "Pick operator first") },
+                ...tariffs.map((t) => ({ value: t.id, label: `${t.name} — ₸${t.price.toLocaleString()}/mo (${t.seats} seats)` })),
               ]}
-              value={plan}
-              onChange={(e) => setPlan(e.target.value)}
+              value={tariffId}
+              onChange={(e) => setTariffId(e.target.value)}
             />
             <div className="text-[12px] p-3 rounded-lg" style={{ background: "var(--eco-brand-50)", color: "var(--eco-text-secondary)" }}>
               Tip: Choose the exact plan from your operator. Incorrect plan details may cause verification issues.
             </div>
-            <Button variant="primary" className="w-full" onClick={() => setStep(1)}>Continue</Button>
+            <Button
+              variant="primary"
+              className="w-full"
+              onClick={() => setStep(1)}
+              disabled={!serviceId || !tariffId}
+            >
+              Continue
+            </Button>
           </Card>
         )}
 
@@ -188,7 +251,14 @@ export function CreateRoomPage() {
             <div className="border-t pt-3" style={{ borderColor: "var(--eco-border)" }} />
             <div className="flex gap-3">
               <Button variant="ghost" onClick={() => setStep(2)}>Back</Button>
-              <Button variant="primary" className="flex-1" onClick={() => setPublished(true)}>Publish Room</Button>
+              <Button
+                variant="primary"
+                className="flex-1"
+                disabled={createMutation.isPending}
+                onClick={() => createMutation.mutate()}
+              >
+                {createMutation.isPending ? "Publishing..." : "Publish Room"}
+              </Button>
             </div>
           </Card>
         )}

@@ -1,6 +1,8 @@
 import { createBrowserRouter } from "react-router";
 import { RootLayout } from "./components/root-layout";
 import { AppLayout } from "./components/layout";
+import { ProtectedRoute } from "../lib/auth/ProtectedRoute";
+import { RoleRoute } from "../lib/auth/RoleRoute";
 import { HomePage } from "./components/catalog/home";
 import { OperatorPage } from "./components/catalog/operator";
 import { LoginPage } from "./components/auth/login";
@@ -70,26 +72,31 @@ export const router = createBrowserRouter([
           { path: "register", Component: RegisterPage },
           { path: "forgot-password", Component: ForgotPasswordPage },
           { path: "room/:id", Component: RoomDetailPage },
-          { path: "rooms", Component: MyRoomsPage },
-          { path: "rooms/create", Component: CreateRoomPage },
-          { path: "rooms/member/:id", Component: MemberDetailPage },
-          { path: "rooms/owner/:id", Component: OwnerDetailPage },
-          { path: "rooms/full", Component: RoomFullPage },
-          { path: "rooms/payment-failed", Component: PaymentFailedPage },
-          { path: "rooms/blocked", Component: RoomBlockedPage },
-          { path: "profile", Component: ProfilePage },
-          { path: "support", Component: SupportPage },
-          { path: "support/new", Component: NewTicketPage },
+          {
+            element: <ProtectedRoute />,
+            children: [
+              { path: "rooms", Component: MyRoomsPage },
+              { path: "rooms/create", Component: CreateRoomPage },
+              { path: "rooms/member/:id", Component: MemberDetailPage },
+              { path: "rooms/owner/:id", Component: OwnerDetailPage },
+              { path: "rooms/full", Component: RoomFullPage },
+              { path: "rooms/payment-failed", Component: PaymentFailedPage },
+              { path: "rooms/blocked", Component: RoomBlockedPage },
+              { path: "profile", Component: ProfilePage },
+              { path: "support", Component: SupportPage },
+              { path: "support/new", Component: NewTicketPage },
+              { path: "payment/room", Component: PaymentRoomDetailsPage },
+              { path: "payment/checkout", Component: PaymentCheckoutPage },
+              { path: "payment/confirmation", Component: PaymentConfirmationPage },
+              { path: "payment/pending", Component: PaymentPendingPage },
+              { path: "payment/refund", Component: RefundStatusPage },
+              { path: "payment/payout", Component: OwnerPayoutPage },
+            ],
+          },
           { path: "about", Component: AboutPage },
           { path: "terms", Component: TermsPage },
           { path: "privacy", Component: PrivacyPage },
           { path: "how-it-works", Component: HowItWorksPage },
-          { path: "payment/room", Component: PaymentRoomDetailsPage },
-          { path: "payment/checkout", Component: PaymentCheckoutPage },
-          { path: "payment/confirmation", Component: PaymentConfirmationPage },
-          { path: "payment/pending", Component: PaymentPendingPage },
-          { path: "payment/refund", Component: RefundStatusPage },
-          { path: "payment/payout", Component: OwnerPayoutPage },
           { path: "user/:id", Component: PublicUserProfilePage },
           { path: "i18n-typography", Component: I18nTypographyFixPage },
           { path: "states-sla", Component: StatesSlaEdgeCasesPage },
@@ -116,6 +123,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "admin",
+        element: <RoleRoute roles={["ADMIN", "STAFF"]} />,
         children: [
           { path: "dashboard", Component: AdminDashboardPage },
           { path: "moderation", Component: AdminModerationPage },
