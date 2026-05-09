@@ -3,19 +3,27 @@ import type {
   ConfirmOwnerAccessRequest,
   CreateRoomRequest,
   JoinRoomRequest,
+  PagedResponse,
   PageParams,
   RevealIdentifierRequest,
   RevealedIdentifierDto,
   RoomMemberDto,
   RoomResponse,
+  RoomSummaryDto,
   UpdateRoomRequest,
 } from "./types";
 
 export const roomsApi = {
-  list: (params?: PageParams & { status?: string; serviceId?: string; query?: string }) =>
-    apiGet<RoomResponse[]>("/rooms", { params }),
-  myMemberships: () =>
-    apiGet<RoomResponse[]>("/rooms", { params: { mine: true } }),
+  list: (params?: PageParams & {
+    status?: string;
+    roomType?: string;
+    categoryId?: number;
+    serviceId?: number | string;
+    sortBy?: string;
+    sortDir?: "asc" | "desc";
+  }) => apiGet<PagedResponse<RoomSummaryDto>>("/rooms", { params }),
+  myMemberships: (params?: PageParams) =>
+    apiGet<PagedResponse<RoomSummaryDto>>("/rooms/me", { params }),
   get: (id: string | number) => apiGet<RoomResponse>(`/rooms/${id}`),
   create: (body: CreateRoomRequest) => apiPost<RoomResponse>("/rooms", body),
   update: (id: string | number, body: UpdateRoomRequest) =>

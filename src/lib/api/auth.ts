@@ -6,6 +6,8 @@ import type {
   PasswordResetRequest,
   RefreshTokenRequest,
   RegisterRequest,
+  RequestPhoneCodeRequest,
+  VerifyPhoneRequest,
 } from "./types";
 
 export const authApi = {
@@ -18,4 +20,8 @@ export const authApi = {
     apiPost<void>("/auth/reset-password", body),
   confirmReset: (body: PasswordResetConfirmRequest) =>
     apiPost<void>("/auth/reset-password/confirm", body),
+  requestPhoneCode: (body: RequestPhoneCodeRequest) =>
+    apiPost<void>("/auth/phone/request-code", body),
+  verifyPhone: (body: VerifyPhoneRequest) =>
+    apiPost<void>("/auth/phone/verify", body),
 };

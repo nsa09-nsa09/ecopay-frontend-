@@ -80,7 +80,6 @@ export function AdminRoomsPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <GapBanner label="Full admin rooms list endpoint is not implemented yet — only moderation queue is available; data shown is mock." />
         <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>Rooms</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

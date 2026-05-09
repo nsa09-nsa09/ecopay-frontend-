@@ -273,7 +273,6 @@ export function PublicUserProfilePage() {
 
   return (
     <div className="max-w-[1200px] mx-auto px-6 py-8">
-      <GapBanner label="ReputationController is not implemented yet — profile data and reviews shown are mock." />
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-[28px]" style={{ color: "var(--eco-text)" }}>{t("publicProfile")}</h1>

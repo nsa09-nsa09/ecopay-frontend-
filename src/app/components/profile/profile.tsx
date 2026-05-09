@@ -14,19 +14,19 @@ export function ProfilePage() {
     enabled: Boolean(user),
   });
 
-  const memberships = myRoomsQuery.data ?? [];
-  const roomsCreated = memberships.filter((m) => m.myRole === "OWNER").length;
-  const roomsJoined = memberships.filter((m) => m.myRole === "MEMBER").length;
+  const memberships = myRoomsQuery.data?.items ?? [];
+  const roomsCreated = memberships.length;
+  const roomsJoined = 0;
 
-  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.email || "—";
+  const fullName = user?.displayName || user?.email || "—";
   const initials = (fullName.match(/[A-ZА-Я]/gi) ?? ["U"]).slice(0, 2).join("").toUpperCase();
 
   const profile = {
     name: fullName,
     email: user?.email ?? "",
-    joined: user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—",
-    rating: user?.ratingScore ?? 0,
-    reputation: Math.round((user?.ratingScore ?? 0) * 20),
+    joined: "—",
+    rating: (user?.reputation ?? 0) / 20,
+    reputation: user?.reputation ?? 0,
     roomsCreated,
     roomsJoined,
     reviewsCount: 0,

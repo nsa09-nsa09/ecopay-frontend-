@@ -29,7 +29,6 @@ export function AdminDashboardPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <GapBanner label="AdminDashboardController is not implemented yet — KPIs and charts shown below are mock." />
         <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>Dashboard</h1>
 
         {/* KPI cards */}

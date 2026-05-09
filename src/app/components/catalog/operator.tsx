@@ -107,7 +107,7 @@ export function OperatorPage() {
   });
   const roomsQuery = useQuery({
     queryKey: ["rooms", "byService", id],
-    queryFn: () => roomsApi.list({ serviceId: id! }),
+    queryFn: () => roomsApi.list({ serviceId: id!, status: "OPEN", size: 50 }),
     enabled: Boolean(id),
   });
 
@@ -115,7 +115,7 @@ export function OperatorPage() {
 
   const op = useMemo(() => {
     const tariffs = tariffsQuery.data ?? [];
-    const rooms = roomsQuery.data ?? [];
+    const rooms = roomsQuery.data?.items ?? [];
     const name = serviceQuery.data?.name ?? fallback.name;
     return {
       name,
@@ -130,12 +130,12 @@ export function OperatorPage() {
       })),
       rooms: rooms.map<Room>((r) => ({
         id: String(r.id),
-        plan: r.serviceName ?? r.name,
-        owner: "—",
+        plan: r.title ?? r.serviceName ?? "—",
+        owner: r.ownerDisplayName ?? "—",
         rating: 0,
-        seats: r.seats,
-        filled: r.filled,
-        price: r.pricePerMember,
+        seats: r.maxMembers,
+        filled: 0,
+        price: Number(r.pricePerMember),
         status: r.status,
       })),
     };

@@ -1,17 +1,36 @@
-import { useState, type ReactNode } from "react";
-import { Link } from "react-router";
-import { Card, Badge, Button } from "../ds-primitives";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Link, useLocation, useNavigate, type Location } from "react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Card, Badge, Button, SkeletonCard } from "../ds-primitives";
+import { GapBanner } from "../../../lib/ui/GapBanner";
 import { useI18n, type Language } from "../i18n-provider";
 import {
-  CheckCircle2, XCircle, Clock, Shield, ArrowRight, CreditCard,
-  Lock, RefreshCw, AlertTriangle, ChevronRight, MessageSquare,
-  ArrowLeft, FileText, Phone, Mail, MapPin, ExternalLink, Timer, Send
+  CheckCircle2, XCircle, Shield, ArrowRight, CreditCard,
+  Lock, RefreshCw, MessageSquare,
+  ArrowLeft, Phone, Mail, MapPin, Timer, Loader2,
 } from "lucide-react";
+import { paymentsApi } from "../../../lib/api/payments";
+import { roomsApi } from "../../../lib/api/rooms";
+import type { PaymentIntentResponse, RoomResponse } from "../../../lib/api/types";
 
 // ─── Localized text helper ───
 type L = Language;
 const tx = (l: L, ru: string, kz: string, en: string) =>
   l === "ru" ? ru : l === "kz" ? kz : en;
+
+// ─── Flow state passed via react-router location.state ───
+interface PaymentFlowState {
+  roomMemberId?: string;
+  roomId?: string;
+  intentId?: string;
+  amount?: number;
+  currency?: string;
+}
+
+function useFlowState(): PaymentFlowState {
+  const location = useLocation() as Location<PaymentFlowState | null>;
+  return (location.state ?? {}) as PaymentFlowState;
+}
 
 // ─── Payment footer (used on payment screens only) ───
 function PaymentFooter({ lang }: { lang: L }) {
@@ -41,22 +60,6 @@ function PaymentFooter({ lang }: { lang: L }) {
     </div>
   );
 }
-
-// ─── Payment status chip ───
-type PaymentStatus = "PENDING" | "HOLD" | "ACTIVE" | "REFUNDED" | "PAYOUT_SENT";
-const paymentStatusVariant: Record<PaymentStatus, "warning" | "info" | "success" | "danger" | "default"> = {
-  PENDING: "warning", HOLD: "info", ACTIVE: "success", REFUNDED: "danger", PAYOUT_SENT: "success",
-};
-const paymentStatusLabel = (s: PaymentStatus, l: L): string => {
-  const map: Record<PaymentStatus, [string, string, string]> = {
-    PENDING: ["Ожидает оплаты", "Төлем күтілуде", "Pending Payment"],
-    HOLD: ["Средства удержаны", "Қаражат ұсталды", "Funds on Hold"],
-    ACTIVE: ["Активно", "Белсенді", "Active"],
-    REFUNDED: ["Возврат", "Қайтарым", "Refunded"],
-    PAYOUT_SENT: ["Выплата отправлена", "Төлем жіберілді", "Payout Sent"],
-  };
-  return tx(l, ...map[s]);
-};
 
 // ─── Stepper ───
 function Stepper({ steps, current, lang }: { steps: [string, string, string][]; current: number; lang: L }) {
@@ -94,7 +97,6 @@ function Stepper({ steps, current, lang }: { steps: [string, string, string][]; 
 function TrustBlock({ lang }: { lang: L }) {
   return (
     <div className="flex flex-col gap-3 mt-4">
-      {/* Card logos */}
       <div className="flex items-center gap-4">
         <div className="px-3 py-1.5 rounded" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}>
           <span className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>VISA</span>
@@ -118,22 +120,92 @@ function TrustBlock({ lang }: { lang: L }) {
   );
 }
 
+function MissingFlowState({ lang }: { lang: L }): ReactNode {
+  return (
+    <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
+      <Card className="flex flex-col items-center text-center gap-4 py-10">
+        <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "var(--eco-warning-100)" }}>
+          <RefreshCw size={20} style={{ color: "var(--eco-warning)" }} />
+        </div>
+        <div className="text-[16px]" style={{ color: "var(--eco-text)" }}>
+          {tx(lang,
+            "Сессия оплаты не найдена",
+            "Төлем сессиясы табылмады",
+            "Payment session not found"
+          )}
+        </div>
+        <div className="text-[13px] max-w-sm" style={{ color: "var(--eco-text-secondary)" }}>
+          {tx(lang,
+            "Откройте комнату из списка «Мои комнаты» и нажмите «Оплатить».",
+            "«Менің бөлмелерім» тізімінен бөлмені ашып, «Төлеу» басыңыз.",
+            "Open the room from My Rooms and tap “Pay” to start a new checkout."
+          )}
+        </div>
+        <Link to="/rooms" style={{ textDecoration: "none" }}>
+          <Button variant="primary" size="md">
+            {tx(lang, "Мои комнаты", "Менің бөлмелерім", "My Rooms")}
+          </Button>
+        </Link>
+      </Card>
+    </div>
+  );
+}
+
+function priceBreakdown(room: RoomResponse) {
+  const share = room.pricePerMember;
+  const fee = Math.round(share * 0.08);
+  const total = share + fee;
+  return { share, fee, total };
+}
+
+function currencySign(currency?: string): string {
+  if (!currency || currency === "KZT") return "₸";
+  if (currency === "USD") return "$";
+  if (currency === "EUR") return "€";
+  return currency + " ";
+}
+
 // ─── 1) Room Details with Pricing Box ───
 export function PaymentRoomDetailsPage() {
   const { language } = useI18n();
   const l = language as L;
+  const { roomId, roomMemberId } = useFlowState();
 
-  const room = {
-    name: "Beeline Family 4",
-    operator: "Beeline",
-    plan: "Комфорт 5000",
-    totalPrice: 19999,
-    seats: 4,
-    filled: 3,
-  };
-  const share = Math.round(room.totalPrice / room.seats);
-  const fee = Math.round(share * 0.08);
-  const total = share + fee;
+  const roomQ = useQuery({
+    queryKey: ["rooms", roomId],
+    queryFn: () => roomsApi.get(roomId!),
+    enabled: !!roomId,
+  });
+
+  if (!roomId || !roomMemberId) return <MissingFlowState lang={l} />;
+
+  if (roomQ.isLoading) {
+    return (
+      <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
+        <SkeletonCard />
+      </div>
+    );
+  }
+
+  if (roomQ.isError || !roomQ.data) {
+    return (
+      <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
+        <Card className="flex flex-col items-center text-center gap-4 py-10">
+          <XCircle size={28} style={{ color: "var(--eco-negative)" }} />
+          <div className="text-[15px]" style={{ color: "var(--eco-text)" }}>
+            {tx(l, "Не удалось загрузить комнату", "Бөлмені жүктеу мүмкін емес", "Couldn't load room")}
+          </div>
+          <Button variant="secondary" size="md" onClick={() => roomQ.refetch()}>
+            {tx(l, "Повторить", "Қайталау", "Retry")}
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  const room = roomQ.data;
+  const { share, fee, total } = priceBreakdown(room);
+  const sign = currencySign(room.currency);
 
   return (
     <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
@@ -142,23 +214,17 @@ export function PaymentRoomDetailsPage() {
       </Link>
 
       <h1 className="text-[24px] mb-2" style={{ color: "var(--eco-text)" }}>{room.name}</h1>
-      <div className="text-[13px] mb-6" style={{ color: "var(--eco-text-tertiary)" }}>{room.operator} · {room.plan} · {room.filled}/{room.seats} {tx(l, "мест", "орын", "seats")}</div>
-
-      {/* Status chips showcase */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {(["PENDING", "HOLD", "ACTIVE", "REFUNDED", "PAYOUT_SENT"] as PaymentStatus[]).map((s) => (
-          <Badge key={s} variant={paymentStatusVariant[s]}>{paymentStatusLabel(s, l)}</Badge>
-        ))}
+      <div className="text-[13px] mb-6" style={{ color: "var(--eco-text-tertiary)" }}>
+        {[room.operator, room.serviceName, `${room.filled}/${room.seats} ${tx(l, "мест", "орын", "seats")}`].filter(Boolean).join(" · ")}
       </div>
 
-      {/* Pricing breakdown */}
       <Card className="flex flex-col gap-4 mb-6">
         <h3 className="text-[16px]" style={{ color: "var(--eco-text)" }}>{tx(l, "Стоимость участия", "Қатысу құны", "Participation Cost")}</h3>
 
         <div className="flex flex-col gap-2">
           {[
-            { label: tx(l, "Доля участника", "Қатысушы үлесі", "Participant share"), value: `₸${share.toLocaleString()}` },
-            { label: tx(l, "Комиссия платформы (8%)", "Платформа комиссиясы (8%)", "Platform fee (8%)"), value: `₸${fee.toLocaleString()}` },
+            { label: tx(l, "Доля участника", "Қатысушы үлесі", "Participant share"), value: `${sign}${share.toLocaleString()}` },
+            { label: tx(l, "Комиссия платформы (8%)", "Платформа комиссиясы (8%)", "Platform fee (8%)"), value: `${sign}${fee.toLocaleString()}` },
           ].map((row) => (
             <div key={row.label} className="flex items-center justify-between text-[14px]">
               <span style={{ color: "var(--eco-text-secondary)" }}>{row.label}</span>
@@ -167,11 +233,10 @@ export function PaymentRoomDetailsPage() {
           ))}
           <div className="border-t pt-2 mt-1 flex items-center justify-between" style={{ borderColor: "var(--eco-border)" }}>
             <span className="text-[15px]" style={{ color: "var(--eco-text)" }}>{tx(l, "Итого к оплате", "Төлем жиыны", "Total to pay now")}</span>
-            <span className="text-[18px]" style={{ color: "var(--eco-primary)" }}>₸{total.toLocaleString()}</span>
+            <span className="text-[18px]" style={{ color: "var(--eco-primary)" }}>{sign}{total.toLocaleString()}</span>
           </div>
         </div>
 
-        {/* Escrow note */}
         <div className="flex items-start gap-2 p-3 rounded-lg" style={{ background: "var(--eco-surface)" }}>
           <Shield size={13} className="mt-0.5 shrink-0" style={{ color: "var(--eco-text-tertiary)" }} />
           <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
@@ -184,21 +249,15 @@ export function PaymentRoomDetailsPage() {
         </div>
       </Card>
 
-      <Link to="/payment/checkout" style={{ textDecoration: "none" }}>
+      <Link
+        to="/payment/checkout"
+        state={{ roomMemberId, roomId, amount: total, currency: room.currency }}
+        style={{ textDecoration: "none" }}
+      >
         <Button variant="primary" size="lg" className="w-full">
           {tx(l, "Перейти к оплате", "Төлемге өту", "Proceed to Payment")} <ArrowRight size={15} />
         </Button>
       </Link>
-
-      {/* Security note */}
-      <div className="flex items-start gap-1.5 mt-4 text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-        <Shield size={11} className="mt-0.5 shrink-0" />
-        {tx(l,
-          "Действия ограничены по частоте. Проверки на мошенничество могут потребовать дополнительной верификации.",
-          "Әрекеттер жиілікпен шектелген. Алаяқтық тексерулері қосымша верификация талап етуі мүмкін.",
-          "Rate-limited actions. Fraud checks may require additional review."
-        )}
-      </div>
 
       <PaymentFooter lang={l} />
     </div>
@@ -209,18 +268,62 @@ export function PaymentRoomDetailsPage() {
 export function PaymentCheckoutPage() {
   const { language } = useI18n();
   const l = language as L;
+  const navigate = useNavigate();
+  const flow = useFlowState();
   const [selectedMethod, setSelectedMethod] = useState("freedom");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const total = 5400;
+  const { roomMemberId, roomId, amount, currency } = flow;
 
+  const [saveCard, setSaveCard] = useState(false);
+
+  const payMutation = useMutation({
+    mutationFn: () =>
+      paymentsApi.createIntent(roomMemberId!, {
+        idempotencyKey: `${roomMemberId}-${Date.now()}`,
+        saveCard,
+      }),
+    onSuccess: (intent: PaymentIntentResponse) => {
+      if (intent.requiresRedirect && intent.paymentUrl) {
+        window.location.href = intent.paymentUrl;
+        return;
+      }
+      // Saved-card charge — synchronous result; or already failed
+      navigate(intent.status === "SUCCESS" ? "/payment/confirmation" : "/payment/pending", {
+        state: {
+          ...flow,
+          intentId: intent.id,
+          amount: intent.amount,
+          currency: intent.currency,
+        },
+      });
+    },
+    onError: (err: unknown) => {
+      const m =
+        (err as { response?: { data?: { message?: string } }; message?: string })
+          ?.response?.data?.message ??
+        (err as { message?: string })?.message ??
+        "Payment failed. Please try again.";
+      setErrorMsg(m);
+    },
+  });
+
+  if (!roomId || !roomMemberId || amount == null) return <MissingFlowState lang={l} />;
+
+  const sign = currencySign(currency);
   const methods = [
     { id: "freedom", label: "Freedom Pay", desc: tx(l, "Банковская карта", "Банк картасы", "Bank card"), icon: CreditCard },
-    { id: "visa", label: "Visa ****4821", desc: tx(l, "Сохранённая карта", "Сақталған карта", "Saved card"), icon: CreditCard },
+    { id: "visa", label: tx(l, "Сохранённая карта", "Сақталған карта", "Saved card"), desc: "Visa ****", icon: CreditCard },
   ];
 
   return (
     <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
-      <Link to="/payment/room" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-text-tertiary)", textDecoration: "none" }}>
+      <Link
+        to="/payment/room"
+        state={flow}
+        className="inline-flex items-center gap-1 text-[13px] mb-6"
+        style={{ color: "var(--eco-text-tertiary)", textDecoration: "none" }}
+      >
         <ArrowLeft size={14} /> {tx(l, "Назад", "Артқа", "Back")}
       </Link>
 
@@ -236,18 +339,16 @@ export function PaymentCheckoutPage() {
         lang={l}
       />
 
-      {/* Order summary */}
       <Card className="flex flex-col gap-3 mb-6">
         <div className="flex items-center justify-between">
-          <span className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>Beeline Family 4</span>
-          <span className="text-[15px]" style={{ color: "var(--eco-primary)" }}>₸{total.toLocaleString()}</span>
+          <span className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{tx(l, "К оплате", "Төлем сомасы", "Amount due")}</span>
+          <span className="text-[15px]" style={{ color: "var(--eco-primary)" }}>{sign}{amount.toLocaleString()}</span>
         </div>
         <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
           {tx(l, "Ваша доля + комиссия", "Сіздің үлесіңіз + комиссия", "Your share + platform fee")}
         </div>
       </Card>
 
-      {/* Payment methods */}
       <h3 className="text-[15px] mb-3" style={{ color: "var(--eco-text)" }}>{tx(l, "Способ оплаты", "Төлем тәсілі", "Payment Method")}</h3>
       <div className="flex flex-col gap-2 mb-6">
         {methods.map((m) => {
@@ -278,7 +379,6 @@ export function PaymentCheckoutPage() {
         })}
       </div>
 
-      {/* Freedom Pay placeholder */}
       {selectedMethod === "freedom" && (
         <Card className="mb-6">
           <div className="flex items-center gap-2 mb-3">
@@ -298,32 +398,75 @@ export function PaymentCheckoutPage() {
         </Card>
       )}
 
-      <Button variant="primary" size="lg" className="w-full">
-        <Lock size={15} /> {tx(l, "Оплатить безопасно", "Қауіпсіз төлеу", "Pay securely")} — ₸{total.toLocaleString()}
+      {errorMsg && (
+        <div className="mb-4 p-3 rounded-lg flex items-start gap-2 text-[13px]" style={{ background: "var(--eco-danger-100)", color: "var(--eco-danger-500)" }}>
+          <XCircle size={14} className="mt-0.5 shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
+      <Button
+        variant="primary"
+        size="lg"
+        className="w-full"
+        loading={payMutation.isPending}
+        disabled={payMutation.isPending}
+        onClick={() => {
+          setErrorMsg(null);
+          payMutation.mutate();
+        }}
+      >
+        <Lock size={15} /> {tx(l, "Оплатить безопасно", "Қауіпсіз төлеу", "Pay securely")} — {sign}{amount.toLocaleString()}
       </Button>
 
       <TrustBlock lang={l} />
-
-      {/* Security note */}
-      <div className="flex items-start gap-1.5 mt-4 text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-        <Shield size={11} className="mt-0.5 shrink-0" />
-        {tx(l,
-          "Действия ограничены по частоте. Проверки на мошенничество могут потребовать верификации.",
-          "Әрекеттер жиілікпен шектелген. Алаяқтық тексерулері верификация талап етуі мүмкін.",
-          "Rate-limited actions. Fraud checks may require review."
-        )}
-      </div>
 
       <PaymentFooter lang={l} />
     </div>
   );
 }
 
-// ─── 3) Payment Confirmation Modal ───
+// ─── 3) Payment Confirmation ───
 export function PaymentConfirmationPage() {
   const { language } = useI18n();
   const l = language as L;
-  const [state, setState] = useState<"success" | "failed">("success");
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const flow = useFlowState();
+  const intentId = flow.intentId;
+  const [hasFired, setHasFired] = useState(false);
+
+  const confirmMutation = useMutation({
+    mutationFn: () =>
+      paymentsApi.confirmSuccess(intentId!, { externalTransactionId: undefined }),
+    onSuccess: (intent: PaymentIntentResponse) => {
+      if (flow.roomId) {
+        qc.invalidateQueries({ queryKey: ["rooms", flow.roomId] });
+        qc.invalidateQueries({ queryKey: ["rooms", flow.roomId, "membership", "me"] });
+      }
+      if (intent.status === "FAILED") {
+        navigate("/rooms/payment-failed", { replace: true });
+      } else if (intent.status === "PENDING") {
+        navigate("/payment/pending", { state: { ...flow, intentId: intent.id }, replace: true });
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (!intentId || hasFired) return;
+    setHasFired(true);
+    confirmMutation.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intentId]);
+
+  if (!intentId) return <MissingFlowState lang={l} />;
+
+  const status = confirmMutation.data?.status;
+  const isPending = confirmMutation.isPending || (!confirmMutation.data && !confirmMutation.isError);
+  const isSuccess = status === "SUCCESS";
+  const isFailed = confirmMutation.isError || status === "FAILED";
+  const sign = currencySign(confirmMutation.data?.currency ?? flow.currency);
+  const amount = confirmMutation.data?.amount ?? flow.amount;
 
   return (
     <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
@@ -337,27 +480,17 @@ export function PaymentConfirmationPage() {
         lang={l}
       />
 
-      {/* Toggle for demo */}
-      <div className="flex gap-2 mb-6">
-        <button
-          onClick={() => setState("success")}
-          className="px-3 py-1 rounded-lg cursor-pointer text-[12px]"
-          style={{ background: state === "success" ? "var(--eco-success-100)" : "var(--eco-surface)", color: state === "success" ? "var(--eco-success-500)" : "var(--eco-text-tertiary)", border: "1px solid var(--eco-border)" }}
-        >
-          {tx(l, "Успех", "Сәттілік", "Success")}
-        </button>
-        <button
-          onClick={() => setState("failed")}
-          className="px-3 py-1 rounded-lg cursor-pointer text-[12px]"
-          style={{ background: state === "failed" ? "var(--eco-danger-100)" : "var(--eco-surface)", color: state === "failed" ? "var(--eco-danger-500)" : "var(--eco-text-tertiary)", border: "1px solid var(--eco-border)" }}
-        >
-          {tx(l, "Ошибка", "Қате", "Failed")}
-        </button>
-      </div>
-
-      {/* Modal card */}
       <Card className="flex flex-col items-center text-center gap-5 py-10">
-        {state === "success" ? (
+        {isPending && (
+          <>
+            <Loader2 size={32} className="animate-spin" style={{ color: "var(--eco-primary)" }} />
+            <div className="text-[16px]" style={{ color: "var(--eco-text)" }}>
+              {tx(l, "Подтверждаем платёж...", "Төлем расталуда...", "Confirming your payment...")}
+            </div>
+          </>
+        )}
+
+        {isSuccess && (
           <>
             <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "var(--eco-success-100)" }}>
               <CheckCircle2 size={32} style={{ color: "var(--eco-positive)" }} />
@@ -368,22 +501,28 @@ export function PaymentConfirmationPage() {
               </h2>
               <p className="text-[14px] mt-2 max-w-sm mx-auto" style={{ color: "var(--eco-text-secondary)" }}>
                 {tx(l,
-                  "Ваш платёж в размере ₸5,400 принят. Средства будут удержаны до подтверждения доступа.",
-                  "₸5,400 төлеміңіз қабылданды. Қолжетімділік расталғанша қаражат ұсталады.",
-                  "Your payment of ₸5,400 has been received. Funds will be held until access is confirmed."
+                  `Ваш платёж ${amount ? `на сумму ${sign}${amount.toLocaleString()}` : ""} принят. Средства будут удержаны до подтверждения доступа.`,
+                  `Төлеміңіз ${amount ? `${sign}${amount.toLocaleString()} сомасына` : ""} қабылданды. Қолжетімділік расталғанша қаражат ұсталады.`,
+                  `Your payment ${amount ? `of ${sign}${amount.toLocaleString()}` : ""} has been received. Funds will be held until access is confirmed.`
                 )}
               </p>
             </div>
             <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-              {tx(l, "Ref:", "Ref:", "Ref:")} PAY-2026-04-03-001
+              Ref: {intentId}
             </div>
-            <Link to="/payment/pending" style={{ textDecoration: "none" }}>
+            <Link
+              to={flow.roomId ? `/rooms/member/${flow.roomId}` : "/rooms"}
+              state={flow}
+              style={{ textDecoration: "none" }}
+            >
               <Button variant="primary" size="lg">
-                {tx(l, "Перейти к статусу", "Мәртебеге өту", "Go to Room Status")} <ArrowRight size={14} />
+                {tx(l, "Перейти к комнате", "Бөлмеге өту", "Go to Room")} <ArrowRight size={14} />
               </Button>
             </Link>
           </>
-        ) : (
+        )}
+
+        {isFailed && !isPending && (
           <>
             <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "var(--eco-danger-100)" }}>
               <XCircle size={32} style={{ color: "var(--eco-negative)" }} />
@@ -400,11 +539,8 @@ export function PaymentConfirmationPage() {
                 )}
               </p>
             </div>
-            <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-              {tx(l, "Код ошибки:", "Қате коды:", "Error code:")} ERR_GW_TIMEOUT
-            </div>
             <div className="flex gap-3">
-              <Link to="/payment/checkout" style={{ textDecoration: "none" }}>
+              <Link to="/payment/checkout" state={flow} style={{ textDecoration: "none" }}>
                 <Button variant="primary" size="lg">
                   <RefreshCw size={14} /> {tx(l, "Повторить оплату", "Төлемді қайталау", "Retry Payment")}
                 </Button>
@@ -428,9 +564,40 @@ export function PaymentConfirmationPage() {
 export function PaymentPendingPage() {
   const { language } = useI18n();
   const l = language as L;
+  const flow = useFlowState();
+  const intentId = flow.intentId;
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  // Poll the payment intent every 3s while it's still PENDING.
+  const intentQuery = useQuery({
+    queryKey: ["payment", "intent", intentId],
+    queryFn: () => paymentsApi.getIntent(intentId!),
+    enabled: Boolean(intentId),
+    refetchInterval: (q) => {
+      const status = (q.state.data as PaymentIntentResponse | undefined)?.status;
+      return status === "PENDING" || status === undefined ? 3000 : false;
+    },
+  });
+
+  useEffect(() => {
+    const status = intentQuery.data?.status;
+    if (!status) return;
+    if (status === "SUCCESS") {
+      if (flow.roomId) {
+        qc.invalidateQueries({ queryKey: ["rooms", flow.roomId, "membership", "me"] });
+      }
+      navigate("/payment/confirmation", { state: { ...flow, intentId }, replace: true });
+    } else if (status === "FAILED") {
+      navigate("/rooms/payment-failed", { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intentQuery.data?.status]);
+
+  if (!intentId) return <MissingFlowState lang={l} />;
 
   const timeline = [
-    { label: tx(l, "Оплата принята", "Төлем қабылданды", "Payment Successful"), done: true, time: "03 Apr 09:15" },
+    { label: tx(l, "Оплата принята", "Төлем қабылданды", "Payment Successful"), done: true, time: "" },
     { label: tx(l, "Ожидание предоставления доступа", "Қолжетімділік күтілуде", "Waiting for owner access grant"), done: false, active: true, time: tx(l, "SLA: 48ч", "SLA: 48с", "SLA: 48h") },
     { label: tx(l, "Подтверждение получения доступа", "Қолжетімділікті растау", "Confirm access received"), done: false, time: "" },
     { label: tx(l, "Активация", "Белсендіру", "Activation"), done: false, time: "" },
@@ -442,13 +609,11 @@ export function PaymentPendingPage() {
         <ArrowLeft size={14} /> {tx(l, "Мои комнаты", "Менің бөлмелерім", "My Rooms")}
       </Link>
 
-      <h1 className="text-[24px] mb-2" style={{ color: "var(--eco-text)" }}>Beeline Family 4</h1>
       <div className="flex items-center gap-2 mb-6">
-        <Badge variant="info">{paymentStatusLabel("HOLD", l)}</Badge>
-        <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>PAY-2026-04-03-001</span>
+        <Badge variant="info">{tx(l, "Средства удержаны", "Қаражат ұсталды", "Funds on Hold")}</Badge>
+        <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{intentId}</span>
       </div>
 
-      {/* SLA Timer */}
       <Card className="flex items-center gap-4 mb-6">
         <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--eco-warning-100)" }}>
           <Timer size={20} style={{ color: "var(--eco-warning-500)" }} />
@@ -457,19 +622,16 @@ export function PaymentPendingPage() {
           <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>
             {tx(l, "Время ожидания доступа", "Қолжетімділік күту уақыты", "Access Grant SLA Timer")}
           </div>
-          <div className="text-[22px] mt-0.5" style={{ color: "var(--eco-warning-500)", fontFamily: "monospace" }}>38:45:12</div>
-          <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-            {tx(l, "Осталось из 48 часов", "48 сағаттан қалды", "Remaining of 48 hours")}
+          <div className="text-[12px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>
+            {tx(l, "Окно 48 часов с момента оплаты", "Төлемнен бастап 48 сағат терезесі", "48-hour window from payment")}
           </div>
         </div>
       </Card>
 
-      {/* Timeline */}
       <Card className="flex flex-col gap-0 mb-6">
         <h3 className="text-[15px] mb-4" style={{ color: "var(--eco-text)" }}>{tx(l, "Статус процесса", "Процесс мәртебесі", "Process Status")}</h3>
         {timeline.map((step, i) => (
           <div key={i} className="flex gap-3">
-            {/* Vertical line + dot */}
             <div className="flex flex-col items-center">
               <div
                 className="w-3 h-3 rounded-full shrink-0 mt-1"
@@ -485,30 +647,27 @@ export function PaymentPendingPage() {
             <div className="pb-4">
               <div className="text-[13px]" style={{ color: step.done || step.active ? "var(--eco-text)" : "var(--eco-text-tertiary)" }}>{step.label}</div>
               {step.time && <div className="text-[11px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{step.time}</div>}
-              {step.active && (
-                <div className="flex items-center gap-1 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--eco-primary)" }} />
-                  <span className="text-[11px]" style={{ color: "var(--eco-primary)" }}>{tx(l, "В процессе", "Орындалуда", "In progress")}</span>
-                </div>
-              )}
             </div>
           </div>
         ))}
       </Card>
 
-      <Link to="/support/new" style={{ textDecoration: "none" }}>
-        <Button variant="secondary" size="md" className="w-full">
-          <MessageSquare size={14} /> {tx(l, "Создать обращение в поддержку", "Қолдау сұрауын жасау", "Create Support Ticket")}
+      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+        <Button
+          variant="primary"
+          size="md"
+          className="flex-1"
+          loading={intentQuery.isFetching}
+          disabled={intentQuery.isFetching}
+          onClick={() => intentQuery.refetch()}
+        >
+          <RefreshCw size={14} /> {tx(l, "Проверить статус", "Мәртебені тексеру", "Check Status")}
         </Button>
-      </Link>
-
-      <div className="flex items-start gap-1.5 mt-4 text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-        <Shield size={11} className="mt-0.5 shrink-0" />
-        {tx(l,
-          "Если доступ не предоставлен в течение SLA, вы можете запросить возврат.",
-          "SLA ішінде қолжетімділік берілмесе, қайтаруды сұрай аласыз.",
-          "If access is not granted within SLA, you may request a refund."
-        )}
+        <Link to="/support/new" style={{ textDecoration: "none" }}>
+          <Button variant="secondary" size="md" className="w-full">
+            <MessageSquare size={14} /> {tx(l, "Создать обращение", "Қолдау сұрауын жасау", "Create Support Ticket")}
+          </Button>
+        </Link>
       </div>
 
       <PaymentFooter lang={l} />
@@ -516,24 +675,20 @@ export function PaymentPendingPage() {
   );
 }
 
-// ─── 5) Refund Status ───
+// ─── 5) Refund Status (no API yet) ───
 export function RefundStatusPage() {
   const { language } = useI18n();
   const l = language as L;
 
-  const refund = {
-    id: "RF-201",
-    amount: 5400,
-    room: "Beeline Family 4",
-    created: "2026-04-03",
-  };
-
-  const steps = [
-    { label: tx(l, "Запрошен", "Сұралды", "Requested"), done: true, time: "Apr 3, 09:30" },
-    { label: tx(l, "На рассмотрении", "Қарастырылуда", "In Review"), done: true, time: "Apr 3, 10:00" },
-    { label: tx(l, "Одобрен", "Мақұлданды", "Approved"), done: false, active: true, time: tx(l, "Ожидание", "Күтілуде", "Pending") },
-    { label: tx(l, "Отправлен", "Жіберілді", "Sent"), done: false, time: "" },
-  ];
+  const steps = useMemo(
+    () => [
+      { label: tx(l, "Запрошен", "Сұралды", "Requested"), done: true, time: "" },
+      { label: tx(l, "На рассмотрении", "Қарастырылуда", "In Review"), done: false, active: true, time: tx(l, "Ожидание", "Күтілуде", "Pending") },
+      { label: tx(l, "Одобрен", "Мақұлданды", "Approved"), done: false, time: "" },
+      { label: tx(l, "Отправлен", "Жіберілді", "Sent"), done: false, time: "" },
+    ],
+    [l]
+  );
 
   return (
     <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
@@ -543,23 +698,6 @@ export function RefundStatusPage() {
 
       <h1 className="text-[24px] mb-2" style={{ color: "var(--eco-text)" }}>{tx(l, "Статус возврата", "Қайтару мәртебесі", "Refund Status")}</h1>
 
-      <Card className="flex flex-col gap-4 mb-6">
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { label: tx(l, "Номер возврата", "Қайтару нөмірі", "Reference ID"), value: refund.id },
-            { label: tx(l, "Сумма", "Сома", "Amount"), value: `₸${refund.amount.toLocaleString()}` },
-            { label: tx(l, "Комната", "Бөлме", "Room"), value: refund.room },
-            { label: tx(l, "Дата запроса", "Сұрау күні", "Request Date"), value: refund.created },
-          ].map((row) => (
-            <div key={row.label}>
-              <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{row.label}</div>
-              <div className="text-[14px] mt-0.5" style={{ color: "var(--eco-text)" }}>{row.value}</div>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* Refund timeline */}
       <Card className="flex flex-col gap-0 mb-6">
         <h3 className="text-[15px] mb-4" style={{ color: "var(--eco-text)" }}>{tx(l, "Ход возврата", "Қайтару барысы", "Refund Progress")}</h3>
         {steps.map((step, i) => (
@@ -567,9 +705,7 @@ export function RefundStatusPage() {
             <div className="flex flex-col items-center">
               <div
                 className="w-3 h-3 rounded-full shrink-0 mt-1"
-                style={{
-                  background: step.done ? "var(--eco-positive)" : step.active ? "var(--eco-primary)" : "var(--eco-neutral-100)",
-                }}
+                style={{ background: step.done ? "var(--eco-positive)" : step.active ? "var(--eco-primary)" : "var(--eco-neutral-100)" }}
               />
               {i < steps.length - 1 && (
                 <div className="w-px flex-1 my-1" style={{ background: step.done ? "var(--eco-positive)" : "var(--eco-border)", minHeight: 32 }} />
@@ -578,18 +714,11 @@ export function RefundStatusPage() {
             <div className="pb-4">
               <div className="text-[13px]" style={{ color: step.done || step.active ? "var(--eco-text)" : "var(--eco-text-tertiary)" }}>{step.label}</div>
               {step.time && <div className="text-[11px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{step.time}</div>}
-              {step.active && (
-                <div className="flex items-center gap-1 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--eco-primary)" }} />
-                  <span className="text-[11px]" style={{ color: "var(--eco-primary)" }}>{tx(l, "Обрабатывается", "Өңделуде", "Processing")}</span>
-                </div>
-              )}
             </div>
           </div>
         ))}
       </Card>
 
-      {/* Safe copy */}
       <div className="flex items-start gap-2 p-4 rounded-lg mb-4" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}>
         <Shield size={13} className="mt-0.5 shrink-0" style={{ color: "var(--eco-text-tertiary)" }} />
         <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
@@ -612,25 +741,20 @@ export function RefundStatusPage() {
   );
 }
 
-// ─── 6) Owner Payout Status ───
+// ─── 6) Owner Payout Status (no API yet) ───
 export function OwnerPayoutPage() {
   const { language } = useI18n();
   const l = language as L;
 
-  const payout = {
-    id: "PO-101",
-    amount: 14999,
-    room: "Beeline Family 4",
-    seats: 3,
-    period: tx(l, "Апрель 2026", "Сәуір 2026", "April 2026"),
-  };
-
-  const steps = [
-    { label: tx(l, "Оплаты участников собраны", "Қатысушы төлемдері жиналды", "Member payments collected"), done: true, time: "Apr 1" },
-    { label: tx(l, "Окно споров (7 дней)", "Дау терезесі (7 күн)", "Dispute window (7 days)"), done: true, time: "Apr 1–7" },
-    { label: tx(l, "Выплата обрабатывается", "Төлем өңделуде", "Payout processing"), done: false, active: true, time: tx(l, "Ожидание", "Күтілуде", "Pending") },
-    { label: tx(l, "Выплата отправлена", "Төлем жіберілді", "Payout Sent"), done: false, time: "" },
-  ];
+  const steps = useMemo(
+    () => [
+      { label: tx(l, "Оплаты участников собраны", "Қатысушы төлемдері жиналды", "Member payments collected"), done: true, time: "" },
+      { label: tx(l, "Окно споров (7 дней)", "Дау терезесі (7 күн)", "Dispute window (7 days)"), done: true, time: "" },
+      { label: tx(l, "Выплата обрабатывается", "Төлем өңделуде", "Payout processing"), done: false, active: true, time: tx(l, "Ожидание", "Күтілуде", "Pending") },
+      { label: tx(l, "Выплата отправлена", "Төлем жіберілді", "Payout Sent"), done: false, time: "" },
+    ],
+    [l]
+  );
 
   return (
     <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
@@ -643,26 +767,6 @@ export function OwnerPayoutPage() {
         <Badge variant="warning">{tx(l, "Ожидает выплаты", "Төлем күтілуде", "Payout Pending")}</Badge>
       </div>
 
-      <Card className="flex flex-col gap-4 mb-6">
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { label: tx(l, "Номер выплаты", "Төлем нөмірі", "Payout ID"), value: payout.id },
-            { label: tx(l, "Сумма", "Сома", "Amount"), value: `₸${payout.amount.toLocaleString()}` },
-            { label: tx(l, "Комната", "Бөлме", "Room"), value: payout.room },
-            { label: tx(l, "Период", "Кезең", "Period"), value: payout.period },
-          ].map((row) => (
-            <div key={row.label}>
-              <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{row.label}</div>
-              <div className="text-[14px] mt-0.5" style={{ color: "var(--eco-text)" }}>{row.value}</div>
-            </div>
-          ))}
-        </div>
-        <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-          {tx(l, "Участников оплатило:", "Төлеген қатысушылар:", "Members paid:")} {payout.seats}/{payout.seats}
-        </div>
-      </Card>
-
-      {/* Timeline */}
       <Card className="flex flex-col gap-0 mb-6">
         <h3 className="text-[15px] mb-4" style={{ color: "var(--eco-text)" }}>{tx(l, "Ход выплаты", "Төлем барысы", "Payout Progress")}</h3>
         {steps.map((step, i) => (
@@ -670,9 +774,7 @@ export function OwnerPayoutPage() {
             <div className="flex flex-col items-center">
               <div
                 className="w-3 h-3 rounded-full shrink-0 mt-1"
-                style={{
-                  background: step.done ? "var(--eco-positive)" : step.active ? "var(--eco-primary)" : "var(--eco-neutral-100)",
-                }}
+                style={{ background: step.done ? "var(--eco-positive)" : step.active ? "var(--eco-primary)" : "var(--eco-neutral-100)" }}
               />
               {i < steps.length - 1 && (
                 <div className="w-px flex-1 my-1" style={{ background: step.done ? "var(--eco-positive)" : "var(--eco-border)", minHeight: 32 }} />
@@ -681,18 +783,11 @@ export function OwnerPayoutPage() {
             <div className="pb-4">
               <div className="text-[13px]" style={{ color: step.done || step.active ? "var(--eco-text)" : "var(--eco-text-tertiary)" }}>{step.label}</div>
               {step.time && <div className="text-[11px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{step.time}</div>}
-              {step.active && (
-                <div className="flex items-center gap-1 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--eco-primary)" }} />
-                  <span className="text-[11px]" style={{ color: "var(--eco-primary)" }}>{tx(l, "Обрабатывается", "Өңделуде", "Processing")}</span>
-                </div>
-              )}
             </div>
           </div>
         ))}
       </Card>
 
-      {/* Policy note */}
       <div className="flex items-start gap-2 p-4 rounded-lg mb-4" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}>
         <Shield size={13} className="mt-0.5 shrink-0" style={{ color: "var(--eco-text-tertiary)" }} />
         <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
@@ -702,15 +797,6 @@ export function OwnerPayoutPage() {
             "Payout available after verification and dispute window. This protects both parties."
           )}
         </span>
-      </div>
-
-      <div className="flex items-start gap-1.5 mt-2 text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-        <Shield size={11} className="mt-0.5 shrink-0" />
-        {tx(l,
-          "Действия ограничены по частоте. Проверки на мошенничество могут потребовать дополнительной верификации.",
-          "Әрекеттер жиілікпен шектелген. Алаяқтық тексерулері қосымша верификация талап етуі мүмкін.",
-          "Rate-limited actions. Fraud checks may require additional review."
-        )}
       </div>
 
       <PaymentFooter lang={l} />

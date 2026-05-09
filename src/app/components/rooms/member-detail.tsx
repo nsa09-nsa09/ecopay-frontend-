@@ -1,61 +1,121 @@
-import { useState } from "react";
-import { Link, useParams } from "react-router";
-import { Card, Button, Badge, MemberStatusBadge, RoomStatusBadge } from "../ds-primitives";
-import { ArrowLeft, CheckCircle2, Clock, Shield, AlertTriangle, LifeBuoy } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, Button, MemberStatusBadge, RoomStatusBadge, SkeletonCard, EmptyState } from "../ds-primitives";
+import { ArrowLeft, CheckCircle2, Clock, Shield, AlertTriangle, LifeBuoy, CreditCard } from "lucide-react";
+import { roomsApi, roomMembersApi } from "../../../lib/api/rooms";
 
-const membershipData: Record<string, {
-  room: string; operator: string; roomStatus: string; myStatus: string;
-  appliedAt: string; paidAt: string | null; accessGrantedAt: string | null;
-  slaTimeLeft: string | null; accessMethod: string; identifier: string;
-  perMember: number; nextBilling: string | null; startDate: string;
-  seats: number; filled: number;
-}> = {
-  r1: {
-    room: "Beeline Family 4", operator: "Beeline", roomStatus: "OPEN", myStatus: "PENDING",
-    appliedAt: "2026-04-01 14:30", paidAt: "2026-04-01 14:32", accessGrantedAt: null,
-    slaTimeLeft: "23h 45m", accessMethod: "eSIM activation", identifier: "+7 7** *** ** 85",
-    perMember: 5000, nextBilling: null, startDate: "2026-04-15", seats: 4, filled: 3,
-  },
-  r2: {
-    room: "Activ Family 5", operator: "Activ", roomStatus: "ACTIVE", myStatus: "ACTIVE",
-    appliedAt: "2026-02-28 10:00", paidAt: "2026-02-28 10:02", accessGrantedAt: "2026-03-01 09:15",
-    slaTimeLeft: null, accessMethod: "Operator account invite", identifier: "+7 7** *** ** 85",
-    perMember: 3200, nextBilling: "2026-05-01", startDate: "2026-03-01", seats: 5, filled: 5,
-  },
-  r4: {
-    room: "Tele2 Duo", operator: "Tele2", roomStatus: "COMPLETED", myStatus: "ACTIVE",
-    appliedAt: "2025-11-28 16:00", paidAt: "2025-11-28 16:03", accessGrantedAt: "2025-11-29 11:00",
-    slaTimeLeft: null, accessMethod: "Physical SIM", identifier: "+7 7** *** ** 85",
-    perMember: 4500, nextBilling: null, startDate: "2025-12-01", seats: 2, filled: 2,
-  },
-  r5: {
-    room: "Kcell Group 3", operator: "Kcell", roomStatus: "BLOCKED", myStatus: "BLOCKED",
-    appliedAt: "2026-01-30 12:00", paidAt: "2026-01-30 12:05", accessGrantedAt: "2026-02-01 08:00",
-    slaTimeLeft: null, accessMethod: "eSIM activation", identifier: "+7 7** *** ** 85",
-    perMember: 3800, nextBilling: null, startDate: "2026-02-01", seats: 3, filled: 2,
-  },
-};
+function computeSlaTimeLeft(joinedAt?: string): string | null {
+  if (!joinedAt) return null;
+  const slaEndMs = new Date(joinedAt).getTime() + 48 * 60 * 60 * 1000;
+  const remain = slaEndMs - Date.now();
+  if (remain <= 0) return null;
+  const h = Math.floor(remain / 3_600_000);
+  const m = Math.floor((remain % 3_600_000) / 60_000);
+  return `${h}h ${m}m`;
+}
 
 export function MemberDetailPage() {
-  const { id } = useParams();
-  const [confirmed, setConfirmed] = useState(false);
-  const m = membershipData[id || "r1"] || membershipData.r1;
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  const roomQ = useQuery({
+    queryKey: ["rooms", id],
+    queryFn: () => roomsApi.get(id!),
+    enabled: !!id,
+  });
+
+  const memberQ = useQuery({
+    queryKey: ["rooms", id, "membership", "me"],
+    queryFn: () => roomMembersApi.myMembership(id!),
+    enabled: !!id,
+    retry: false,
+  });
+
+  const confirmAccess = useMutation({
+    mutationFn: () => roomMembersApi.confirmAccessAsMember(id!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rooms", id] });
+      qc.invalidateQueries({ queryKey: ["rooms", id, "membership", "me"] });
+    },
+  });
+
+  if (!id) return null;
+
+  if (roomQ.isLoading || memberQ.isLoading) {
+    return (
+      <div className="max-w-[800px] mx-auto px-6 py-8 flex flex-col gap-6">
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+    );
+  }
+
+  if (roomQ.isError) {
+    return (
+      <div className="max-w-[800px] mx-auto px-6 py-8">
+        <EmptyState
+          title="Room unavailable"
+          description="We couldn't load this room. It may have been removed or you don't have access."
+        />
+        <div className="text-center mt-4">
+          <Button variant="secondary" size="md" onClick={() => roomQ.refetch()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const room = roomQ.data;
+  const member = memberQ.data;
+
+  if (!room) return null;
+
+  if (memberQ.isError || !member) {
+    return (
+      <div className="max-w-[800px] mx-auto px-6 py-8">
+        <Link to="/rooms" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
+          <ArrowLeft size={14} /> My Rooms
+        </Link>
+        <EmptyState
+          title="Not a member"
+          description="You don't appear to be a member of this room. Open the room page to join it."
+        />
+        <div className="text-center mt-4">
+          <Link to={`/room/${id}`} style={{ textDecoration: "none" }}>
+            <Button variant="primary" size="md">View room</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const slaTimeLeft = member.status === "PAID" ? computeSlaTimeLeft(member.joinedAt) : null;
+  const myStatus = member.status;
+  const accessGranted = myStatus === "CONFIRMED";
+  const needsPayment = myStatus === "PENDING";
+  const waitingForAccess = myStatus === "PAID";
+  const isBlocked = room.status === "BLOCKED" || myStatus === "REMOVED";
 
   const timelineSteps = [
-    { label: "Application submitted", time: m.appliedAt, done: true },
-    { label: "Payment confirmed", time: m.paidAt, done: !!m.paidAt },
+    { label: "Application submitted", time: member.joinedAt, done: true, active: false },
+    { label: "Payment confirmed", time: undefined, done: myStatus === "PAID" || accessGranted, active: needsPayment },
     {
       label: "Waiting for owner to grant access",
-      time: m.accessGrantedAt ? null : undefined,
-      done: !!m.accessGrantedAt,
-      active: !m.accessGrantedAt && m.myStatus === "PENDING",
+      time: undefined,
+      done: accessGranted,
+      active: waitingForAccess,
     },
     {
       label: "Access confirmed",
-      time: m.accessGrantedAt,
-      done: !!m.accessGrantedAt,
+      time: undefined,
+      done: accessGranted,
+      active: false,
     },
   ];
+
+  const goPay = () => {
+    navigate("/payment/room", { state: { roomMemberId: member.id, roomId: room.id } });
+  };
 
   return (
     <div className="max-w-[800px] mx-auto px-6 py-8">
@@ -63,22 +123,20 @@ export function MemberDetailPage() {
         <ArrowLeft size={14} /> My Rooms
       </Link>
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
         <div>
-          <h1 className="text-[26px] mb-1" style={{ color: "var(--eco-text)" }}>{m.room}</h1>
+          <h1 className="text-[26px] mb-1" style={{ color: "var(--eco-text)" }}>{room.name}</h1>
           <div className="text-[14px]" style={{ color: "var(--eco-text-secondary)" }}>
-            {m.operator} · {m.accessMethod}
+            {room.operator || room.serviceName}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <MemberStatusBadge status={m.myStatus} />
-          <RoomStatusBadge status={m.roomStatus} />
+          <MemberStatusBadge status={myStatus} />
+          <RoomStatusBadge status={room.status} />
         </div>
       </div>
 
       <div className="flex flex-col gap-6">
-        {/* Status Timeline */}
         <Card className="flex flex-col gap-4">
           <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>Status Timeline</h3>
           <div className="flex flex-col gap-0">
@@ -108,11 +166,11 @@ export function MemberDetailPage() {
                     {step.label}
                   </div>
                   {step.time && (
-                    <div className="text-[12px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{step.time}</div>
+                    <div className="text-[12px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{new Date(step.time).toLocaleString()}</div>
                   )}
-                  {step.active && m.slaTimeLeft && (
+                  {step.active && slaTimeLeft && (
                     <div className="flex items-center gap-1.5 mt-1.5 text-[13px]" style={{ color: "var(--eco-warning)" }}>
-                      <Clock size={13} /> SLA: {m.slaTimeLeft} remaining
+                      <Clock size={13} /> SLA: {slaTimeLeft} remaining
                     </div>
                   )}
                 </div>
@@ -121,8 +179,22 @@ export function MemberDetailPage() {
           </div>
         </Card>
 
-        {/* SLA Timer Panel (only when PENDING) */}
-        {m.myStatus === "PENDING" && (
+        {needsPayment && (
+          <Card className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <CreditCard size={16} style={{ color: "var(--eco-primary)" }} />
+              <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>Payment Required</h3>
+            </div>
+            <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+              Complete payment to secure your seat in this room.
+            </div>
+            <Button variant="primary" size="md" onClick={goPay}>
+              Pay ₸{room.pricePerMember.toLocaleString()}
+            </Button>
+          </Card>
+        )}
+
+        {waitingForAccess && (
           <Card className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <Clock size={16} style={{ color: "var(--eco-warning)" }} />
@@ -133,11 +205,11 @@ export function MemberDetailPage() {
                 Waiting for owner to grant access
               </div>
               <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-                The room owner has 48 hours to provide access via {m.accessMethod}. If the SLA expires, you can create a support ticket for resolution.
+                The room owner has 48 hours to provide access. If the SLA expires, you can create a support ticket for resolution.
               </div>
-              {m.slaTimeLeft && (
+              {slaTimeLeft && (
                 <div className="mt-3 text-[20px]" style={{ color: "var(--eco-warning)" }}>
-                  {m.slaTimeLeft}
+                  {slaTimeLeft}
                   <span className="text-[13px] ml-1" style={{ color: "var(--eco-text-tertiary)" }}>remaining</span>
                 </div>
               )}
@@ -147,22 +219,31 @@ export function MemberDetailPage() {
                 variant="primary"
                 size="md"
                 className="flex-1"
-                disabled={confirmed}
-                onClick={() => setConfirmed(true)}
+                loading={confirmAccess.isPending}
+                disabled={confirmAccess.isPending}
+                onClick={() => confirmAccess.mutate()}
               >
-                {confirmed ? "Access Confirmed" : "Confirm Access Received"}
+                Confirm Access Received
               </Button>
-              <Link to="/support/new" style={{ textDecoration: "none" }}>
+              <Link
+                to="/support/new"
+                state={{ subject: `Issue with room ${room.name}` }}
+                style={{ textDecoration: "none" }}
+              >
                 <Button variant="secondary" size="md" className="w-full sm:w-auto">
                   <LifeBuoy size={14} /> Create Support Ticket
                 </Button>
               </Link>
             </div>
+            {confirmAccess.isError && (
+              <div className="text-[12px]" style={{ color: "var(--eco-negative)" }}>
+                Failed to confirm. Please try again.
+              </div>
+            )}
           </Card>
         )}
 
-        {/* Blocked notice */}
-        {m.roomStatus === "BLOCKED" && (
+        {isBlocked && (
           <Card className="flex items-start gap-3">
             <AlertTriangle size={18} className="mt-0.5 shrink-0" style={{ color: "var(--eco-negative)" }} />
             <div>
@@ -170,41 +251,31 @@ export function MemberDetailPage() {
               <div className="text-[13px] mt-1" style={{ color: "var(--eco-text-secondary)" }}>
                 This room has been blocked by an administrator. Active members will receive refund instructions via email. Contact support for more information.
               </div>
-              <Link to="/support/new" className="inline-flex items-center gap-1 text-[13px] mt-2" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
+              <Link to="/support/new" state={{ subject: `Blocked room ${room.name}` }} className="inline-flex items-center gap-1 text-[13px] mt-2" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
                 <LifeBuoy size={13} /> Contact Support
               </Link>
             </div>
           </Card>
         )}
 
-        {/* Privacy Panel */}
         <Card className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <Shield size={16} style={{ color: "var(--eco-primary)" }} />
             <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>Privacy & Identifier</h3>
           </div>
           <div className="p-4 rounded-lg" style={{ background: "var(--eco-surface)" }}>
-            <div className="text-[14px] mb-2" style={{ color: "var(--eco-text)" }}>
-              Your telecom identifier
-            </div>
-            <div className="text-[18px] tracking-wider mb-3" style={{ color: "var(--eco-text)", fontFamily: "monospace" }}>
-              {m.identifier}
-            </div>
             <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
-              Visible to room owner only after successful payment. Your full number is encrypted and stored securely.
+              Your telecom identifier is encrypted and only visible to the room owner after a successful payment.
             </div>
           </div>
         </Card>
 
-        {/* Plan info summary */}
         <Card className="flex flex-col gap-3">
           <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>Plan Details</h3>
           {[
-            { label: "Monthly share", value: `₸${m.perMember.toLocaleString()}/mo` },
-            { label: "Start date", value: m.startDate },
-            { label: "Seats", value: `${m.filled}/${m.seats}` },
-            { label: "Access method", value: m.accessMethod },
-            ...(m.nextBilling ? [{ label: "Next billing", value: m.nextBilling }] : []),
+            { label: "Monthly share", value: `${room.currency || "₸"}${room.pricePerMember.toLocaleString()}/mo` },
+            { label: "Start date", value: room.startDate ? new Date(room.startDate).toLocaleDateString() : "—" },
+            { label: "Seats", value: `${room.filled}/${room.seats}` },
           ].map((row) => (
             <div key={row.label} className="flex justify-between text-[14px]">
               <span style={{ color: "var(--eco-text-secondary)" }}>{row.label}</span>
@@ -214,11 +285,10 @@ export function MemberDetailPage() {
         </Card>
       </div>
 
-      {/* Mobile sticky CTA */}
-      {m.myStatus === "PENDING" && !confirmed && (
+      {needsPayment && (
         <div className="sm:hidden fixed bottom-0 left-0 right-0 p-4 border-t" style={{ background: "var(--eco-bg)", borderColor: "var(--eco-border)" }}>
-          <Button variant="primary" size="lg" className="w-full" onClick={() => setConfirmed(true)}>
-            Confirm Access Received
+          <Button variant="primary" size="lg" className="w-full" onClick={goPay}>
+            Pay ₸{room.pricePerMember.toLocaleString()}
           </Button>
         </div>
       )}

@@ -18,9 +18,17 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
+  displayName: string;
+  phone: string;
+}
+
+export interface RequestPhoneCodeRequest {
+  phone: string;
+}
+
+export interface VerifyPhoneRequest {
+  phone: string;
+  code: string;
 }
 
 export interface RefreshTokenRequest {
@@ -37,24 +45,20 @@ export interface PasswordResetConfirmRequest {
 }
 
 export interface UserDto {
-  id: string;
+  id: number;
   email: string;
-  firstName?: string;
-  lastName?: string;
+  displayName: string;
   phone?: string;
-  avatarUrl?: string;
+  phoneVerified?: boolean;
+  avatar?: string;
   role: Role;
   status: UserStatus;
-  ratingScore?: number;
-  createdAt?: string;
-  emailVerified?: boolean;
+  reputation?: number;
 }
 
 export interface UpdateProfileRequest {
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  avatarUrl?: string;
+  displayName?: string;
+  avatar?: string;
 }
 
 export interface CategoryDto {
@@ -95,37 +99,50 @@ export type RoomStatus =
   | "COMPLETED"
   | "BLOCKED";
 
+export type RoomType = "DIGITAL" | "TELECOM";
+
+export type MemberStatus =
+  | "APPLIED"
+  | "PENDING"
+  | "ACTIVE"
+  | "REJECTED"
+  | "CANCELLED_BEFORE_PAYMENT"
+  | "BLOCKED_BY_ADMIN";
+
 export interface RoomSummaryDto {
-  id: string;
-  name: string;
-  serviceId: string;
-  serviceName?: string;
-  operator?: string;
+  id: number;
+  title: string;
+  roomType: RoomType;
   status: RoomStatus;
-  seats: number;
-  filled: number;
+  maxMembers: number;
+  priceTotal: number;
   pricePerMember: number;
   currency: string;
   startDate?: string;
+  ownerUserId: number;
+  ownerDisplayName?: string;
+  serviceId: number;
+  serviceName?: string;
 }
 
 export interface RoomMemberDto {
-  id: string;
-  userId: string;
+  id: number;
+  roomId: number;
+  userId: number;
   displayName?: string;
-  avatarUrl?: string;
-  status: "PENDING" | "CONFIRMED" | "PAID" | "REMOVED";
-  joinedAt?: string;
-  paymentStatus?: "NONE" | "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  status: MemberStatus;
+  paymentStatus?: "NONE" | "PENDING" | "SUCCESS" | "FAILED" | "REFUNDED";
+  requiresAdminReview?: boolean;
+  ownerAccessConfirmedAt?: string;
+  memberConfirmedAt?: string;
+  createdAt?: string;
 }
 
 export interface RoomResponse extends RoomSummaryDto {
-  ownerId: string;
   description?: string;
   members?: RoomMemberDto[];
-  tariffPlanId?: string;
-  isOwner?: boolean;
-  myStatus?: RoomMemberDto["status"];
+  tariffPlanId?: number;
+  filled?: number;
 }
 
 export interface CreateRoomRequest {
@@ -184,22 +201,43 @@ export type PaymentStatus =
   | "REFUNDED";
 
 export interface CreatePaymentIntentRequest {
-  roomId: string;
-  amount?: number;
+  idempotencyKey: string;
+  saveCard?: boolean;
+  savedCardId?: number;
 }
 
+export type PaymentIntentStatus = "PENDING" | "SUCCESS" | "FAILED";
+
 export interface PaymentIntentResponse {
-  id: string;
-  clientSecret?: string;
+  id: number;
+  idempotencyKey: string;
   amount: number;
   currency: string;
-  status: PaymentStatus;
-  redirectUrl?: string;
+  status: PaymentIntentStatus;
+  providerName?: string;
+  externalPaymentId?: string;
+  roomMemberId: number;
+  paymentUrl?: string;
+  requiresRedirect?: boolean;
+  saveCardRequested?: boolean;
+  failureCode?: string;
+  failureMessage?: string;
 }
 
 export interface ConfirmPaymentRequest {
-  intentId: string;
-  paymentMethod?: string;
+  externalTransactionId?: string;
+}
+
+export interface SavedCardDto {
+  id: number;
+  providerName: string;
+  panMask?: string;
+  cardType?: string;
+  expiryMonth?: number;
+  expiryYear?: number;
+  isDefault?: boolean;
+  status?: "ACTIVE" | "EXPIRED" | "REVOKED";
+  createdAt?: string;
 }
 
 export interface SupportTicketResponse {
@@ -322,11 +360,13 @@ export interface UpdateRefundStatusRequest {
 }
 
 export interface PagedResponse<T> {
-  content: T[];
+  items: T[];
   page: number;
   size: number;
-  totalElements: number;
+  totalItems: number;
   totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
 }
 
 export interface PageParams {

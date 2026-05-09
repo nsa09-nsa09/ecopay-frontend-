@@ -36,43 +36,28 @@ export function MyRoomsPage() {
     queryFn: () => roomsApi.myMemberships(),
     enabled: Boolean(user),
   });
-  const all = myQuery.data ?? [];
-
-  const joinedRooms = useMemo(
-    () =>
-      all
-        .filter((r) => r.ownerId !== user?.id)
-        .map((r) => ({
-          id: String(r.id),
-          name: r.name,
-          operator: r.operator ?? "—",
-          status: r.status,
-          myStatus: r.myStatus ?? "PENDING",
-          startDate: r.startDate ?? "",
-          seats: r.seats,
-          filled: r.filled,
-          perMember: r.pricePerMember,
-        })),
-    [all, user?.id],
-  );
+  const all = myQuery.data?.items ?? [];
 
   const createdRooms = useMemo(
     () =>
-      all
-        .filter((r) => r.ownerId === user?.id)
-        .map((r) => ({
-          id: String(r.id),
-          name: r.name,
-          operator: r.operator ?? "—",
-          status: r.status,
-          startDate: r.startDate ?? "",
-          seats: r.seats,
-          filled: r.filled,
-          applicants: 0,
-          perMember: r.pricePerMember,
-        })),
-    [all, user?.id],
+      all.map((r) => ({
+        id: String(r.id),
+        name: r.title,
+        operator: r.serviceName ?? "—",
+        status: r.status,
+        startDate: r.startDate ?? "",
+        seats: r.maxMembers,
+        filled: 0,
+        applicants: 0,
+        perMember: Number(r.pricePerMember),
+        myStatus: "PENDING" as const,
+      })),
+    [all],
   );
+
+  // /rooms/me returns ONLY rooms owned by the current user.
+  // "Joined" tab requires a separate memberships endpoint (TODO Phase 4).
+  const joinedRooms: typeof createdRooms = [];
 
   const filteredJoined = joinedRooms.filter((r) => {
     if (statusFilter !== "ALL" && r.status !== statusFilter) return false;

@@ -46,7 +46,6 @@ export function AdminUsersPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <GapBanner label="AdminUserController is not implemented yet — list, ban/unban, role changes are mock." />
         <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>Users</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

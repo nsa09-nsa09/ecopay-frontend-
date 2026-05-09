@@ -8,6 +8,7 @@ import { OperatorPage } from "./components/catalog/operator";
 import { LoginPage } from "./components/auth/login";
 import { RegisterPage } from "./components/auth/register";
 import { ForgotPasswordPage } from "./components/auth/forgot-password";
+import { VerifyPhonePage } from "./components/auth/verify-phone";
 import { RoomDetailPage } from "./components/rooms/room-detail";
 import { CreateRoomPage } from "./components/rooms/create-room";
 import { MyRoomsPage } from "./components/rooms/my-rooms";
@@ -71,6 +72,7 @@ export const router = createBrowserRouter([
           { path: "login", Component: LoginPage },
           { path: "register", Component: RegisterPage },
           { path: "forgot-password", Component: ForgotPasswordPage },
+          { path: "verify-phone", Component: VerifyPhonePage },
           { path: "room/:id", Component: RoomDetailPage },
           {
             element: <ProtectedRoute />,

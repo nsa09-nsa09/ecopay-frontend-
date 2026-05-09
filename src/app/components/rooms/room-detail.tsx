@@ -2,11 +2,13 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Card, Badge, Button, RoomStatusBadge, Modal, Input, Stepper, WaveDivider } from "../ds-primitives";
-import { ArrowLeft, Users, Star, Calendar, Shield, AlertTriangle, Check, Clock, Eye, EyeOff } from "lucide-react";
+import { Card, Badge, Button, RoomStatusBadge, Modal, Input, Stepper } from "../ds-primitives";
+import { ArrowLeft, Users, Calendar, Shield, AlertTriangle, Check, Eye } from "lucide-react";
 import { roomsApi, roomMembersApi } from "../../../lib/api/rooms";
 import { ApiError } from "../../../lib/api/client";
 import { useAuth } from "../../../lib/auth/AuthContext";
+
+const SERVICE_FEE = 199;
 
 export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -17,7 +19,6 @@ export function RoomDetailPage() {
   const [joinStep, setJoinStep] = useState(0);
   const [consent, setConsent] = useState(false);
   const [identifier, setIdentifier] = useState("");
-  const [joinDone, setJoinDone] = useState(false);
 
   const roomQuery = useQuery({
     queryKey: ["rooms", "detail", id],
@@ -26,37 +27,34 @@ export function RoomDetailPage() {
   });
   const r = roomQuery.data;
 
-  const SERVICE_FEE = 199;
+  const myMembershipQuery = useQuery({
+    queryKey: ["rooms", id, "membership", "me"],
+    queryFn: () => roomMembersApi.myMembership(id!),
+    enabled: Boolean(id) && Boolean(user),
+    retry: false,
+  });
 
-  const room = r
-    ? {
-        plan: r.name,
-        operator: r.operator ?? "—",
-        status: r.status,
-        seats: r.seats,
-        filled: r.filled,
-        priceTotal: r.pricePerMember * r.seats,
-        perMember: r.pricePerMember,
-        serviceFee: SERVICE_FEE,
-        startDate: r.startDate ?? "—",
-        owner: {
-          name: r.ownerId === user?.id ? "You" : "Owner",
-          rating: 0,
-          rooms: 0,
-          joined: "—",
-        },
-        cancellation:
-          "Members can leave with 15-day notice before next billing cycle. Owner must maintain room for committed period.",
-        accessMethod: "eSIM / Operator account invite",
-      }
-    : null;
+  const membersQuery = useQuery({
+    queryKey: ["rooms", id, "members"],
+    queryFn: () => roomMembersApi.list(id!),
+    enabled: Boolean(id) && Boolean(user) && r?.ownerUserId === user?.id,
+  });
 
   const joinMutation = useMutation({
     mutationFn: () => roomMembersApi.join(id!, { message: identifier }),
-    onSuccess: () => {
+    onSuccess: (mem) => {
       qc.invalidateQueries({ queryKey: ["rooms"] });
-      setJoinDone(true);
+      qc.invalidateQueries({ queryKey: ["rooms", id, "membership", "me"] });
       toast.success("Application submitted");
+      setJoinOpen(false);
+      navigate("/payment/room", {
+        state: {
+          roomMemberId: String(mem.id),
+          roomId: String(r?.id),
+          amount: Number(r?.pricePerMember) + SERVICE_FEE,
+          currency: "KZT",
+        },
+      });
     },
     onError: (err: unknown) => {
       const msg = err instanceof ApiError ? err.message : "Failed to join";
@@ -64,12 +62,29 @@ export function RoomDetailPage() {
     },
   });
 
+  const confirmAccessMutation = useMutation({
+    mutationFn: () => roomMembersApi.confirmAccessAsMember(id!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rooms", id, "membership", "me"] });
+      toast.success("Access confirmed — your membership is now active");
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof ApiError ? err.message : "Failed to confirm";
+      toast.error(msg);
+    },
+  });
+
   if (roomQuery.isLoading) {
-    return <div className="max-w-[1200px] mx-auto px-6 py-8 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>Loading...</div>;
+    return <div className="max-w-[1200px] mx-auto px-6 py-8 text-[13px]">Loading...</div>;
   }
-  if (!room) {
-    return <div className="max-w-[1200px] mx-auto px-6 py-8 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>Room not found.</div>;
+  if (!r) {
+    return <div className="max-w-[1200px] mx-auto px-6 py-8 text-[13px]">Room not found.</div>;
   }
+
+  const isOwner = user?.id === r.ownerUserId;
+  const myMember = myMembershipQuery.data;
+  const filled = r.filled ?? 0;
+  const priceTotal = Number(r.priceTotal ?? Number(r.pricePerMember) * r.maxMembers);
 
   return (
     <div className="max-w-[1200px] mx-auto px-6 py-8">
@@ -78,28 +93,25 @@ export function RoomDetailPage() {
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main content */}
         <div className="lg:col-span-2 flex flex-col gap-6">
-          {/* Header */}
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{room.plan}</h1>
-              <RoomStatusBadge status={room.status} />
+              <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{r.title}</h1>
+              <RoomStatusBadge status={r.status} />
             </div>
             <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-              {room.operator} · {room.accessMethod}
+              {r.serviceName ?? "—"} · {r.roomType}
             </p>
           </div>
 
-          {/* Plan Summary */}
           <Card className="flex flex-col gap-4">
             <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Plan Summary</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { label: "Total plan cost", value: `₸${room.priceTotal.toLocaleString()}/mo` },
-                { label: "Seats", value: `${room.filled}/${room.seats}`, icon: Users },
-                { label: "Your share", value: `₸${room.perMember.toLocaleString()}/mo`, highlight: true },
-                { label: "Start date", value: room.startDate, icon: Calendar },
+                { label: "Total cost", value: `₸${priceTotal.toLocaleString()}/mo` },
+                { label: "Seats", value: `${filled}/${r.maxMembers}`, icon: Users },
+                { label: "Your share", value: `₸${Number(r.pricePerMember).toLocaleString()}/mo`, highlight: true },
+                { label: "Start date", value: r.startDate?.slice(0, 10) ?? "—", icon: Calendar },
               ].map((item) => (
                 <div key={item.label}>
                   <div className="text-[12px] mb-1" style={{ color: "var(--eco-text-tertiary)" }}>{item.label}</div>
@@ -109,159 +121,251 @@ export function RoomDetailPage() {
                 </div>
               ))}
             </div>
-            {/* Seat fill bar */}
-            <div className="flex items-center gap-3">
-              <div className="h-2 rounded-full flex-1" style={{ background: "var(--eco-neutral-200)" }}>
-                <div className="h-2 rounded-full" style={{ width: `${(room.filled / room.seats) * 100}%`, background: "var(--eco-primary)" }} />
-              </div>
-              <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>1 seat available</span>
+            <div className="h-2 rounded-full flex-1" style={{ background: "var(--eco-neutral-200)" }}>
+              <div className="h-2 rounded-full" style={{ width: `${(filled / r.maxMembers) * 100}%`, background: "var(--eco-primary)" }} />
             </div>
           </Card>
 
-          {/* Price Breakdown */}
-          <Card className="flex flex-col gap-3">
-            <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Price Breakdown</h3>
-            {[
-              { label: "Plan cost", value: `₸${room.priceTotal.toLocaleString()}` },
-              { label: `Split between ${room.seats} members`, value: `÷${room.seats}` },
-              { label: "Your monthly share", value: `₸${room.perMember.toLocaleString()}`, bold: true },
-              { label: "Service fee", value: `₸${room.serviceFee}` },
-            ].map((row) => (
-              <div key={row.label} className="flex justify-between text-[13px]">
-                <span style={{ color: "var(--eco-text-secondary)" }}>{row.label}</span>
-                <span style={{ color: row.bold ? "var(--eco-text)" : "var(--eco-text-secondary)" }}>{row.value}</span>
-              </div>
-            ))}
-            <div className="border-t pt-3 flex justify-between text-[14px]" style={{ borderColor: "var(--eco-border)" }}>
-              <span style={{ color: "var(--eco-text)" }}>Total / month</span>
-              <span style={{ color: "var(--eco-primary)" }}>₸{(room.perMember + room.serviceFee).toLocaleString()}</span>
-            </div>
-          </Card>
+          {r.description && (
+            <Card>
+              <h3 className="text-[14px] mb-2" style={{ color: "var(--eco-text)" }}>Description</h3>
+              <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{r.description}</p>
+            </Card>
+          )}
 
-          {/* Cancellation rules */}
-          <Card className="flex items-start gap-3">
-            <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
-            <div>
-              <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>Cancellation Rules</div>
-              <div className="text-[12px] mt-1" style={{ color: "var(--eco-text-secondary)" }}>{room.cancellation}</div>
-            </div>
-          </Card>
+          {/* Owner-only: members table with grant-access actions */}
+          {isOwner && (
+            <Card className="flex flex-col gap-3">
+              <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Members</h3>
+              {membersQuery.isLoading && <div className="text-[12px]">Loading members...</div>}
+              {!membersQuery.isLoading && (membersQuery.data?.length ?? 0) === 0 && (
+                <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                  No members yet.
+                </div>
+              )}
+              {(membersQuery.data ?? []).map((m) => (
+                <OwnerMemberRow key={m.id} roomId={id!} member={m} />
+              ))}
+            </Card>
+          )}
+
+          {/* Member-only: confirm access received */}
+          {!isOwner && myMember?.status === "PENDING" && myMember.ownerAccessConfirmedAt && (
+            <Card className="flex flex-col gap-3" style={{ borderColor: "var(--eco-positive)" }}>
+              <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>
+                Owner has granted access
+              </h3>
+              <p className="text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
+                Confirm that you received the access (login, invite, etc.) so the membership becomes active.
+              </p>
+              <Button
+                variant="primary"
+                size="lg"
+                disabled={confirmAccessMutation.isPending}
+                onClick={() => confirmAccessMutation.mutate()}
+              >
+                {confirmAccessMutation.isPending ? "..." : "Confirm — I received access"}
+              </Button>
+            </Card>
+          )}
         </div>
 
-        {/* Sidebar */}
         <div className="flex flex-col gap-4">
-          {/* Owner */}
           <Card className="flex flex-col gap-3">
             <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Room Owner</h3>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "var(--eco-surface)" }}>
-                <span className="text-[14px]" style={{ color: "var(--eco-text-secondary)" }}>AK</span>
-              </div>
-              <div>
-                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{room.owner.name}</div>
-                <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                  <span className="flex items-center gap-0.5" style={{ color: "var(--eco-warning)" }}>
-                    <Star size={12} fill="currentColor" /> {room.owner.rating}
-                  </span>
-                  · {room.owner.rooms} rooms · Since {room.owner.joined}
-                </div>
-              </div>
+            <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>
+              {isOwner ? "You" : (r.ownerDisplayName ?? "—")}
             </div>
             <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-positive)" }}>
               <Shield size={13} /> Verified owner
             </div>
           </Card>
 
-          {/* CTA */}
-          <Card className="flex flex-col gap-3">
-            <div className="text-[20px]" style={{ color: "var(--eco-primary)" }}>₸{(room.perMember + room.serviceFee).toLocaleString()}<span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>/mo</span></div>
-            <Button variant="primary" size="lg" className="w-full" onClick={() => { setJoinOpen(true); setJoinStep(0); setJoinDone(false); }}>
-              Join Room
-            </Button>
-            <p className="text-[11px] text-center" style={{ color: "var(--eco-text-tertiary)" }}>
-              Your identifier will be shared with owner only after payment
-            </p>
-          </Card>
+          {!isOwner && !myMember && r.status === "OPEN" && (
+            <Card className="flex flex-col gap-3">
+              <div className="text-[20px]" style={{ color: "var(--eco-primary)" }}>
+                ₸{(Number(r.pricePerMember) + SERVICE_FEE).toLocaleString()}
+                <span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>/mo</span>
+              </div>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => { setJoinOpen(true); setJoinStep(0); }}
+              >
+                Join Room
+              </Button>
+            </Card>
+          )}
+
+          {!isOwner && myMember && (
+            <Card className="flex flex-col gap-2">
+              <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>Your membership</div>
+              <Badge variant={badgeVariant(myMember.status)}>{myMember.status}</Badge>
+              {myMember.status === "APPLIED" && (
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={() => navigate("/payment/room", {
+                    state: {
+                      roomMemberId: String(myMember.id),
+                      roomId: String(r.id),
+                      amount: Number(r.pricePerMember) + SERVICE_FEE,
+                      currency: "KZT",
+                    },
+                  })}
+                >
+                  Continue to payment
+                </Button>
+              )}
+            </Card>
+          )}
         </div>
       </div>
 
       {/* Join Modal */}
       <Modal open={joinOpen} onClose={() => setJoinOpen(false)} title="Join Room">
-        {!joinDone ? (
-          <div className="flex flex-col gap-5">
-            <Stepper steps={["Identifier", "Payment"]} current={joinStep} />
+        <div className="flex flex-col gap-5">
+          <Stepper steps={["Identifier", "Apply"]} current={joinStep} />
 
-            {joinStep === 0 && (
-              <div className="flex flex-col gap-4">
-                <Input
-                  label="Telecom Identifier"
-                  placeholder="Phone number or contract ID"
-                  hint="e.g. +7 (707) 123-45-67"
-                  value={identifier}
-                  onChange={(e: any) => setIdentifier(e.target.value)}
-                />
-                <label className="flex items-start gap-2 cursor-pointer">
-                  <input type="checkbox" className="mt-0.5" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-                  <span className="text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
-                    I consent to sharing my identifier with the room owner after successful payment. My data will be masked and visible only to the owner.
-                  </span>
-                </label>
-                <div className="p-3 rounded-lg text-[12px]" style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)" }}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Shield size={13} style={{ color: "var(--eco-primary)" }} />
-                    Privacy Notice
-                  </div>
-                  Your identifier is stored encrypted. It will be shown to the room owner in masked format (e.g. +7 *** ***-**-67) only after your payment is confirmed.
+          {joinStep === 0 && (
+            <div className="flex flex-col gap-4">
+              <Input
+                label="Identifier (phone or account)"
+                placeholder="+7 (707) 123-45-67 or email"
+                value={identifier}
+                onChange={(e: any) => setIdentifier(e.target.value)}
+              />
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input type="checkbox" className="mt-0.5" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+                <span className="text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
+                  I consent to sharing my identifier with the room owner after successful payment.
+                </span>
+              </label>
+              <Button variant="primary" disabled={!consent || !identifier} onClick={() => setJoinStep(1)}>
+                Continue
+              </Button>
+            </div>
+          )}
+
+          {joinStep === 1 && (
+            <div className="flex flex-col gap-4">
+              <Card className="flex flex-col gap-2">
+                <div className="flex justify-between text-[13px]">
+                  <span>Monthly share</span>
+                  <span>₸{Number(r.pricePerMember).toLocaleString()}</span>
                 </div>
-                <Button variant="primary" className="w-full" disabled={!consent} onClick={() => setJoinStep(1)}>
-                  Continue to Payment
-                </Button>
-              </div>
-            )}
-
-            {joinStep === 1 && (
-              <div className="flex flex-col gap-4">
-                <Card className="flex flex-col gap-2">
-                  <div className="flex justify-between text-[13px]">
-                    <span style={{ color: "var(--eco-text-secondary)" }}>Monthly share</span>
-                    <span style={{ color: "var(--eco-text)" }}>₸5,000</span>
-                  </div>
-                  <div className="flex justify-between text-[13px]">
-                    <span style={{ color: "var(--eco-text-secondary)" }}>Service fee</span>
-                    <span style={{ color: "var(--eco-text)" }}>₸199</span>
-                  </div>
-                  <div className="border-t pt-2 flex justify-between text-[14px]" style={{ borderColor: "var(--eco-border)" }}>
-                    <span style={{ color: "var(--eco-text)" }}>Due now</span>
-                    <span style={{ color: "var(--eco-primary)" }}>₸5,199</span>
-                  </div>
-                </Card>
-                <Button
-                  variant="primary"
-                  className="w-full"
-                  disabled={joinMutation.isPending}
-                  onClick={() => joinMutation.mutate()}
-                >
-                  {joinMutation.isPending ? "Submitting..." : "Submit Application"}
-                </Button>
-                <p className="text-[11px] text-center" style={{ color: "var(--eco-text-tertiary)" }}>
-                  Payment processing is handled by a secure third-party provider
-                </p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center text-center py-4 gap-3">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "var(--eco-success-100)" }}>
-              <Check size={20} style={{ color: "var(--eco-positive)" }} />
+                <div className="flex justify-between text-[13px]">
+                  <span>Service fee</span>
+                  <span>₸{SERVICE_FEE}</span>
+                </div>
+                <div className="border-t pt-2 flex justify-between text-[14px]">
+                  <span>Due now</span>
+                  <span style={{ color: "var(--eco-primary)" }}>
+                    ₸{(Number(r.pricePerMember) + SERVICE_FEE).toLocaleString()}
+                  </span>
+                </div>
+              </Card>
+              <Button
+                variant="primary"
+                disabled={joinMutation.isPending}
+                onClick={() => joinMutation.mutate()}
+              >
+                {joinMutation.isPending ? "Submitting..." : "Submit & continue to payment"}
+              </Button>
             </div>
-            <div className="text-[15px]" style={{ color: "var(--eco-text)" }}>Application Submitted</div>
-            <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-              Your status is now <Badge variant="warning">PENDING</Badge>. The owner will grant access within 48h.
-            </div>
-            <Button variant="secondary" className="mt-2" onClick={() => { setJoinOpen(false); navigate(`/rooms/member/${id}`); }}>View My Status</Button>
-          </div>
-        )}
+          )}
+        </div>
       </Modal>
     </div>
   );
+}
+
+function OwnerMemberRow({ roomId, member }: { roomId: string; member: any }) {
+  const qc = useQueryClient();
+  const [revealed, setRevealed] = useState<string | null>(null);
+
+  const revealMutation = useMutation({
+    mutationFn: () => roomMembersApi.revealIdentifier(roomId, member.id, { reason: "Setup" }),
+    onSuccess: (data: any) => {
+      setRevealed(data?.identifier ?? data?.value ?? "");
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof ApiError ? err.message : "Failed to reveal";
+      toast.error(msg);
+    },
+  });
+
+  const grantMutation = useMutation({
+    mutationFn: () => roomMembersApi.ownerAccess(roomId, member.id, {
+      accessMethod: "MANUAL",
+      grant: true,
+    } as any),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rooms", roomId, "members"] });
+      toast.success("Access marked as granted");
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof ApiError ? err.message : "Failed to grant";
+      toast.error(msg);
+    },
+  });
+
+  const canReveal = member.status === "PENDING" || member.status === "ACTIVE";
+  const canGrant = member.status === "PENDING" && !member.ownerAccessConfirmedAt;
+
+  return (
+    <div className="flex flex-col gap-2 p-3 rounded-lg" style={{ background: "var(--eco-surface)" }}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-[13px]" style={{ color: "var(--eco-text)" }}>
+            {member.displayName ?? `Member #${member.id}`}
+          </span>
+          <Badge variant={badgeVariant(member.status)}>{member.status}</Badge>
+        </div>
+      </div>
+
+      {revealed && (
+        <div className="text-[12px] p-2 rounded" style={{ background: "var(--eco-neutral-100)" }}>
+          <strong>Identifier:</strong> {revealed}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {canReveal && (
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={revealMutation.isPending}
+            onClick={() => revealMutation.mutate()}
+          >
+            <Eye size={12} /> Reveal identifier
+          </Button>
+        )}
+        {canGrant && (
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={grantMutation.isPending}
+            onClick={() => grantMutation.mutate()}
+          >
+            <Check size={12} /> Mark access granted
+          </Button>
+        )}
+        {member.ownerAccessConfirmedAt && !member.memberConfirmedAt && (
+          <span className="text-[11px] inline-flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}>
+            <AlertTriangle size={11} /> Waiting for member to confirm
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function badgeVariant(status: string): "info" | "warning" | "success" | "default" {
+  switch (status) {
+    case "ACTIVE": return "success";
+    case "PENDING": return "warning";
+    case "APPLIED": return "info";
+    default: return "default";
+  }
 }
