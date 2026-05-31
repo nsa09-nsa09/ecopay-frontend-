@@ -122,7 +122,7 @@ export function AppLayout() {
                           {item.label}
                         </Link>
                       ))}
-                      {(role === "ADMIN" || role === "STAFF") && (
+                      {(role === "ADMIN" || role === "SUPPORT") && (
                         <Link
                           to="/admin/dashboard"
                           onClick={() => setProfileOpen(false)}

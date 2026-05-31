@@ -1,9 +1,45 @@
-// Hand-typed contracts mirroring backend DTOs.
+// Hand-typed contracts mirroring backend DTOs (kz.hrms.splitupauth.dto).
+// Backend is the source of truth. All entity ids are numeric (Java Long → JSON number).
 // TODO: replace with `openapi-typescript` generated types from /v3/api-docs once Swagger URL is confirmed.
 
-export type Role = "USER" | "STAFF" | "ADMIN";
-export type UserStatus = "ACTIVE" | "BLOCKED" | "SUSPENDED";
+// ---------- Enums (mirror backend entity enums) ----------
+export type Role = "USER" | "SUPPORT" | "ADMIN";
+export type UserStatus = "ACTIVE" | "BANNED";
+export type ProviderType = "OPERATOR" | "ISP" | "DIGITAL";
+export type PeriodType = "MONTHLY" | "YEARLY" | "OTHER";
+export type ConnectionType = "SIM" | "ESIM" | "ACCOUNT_LINK" | "OTHER";
+export type RoomType = "DIGITAL" | "TELECOM";
+export type VerificationMode = "AUTO" | "ADMIN_REQUIRED" | "RISK_BASED";
+export type IdentifierType = "PHONE" | "ACCOUNT" | "SIM" | "ESIM";
 
+export type RoomStatus =
+  | "OPEN"
+  | "IN_VERIFICATION"
+  | "ACTIVE"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "BLOCKED";
+
+export type MemberStatus =
+  | "APPLIED"
+  | "PENDING"
+  | "ACTIVE"
+  | "REJECTED"
+  | "CANCELLED_BEFORE_PAYMENT"
+  | "BLOCKED_BY_ADMIN";
+
+export type PaymentIntentStatus = "PENDING" | "SUCCESS" | "FAILED";
+
+export type SupportTicketStatus =
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "WAITING_USER"
+  | "ESCALATED"
+  | "CLOSED";
+
+export type DisputeStatus = "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "REJECTED";
+
+// ---------- Auth ----------
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
@@ -49,10 +85,10 @@ export interface UserDto {
   email: string;
   displayName: string;
   phone?: string;
-  phoneVerified?: boolean;
+  phoneVerified: boolean;
   avatar?: string;
-  role: Role;
   status: UserStatus;
+  role: Role;
   reputation?: number;
 }
 
@@ -61,54 +97,36 @@ export interface UpdateProfileRequest {
   avatar?: string;
 }
 
+// ---------- Catalog ----------
 export interface CategoryDto {
-  id: string;
+  id: number;
   name: string;
   slug: string;
-  icon?: string;
+  sortOrder?: number;
 }
 
 export interface ServiceDto {
-  id: string;
-  categoryId: string;
+  id: number;
+  categoryId: number;
+  categoryName?: string;
   name: string;
-  operator: string;
-  description?: string;
-  logoUrl?: string;
-  rating?: number;
+  slug: string;
+  providerType: ProviderType;
 }
 
 export interface TariffPlanDto {
-  id: string;
-  serviceId: string;
+  id: number;
+  serviceId: number;
   name: string;
-  price: number;
+  periodType: PeriodType;
+  maxMembers: number;
+  basePriceTotal?: number;
   currency: string;
-  seats: number;
-  periodMonths: number;
-  features?: string[];
+  connectionType?: ConnectionType;
+  operatorRules?: string;
 }
 
-export type RoomStatus =
-  | "DRAFT"
-  | "OPEN"
-  | "PENDING"
-  | "ACTIVE"
-  | "FULL"
-  | "CANCELED"
-  | "COMPLETED"
-  | "BLOCKED";
-
-export type RoomType = "DIGITAL" | "TELECOM";
-
-export type MemberStatus =
-  | "APPLIED"
-  | "PENDING"
-  | "ACTIVE"
-  | "REJECTED"
-  | "CANCELLED_BEFORE_PAYMENT"
-  | "BLOCKED_BY_ADMIN";
-
+// ---------- Rooms ----------
 export interface RoomSummaryDto {
   id: number;
   title: string;
@@ -125,88 +143,138 @@ export interface RoomSummaryDto {
   serviceName?: string;
 }
 
+export interface RoomResponse {
+  id: number;
+  ownerUserId: number;
+  categoryId?: number;
+  serviceId: number;
+  tariffPlanId?: number;
+  roomType: RoomType;
+  verificationMode: VerificationMode;
+  status: RoomStatus;
+  title: string;
+  description?: string;
+  maxMembers: number;
+  priceTotal?: number;
+  pricePerMember?: number;
+  currency: string;
+  periodType: PeriodType;
+  startDate?: string;
+  cancellationPolicy?: string;
+  providerName?: string;
+  tariffNameSnapshot?: string;
+  connectionType?: ConnectionType;
+  operatorRestrictions?: string;
+  operatorTermsConfirmed?: boolean;
+  readyForVerificationAt?: string;
+  completedAt?: string;
+  blockedAt?: string;
+  blockReason?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface RoomMemberDto {
   id: number;
   roomId: number;
   userId: number;
-  displayName?: string;
+  userDisplayName?: string;
+  userEmail?: string;
   status: MemberStatus;
-  paymentStatus?: "NONE" | "PENDING" | "SUCCESS" | "FAILED" | "REFUNDED";
   requiresAdminReview?: boolean;
+  accessMethod?: string;
   ownerAccessConfirmedAt?: string;
   memberConfirmedAt?: string;
+  activatedAt?: string;
+  rejectedAt?: string;
+  endedAt?: string;
+  consentAcceptedAt?: string;
   createdAt?: string;
 }
 
-export interface RoomResponse extends RoomSummaryDto {
-  description?: string;
-  members?: RoomMemberDto[];
-  tariffPlanId?: number;
-  filled?: number;
+export interface MyRoomMembershipDto {
+  id: number;
+  roomId: number;
+  userId: number;
+  status: MemberStatus;
+  requiresAdminReview?: boolean;
+  identifierType?: IdentifierType;
+  identifierMasked?: string;
+  accessMethod?: string;
+  ownerAccessConfirmedAt?: string;
+  memberConfirmedAt?: string;
+  activatedAt?: string;
 }
 
 export interface CreateRoomRequest {
-  serviceId: string;
-  tariffPlanId: string;
-  name: string;
+  categoryId?: number;
+  serviceId: number;
+  tariffPlanId?: number;
+  roomType: RoomType;
+  title: string;
   description?: string;
-  startDate?: string;
+  maxMembers: number;
+  priceTotal?: number;
+  pricePerMember?: number;
+  currency?: string;
+  periodType: PeriodType;
+  startDate: string; // ISO LocalDateTime, e.g. "2026-06-15T00:00:00"
+  cancellationPolicy?: string;
+  providerName?: string;
+  tariffNameSnapshot?: string;
+  connectionType?: ConnectionType;
+  operatorRestrictions?: string;
+  operatorTermsConfirmed?: boolean;
 }
 
 export interface UpdateRoomRequest {
-  name?: string;
+  title?: string;
   description?: string;
-  startDate?: string;
+  maxMembers?: number;
+  priceTotal?: number;
+  pricePerMember?: number;
+  cancellationPolicy?: string;
+  providerName?: string;
+  tariffNameSnapshot?: string;
+  connectionType?: ConnectionType;
+  operatorRestrictions?: string;
+  operatorTermsConfirmed?: boolean;
 }
 
 export interface JoinRoomRequest {
-  message?: string;
+  consentAccepted: boolean;
+  identifierType?: IdentifierType;
+  identifierValue?: string;
 }
 
 export interface CancelRoomRequest {
   reason?: string;
 }
 
-export interface BatchConfirmRequest {
-  memberIds: string[];
-}
-
 export interface ConfirmOwnerAccessRequest {
-  identifier: string;
-  note?: string;
+  accessMethod: string;
 }
 
 export interface RevealIdentifierRequest {
-  reason?: string;
+  reason: string;
+  contextType?: string;
+  contextId?: number;
 }
 
 export interface RevealedIdentifierDto {
-  identifier: string;
-  revealedAt: string;
+  roomId: number;
+  roomMemberId: number;
+  identifierType: string;
+  identifierValue: string;
+  revealedForReason?: string;
 }
 
-export interface MyRoomMembershipDto {
-  room: RoomSummaryDto;
-  myRole: "OWNER" | "MEMBER";
-  myStatus: RoomMemberDto["status"];
-  applicantsCount?: number;
-}
-
-export type PaymentStatus =
-  | "REQUIRES_PAYMENT_METHOD"
-  | "PROCESSING"
-  | "REQUIRES_CONFIRMATION"
-  | "SUCCEEDED"
-  | "FAILED"
-  | "REFUNDED";
-
+// ---------- Payments ----------
 export interface CreatePaymentIntentRequest {
   idempotencyKey: string;
   saveCard?: boolean;
   savedCardId?: number;
 }
-
-export type PaymentIntentStatus = "PENDING" | "SUCCESS" | "FAILED";
 
 export interface PaymentIntentResponse {
   id: number;
@@ -240,53 +308,115 @@ export interface SavedCardDto {
   createdAt?: string;
 }
 
+// ---------- Payouts ----------
+export interface PayoutDto {
+  id: number;
+  amount: number;
+  currency: string;
+  status: string;
+  providerPayoutId?: string;
+  failureReason?: string;
+  roomId?: number;
+  createdAt?: string;
+  processedAt?: string;
+}
+
+export interface PayoutMethodDto {
+  id: number;
+  providerName: string;
+  panMask?: string;
+  isDefault?: boolean;
+  status?: string;
+  createdAt?: string;
+}
+
+export interface RegisterPayoutMethodRequest {
+  providerName: string;
+  providerCardToken: string;
+  panMask?: string;
+  makeDefault?: boolean;
+}
+
+// ---------- Reviews / Reputation ----------
+export interface CreateReviewRequest {
+  recipientId: number;
+  roomId: number;
+  rating: number; // 1..5
+  text?: string;
+}
+
+export interface ReviewDto {
+  id: number;
+  authorId: number;
+  authorDisplayName?: string;
+  recipientId: number;
+  roomId: number;
+  rating: number;
+  text?: string;
+  createdAt: string;
+}
+
+export interface ReputationDto {
+  userId: number;
+  displayName?: string;
+  reputation?: number;
+  averageRating?: number;
+  reviewsCount?: number;
+  completedRoomsCount?: number;
+}
+
+// ---------- Support ----------
 export interface SupportTicketResponse {
-  id: string;
+  id: number;
+  userId: number;
+  roomId?: number;
+  roomMemberId?: number;
   subject: string;
-  status: "OPEN" | "PENDING" | "RESOLVED" | "CLOSED";
-  priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+  topic: string;
+  status: SupportTicketStatus;
+  priority?: string;
+  escalatedToDispute?: boolean;
   createdAt: string;
   updatedAt?: string;
+  closedAt?: string;
   messages?: SupportMessageDto[];
 }
 
 export interface SupportMessageDto {
-  id: string;
-  ticketId: string;
-  authorId: string;
-  authorName?: string;
-  body: string;
+  id: number;
+  senderUserId: number;
+  senderRole?: string;
+  message: string;
+  attachmentUrl?: string;
   createdAt: string;
-  attachments?: string[];
 }
 
 export interface CreateSupportTicketRequest {
+  roomId?: number;
+  roomMemberId?: number;
   subject: string;
-  body: string;
-  priority?: SupportTicketResponse["priority"];
+  topic: string;
+  message: string;
 }
 
 export interface CreateSupportMessageRequest {
-  body: string;
+  message: string;
 }
 
-export interface UpdateSupportTicketStatusRequest {
-  status: SupportTicketResponse["status"];
-}
-
-export type DisputeStatus =
-  | "OPEN"
-  | "UNDER_REVIEW"
-  | "RESOLVED_OWNER"
-  | "RESOLVED_MEMBER"
-  | "REJECTED";
-
+// ---------- Disputes ----------
 export interface DisputeResponse {
-  id: string;
-  roomId: string;
-  openedById: string;
+  id: number;
+  roomId?: number;
+  roomMemberId?: number;
+  ticketId?: number;
+  openedByUserId?: number;
+  assignedAdminId?: number;
+  reasonCode?: string;
+  description?: string;
   status: DisputeStatus;
-  reason: string;
+  decision?: string;
+  decisionComment?: string;
+  resolvedAt?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -297,41 +427,47 @@ export interface DisputeDecisionRequest {
 }
 
 export interface ApplyDisputeSanctionsRequest {
-  blockUserId?: string;
+  blockUserId?: number;
   refundAmount?: number;
   comment?: string;
 }
 
+// ---------- Admin ----------
 export interface AdminActionLogDto {
-  id: string;
-  actorId: string;
+  id: number;
+  actorId?: number;
   actorName?: string;
   action: string;
   targetType?: string;
-  targetId?: string;
+  targetId?: number;
   createdAt: string;
   details?: Record<string, unknown>;
 }
 
 export interface RoomEventLogDto {
-  id: string;
-  roomId: string;
+  id: number;
+  roomId?: number;
   type: string;
-  actorId?: string;
+  actorId?: number;
   createdAt: string;
   details?: Record<string, unknown>;
 }
 
 export interface ModerationQueueItemDto {
-  id: string;
-  type: "ROOM" | "USER" | "REVIEW";
-  targetId: string;
+  id: number;
+  type: string;
+  targetId: number;
   reason: string;
-  reportedById?: string;
+  reportedById?: number;
   createdAt: string;
 }
 
 export interface BlockRoomRequest {
+  reason: string;
+}
+
+export interface BatchConfirmRequest {
+  queueIds: number[];
   reason: string;
 }
 
@@ -341,14 +477,14 @@ export interface AdminDecisionRequest {
 }
 
 export interface CreateRefundRequest {
-  paymentId: string;
+  paymentId: number;
   amount?: number;
   reason?: string;
 }
 
 export interface RefundTransactionResponse {
-  id: string;
-  paymentId: string;
+  id: number;
+  paymentId: number;
   amount: number;
   status: "PENDING" | "APPROVED" | "REJECTED" | "PROCESSED";
   createdAt: string;
@@ -359,6 +495,7 @@ export interface UpdateRefundStatusRequest {
   comment?: string;
 }
 
+// ---------- Pagination ----------
 export interface PagedResponse<T> {
   items: T[];
   page: number;

@@ -4,9 +4,10 @@ import { Card, Button, MemberStatusBadge, RoomStatusBadge, SkeletonCard, EmptySt
 import { ArrowLeft, CheckCircle2, Clock, Shield, AlertTriangle, LifeBuoy, CreditCard } from "lucide-react";
 import { roomsApi, roomMembersApi } from "../../../lib/api/rooms";
 
-function computeSlaTimeLeft(joinedAt?: string): string | null {
-  if (!joinedAt) return null;
-  const slaEndMs = new Date(joinedAt).getTime() + 48 * 60 * 60 * 1000;
+// Owner has T_confirm (24h) to grant access after payment; show remaining time once granted.
+function computeConfirmTimeLeft(grantedAt?: string): string | null {
+  if (!grantedAt) return null;
+  const slaEndMs = new Date(grantedAt).getTime() + 24 * 60 * 60 * 1000;
   const remain = slaEndMs - Date.now();
   if (remain <= 0) return null;
   const h = Math.floor(remain / 3_600_000);
@@ -89,32 +90,38 @@ export function MemberDetailPage() {
     );
   }
 
-  const slaTimeLeft = member.status === "PAID" ? computeSlaTimeLeft(member.joinedAt) : null;
   const myStatus = member.status;
-  const accessGranted = myStatus === "CONFIRMED";
-  const needsPayment = myStatus === "PENDING";
-  const waitingForAccess = myStatus === "PAID";
-  const isBlocked = room.status === "BLOCKED" || myStatus === "REMOVED";
+  const ownerGranted = !!member.ownerAccessConfirmedAt;
+  const needsPayment = myStatus === "APPLIED";
+  const paidPending = myStatus === "PENDING";
+  const waitingForOwner = paidPending && !ownerGranted;
+  const canConfirm = paidPending && ownerGranted && !member.memberConfirmedAt;
+  const isActive = myStatus === "ACTIVE";
+  const isBlocked = room.status === "BLOCKED" || myStatus === "BLOCKED_BY_ADMIN";
+  const pricePerMember = Number(room.pricePerMember ?? 0);
+  const confirmTimeLeft = ownerGranted ? computeConfirmTimeLeft(member.ownerAccessConfirmedAt) : null;
 
   const timelineSteps = [
-    { label: "Application submitted", time: member.joinedAt, done: true, active: false },
-    { label: "Payment confirmed", time: undefined, done: myStatus === "PAID" || accessGranted, active: needsPayment },
+    { label: "Application submitted", time: undefined as string | undefined, done: true, active: false },
+    { label: "Payment confirmed", time: undefined, done: paidPending || isActive, active: needsPayment },
     {
-      label: "Waiting for owner to grant access",
-      time: undefined,
-      done: accessGranted,
-      active: waitingForAccess,
+      label: "Owner granted access",
+      time: member.ownerAccessConfirmedAt,
+      done: ownerGranted,
+      active: waitingForOwner,
     },
     {
-      label: "Access confirmed",
-      time: undefined,
-      done: accessGranted,
-      active: false,
+      label: "Access confirmed — active",
+      time: member.activatedAt,
+      done: isActive,
+      active: canConfirm,
     },
   ];
 
   const goPay = () => {
-    navigate("/payment/room", { state: { roomMemberId: member.id, roomId: room.id } });
+    navigate("/payment/room", {
+      state: { roomMemberId: String(member.id), roomId: String(room.id), amount: pricePerMember, currency: "KZT" },
+    });
   };
 
   return (
@@ -125,9 +132,9 @@ export function MemberDetailPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
         <div>
-          <h1 className="text-[26px] mb-1" style={{ color: "var(--eco-text)" }}>{room.name}</h1>
+          <h1 className="text-[26px] mb-1" style={{ color: "var(--eco-text)" }}>{room.title}</h1>
           <div className="text-[14px]" style={{ color: "var(--eco-text-secondary)" }}>
-            {room.operator || room.serviceName}
+            {room.providerName || room.roomType}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -168,11 +175,6 @@ export function MemberDetailPage() {
                   {step.time && (
                     <div className="text-[12px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{new Date(step.time).toLocaleString()}</div>
                   )}
-                  {step.active && slaTimeLeft && (
-                    <div className="flex items-center gap-1.5 mt-1.5 text-[13px]" style={{ color: "var(--eco-warning)" }}>
-                      <Clock size={13} /> SLA: {slaTimeLeft} remaining
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
@@ -189,12 +191,12 @@ export function MemberDetailPage() {
               Complete payment to secure your seat in this room.
             </div>
             <Button variant="primary" size="md" onClick={goPay}>
-              Pay ₸{room.pricePerMember.toLocaleString()}
+              Pay ₸{pricePerMember.toLocaleString()}
             </Button>
           </Card>
         )}
 
-        {waitingForAccess && (
+        {waitingForOwner && (
           <Card className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <Clock size={16} style={{ color: "var(--eco-warning)" }} />
@@ -205,14 +207,30 @@ export function MemberDetailPage() {
                 Waiting for owner to grant access
               </div>
               <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-                The room owner has 48 hours to provide access. If the SLA expires, you can create a support ticket for resolution.
+                Payment received. The room owner will provide access shortly. If they don't, you can open a support ticket for resolution.
               </div>
-              {slaTimeLeft && (
-                <div className="mt-3 text-[20px]" style={{ color: "var(--eco-warning)" }}>
-                  {slaTimeLeft}
-                  <span className="text-[13px] ml-1" style={{ color: "var(--eco-text-tertiary)" }}>remaining</span>
-                </div>
-              )}
+            </div>
+            <Link
+              to="/support/new"
+              state={{ subject: `Issue with room ${room.title}`, roomId: room.id, roomMemberId: member.id }}
+              style={{ textDecoration: "none" }}
+            >
+              <Button variant="secondary" size="md" className="w-full sm:w-auto">
+                <LifeBuoy size={14} /> Create Support Ticket
+              </Button>
+            </Link>
+          </Card>
+        )}
+
+        {canConfirm && (
+          <Card className="flex flex-col gap-4" style={{ borderColor: "var(--eco-positive)" }}>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={16} style={{ color: "var(--eco-positive)" }} />
+              <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>Owner granted access</h3>
+            </div>
+            <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+              Confirm that you received access (invite / login / line activation) so your membership becomes active.
+              {confirmTimeLeft && <> You have <strong>{confirmTimeLeft}</strong> to confirm.</>}
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
@@ -227,7 +245,7 @@ export function MemberDetailPage() {
               </Button>
               <Link
                 to="/support/new"
-                state={{ subject: `Issue with room ${room.name}` }}
+                state={{ subject: `Issue with room ${room.title}`, roomId: room.id, roomMemberId: member.id }}
                 style={{ textDecoration: "none" }}
               >
                 <Button variant="secondary" size="md" className="w-full sm:w-auto">
@@ -243,6 +261,18 @@ export function MemberDetailPage() {
           </Card>
         )}
 
+        {isActive && (
+          <Card className="flex items-start gap-3" style={{ borderColor: "var(--eco-positive)" }}>
+            <CheckCircle2 size={18} className="mt-0.5 shrink-0" style={{ color: "var(--eco-positive)" }} />
+            <div>
+              <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>Membership active</div>
+              <div className="text-[13px] mt-1" style={{ color: "var(--eco-text-secondary)" }}>
+                You're an active member of this room. Enjoy your subscription.
+              </div>
+            </div>
+          </Card>
+        )}
+
         {isBlocked && (
           <Card className="flex items-start gap-3">
             <AlertTriangle size={18} className="mt-0.5 shrink-0" style={{ color: "var(--eco-negative)" }} />
@@ -251,7 +281,7 @@ export function MemberDetailPage() {
               <div className="text-[13px] mt-1" style={{ color: "var(--eco-text-secondary)" }}>
                 This room has been blocked by an administrator. Active members will receive refund instructions via email. Contact support for more information.
               </div>
-              <Link to="/support/new" state={{ subject: `Blocked room ${room.name}` }} className="inline-flex items-center gap-1 text-[13px] mt-2" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
+              <Link to="/support/new" state={{ subject: `Blocked room ${room.title}` }} className="inline-flex items-center gap-1 text-[13px] mt-2" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
                 <LifeBuoy size={13} /> Contact Support
               </Link>
             </div>
@@ -265,7 +295,9 @@ export function MemberDetailPage() {
           </div>
           <div className="p-4 rounded-lg" style={{ background: "var(--eco-surface)" }}>
             <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
-              Your telecom identifier is encrypted and only visible to the room owner after a successful payment.
+              {member.identifierMasked
+                ? <>Your identifier <span style={{ fontFamily: "monospace" }}>{member.identifierMasked}</span> is encrypted and only visible to the room owner after a successful payment.</>
+                : "Your telecom identifier is encrypted and only visible to the room owner after a successful payment."}
             </div>
           </div>
         </Card>
@@ -273,9 +305,9 @@ export function MemberDetailPage() {
         <Card className="flex flex-col gap-3">
           <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>Plan Details</h3>
           {[
-            { label: "Monthly share", value: `${room.currency || "₸"}${room.pricePerMember.toLocaleString()}/mo` },
+            { label: "Monthly share", value: `₸${pricePerMember.toLocaleString()}/mo` },
             { label: "Start date", value: room.startDate ? new Date(room.startDate).toLocaleDateString() : "—" },
-            { label: "Seats", value: `${room.filled}/${room.seats}` },
+            { label: "Seats", value: `${room.maxMembers}` },
           ].map((row) => (
             <div key={row.label} className="flex justify-between text-[14px]">
               <span style={{ color: "var(--eco-text-secondary)" }}>{row.label}</span>
@@ -288,7 +320,7 @@ export function MemberDetailPage() {
       {needsPayment && (
         <div className="sm:hidden fixed bottom-0 left-0 right-0 p-4 border-t" style={{ background: "var(--eco-bg)", borderColor: "var(--eco-border)" }}>
           <Button variant="primary" size="lg" className="w-full" onClick={goPay}>
-            Pay ₸{room.pricePerMember.toLocaleString()}
+            Pay ₸{pricePerMember.toLocaleString()}
           </Button>
         </div>
       )}

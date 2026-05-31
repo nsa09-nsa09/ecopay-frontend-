@@ -3,9 +3,9 @@ import type { CategoryDto, ServiceDto, TariffPlanDto } from "./types";
 
 export const catalogApi = {
   categories: () => apiGet<CategoryDto[]>("/catalog/categories"),
-  services: (params?: { categoryId?: string; query?: string }) =>
+  services: (params?: { categoryId?: number }) =>
     apiGet<ServiceDto[]>("/catalog/services", { params }),
-  service: (id: string) => apiGet<ServiceDto>(`/catalog/services/${id}`),
-  tariffs: (serviceId: string) =>
+  service: (id: number | string) => apiGet<ServiceDto>(`/catalog/services/${id}`),
+  tariffs: (serviceId: number | string) =>
     apiGet<TariffPlanDto[]>(`/catalog/services/${serviceId}/tariffs`),
 };

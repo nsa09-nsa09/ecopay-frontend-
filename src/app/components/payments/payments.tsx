@@ -152,10 +152,10 @@ function MissingFlowState({ lang }: { lang: L }): ReactNode {
 }
 
 function priceBreakdown(room: RoomResponse) {
-  const share = room.pricePerMember;
-  const fee = Math.round(share * 0.08);
-  const total = share + fee;
-  return { share, fee, total };
+  // The member is charged exactly their share. The platform commission is
+  // deducted from the owner's payout, not added on top of the member's payment.
+  const share = Number(room.pricePerMember ?? 0);
+  return { share, fee: 0, total: share };
 }
 
 function currencySign(currency?: string): string {
@@ -204,7 +204,7 @@ export function PaymentRoomDetailsPage() {
   }
 
   const room = roomQ.data;
-  const { share, fee, total } = priceBreakdown(room);
+  const { share, total } = priceBreakdown(room);
   const sign = currencySign(room.currency);
 
   return (
@@ -213,9 +213,9 @@ export function PaymentRoomDetailsPage() {
         <ArrowLeft size={14} /> {tx(l, "Назад к комнатам", "Бөлмелерге оралу", "Back to rooms")}
       </Link>
 
-      <h1 className="text-[24px] mb-2" style={{ color: "var(--eco-text)" }}>{room.name}</h1>
+      <h1 className="text-[24px] mb-2" style={{ color: "var(--eco-text)" }}>{room.title}</h1>
       <div className="text-[13px] mb-6" style={{ color: "var(--eco-text-tertiary)" }}>
-        {[room.operator, room.serviceName, `${room.filled}/${room.seats} ${tx(l, "мест", "орын", "seats")}`].filter(Boolean).join(" · ")}
+        {[room.providerName, room.roomType, `${room.maxMembers} ${tx(l, "мест", "орын", "seats")}`].filter(Boolean).join(" · ")}
       </div>
 
       <Card className="flex flex-col gap-4 mb-6">
@@ -224,7 +224,6 @@ export function PaymentRoomDetailsPage() {
         <div className="flex flex-col gap-2">
           {[
             { label: tx(l, "Доля участника", "Қатысушы үлесі", "Participant share"), value: `${sign}${share.toLocaleString()}` },
-            { label: tx(l, "Комиссия платформы (8%)", "Платформа комиссиясы (8%)", "Platform fee (8%)"), value: `${sign}${fee.toLocaleString()}` },
           ].map((row) => (
             <div key={row.label} className="flex items-center justify-between text-[14px]">
               <span style={{ color: "var(--eco-text-secondary)" }}>{row.label}</span>
@@ -345,7 +344,7 @@ export function PaymentCheckoutPage() {
           <span className="text-[15px]" style={{ color: "var(--eco-primary)" }}>{sign}{amount.toLocaleString()}</span>
         </div>
         <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-          {tx(l, "Ваша доля + комиссия", "Сіздің үлесіңіз + комиссия", "Your share + platform fee")}
+          {tx(l, "Ваша ежемесячная доля", "Сіздің айлық үлесіңіз", "Your monthly share")}
         </div>
       </Card>
 

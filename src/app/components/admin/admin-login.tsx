@@ -17,7 +17,7 @@ export function AdminLoginPage() {
   const mutation = useMutation({
     mutationFn: () => login({ email, password }),
     onSuccess: async (user) => {
-      if (user.role === "ADMIN" || user.role === "STAFF") {
+      if (user.role === "ADMIN" || user.role === "SUPPORT") {
         navigate("/admin/dashboard");
       } else {
         await logout();

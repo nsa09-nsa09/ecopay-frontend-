@@ -13,15 +13,17 @@ type ApiStatus = SupportTicketResponse["status"];
 
 const STATUS_BADGE_VARIANT: Record<ApiStatus, "default" | "success" | "warning" | "danger" | "info"> = {
   OPEN: "warning",
-  PENDING: "info",
-  RESOLVED: "success",
+  IN_PROGRESS: "info",
+  WAITING_USER: "info",
+  ESCALATED: "danger",
   CLOSED: "default",
 };
 
 const STATUS_LABEL: Record<ApiStatus, string> = {
   OPEN: "Open",
-  PENDING: "In Progress",
-  RESOLVED: "Resolved",
+  IN_PROGRESS: "In Progress",
+  WAITING_USER: "Waiting for you",
+  ESCALATED: "Escalated",
   CLOSED: "Closed",
 };
 
@@ -178,7 +180,7 @@ function TicketListView({
 
 // ─── Create Ticket ───
 function CreateTicketView({ onBack, onCreated }: { onBack: () => void; onCreated?: () => void }) {
-  const location = useLocation() as Location<{ subject?: string } | null>;
+  const location = useLocation() as Location<{ subject?: string; roomId?: number; roomMemberId?: number } | null>;
   const qc = useQueryClient();
 
   const [subject, setSubject] = useState(location.state?.subject ?? "");
@@ -189,8 +191,13 @@ function CreateTicketView({ onBack, onCreated }: { onBack: () => void; onCreated
   const createMutation = useMutation({
     mutationFn: () => {
       const finalSubject = subject.trim() || `[${topic}] Support request`;
-      const body = `Topic: ${topic}\n\n${message.trim()}`;
-      return supportApi.create({ subject: finalSubject, body, priority });
+      return supportApi.create({
+        subject: finalSubject,
+        topic,
+        message: message.trim(),
+        roomId: location.state?.roomId,
+        roomMemberId: location.state?.roomMemberId,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["support", "tickets"] });
@@ -310,7 +317,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: string; onBack: () =
   });
 
   const replyMutation = useMutation({
-    mutationFn: (body: string) => supportApi.postMessage(ticketId, { body }),
+    mutationFn: (message: string) => supportApi.postMessage(ticketId, { message }),
     onSuccess: () => {
       setNewMessage("");
       qc.invalidateQueries({ queryKey: ["support", "tickets", ticketId] });
@@ -397,17 +404,18 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: string; onBack: () =
         ) : (
           <div className="flex flex-col gap-5 mb-4 flex-1 overflow-y-auto" style={{ maxHeight: 480 }}>
             {allMessages.map((m) => {
-              const fromSupport = !!m.authorName?.toLowerCase().includes("support") || !!m.authorName?.toLowerCase().includes("admin");
+              const role = (m.senderRole || "").toUpperCase();
+              const fromSupport = role === "SUPPORT" || role === "ADMIN";
               return (
                 <div key={m.id} className={`flex flex-col gap-1 ${fromSupport ? "items-start" : "items-end"}`}>
                   <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
                     {fromSupport ? (
                       <div className="flex items-center gap-1">
                         <Shield size={11} style={{ color: "var(--eco-primary)" }} />
-                        <span style={{ color: "var(--eco-primary)" }}>{m.authorName || "Support"}</span>
+                        <span style={{ color: "var(--eco-primary)" }}>{m.senderRole || "Support"}</span>
                       </div>
                     ) : (
-                      <span>{m.authorName || "You"}</span>
+                      <span>{m.senderRole || "You"}</span>
                     )}
                     <span>·</span>
                     <span>{new Date(m.createdAt).toLocaleString()}</span>
@@ -421,7 +429,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: string; onBack: () =
                       borderBottomLeftRadius: fromSupport ? 4 : undefined,
                     }}
                   >
-                    {m.body}
+                    {m.message}
                   </div>
                 </div>
               );

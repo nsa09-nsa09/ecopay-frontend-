@@ -8,8 +8,6 @@ import { roomsApi, roomMembersApi } from "../../../lib/api/rooms";
 import { ApiError } from "../../../lib/api/client";
 import { useAuth } from "../../../lib/auth/AuthContext";
 
-const SERVICE_FEE = 199;
-
 export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -41,7 +39,17 @@ export function RoomDetailPage() {
   });
 
   const joinMutation = useMutation({
-    mutationFn: () => roomMembersApi.join(id!, { message: identifier }),
+    mutationFn: () =>
+      roomMembersApi.join(id!, {
+        consentAccepted: consent,
+        // Identifier is only required for TELECOM rooms (operator phone/account).
+        ...(r?.roomType === "TELECOM"
+          ? {
+              identifierType: identifier.trim().startsWith("+") ? "PHONE" : "ACCOUNT",
+              identifierValue: identifier.trim(),
+            }
+          : {}),
+      }),
     onSuccess: (mem) => {
       qc.invalidateQueries({ queryKey: ["rooms"] });
       qc.invalidateQueries({ queryKey: ["rooms", id, "membership", "me"] });
@@ -51,7 +59,8 @@ export function RoomDetailPage() {
         state: {
           roomMemberId: String(mem.id),
           roomId: String(r?.id),
-          amount: Number(r?.pricePerMember) + SERVICE_FEE,
+          // Backend charges exactly pricePerMember; platform commission is taken from the owner's payout.
+          amount: Number(r?.pricePerMember),
           currency: "KZT",
         },
       });
@@ -83,7 +92,9 @@ export function RoomDetailPage() {
 
   const isOwner = user?.id === r.ownerUserId;
   const myMember = myMembershipQuery.data;
-  const filled = r.filled ?? 0;
+  const members = membersQuery.data?.items ?? [];
+  // Seat fill is only known to the owner (members list is owner-scoped); members count PENDING+ACTIVE.
+  const filled = members.filter((m) => m.status === "PENDING" || m.status === "ACTIVE").length;
   const priceTotal = Number(r.priceTotal ?? Number(r.pricePerMember) * r.maxMembers);
 
   return (
@@ -138,13 +149,13 @@ export function RoomDetailPage() {
             <Card className="flex flex-col gap-3">
               <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Members</h3>
               {membersQuery.isLoading && <div className="text-[12px]">Loading members...</div>}
-              {!membersQuery.isLoading && (membersQuery.data?.length ?? 0) === 0 && (
+              {!membersQuery.isLoading && members.length === 0 && (
                 <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
                   No members yet.
                 </div>
               )}
-              {(membersQuery.data ?? []).map((m) => (
-                <OwnerMemberRow key={m.id} roomId={id!} member={m} />
+              {members.map((m) => (
+                <OwnerMemberRow key={m.id} roomId={id!} roomType={r.roomType} member={m} />
               ))}
             </Card>
           )}
@@ -184,7 +195,7 @@ export function RoomDetailPage() {
           {!isOwner && !myMember && r.status === "OPEN" && (
             <Card className="flex flex-col gap-3">
               <div className="text-[20px]" style={{ color: "var(--eco-primary)" }}>
-                ₸{(Number(r.pricePerMember) + SERVICE_FEE).toLocaleString()}
+                ₸{Number(r.pricePerMember).toLocaleString()}
                 <span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>/mo</span>
               </div>
               <Button
@@ -209,7 +220,7 @@ export function RoomDetailPage() {
                     state: {
                       roomMemberId: String(myMember.id),
                       roomId: String(r.id),
-                      amount: Number(r.pricePerMember) + SERVICE_FEE,
+                      amount: Number(r.pricePerMember),
                       currency: "KZT",
                     },
                   })}
@@ -229,19 +240,27 @@ export function RoomDetailPage() {
 
           {joinStep === 0 && (
             <div className="flex flex-col gap-4">
-              <Input
-                label="Identifier (phone or account)"
-                placeholder="+7 (707) 123-45-67 or email"
-                value={identifier}
-                onChange={(e: any) => setIdentifier(e.target.value)}
-              />
+              {r.roomType === "TELECOM" && (
+                <Input
+                  label="Identifier (phone or account)"
+                  placeholder="+7 (707) 123-45-67 or account"
+                  value={identifier}
+                  onChange={(e: any) => setIdentifier(e.target.value)}
+                />
+              )}
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="checkbox" className="mt-0.5" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
                 <span className="text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
-                  I consent to sharing my identifier with the room owner after successful payment.
+                  {r.roomType === "TELECOM"
+                    ? "I consent to sharing my identifier with the room owner after successful payment."
+                    : "I accept the room terms and agree to pay my monthly share."}
                 </span>
               </label>
-              <Button variant="primary" disabled={!consent || !identifier} onClick={() => setJoinStep(1)}>
+              <Button
+                variant="primary"
+                disabled={!consent || (r.roomType === "TELECOM" && !identifier)}
+                onClick={() => setJoinStep(1)}
+              >
                 Continue
               </Button>
             </div>
@@ -254,14 +273,10 @@ export function RoomDetailPage() {
                   <span>Monthly share</span>
                   <span>₸{Number(r.pricePerMember).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-[13px]">
-                  <span>Service fee</span>
-                  <span>₸{SERVICE_FEE}</span>
-                </div>
                 <div className="border-t pt-2 flex justify-between text-[14px]">
                   <span>Due now</span>
                   <span style={{ color: "var(--eco-primary)" }}>
-                    ₸{(Number(r.pricePerMember) + SERVICE_FEE).toLocaleString()}
+                    ₸{Number(r.pricePerMember).toLocaleString()}
                   </span>
                 </div>
               </Card>
@@ -280,14 +295,14 @@ export function RoomDetailPage() {
   );
 }
 
-function OwnerMemberRow({ roomId, member }: { roomId: string; member: any }) {
+function OwnerMemberRow({ roomId, roomType, member }: { roomId: string; roomType: string; member: any }) {
   const qc = useQueryClient();
   const [revealed, setRevealed] = useState<string | null>(null);
 
   const revealMutation = useMutation({
-    mutationFn: () => roomMembersApi.revealIdentifier(roomId, member.id, { reason: "Setup" }),
-    onSuccess: (data: any) => {
-      setRevealed(data?.identifier ?? data?.value ?? "");
+    mutationFn: () => roomMembersApi.revealIdentifier(roomId, member.id, { reason: "Owner setup" }),
+    onSuccess: (data) => {
+      setRevealed(data?.identifierValue ?? "");
     },
     onError: (err: unknown) => {
       const msg = err instanceof ApiError ? err.message : "Failed to reveal";
@@ -297,9 +312,8 @@ function OwnerMemberRow({ roomId, member }: { roomId: string; member: any }) {
 
   const grantMutation = useMutation({
     mutationFn: () => roomMembersApi.ownerAccess(roomId, member.id, {
-      accessMethod: "MANUAL",
-      grant: true,
-    } as any),
+      accessMethod: roomType === "TELECOM" ? "family_plan_add" : "invite_link",
+    }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["rooms", roomId, "members"] });
       toast.success("Access marked as granted");
@@ -310,7 +324,8 @@ function OwnerMemberRow({ roomId, member }: { roomId: string; member: any }) {
     },
   });
 
-  const canReveal = member.status === "PENDING" || member.status === "ACTIVE";
+  // Identifier reveal is TELECOM-only on the backend.
+  const canReveal = roomType === "TELECOM" && (member.status === "PENDING" || member.status === "ACTIVE");
   const canGrant = member.status === "PENDING" && !member.ownerAccessConfirmedAt;
 
   return (
@@ -318,7 +333,7 @@ function OwnerMemberRow({ roomId, member }: { roomId: string; member: any }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-[13px]" style={{ color: "var(--eco-text)" }}>
-            {member.displayName ?? `Member #${member.id}`}
+            {member.userDisplayName ?? `Member #${member.id}`}
           </span>
           <Badge variant={badgeVariant(member.status)}>{member.status}</Badge>
         </div>

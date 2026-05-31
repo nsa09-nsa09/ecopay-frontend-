@@ -33,9 +33,16 @@ export function CreateRoomPage() {
   const services = servicesQuery.data ?? [];
   const tariffs = tariffsQuery.data ?? [];
   const selectedTariff = useMemo(
-    () => tariffs.find((t) => t.id === tariffId),
+    () => tariffs.find((t) => String(t.id) === tariffId),
     [tariffs, tariffId],
   );
+  const selectedService = useMemo(
+    () => services.find((s) => String(s.id) === serviceId),
+    [services, serviceId],
+  );
+  // DIGITAL provider → DIGITAL room; OPERATOR/ISP → TELECOM room
+  const roomType: "DIGITAL" | "TELECOM" =
+    selectedService?.providerType === "DIGITAL" ? "DIGITAL" : "TELECOM";
 
   const [seats, setSeats] = useState("4");
   const [priceModel, setPriceModel] = useState("total");
@@ -48,21 +55,48 @@ export function CreateRoomPage() {
   // Sync seats/price defaults when tariff selected
   useMemo(() => {
     if (selectedTariff) {
-      setSeats(String(selectedTariff.seats));
-      setTotalPrice(String(selectedTariff.price));
+      setSeats(String(selectedTariff.maxMembers));
+      if (selectedTariff.basePriceTotal != null) {
+        setTotalPrice(String(selectedTariff.basePriceTotal));
+      }
     }
   }, [selectedTariff]);
 
+  const accessToConnectionType: Record<string, "ESIM" | "SIM" | "ACCOUNT_LINK"> = {
+    esim: "ESIM",
+    sim: "SIM",
+    account: "ACCOUNT_LINK",
+  };
+
   const createMutation = useMutation({
-    mutationFn: () =>
-      roomsApi.create({
-        serviceId,
-        tariffPlanId: tariffId,
-        name: selectedTariff
-          ? `${services.find((s) => s.id === serviceId)?.name ?? ""} ${selectedTariff.name}`.trim()
-          : "Room",
-        startDate: startDate || undefined,
-      }),
+    mutationFn: () => {
+      const seatsNum = Math.max(2, parseInt(seats || "2", 10) || 2);
+      const totalNum = parseFloat(totalPrice || "0") || 0;
+      const isTelecom = roomType === "TELECOM";
+      return roomsApi.create({
+        serviceId: Number(serviceId),
+        tariffPlanId: tariffId ? Number(tariffId) : undefined,
+        categoryId: selectedService?.categoryId,
+        roomType,
+        title: selectedTariff
+          ? `${selectedService?.name ?? ""} ${selectedTariff.name}`.trim()
+          : `${selectedService?.name ?? "Room"}`,
+        maxMembers: seatsNum,
+        priceTotal: totalNum,
+        pricePerMember: Math.round((totalNum / seatsNum) * 100) / 100,
+        currency: selectedTariff?.currency ?? "KZT",
+        periodType: selectedTariff?.periodType ?? "MONTHLY",
+        // Backend requires a future start date; default to tomorrow if empty.
+        startDate: `${startDate || new Date(Date.now() + 86400000).toISOString().slice(0, 10)}T00:00:00`,
+        ...(isTelecom
+          ? {
+              providerName: selectedService?.name,
+              connectionType: accessToConnectionType[access] ?? "OTHER",
+              operatorTermsConfirmed: confirmed,
+            }
+          : {}),
+      });
+    },
     onSuccess: (room) => {
       qc.invalidateQueries({ queryKey: ["rooms"] });
       toast.success("Room published");
@@ -135,7 +169,7 @@ export function CreateRoomPage() {
               label="Operator / Provider"
               options={[
                 { value: "", label: services.length ? "Select operator" : "Loading..." },
-                ...services.map((s) => ({ value: s.id, label: s.name })),
+                ...services.map((s) => ({ value: String(s.id), label: s.name })),
               ]}
               value={serviceId}
               onChange={(e) => { setServiceId(e.target.value); setTariffId(""); }}
@@ -144,7 +178,7 @@ export function CreateRoomPage() {
               label="Plan Type"
               options={[
                 { value: "", label: tariffs.length ? "Select plan" : (serviceId ? "Loading..." : "Pick operator first") },
-                ...tariffs.map((t) => ({ value: t.id, label: `${t.name} — ₸${t.price.toLocaleString()}/mo (${t.seats} seats)` })),
+                ...tariffs.map((t) => ({ value: String(t.id), label: `${t.name} — ₸${(t.basePriceTotal ?? 0).toLocaleString()}/mo (${t.maxMembers} seats)` })),
               ]}
               value={tariffId}
               onChange={(e) => setTariffId(e.target.value)}
