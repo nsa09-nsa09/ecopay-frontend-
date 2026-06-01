@@ -189,10 +189,10 @@ export function loginRequest(email: string, password: string) {
   });
 }
 
-export function registerRequest(displayName: string, email: string, password: string) {
+export function registerRequest(displayName: string, email: string, password: string, phone: string) {
   return requestJson<AuthResponse>("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ displayName, email, password }),
+    body: JSON.stringify({ displayName, email, password, phone }),
   });
 }
 

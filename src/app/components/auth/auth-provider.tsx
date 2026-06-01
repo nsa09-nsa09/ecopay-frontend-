@@ -23,7 +23,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isReady: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (displayName: string, email: string, password: string) => Promise<User>;
+  register: (displayName: string, email: string, password: string, phone: string) => Promise<User>;
   logout: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
@@ -139,8 +139,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return response.user;
   };
 
-  const register = async (displayName: string, email: string, password: string) => {
-    const response = await registerRequest(displayName, email, password);
+  const register = async (displayName: string, email: string, password: string, phone: string) => {
+    const response = await registerRequest(displayName, email, password, phone);
     const nextSession = {
       accessToken: response.accessToken,
       refreshToken: response.refreshToken,
