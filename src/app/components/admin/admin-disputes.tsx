@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, Button, Badge, Modal } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
+import { useI18n } from "../i18n-provider";
 import { Scale, FileText, Image, Shield, CheckCircle2, XCircle, Undo2, AlertTriangle, Upload } from "lucide-react";
 
 type Dispute = {
@@ -48,6 +49,7 @@ const statusVar: Record<string, "warning" | "info" | "success"> = { OPEN: "warni
 const refStatusVar: Record<string, "warning" | "info" | "success" | "danger"> = { PENDING: "warning", PROCESSING: "info", COMPLETED: "success", FAILED: "danger" };
 
 export function AdminDisputesPage() {
+  const { t } = useI18n();
   const [tab, setTab] = useState<"disputes" | "refunds">("disputes");
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
   const [decisionModal, setDecisionModal] = useState(false);
@@ -58,26 +60,26 @@ export function AdminDisputesPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>Disputes & Refunds</h1>
+        <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>{t("disputesPageTitle")}</h1>
 
         {/* Tabs */}
         <div className="flex gap-0 border-b mb-6" style={{ borderColor: "var(--eco-border)" }}>
-          {(["disputes", "refunds"] as const).map((t) => (
+          {(["disputes", "refunds"] as const).map((tabKey) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
               className="px-4 py-2.5 text-[14px] cursor-pointer"
               style={{
-                color: tab === t ? "var(--eco-primary)" : "var(--eco-text-secondary)",
-                borderBottom: tab === t ? "2px solid var(--eco-primary)" : "2px solid transparent",
+                color: tab === tabKey ? "var(--eco-primary)" : "var(--eco-text-secondary)",
+                borderBottom: tab === tabKey ? "2px solid var(--eco-primary)" : "2px solid transparent",
                 marginBottom: -1, background: "transparent", border: "none",
                 borderBottomStyle: "solid", borderBottomWidth: 2,
-                borderBottomColor: tab === t ? "var(--eco-primary)" : "transparent",
+                borderBottomColor: tab === tabKey ? "var(--eco-primary)" : "transparent",
               }}
             >
-              {t === "disputes" ? "Disputes" : "Refunds"}
-              {t === "disputes" && <span className="ml-1.5 text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--eco-danger-100)", color: "var(--eco-danger-500)" }}>{disputes.filter(d => d.status !== "RESOLVED").length}</span>}
-              {t === "refunds" && <span className="ml-1.5 text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--eco-warning-100)", color: "var(--eco-warning-500)" }}>{refunds.filter(r => r.status === "PENDING").length}</span>}
+              {tabKey === "disputes" ? t("disputesTab") : t("refundsTab")}
+              {tabKey === "disputes" && <span className="ml-1.5 text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--eco-danger-100)", color: "var(--eco-danger-500)" }}>{disputes.filter(d => d.status !== "RESOLVED").length}</span>}
+              {tabKey === "refunds" && <span className="ml-1.5 text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--eco-warning-100)", color: "var(--eco-warning-500)" }}>{refunds.filter(r => r.status === "PENDING").length}</span>}
             </button>
           ))}
         </div>
@@ -97,7 +99,7 @@ export function AdminDisputesPage() {
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>{d.id}</span>
-                    <Badge variant={statusVar[d.status]}>{d.status.replace("_", " ")}</Badge>
+                    <Badge variant={statusVar[d.status]}>{t(`disputeStatus.${d.status}`)}</Badge>
                   </div>
                   <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{d.room}</div>
                   <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{d.claimant} vs {d.respondent}</div>
@@ -107,38 +109,38 @@ export function AdminDisputesPage() {
 
             <div className="lg:col-span-2">
               {!selectedDispute ? (
-                <Card className="flex items-center justify-center py-16 text-[14px]" style={{ color: "var(--eco-text-tertiary)" }}>Select a dispute</Card>
+                <Card className="flex items-center justify-center py-16 text-[14px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("selectDispute")}</Card>
               ) : (
                 <div className="flex flex-col gap-4">
                   <Card className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-[18px]" style={{ color: "var(--eco-text)" }}>{selectedDispute.id} — {selectedDispute.room}</div>
-                        <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>From ticket {selectedDispute.ticketId} · Created {selectedDispute.created}</div>
+                        <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("fromTicket", { ticket: selectedDispute.ticketId })} · {t("createdLabel")} {selectedDispute.created}</div>
                       </div>
-                      <Badge variant={statusVar[selectedDispute.status]}>{selectedDispute.status.replace("_", " ")}</Badge>
+                      <Badge variant={statusVar[selectedDispute.status]}>{t(`disputeStatus.${selectedDispute.status}`)}</Badge>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 rounded-lg" style={{ background: "var(--eco-surface)" }}>
-                        <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>Claimant</div>
+                        <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("claimant")}</div>
                         <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{selectedDispute.claimant}</div>
                       </div>
                       <div className="p-3 rounded-lg" style={{ background: "var(--eco-surface)" }}>
-                        <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>Respondent</div>
+                        <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("respondent")}</div>
                         <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{selectedDispute.respondent}</div>
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-[12px] mb-1" style={{ color: "var(--eco-text-tertiary)" }}>Summary</div>
+                      <div className="text-[12px] mb-1" style={{ color: "var(--eco-text-tertiary)" }}>{t("summaryLabel")}</div>
                       <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{selectedDispute.summary}</div>
                     </div>
                   </Card>
 
                   {/* Evidence */}
                   <Card className="flex flex-col gap-3">
-                    <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Evidence Attachments</h3>
+                    <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("evidenceAttachments")}</h3>
                     <div className="flex flex-col gap-2">
                       {selectedDispute.evidence.map((e, i) => (
                         <div key={i} className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}>
@@ -155,13 +157,13 @@ export function AdminDisputesPage() {
                   {/* Decision panel */}
                   {selectedDispute.status !== "RESOLVED" && (
                     <Card className="flex flex-col gap-3">
-                      <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Decision Panel</h3>
+                      <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("decisionPanel")}</h3>
                       <div className="flex gap-2">
                         <Button variant="primary" size="sm" onClick={() => { setDecisionType("favor_claimant"); setDecisionModal(true); }}>
-                          <CheckCircle2 size={13} /> Favor Claimant
+                          <CheckCircle2 size={13} /> {t("favorClaimant")}
                         </Button>
                         <Button variant="secondary" size="sm" onClick={() => { setDecisionType("favor_respondent"); setDecisionModal(true); }}>
-                          <XCircle size={13} /> Favor Respondent
+                          <XCircle size={13} /> {t("favorRespondent")}
                         </Button>
                       </div>
                     </Card>
@@ -176,7 +178,7 @@ export function AdminDisputesPage() {
           <div className="flex flex-col gap-3">
             {/* Header */}
             <div className="grid grid-cols-7 gap-3 px-5 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-              <div>ID</div><div>User</div><div>Room</div><div>Amount</div><div>Status</div><div>Dispute</div><div>Actions</div>
+              <div>ID</div><div>{t("colUser")}</div><div>{t("room")}</div><div>{t("colAmount")}</div><div>{t("colStatus")}</div><div>{t("colDispute")}</div><div>{t("colActions")}</div>
             </div>
             {refunds.map((r) => (
               <Card key={r.id}>
@@ -185,16 +187,16 @@ export function AdminDisputesPage() {
                   <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{r.user}</div>
                   <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{r.room}</div>
                   <div className="text-[14px]" style={{ color: "var(--eco-primary)" }}>₸{r.amount.toLocaleString()}</div>
-                  <div><Badge variant={refStatusVar[r.status] as any}>{r.status}</Badge></div>
+                  <div><Badge variant={refStatusVar[r.status] as any}>{t(`refundStatus.${r.status}`)}</Badge></div>
                   <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{r.disputeId || "—"}</div>
                   <div>
                     {r.status === "PENDING" && (
                       <Button variant="primary" size="sm" onClick={() => setRefundModal(r)}>
-                        <Undo2 size={12} /> Process
+                        <Undo2 size={12} /> {t("process")}
                       </Button>
                     )}
                     {r.status === "FAILED" && (
-                      <Button variant="secondary" size="sm" onClick={() => setRefundModal(r)}>Retry</Button>
+                      <Button variant="secondary" size="sm" onClick={() => setRefundModal(r)}>{t("retry")}</Button>
                     )}
                   </div>
                 </div>
@@ -205,47 +207,47 @@ export function AdminDisputesPage() {
             <div className="flex items-start gap-2 p-4 rounded-lg mt-2" style={{ background: "var(--eco-surface)" }}>
               <Shield size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-text-tertiary)" }} />
               <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                <strong>Idempotency:</strong> Each refund is tied to a unique intent ID. Retrying a failed refund reuses the same intent to prevent duplicate processing. All refund actions are audit-logged.
+                <strong>{t("idempotencyLabel")}</strong> {t("idempotencyNote")}
               </div>
             </div>
           </div>
         )}
 
         {/* Decision modal */}
-        <Modal open={decisionModal} onClose={() => { setDecisionModal(false); setDecision(""); setDecisionType(""); }} title="Issue Decision">
+        <Modal open={decisionModal} onClose={() => { setDecisionModal(false); setDecision(""); setDecisionType(""); }} title={t("issueDecision")}>
           <div className="flex flex-col gap-4">
             <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-              {decisionType === "favor_claimant" ? "Ruling in favor of the claimant. A refund may be initiated." : "Ruling in favor of the respondent. No refund will be issued."}
+              {decisionType === "favor_claimant" ? t("favorClaimantDesc") : t("favorRespondentDesc")}
             </div>
-            <textarea rows={3} value={decision} onChange={(e) => setDecision(e.target.value)} placeholder="Decision rationale (mandatory, audit logged)..." className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} />
-            <div className="text-[11px] flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}><Shield size={11} /> Decision permanently recorded.</div>
-            <Button variant={decisionType === "favor_claimant" ? "primary" : "secondary"} disabled={!decision.trim()} onClick={() => { setDecisionModal(false); setDecision(""); }}>Confirm Decision</Button>
+            <textarea rows={3} value={decision} onChange={(e) => setDecision(e.target.value)} placeholder={t("decisionRationalePlaceholder")} className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} />
+            <div className="text-[11px] flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}><Shield size={11} /> {t("decisionRecorded")}</div>
+            <Button variant={decisionType === "favor_claimant" ? "primary" : "secondary"} disabled={!decision.trim()} onClick={() => { setDecisionModal(false); setDecision(""); }}>{t("confirmDecision")}</Button>
           </div>
         </Modal>
 
         {/* Refund modal */}
-        <Modal open={!!refundModal} onClose={() => setRefundModal(null)} title="Process Refund">
+        <Modal open={!!refundModal} onClose={() => setRefundModal(null)} title={t("processRefund")}>
           {refundModal && (
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-3 text-[13px]">
                 {[
-                  { label: "Refund ID", value: refundModal.id },
-                  { label: "Amount", value: `₸${refundModal.amount.toLocaleString()}` },
-                  { label: "User", value: refundModal.user },
-                  { label: "Intent ID", value: refundModal.intentId },
+                  { label: t("refundIdLabel"), value: refundModal.id, mono: false },
+                  { label: t("amount"), value: `₸${refundModal.amount.toLocaleString()}`, mono: false },
+                  { label: t("colUser"), value: refundModal.user, mono: false },
+                  { label: t("intentIdLabel"), value: refundModal.intentId, mono: true },
                 ].map((r) => (
                   <div key={r.label}>
                     <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{r.label}</div>
-                    <div style={{ color: "var(--eco-text)", fontFamily: r.label === "Intent ID" ? "monospace" : undefined }}>{r.value}</div>
+                    <div style={{ color: "var(--eco-text)", fontFamily: r.mono ? "monospace" : undefined }}>{r.value}</div>
                   </div>
                 ))}
               </div>
               <div className="flex items-start gap-2 p-3 rounded-lg text-[12px]" style={{ background: "var(--eco-warning-100)", color: "var(--eco-text-secondary)" }}>
                 <AlertTriangle size={13} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
-                This is a stub. In production, this triggers the payment processor API with the intent ID above.
+                {t("refundStubNote")}
               </div>
               <Button variant="primary" onClick={() => setRefundModal(null)}>
-                <Undo2 size={13} /> Initiate Refund
+                <Undo2 size={13} /> {t("initiateRefund")}
               </Button>
             </div>
           )}

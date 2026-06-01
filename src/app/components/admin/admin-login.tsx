@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Button, Input } from "../ds-primitives";
+import { useI18n } from "../i18n-provider";
 import { Shield, Lock, Eye, EyeOff } from "lucide-react";
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [tab, setTab] = useState<"admin" | "support">("admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,27 +23,27 @@ export function AdminLoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-[32px] tracking-tight mb-1" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
-            <span style={{ color: "var(--eco-primary)" }}>Eco</span>Split Portal
+            <span style={{ color: "var(--eco-primary)" }}>Eco</span>Pay {t("adminPortal")}
           </div>
           <div className="text-[14px]" style={{ color: "var(--eco-text-tertiary)" }}>
-            Administration & Support
+            {t("administrationAndSupport")}
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex mb-6 rounded-lg overflow-hidden" style={{ border: "1px solid var(--eco-border)" }}>
-          {(["admin", "support"] as const).map((t) => (
+          {(["admin", "support"] as const).map((tabKey) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
               className="flex-1 py-2.5 text-[14px] cursor-pointer transition-colors"
               style={{
-                background: tab === t ? "var(--eco-primary)" : "transparent",
-                color: tab === t ? "var(--eco-text-on-primary)" : "var(--eco-text-secondary)",
+                background: tab === tabKey ? "var(--eco-primary)" : "transparent",
+                color: tab === tabKey ? "var(--eco-text-on-primary)" : "var(--eco-text-secondary)",
                 border: "none",
               }}
             >
-              {t === "admin" ? "Admin" : "Support"}
+              {tabKey === "admin" ? t("adminRoleLabel") : t("supportLabel")}
             </button>
           ))}
         </div>
@@ -52,15 +54,15 @@ export function AdminLoginPage() {
           style={{ background: "var(--eco-surface-raised)", border: "1px solid var(--eco-border)" }}
         >
           <Input
-            label="Email"
+            label={t("email")}
             type="email"
-            placeholder="admin@ecosplit.kz"
+            placeholder="admin@ecopay.kz"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
 
           <div className="flex flex-col gap-1.5">
-            <label style={{ color: "var(--eco-text)", fontSize: 14 }}>Password</label>
+            <label style={{ color: "var(--eco-text)", fontSize: 14 }}>{t("password")}</label>
             <div className="relative">
               <input
                 type={showPass ? "text" : "password"}
@@ -81,15 +83,15 @@ export function AdminLoginPage() {
           </div>
 
           <Input
-            label="2FA Code"
-            placeholder="6-digit code"
+            label={t("twoFaCode")}
+            placeholder={t("sixDigitCode")}
             value={twofa}
             onChange={(e) => setTwofa(e.target.value)}
-            hint="Enter code from your authenticator app"
+            hint={t("enterAuthCode")}
           />
 
           <Button variant="primary" size="lg" className="w-full mt-2" onClick={handleLogin}>
-            <Lock size={15} /> Sign In to Portal
+            <Lock size={15} /> {t("signInToPortal")}
           </Button>
         </div>
 
@@ -100,25 +102,25 @@ export function AdminLoginPage() {
         >
           <div className="flex items-center gap-2 text-[13px]" style={{ color: "var(--eco-warning)" }}>
             <Shield size={14} />
-            Demo Credentials
+            {t("demoCredentials")}
           </div>
           <div className="text-[13px] flex flex-col gap-1" style={{ color: "var(--eco-text)" }}>
             <div>
-              <span style={{ color: "var(--eco-text-secondary)" }}>Login: </span>
-              <span style={{ fontFamily: "monospace" }}>admin@ecosplit.kz</span>
+              <span style={{ color: "var(--eco-text-secondary)" }}>{t("loginLabel")}: </span>
+              <span style={{ fontFamily: "monospace" }}>admin@ecopay.kz</span>
             </div>
             <div>
-              <span style={{ color: "var(--eco-text-secondary)" }}>Password: </span>
+              <span style={{ color: "var(--eco-text-secondary)" }}>{t("password")}: </span>
               <span style={{ fontFamily: "monospace" }}>Admin1234!</span>
             </div>
           </div>
           <div className="text-[11px] mt-1" style={{ color: "var(--eco-text-tertiary)" }}>
-            Visible for Figma only — remove before production.
+            {t("figmaOnlyNote")}
           </div>
         </div>
 
         <div className="text-center mt-6 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-          © 2026 EcoSplit · Almaty, Kazakhstan
+          {t("copyright")}
         </div>
       </div>
     </div>

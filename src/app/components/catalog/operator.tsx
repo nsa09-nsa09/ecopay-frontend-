@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
 import { Card, Pill, Select, RoomStatusBadge, EmptyState, Tabs } from "../ds-primitives";
 import { ArrowLeft, Users, Filter, Calendar } from "lucide-react";
+import { useI18n } from "../i18n-provider";
 import { getRooms, getService, getTariffs, type RoomSummaryDto, type ServiceDto, type TariffPlanDto } from "../../lib/api";
 
 const moneyFormatter = new Intl.NumberFormat("ru-RU");
@@ -35,13 +36,14 @@ function formatDate(value: string | undefined) {
 }
 
 export function OperatorPage() {
+  const { t } = useI18n();
   const { id } = useParams<{ id: string }>();
   const serviceId = Number(id);
 
   const [service, setService] = useState<ServiceDto | null>(null);
   const [plans, setPlans] = useState<TariffPlanDto[]>([]);
   const [rooms, setRooms] = useState<RoomSummaryDto[]>([]);
-  const [tab, setTab] = useState("Plans");
+  const [tab, setTab] = useState<"plans" | "rooms">("plans");
   const [priceFilter, setPriceFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export function OperatorPage() {
 
     async function loadOperator() {
       if (!serviceId) {
-        setError("Operator not found.");
+        setError(t("operatorNotFound"));
         setLoading(false);
         return;
       }
@@ -70,7 +72,7 @@ export function OperatorPage() {
         }
       } catch {
         if (!isCancelled) {
-          setError("Unable to load operator details right now.");
+          setError(t("unableToLoadOperator"));
         }
       } finally {
         if (!isCancelled) {
@@ -107,7 +109,7 @@ export function OperatorPage() {
   if (loading) {
     return (
       <div className="max-w-[1200px] mx-auto px-6 py-8">
-        <Card>Loading operator details...</Card>
+        <Card>{t("loadingOperator")}</Card>
       </div>
     );
   }
@@ -116,11 +118,11 @@ export function OperatorPage() {
     return (
       <div className="max-w-[1200px] mx-auto px-6 py-8">
         <Link to="/" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
-          <ArrowLeft size={14} /> Catalog
+          <ArrowLeft size={14} /> {t("catalog")}
         </Link>
         <EmptyState
-          title="Operator unavailable"
-          description={error ?? "This operator could not be loaded."}
+          title={t("operatorUnavailable")}
+          description={error ?? t("operatorCouldNotLoad")}
         />
       </div>
     );
@@ -131,7 +133,7 @@ export function OperatorPage() {
   return (
     <div className="max-w-[1200px] mx-auto px-6 py-8">
       <Link to="/" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
-        <ArrowLeft size={14} /> Catalog
+        <ArrowLeft size={14} /> {t("catalog")}
       </Link>
 
       <div className="flex items-center gap-4 mb-8">
@@ -144,27 +146,31 @@ export function OperatorPage() {
         <div>
           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{service.name}</h1>
           <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-            {noPlans ? "No family/group plans available" : `${plans.length} plans · ${rooms.length} open rooms`}
+            {noPlans ? t("noFamilyGroupPlans") : t("plansOpenRooms", { plans: plans.length, rooms: rooms.length })}
           </p>
         </div>
       </div>
 
       {noPlans ? (
         <EmptyState
-          title="No Family Plans Available"
-          description={`${service.name} doesn't currently expose any shareable tariffs in the backend catalog.`}
+          title={t("noFamilyPlansAvailable")}
+          description={t("noShareableTariffs", { operator: service.name })}
         />
       ) : (
         <>
-          <Tabs tabs={["Plans", "Available Rooms"]} active={tab} onChange={setTab} />
+          <Tabs
+            tabs={[t("tabPlans"), t("availableRooms")]}
+            active={tab === "plans" ? t("tabPlans") : t("availableRooms")}
+            onChange={(label) => setTab(label === t("tabPlans") ? "plans" : "rooms")}
+          />
 
-          {tab === "Plans" && (
+          {tab === "plans" && (
             <div className="mt-6">
               <div className="overflow-x-auto rounded-xl border" style={{ borderColor: "var(--eco-border)" }}>
                 <table className="w-full">
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--eco-border)" }}>
-                      {["Plan", "Members", "Total / period", "Per member", "Connection"].map((heading) => (
+                      {[t("plan"), t("members"), t("colTotalPerPeriod"), t("colPerMember"), t("connection")].map((heading) => (
                         <th key={heading} className="px-4 py-3 text-left text-[12px]" style={{ color: "var(--eco-text-tertiary)", background: "var(--eco-surface)" }}>
                           {heading}
                         </th>
@@ -191,16 +197,16 @@ export function OperatorPage() {
             </div>
           )}
 
-          {tab === "Available Rooms" && (
+          {tab === "rooms" && (
             <div className="mt-6">
               <div className="flex flex-wrap items-center gap-3 mb-4">
                 <Filter size={14} style={{ color: "var(--eco-text-tertiary)" }} />
                 <Select
                   options={[
-                    { value: "all", label: "All prices" },
-                    { value: "low", label: "Under ₸3,000" },
-                    { value: "mid", label: "₸3,000-₸5,000" },
-                    { value: "high", label: "Over ₸5,000" },
+                    { value: "all", label: t("allPrices") },
+                    { value: "low", label: t("priceUnder3000") },
+                    { value: "mid", label: t("priceMid") },
+                    { value: "high", label: t("priceOver5000") },
                   ]}
                   value={priceFilter}
                   onChange={(event) => setPriceFilter(event.target.value)}
@@ -209,8 +215,8 @@ export function OperatorPage() {
 
               {filteredRooms.length === 0 ? (
                 <EmptyState
-                  title="No matching rooms"
-                  description="Try another price filter or create a new room later."
+                  title={t("noMatchingRooms")}
+                  description={t("noMatchingRoomsDesc")}
                 />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -223,12 +229,12 @@ export function OperatorPage() {
                         </div>
                         <div className="flex items-center justify-between text-[13px]">
                           <span className="inline-flex items-center gap-1" style={{ color: "var(--eco-text-secondary)" }}>
-                            <Users size={13} /> Max {room.maxMembers} members
+                            <Users size={13} /> {t("maxMembersCount", { count: room.maxMembers })}
                           </span>
-                          <span style={{ color: "var(--eco-primary)" }}>{formatMoney(room.pricePerMember)}/mo</span>
+                          <span style={{ color: "var(--eco-primary)" }}>{formatMoney(room.pricePerMember)}{t("perMonthShort")}</span>
                         </div>
                         <div className="flex items-center justify-between text-[12px]">
-                          <span style={{ color: "var(--eco-text-tertiary)" }}>Owner: {room.ownerDisplayName}</span>
+                          <span style={{ color: "var(--eco-text-tertiary)" }}>{t("ownerColon", { name: room.ownerDisplayName })}</span>
                           <span className="inline-flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}>
                             <Calendar size={12} /> {formatDate(room.startDate)}
                           </span>

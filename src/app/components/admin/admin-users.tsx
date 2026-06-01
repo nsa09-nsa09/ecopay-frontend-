@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, Button, Badge, Modal } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
+import { useI18n } from "../i18n-provider";
 import { Ban, ShieldCheck, Eye, EyeOff, Shield, Star, Home, MessageSquare, AlertTriangle } from "lucide-react";
 
 type AdminUser = {
@@ -17,6 +18,7 @@ const users: AdminUser[] = [
 ];
 
 export function AdminUsersPage() {
+  const { t } = useI18n();
   const [selected, setSelected] = useState<AdminUser | null>(null);
   const [banModal, setBanModal] = useState<{ user: AdminUser; action: "BAN" | "UNBAN" } | null>(null);
   const [banReason, setBanReason] = useState("");
@@ -45,7 +47,7 @@ export function AdminUsersPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>Users</h1>
+        <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>{t("users")}</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* List */}
@@ -64,7 +66,7 @@ export function AdminUsersPage() {
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>{u.id}</span>
-                    {banned && <Badge variant="danger">BANNED</Badge>}
+                    {banned && <Badge variant="danger">{t("bannedBadge")}</Badge>}
                   </div>
                   <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{u.name}</div>
                   <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
@@ -79,7 +81,7 @@ export function AdminUsersPage() {
           {/* Detail */}
           <div className="lg:col-span-2">
             {!selected ? (
-              <Card className="flex items-center justify-center py-16 text-[14px]" style={{ color: "var(--eco-text-tertiary)" }}>Select a user to view details</Card>
+              <Card className="flex items-center justify-center py-16 text-[14px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("selectUserToView")}</Card>
             ) : (
               <div className="flex flex-col gap-4">
                 <Card className="flex flex-col gap-4">
@@ -90,11 +92,11 @@ export function AdminUsersPage() {
                       </div>
                       <div>
                         <div className="text-[18px]" style={{ color: "var(--eco-text)" }}>{selected.name}</div>
-                        <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{selected.id} · {selected.email} · Since {selected.joined}</div>
+                        <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{selected.id} · {selected.email} · {t("sinceLabel")} {selected.joined}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {isBanned(selected) && <Badge variant="danger">BANNED</Badge>}
+                      {isBanned(selected) && <Badge variant="danger">{t("bannedBadge")}</Badge>}
                       <span className="text-[13px] px-2 py-0.5 rounded" style={{
                         background: selected.riskScore >= 70 ? "var(--eco-danger-100)" : selected.riskScore >= 40 ? "var(--eco-warning-100)" : "var(--eco-success-100)",
                         color: selected.riskScore >= 70 ? "var(--eco-danger-500)" : selected.riskScore >= 40 ? "var(--eco-warning-500)" : "var(--eco-success-500)",
@@ -105,11 +107,11 @@ export function AdminUsersPage() {
                   {/* Reputation summary */}
                   <div className="grid grid-cols-5 gap-3">
                     {[
-                      { label: "Rating", value: `${selected.rating}`, icon: Star },
-                      { label: "Owned", value: `${selected.roomsOwned}`, icon: Home },
-                      { label: "Joined", value: `${selected.roomsJoined}`, icon: Home },
-                      { label: "Tickets", value: `${selected.tickets}`, icon: MessageSquare },
-                      { label: "Disputes", value: `${selected.disputes}`, icon: AlertTriangle },
+                      { label: t("rating"), value: `${selected.rating}`, icon: Star },
+                      { label: t("owned"), value: `${selected.roomsOwned}`, icon: Home },
+                      { label: t("joinedCount"), value: `${selected.roomsJoined}`, icon: Home },
+                      { label: t("tickets"), value: `${selected.tickets}`, icon: MessageSquare },
+                      { label: t("disputes"), value: `${selected.disputes}`, icon: AlertTriangle },
                     ].map((s) => {
                       const Icon = s.icon;
                       return (
@@ -130,18 +132,18 @@ export function AdminUsersPage() {
                     <button className="cursor-pointer p-0.5" onClick={() => handleReveal(selected.id)} style={{ background: "transparent", border: "none" }}>
                       {revealedId === selected.id ? <EyeOff size={12} style={{ color: "var(--eco-text-tertiary)" }} /> : <Eye size={12} style={{ color: "var(--eco-primary)" }} />}
                     </button>
-                    {revealedId !== selected.id && <span className="text-[10px]" style={{ color: "var(--eco-text-tertiary)" }}>Reason required · Audit logged</span>}
+                    {revealedId !== selected.id && <span className="text-[10px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("reasonRequiredAuditLogged")}</span>}
                   </div>
 
                   {/* Ban/Unban */}
                   <div className="flex gap-2">
                     {!isBanned(selected) ? (
                       <Button variant="destructive" size="sm" onClick={() => setBanModal({ user: selected, action: "BAN" })}>
-                        <Ban size={13} /> Ban User
+                        <Ban size={13} /> {t("banUser")}
                       </Button>
                     ) : (
                       <Button variant="primary" size="sm" onClick={() => setBanModal({ user: selected, action: "UNBAN" })}>
-                        <ShieldCheck size={13} /> Unban User
+                        <ShieldCheck size={13} /> {t("unbanUser")}
                       </Button>
                     )}
                   </div>
@@ -152,28 +154,28 @@ export function AdminUsersPage() {
         </div>
 
         {/* Ban modal */}
-        <Modal open={!!banModal} onClose={() => { setBanModal(null); setBanReason(""); }} title={banModal ? `${banModal.action} User` : ""}>
+        <Modal open={!!banModal} onClose={() => { setBanModal(null); setBanReason(""); }} title={banModal ? (banModal.action === "BAN" ? t("banUser") : t("unbanUser")) : ""}>
           {banModal && (
             <div className="flex flex-col gap-4">
               <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-                {banModal.action === "BAN" ? "Banning will disable the user's ability to create/join rooms." : "Unbanning restores full access."}
+                {banModal.action === "BAN" ? t("banUserConfirm") : t("unbanUserConfirm")}
               </div>
               <div className="p-3 rounded-lg text-[12px]" style={{ background: "var(--eco-surface)" }}>{banModal.user.id} — {banModal.user.name}</div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px]" style={{ color: "var(--eco-text)" }}>Reason <span style={{ color: "var(--eco-negative)" }}>*</span></label>
-                <textarea rows={3} value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="Mandatory (audit logged)..." className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} />
+                <label className="text-[13px]" style={{ color: "var(--eco-text)" }}>{t("reason")} <span style={{ color: "var(--eco-negative)" }}>*</span></label>
+                <textarea rows={3} value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder={t("mandatoryAuditLogged")} className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} />
               </div>
-              <div className="text-[11px] flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}><Shield size={11} /> Audit logged.</div>
-              <Button variant={banModal.action === "BAN" ? "destructive" : "primary"} disabled={!banReason.trim()} onClick={handleBan}>{banModal.action === "BAN" ? "Ban User" : "Unban User"}</Button>
+              <div className="text-[11px] flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}><Shield size={11} /> {t("auditLoggedShort")}</div>
+              <Button variant={banModal.action === "BAN" ? "destructive" : "primary"} disabled={!banReason.trim()} onClick={handleBan}>{banModal.action === "BAN" ? t("banUser") : t("unbanUser")}</Button>
             </div>
           )}
         </Modal>
 
-        <Modal open={!!revealTarget && revealedId !== revealTarget} onClose={() => setRevealTarget(null)} title="Reveal Identifier">
+        <Modal open={!!revealTarget && revealedId !== revealTarget} onClose={() => setRevealTarget(null)} title={t("revealIdentifier")}>
           <div className="flex flex-col gap-4">
-            <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>Provide reason. Audit logged.</div>
-            <input className="px-3 py-2 rounded-lg outline-none text-[13px]" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} placeholder="Reason..." value={revealReason} onChange={(e) => setRevealReason(e.target.value)} />
-            <Button variant="primary" disabled={!revealReason.trim()} onClick={confirmReveal}>Reveal</Button>
+            <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{t("provideReasonAuditLoggedShort")}</div>
+            <input className="px-3 py-2 rounded-lg outline-none text-[13px]" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} placeholder={t("reasonPlaceholder")} value={revealReason} onChange={(e) => setRevealReason(e.target.value)} />
+            <Button variant="primary" disabled={!revealReason.trim()} onClick={confirmReveal}>{t("reveal")}</Button>
           </div>
         </Modal>
       </div>

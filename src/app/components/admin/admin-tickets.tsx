@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, Button, Badge, Modal } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
+import { useI18n } from "../i18n-provider";
 import { Shield, Send, Paperclip, ArrowUpRight, CheckCircle2, Clock, AlertTriangle, FileText, Image } from "lucide-react";
 
 type Ticket = {
@@ -42,6 +43,7 @@ const threadData: Record<string, Msg[]> = {
 const statusVariant: Record<string, "warning" | "info" | "success"> = { OPEN: "warning", IN_PROGRESS: "info", CLOSED: "success" };
 
 export function AdminTicketsPage() {
+  const { t } = useI18n();
   const [selected, setSelected] = useState<Ticket | null>(null);
   const [reply, setReply] = useState("");
   const [localMsgs, setLocalMsgs] = useState<Record<string, Msg[]>>({});
@@ -68,30 +70,30 @@ export function AdminTicketsPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>Tickets (Support View)</h1>
+        <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>{t("ticketsSupportView")}</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Queue */}
           <div className="lg:col-span-1 flex flex-col gap-2">
-            {tickets.map((t) => (
+            {tickets.map((tk) => (
               <button
-                key={t.id}
-                onClick={() => setSelected(t)}
+                key={tk.id}
+                onClick={() => setSelected(tk)}
                 className="text-left p-4 rounded-xl cursor-pointer transition-all"
                 style={{
-                  background: selected?.id === t.id ? "var(--eco-brand-50)" : "var(--eco-surface-raised)",
-                  border: `1px solid ${selected?.id === t.id ? "var(--eco-primary)" : "var(--eco-border)"}`,
+                  background: selected?.id === tk.id ? "var(--eco-brand-50)" : "var(--eco-surface-raised)",
+                  border: `1px solid ${selected?.id === tk.id ? "var(--eco-primary)" : "var(--eco-border)"}`,
                 }}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>{t.id}</span>
+                  <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>{tk.id}</span>
                   <div className="flex items-center gap-1.5">
-                    <Badge variant={statusVariant[t.status]}>{t.status.replace("_", " ")}</Badge>
-                    {(t.escalated || escalated.includes(t.id)) && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "var(--eco-danger-100)", color: "var(--eco-danger-500)" }}>Escalated</span>}
+                    <Badge variant={statusVariant[tk.status]}>{t(`ticketStatus.${tk.status}`)}</Badge>
+                    {(tk.escalated || escalated.includes(tk.id)) && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "var(--eco-danger-100)", color: "var(--eco-danger-500)" }}>{t("escalatedBadge")}</span>}
                   </div>
                 </div>
-                <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{t.title}</div>
-                <div className="text-[11px] mt-1" style={{ color: "var(--eco-text-tertiary)" }}>{t.user} · {t.updated}</div>
+                <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{tk.title}</div>
+                <div className="text-[11px] mt-1" style={{ color: "var(--eco-text-tertiary)" }}>{tk.user} · {tk.updated}</div>
               </button>
             ))}
           </div>
@@ -99,7 +101,7 @@ export function AdminTicketsPage() {
           {/* Thread */}
           <div className="lg:col-span-2">
             {!selected ? (
-              <Card className="flex items-center justify-center py-16 text-[14px]" style={{ color: "var(--eco-text-tertiary)" }}>Select a ticket</Card>
+              <Card className="flex items-center justify-center py-16 text-[14px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("selectTicket")}</Card>
             ) : (
               <div className="flex flex-col gap-4">
                 {/* Header */}
@@ -107,18 +109,18 @@ export function AdminTicketsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-[16px]" style={{ color: "var(--eco-text)" }}>{selected.title}</div>
-                      <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{selected.id} · {selected.user} · {selected.topic} · {selected.room || "No room"}</div>
+                      <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{selected.id} · {selected.user} · {selected.topic} · {selected.room || t("noRoom")}</div>
                     </div>
-                    <Badge variant={statusVariant[selected.status]}>{selected.status.replace("_", " ")}</Badge>
+                    <Badge variant={statusVariant[selected.status]}>{t(`ticketStatus.${selected.status}`)}</Badge>
                   </div>
                   {!(selected.escalated || escalated.includes(selected.id)) && selected.status !== "CLOSED" && (
                     <Button variant="destructive" size="sm" className="self-start" onClick={() => setEscalateModal(true)}>
-                      <ArrowUpRight size={13} /> Escalate to Dispute
+                      <ArrowUpRight size={13} /> {t("escalateToDispute")}
                     </Button>
                   )}
                   {(selected.escalated || escalated.includes(selected.id)) && (
                     <div className="flex items-center gap-2 p-3 rounded-lg text-[13px]" style={{ background: "var(--eco-danger-100)", color: "var(--eco-danger-500)" }}>
-                      <AlertTriangle size={14} /> Escalated to dispute review
+                      <AlertTriangle size={14} /> {t("escalatedToDisputeReview")}
                     </div>
                   )}
                 </Card>
@@ -129,8 +131,8 @@ export function AdminTicketsPage() {
                     {getMessages(selected.id).map((m) => (
                       <div key={m.id} className={`flex flex-col gap-1 ${m.from === "user" ? "items-end" : "items-start"}`}>
                         <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                          {m.from === "support" && <><Shield size={10} style={{ color: "var(--eco-primary)" }} /><span style={{ color: "var(--eco-primary)" }}>Support</span></>}
-                          {m.from === "admin" && <><Shield size={10} style={{ color: "var(--eco-negative)" }} /><span style={{ color: "var(--eco-negative)" }}>Admin</span></>}
+                          {m.from === "support" && <><Shield size={10} style={{ color: "var(--eco-primary)" }} /><span style={{ color: "var(--eco-primary)" }}>{t("supportLabel")}</span></>}
+                          {m.from === "admin" && <><Shield size={10} style={{ color: "var(--eco-negative)" }} /><span style={{ color: "var(--eco-negative)" }}>{t("adminLabelRole")}</span></>}
                           {m.from === "user" && <span>{m.name}</span>}
                           · {m.time}
                         </div>
@@ -152,7 +154,7 @@ export function AdminTicketsPage() {
                   {selected.status !== "CLOSED" && (
                     <div className="flex items-center gap-2 pt-3 border-t" style={{ borderColor: "var(--eco-border)" }}>
                       <button className="p-2 rounded-lg cursor-pointer" style={{ background: "var(--eco-surface)", border: "none" }}><Paperclip size={15} style={{ color: "var(--eco-text-tertiary)" }} /></button>
-                      <input value={reply} onChange={(e) => setReply(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendReply()} placeholder="Reply as Support..." className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} />
+                      <input value={reply} onChange={(e) => setReply(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendReply()} placeholder={t("replyAsSupport")} className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} />
                       <button className="p-2 rounded-lg cursor-pointer" style={{ background: "var(--eco-primary)", border: "none" }} onClick={sendReply}><Send size={14} style={{ color: "var(--eco-text-on-primary)" }} /></button>
                     </div>
                   )}
@@ -162,12 +164,12 @@ export function AdminTicketsPage() {
           </div>
         </div>
 
-        <Modal open={escalateModal} onClose={() => { setEscalateModal(false); setEscalateReason(""); }} title="Escalate to Dispute">
+        <Modal open={escalateModal} onClose={() => { setEscalateModal(false); setEscalateReason(""); }} title={t("escalateToDispute")}>
           <div className="flex flex-col gap-4">
-            <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>This will create a dispute and notify the user and admin team.</div>
-            <textarea rows={3} value={escalateReason} onChange={(e) => setEscalateReason(e.target.value)} placeholder="Escalation reason (audit logged)..." className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} />
-            <div className="text-[11px] flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}><Shield size={11} /> Audit logged.</div>
-            <Button variant="destructive" disabled={!escalateReason.trim()} onClick={handleEscalate}>Escalate</Button>
+            <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{t("escalateDisputeConfirm")}</div>
+            <textarea rows={3} value={escalateReason} onChange={(e) => setEscalateReason(e.target.value)} placeholder={t("escalationReasonPlaceholder")} className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} />
+            <div className="text-[11px] flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}><Shield size={11} /> {t("auditLoggedShort")}</div>
+            <Button variant="destructive" disabled={!escalateReason.trim()} onClick={handleEscalate}>{t("escalate")}</Button>
           </div>
         </Modal>
       </div>

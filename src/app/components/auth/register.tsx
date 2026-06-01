@@ -23,9 +23,9 @@ export function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   const rules = [
-    { label: "Min 8 characters", ok: pw.length >= 8 },
-    { label: "One uppercase letter", ok: /[A-Z]/.test(pw) },
-    { label: "One number", ok: /\d/.test(pw) },
+    { label: t("pwMin8"), ok: pw.length >= 8 },
+    { label: t("pwUppercase"), ok: /[A-Z]/.test(pw) },
+    { label: t("pwOneNumber"), ok: /\d/.test(pw) },
   ];
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -34,7 +34,7 @@ export function RegisterPage() {
     setFieldErrors({});
 
     if (pw !== confirm) {
-      setFieldErrors({ confirmPassword: "Passwords do not match" });
+      setFieldErrors({ confirmPassword: t("passwordsDoNotMatch") });
       return;
     }
 
@@ -48,7 +48,7 @@ export function RegisterPage() {
         setError(err.message);
         setFieldErrors(err.errors);
       } else {
-        setError("Unable to create the account right now.");
+        setError(t("unableToCreateAccount"));
       }
     } finally {
       setLoading(false);
@@ -88,7 +88,7 @@ export function RegisterPage() {
                   type={show ? "text" : "password"}
                   value={pw}
                   onChange={(event) => setPw(event.target.value)}
-                  placeholder="Min 8 characters"
+                  placeholder={t("pwMin8")}
                   className="w-full px-3 py-2 pr-10 rounded-lg outline-none"
                   style={{
                     background: "var(--eco-surface)",
@@ -118,7 +118,7 @@ export function RegisterPage() {
               </div>
             </div>
             <Input
-              label="Confirm password"
+              label={t("confirmPassword")}
               type="password"
               value={confirm}
               onChange={(event) => setConfirm(event.target.value)}

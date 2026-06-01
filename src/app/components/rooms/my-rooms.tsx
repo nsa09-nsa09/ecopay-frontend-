@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { Card, Button, Tabs, RoomStatusBadge, MemberStatusBadge, Badge, EmptyState, Select } from "../ds-primitives";
 import { Plus, Users, Clock, ArrowRight, Calendar, Filter, ChevronDown, ChevronUp } from "lucide-react";
+import { useI18n } from "../i18n-provider";
 
 // ─── Mock Data ───
 const joinedRooms = [
@@ -17,26 +18,21 @@ const createdRooms = [
   { id: "r7", name: "Activ Duo", operator: "Activ", status: "ACTIVE", startDate: "2026-03-10", seats: 2, filled: 2, applicants: 0, perMember: 6000 },
 ];
 
-const STATUS_OPTIONS = [
-  { value: "ALL", label: "All statuses" },
-  { value: "OPEN", label: "Open" },
-  { value: "IN_VERIFICATION", label: "In Verification" },
-  { value: "ACTIVE", label: "Active" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "BLOCKED", label: "Blocked" },
-];
-
-const OPERATOR_OPTIONS = [
-  { value: "ALL", label: "All operators" },
-  { value: "Beeline", label: "Beeline" },
-  { value: "Activ", label: "Activ" },
-  { value: "Altel", label: "Altel" },
-  { value: "Tele2", label: "Tele2" },
-  { value: "Kcell", label: "Kcell" },
-];
+const STATUS_VALUES = ["ALL", "OPEN", "IN_VERIFICATION", "ACTIVE", "COMPLETED", "BLOCKED"];
+const OPERATOR_VALUES = ["ALL", "Beeline", "Activ", "Altel", "Tele2", "Kcell"];
 
 export function MyRoomsPage() {
-  const [tab, setTab] = useState("Joined");
+  const { t } = useI18n();
+  const [tab, setTab] = useState<"joined" | "created">("joined");
+
+  const STATUS_OPTIONS = STATUS_VALUES.map((value) => ({
+    value,
+    label: value === "ALL" ? t("allStatuses") : t(`roomStatus.${value}`),
+  }));
+  const OPERATOR_OPTIONS = OPERATOR_VALUES.map((value) => ({
+    value,
+    label: value === "ALL" ? t("allOperators") : value,
+  }));
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [operatorFilter, setOperatorFilter] = useState("ALL");
@@ -57,14 +53,18 @@ export function MyRoomsPage() {
     <div className="max-w-[1200px] mx-auto px-6 py-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-[26px]" style={{ color: "var(--eco-text)" }}>My Rooms</h1>
+        <h1 className="text-[26px]" style={{ color: "var(--eco-text)" }}>{t("myRooms")}</h1>
         <Link to="/rooms/create" style={{ textDecoration: "none" }}>
-          <Button variant="primary" size="sm"><Plus size={14} /> Create Room</Button>
+          <Button variant="primary" size="sm"><Plus size={14} /> {t("createRoom")}</Button>
         </Link>
       </div>
 
       {/* Tabs */}
-      <Tabs tabs={["Joined", "Created"]} active={tab} onChange={setTab} />
+      <Tabs
+        tabs={[t("tabJoined"), t("tabCreated")]}
+        active={tab === "joined" ? t("tabJoined") : t("tabCreated")}
+        onChange={(label) => setTab(label === t("tabJoined") ? "joined" : "created")}
+      />
 
       {/* Filter toggle */}
       <div className="mt-4 mb-2">
@@ -74,7 +74,7 @@ export function MyRoomsPage() {
           style={{ color: "var(--eco-text-secondary)", background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
         >
           <Filter size={14} />
-          Filters
+          {t("filters")}
           {showFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
       </div>
@@ -83,15 +83,15 @@ export function MyRoomsPage() {
       {showFilters && (
         <Card className="mb-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Select label="Status" options={STATUS_OPTIONS} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} />
-            <Select label="Operator" options={OPERATOR_OPTIONS} value={operatorFilter} onChange={(e) => setOperatorFilter(e.target.value)} />
+            <Select label={t("status")} options={STATUS_OPTIONS} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} />
+            <Select label={t("operator")} options={OPERATOR_OPTIONS} value={operatorFilter} onChange={(e) => setOperatorFilter(e.target.value)} />
             <div className="flex items-end">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => { setStatusFilter("ALL"); setOperatorFilter("ALL"); }}
               >
-                Clear filters
+                {t("clearFilters")}
               </Button>
             </div>
           </div>
@@ -100,10 +100,10 @@ export function MyRoomsPage() {
 
       {/* Content */}
       <div className="mt-4">
-        {tab === "Joined" && (
+        {tab === "joined" && (
           <div className="flex flex-col gap-3">
             {filteredJoined.length === 0 ? (
-              <EmptyState title="No Rooms Found" description="No rooms match your filters. Try adjusting or browse the catalog to join a room." />
+              <EmptyState title={t("noRoomsFound")} description={t("noRoomsJoinedDesc")} />
             ) : (
               filteredJoined.map((r) => (
                 <Link key={r.id} to={`/rooms/member/${r.id}`} style={{ textDecoration: "none" }}>
@@ -126,10 +126,10 @@ export function MyRoomsPage() {
                         <Calendar size={13} /> {r.startDate}
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <Users size={13} /> {r.filled}/{r.seats} seats
+                        <Users size={13} /> {r.filled}/{r.seats} {t("seatsLower")}
                       </span>
                       <span style={{ color: "var(--eco-primary)" }}>
-                        ₸{r.perMember.toLocaleString()}/mo
+                        ₸{r.perMember.toLocaleString()}{t("perMonthShort")}
                       </span>
                     </div>
 
@@ -142,7 +142,7 @@ export function MyRoomsPage() {
 
                     <div className="flex items-center justify-end">
                       <span className="text-[13px] flex items-center gap-1" style={{ color: "var(--eco-primary)" }}>
-                        View details <ArrowRight size={14} />
+                        {t("viewDetailsAction")} <ArrowRight size={14} />
                       </span>
                     </div>
                   </Card>
@@ -152,10 +152,10 @@ export function MyRoomsPage() {
           </div>
         )}
 
-        {tab === "Created" && (
+        {tab === "created" && (
           <div className="flex flex-col gap-3">
             {filteredCreated.length === 0 ? (
-              <EmptyState title="No Rooms Found" description="No rooms match your filters. Create a room to start sharing a plan." />
+              <EmptyState title={t("noRoomsFound")} description={t("noRoomsCreatedDesc")} />
             ) : (
               filteredCreated.map((r) => (
                 <Link key={r.id} to={`/rooms/owner/${r.id}`} style={{ textDecoration: "none" }}>
@@ -168,7 +168,7 @@ export function MyRoomsPage() {
                       <div className="flex items-center gap-2">
                         <RoomStatusBadge status={r.status} />
                         {r.applicants > 0 && (
-                          <Badge variant="warning">{r.applicants} pending</Badge>
+                          <Badge variant="warning">{t("pendingCount", { count: r.applicants })}</Badge>
                         )}
                       </div>
                     </div>
@@ -178,10 +178,10 @@ export function MyRoomsPage() {
                         <Calendar size={13} /> {r.startDate}
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <Users size={13} /> {r.filled}/{r.seats} seats
+                        <Users size={13} /> {r.filled}/{r.seats} {t("seatsLower")}
                       </span>
                       <span style={{ color: "var(--eco-primary)" }}>
-                        ₸{r.perMember.toLocaleString()}/mo per member
+                        ₸{r.perMember.toLocaleString()}{t("perMemberMonth")}
                       </span>
                     </div>
 
@@ -193,7 +193,7 @@ export function MyRoomsPage() {
 
                     <div className="flex items-center justify-end">
                       <span className="text-[13px] flex items-center gap-1" style={{ color: "var(--eco-primary)" }}>
-                        Manage <ArrowRight size={14} />
+                        {t("manage")} <ArrowRight size={14} />
                       </span>
                     </div>
                   </Card>

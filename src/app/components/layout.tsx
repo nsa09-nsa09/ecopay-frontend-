@@ -54,7 +54,7 @@ export function AppLayout() {
         <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between h-14">
           <div className="flex items-center gap-6">
             <Link to="/" className="text-[28px] tracking-tight shrink-0" style={{ color: "var(--eco-text)", textDecoration: "none", fontWeight: 700 }}>
-              <span style={{ color: "var(--eco-primary)" }}>Eco</span>Split
+              <span style={{ color: "var(--eco-primary)" }}>Eco</span>Pay
             </Link>
             <div className="hidden md:flex items-center gap-1">
               {navItems.map((item) => (
