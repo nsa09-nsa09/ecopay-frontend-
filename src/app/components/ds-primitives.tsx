@@ -1,5 +1,6 @@
 import { type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes, type SelectHTMLAttributes, useState, useRef, useEffect } from "react";
 import { Check, ChevronDown, X, AlertCircle, CheckCircle2, Info, Loader2 } from "lucide-react";
+import { useI18n } from "./i18n-provider";
 
 // ─── Wave SVG ───
 export function WaveDivider({ flip, className }: { flip?: boolean; className?: string }) {
@@ -203,11 +204,15 @@ const roomStatusMap: Record<string, BadgeVariant> = {
 };
 
 export function MemberStatusBadge({ status }: { status: string }) {
-  return <Badge variant={memberStatusMap[status] || "default"}>{status}</Badge>;
+  const { t } = useI18n();
+  const label = t(`memberStatus.${status}`);
+  return <Badge variant={memberStatusMap[status] || "default"}>{label.startsWith("memberStatus.") ? status : label}</Badge>;
 }
 
 export function RoomStatusBadge({ status }: { status: string }) {
-  return <Badge variant={roomStatusMap[status] || "default"}>{status}</Badge>;
+  const { t } = useI18n();
+  const label = t(`roomStatus.${status}`);
+  return <Badge variant={roomStatusMap[status] || "default"}>{label.startsWith("roomStatus.") ? status : label}</Badge>;
 }
 
 // ─── Cards ───
@@ -523,7 +528,7 @@ export function TopNav() {
     >
       <div className="flex items-center gap-6">
         <span className="text-[28px] tracking-tight" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
-          <span style={{ color: "var(--eco-primary)" }}>Eco</span>Split
+          <span style={{ color: "var(--eco-primary)" }}>Eco</span>Pay
         </span>
         <div className="hidden md:flex items-center gap-4">
           {["Plans", "Rooms", "Dashboard"].map((item) => (

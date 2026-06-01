@@ -1,34 +1,36 @@
 import { Card, Badge } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
+import { useI18n } from "../i18n-provider";
 import { ShieldCheck, Scale, Undo2, MessageSquare, Ban, Users, Home, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 const kpis = [
-  { label: "Moderation Queue", value: "3", change: "+1", up: true, icon: ShieldCheck, variant: "warning" as const },
-  { label: "Open Disputes", value: "2", change: "0", up: false, icon: Scale, variant: "danger" as const },
-  { label: "Refunds Pending", value: "5", change: "+2", up: true, icon: Undo2, variant: "warning" as const },
-  { label: "Tickets Open", value: "12", change: "-3", up: false, icon: MessageSquare, variant: "info" as const },
-  { label: "Active Bans", value: "4", change: "+1", up: true, icon: Ban, variant: "danger" as const },
+  { key: "moderationQueue", value: "3", change: "+1", up: true, icon: ShieldCheck, variant: "warning" as const },
+  { key: "openDisputes", value: "2", change: "0", up: false, icon: Scale, variant: "danger" as const },
+  { key: "refundsPending", value: "5", change: "+2", up: true, icon: Undo2, variant: "warning" as const },
+  { key: "ticketsOpen", value: "12", change: "-3", up: false, icon: MessageSquare, variant: "info" as const },
+  { key: "activeBans", value: "4", change: "+1", up: true, icon: Ban, variant: "danger" as const },
 ];
 
 const recentActivity = [
   { time: "10 min ago", action: "Room #R-2048 flagged for verification", actor: "System" },
-  { time: "25 min ago", action: "User Dana M. ban reviewed by Admin", actor: "admin@ecosplit.kz" },
-  { time: "1h ago", action: "Refund ₸5,199 initiated for Ticket T-1018", actor: "admin@ecosplit.kz" },
-  { time: "2h ago", action: "Dispute D-104 escalated from Ticket T-1018", actor: "support@ecosplit.kz" },
-  { time: "3h ago", action: "Room #R-2045 blocked — compliance review", actor: "admin@ecosplit.kz" },
+  { time: "25 min ago", action: "User Dana M. ban reviewed by Admin", actor: "admin@ecopay.kz" },
+  { time: "1h ago", action: "Refund ₸5,199 initiated for Ticket T-1018", actor: "admin@ecopay.kz" },
+  { time: "2h ago", action: "Dispute D-104 escalated from Ticket T-1018", actor: "support@ecopay.kz" },
+  { time: "3h ago", action: "Room #R-2045 blocked — compliance review", actor: "admin@ecopay.kz" },
 ];
 
 const quickStats = [
-  { label: "Total Rooms", value: "248", icon: Home },
-  { label: "Total Users", value: "1,024", icon: Users },
-  { label: "Monthly Revenue", value: "₸4.2M", icon: TrendingUp },
+  { key: "totalRooms", value: "248", icon: Home },
+  { key: "totalUsers", value: "1,024", icon: Users },
+  { key: "monthlyRevenue", value: "₸4.2M", icon: TrendingUp },
 ];
 
 export function AdminDashboardPage() {
+  const { t } = useI18n();
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>Dashboard</h1>
+        <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>{t("dashboard")}</h1>
 
         {/* KPI cards */}
         <div className="grid grid-cols-5 gap-4 mb-8">
@@ -53,7 +55,7 @@ export function AdminDashboardPage() {
                 </div>
                 <div>
                   <div className="text-[22px]" style={{ color: "var(--eco-text)" }}>{k.value}</div>
-                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{k.label}</div>
+                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t(k.key)}</div>
                 </div>
               </Card>
             );
@@ -68,7 +70,7 @@ export function AdminDashboardPage() {
                 <Icon size={18} style={{ color: "var(--eco-text-tertiary)" }} />
                 <div>
                   <div className="text-[18px]" style={{ color: "var(--eco-text)" }}>{s.value}</div>
-                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{s.label}</div>
+                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t(s.key)}</div>
                 </div>
               </Card>
             );
@@ -77,7 +79,7 @@ export function AdminDashboardPage() {
 
         {/* Recent activity */}
         <Card className="flex flex-col gap-0">
-          <h3 className="text-[15px] mb-4" style={{ color: "var(--eco-text)" }}>Recent Activity</h3>
+          <h3 className="text-[15px] mb-4" style={{ color: "var(--eco-text)" }}>{t("recentActivity")}</h3>
           {recentActivity.map((a, i) => (
             <div
               key={i}

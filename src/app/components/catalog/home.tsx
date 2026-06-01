@@ -77,7 +77,7 @@ export function HomePage() {
         }
       } catch {
         if (!isCancelled) {
-          setError("Unable to load the live catalog right now.");
+          setError(t("unableToLoadCatalog"));
         }
       } finally {
         if (!isCancelled) {
@@ -159,7 +159,7 @@ export function HomePage() {
                     <div className="flex-1 min-w-0">
                       <div className="text-[15px]" style={{ color: "var(--eco-text)" }}>{operator.name}</div>
                       <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                        {operator.plans > 0 ? `${operator.plans} ${t("plan")} · ${operator.rooms} ${t("rooms")}` : t("noFamilyPlansAvailable")}
+                        {operator.plans > 0 ? t("plansRooms", { plans: operator.plans, rooms: operator.rooms }) : t("noFamilyPlansAvailable")}
                       </div>
                     </div>
                     {operator.plans === 0 && <Badge variant="default">{t("na")}</Badge>}
@@ -201,7 +201,7 @@ export function HomePage() {
             <Badge variant="default">{t("comingSoon")}</Badge>
           </div>
           <p className="text-[13px] mb-6" style={{ color: "var(--eco-text-secondary)" }}>
-            Split streaming, music, AI tools - launching later in 2026
+            {t("splitDigitalServicesTeaser")}
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {comingSoon.map((category) => (
@@ -224,11 +224,11 @@ export function HomePage() {
           <div className="flex gap-4 mt-6 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full" style={{ background: "var(--eco-brand-500)" }} />
-              Bundle includes home internet
+              {t("bundleIncludesInternet")}
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full" style={{ background: "var(--eco-warning-500)" }} />
-              Promo price first month
+              {t("promoFirstMonth")}
             </span>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, Button, Badge, Modal, RoomStatusBadge } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
+import { useI18n } from "../i18n-provider";
 import { ShieldX, ShieldCheck, Eye, EyeOff, Shield, Clock, CheckCircle2, AlertTriangle, Users, Calendar, Lock } from "lucide-react";
 
 type RoomEvent = { time: string; action: string; actor: string };
@@ -46,6 +47,7 @@ const rooms: AdminRoom[] = [
 ];
 
 export function AdminRoomsPage() {
+  const { t } = useI18n();
   const [selected, setSelected] = useState<AdminRoom | null>(null);
   const [blockModal, setBlockModal] = useState<{ room: AdminRoom; action: "BLOCK" | "UNBLOCK" } | null>(null);
   const [blockReason, setBlockReason] = useState("");
@@ -79,7 +81,7 @@ export function AdminRoomsPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>Rooms</h1>
+        <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>{t("rooms")}</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Room list */}
@@ -102,7 +104,7 @@ export function AdminRoomsPage() {
                     <RoomStatusBadge status={status} />
                   </div>
                   <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{r.name}</div>
-                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{r.operator} · {r.filled}/{r.seats} seats</div>
+                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{r.operator} · {r.filled}/{r.seats} {t("seatsLower")}</div>
                 </button>
               );
             })}
@@ -112,7 +114,7 @@ export function AdminRoomsPage() {
           <div className="lg:col-span-2">
             {!selected ? (
               <Card className="flex items-center justify-center py-16 text-[14px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                Select a room to view details
+                {t("selectRoomToView")}
               </Card>
             ) : (
               <div className="flex flex-col gap-4">
@@ -129,17 +131,17 @@ export function AdminRoomsPage() {
                         background: selected.riskScore >= 70 ? "var(--eco-danger-100)" : selected.riskScore >= 40 ? "var(--eco-warning-100)" : "var(--eco-success-100)",
                         color: selected.riskScore >= 70 ? "var(--eco-danger-500)" : selected.riskScore >= 40 ? "var(--eco-warning-500)" : "var(--eco-success-500)",
                       }}>
-                        Risk: {selected.riskScore}
+                        {t("risk")}: {selected.riskScore}
                       </span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-4 gap-3 text-[13px]">
                     {[
-                      { label: "Seats", value: `${selected.filled}/${selected.seats}` },
-                      { label: "Start", value: selected.startDate },
-                      { label: "Total Price", value: `₸${selected.priceTotal.toLocaleString()}` },
-                      { label: "Owner", value: selected.owner },
+                      { label: t("seats"), value: `${selected.filled}/${selected.seats}` },
+                      { label: t("startLabel"), value: selected.startDate },
+                      { label: t("totalCost"), value: `₸${selected.priceTotal.toLocaleString()}` },
+                      { label: t("owner"), value: selected.owner },
                     ].map((s) => (
                       <div key={s.label}>
                         <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{s.label}</div>
@@ -152,23 +154,23 @@ export function AdminRoomsPage() {
                   <div className="flex items-center gap-2 text-[12px] pt-2 border-t" style={{ borderColor: "var(--eco-border)" }}>
                     <Shield size={12} style={{ color: "var(--eco-text-tertiary)" }} />
                     <span style={{ color: "var(--eco-text-secondary)", fontFamily: "monospace" }}>
-                      Owner ID: {revealedOwner === selected.id ? selected.ownerFull : selected.ownerMasked}
+                      {t("ownerIdLabel")}: {revealedOwner === selected.id ? selected.ownerFull : selected.ownerMasked}
                     </span>
                     <button className="cursor-pointer p-0.5" onClick={() => handleRevealOwner(selected.id)} style={{ background: "transparent", border: "none" }}>
                       {revealedOwner === selected.id ? <EyeOff size={12} style={{ color: "var(--eco-text-tertiary)" }} /> : <Eye size={12} style={{ color: "var(--eco-primary)" }} />}
                     </button>
-                    {revealedOwner !== selected.id && <span className="text-[10px]" style={{ color: "var(--eco-text-tertiary)" }}>Reason required</span>}
+                    {revealedOwner !== selected.id && <span className="text-[10px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("reasonRequired")}</span>}
                   </div>
 
                   {/* Block/Unblock */}
                   <div className="flex gap-2 pt-2">
                     {getStatus(selected) !== "BLOCKED" ? (
                       <Button variant="destructive" size="sm" onClick={() => setBlockModal({ room: selected, action: "BLOCK" })}>
-                        <ShieldX size={13} /> Block Room
+                        <ShieldX size={13} /> {t("blockRoom")}
                       </Button>
                     ) : (
                       <Button variant="primary" size="sm" onClick={() => setBlockModal({ room: selected, action: "UNBLOCK" })}>
-                        <ShieldCheck size={13} /> Unblock Room
+                        <ShieldCheck size={13} /> {t("unblockRoom")}
                       </Button>
                     )}
                   </div>
@@ -176,7 +178,7 @@ export function AdminRoomsPage() {
 
                 {/* Event Timeline */}
                 <Card className="flex flex-col gap-0">
-                  <h3 className="text-[14px] mb-3" style={{ color: "var(--eco-text)" }}>Room Event Log</h3>
+                  <h3 className="text-[14px] mb-3" style={{ color: "var(--eco-text)" }}>{t("roomEventLog")}</h3>
                   {selected.events.map((ev, i) => (
                     <div key={i} className="flex items-start gap-3 py-2.5" style={{ borderTop: i > 0 ? "1px solid var(--eco-border)" : undefined }}>
                       <div className="flex flex-col items-center">
@@ -198,42 +200,40 @@ export function AdminRoomsPage() {
         </div>
 
         {/* Block/Unblock modal */}
-        <Modal open={!!blockModal} onClose={() => { setBlockModal(null); setBlockReason(""); }} title={blockModal ? `${blockModal.action} Room` : ""}>
+        <Modal open={!!blockModal} onClose={() => { setBlockModal(null); setBlockReason(""); }} title={blockModal ? (blockModal.action === "BLOCK" ? t("blockRoom") : t("unblockRoom")) : ""}>
           {blockModal && (
             <div className="flex flex-col gap-4">
               <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-                {blockModal.action === "BLOCK"
-                  ? "Blocking this room will prevent all activity. Active members will be notified."
-                  : "Unblocking will restore the room to its previous active state."}
+                {blockModal.action === "BLOCK" ? t("blockRoomConfirm") : t("unblockRoomConfirm")}
               </div>
               <div className="p-3 rounded-lg text-[12px]" style={{ background: "var(--eco-surface)" }}>
                 {blockModal.room.id} — {blockModal.room.name}
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px]" style={{ color: "var(--eco-text)" }}>Reason <span style={{ color: "var(--eco-negative)" }}>*</span></label>
+                <label className="text-[13px]" style={{ color: "var(--eco-text)" }}>{t("reason")} <span style={{ color: "var(--eco-negative)" }}>*</span></label>
                 <textarea
                   rows={3} value={blockReason} onChange={(e) => setBlockReason(e.target.value)}
-                  placeholder="Mandatory reason (audit logged)..."
+                  placeholder={t("mandatoryReasonAudit")}
                   className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
                   style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
                 />
               </div>
               <div className="text-[11px] flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}>
-                <Shield size={11} /> Action recorded in admin audit log.
+                <Shield size={11} /> {t("actionRecordedAuditLog")}
               </div>
               <Button variant={blockModal.action === "BLOCK" ? "destructive" : "primary"} disabled={!blockReason.trim()} onClick={handleBlock}>
-                {blockModal.action === "BLOCK" ? "Block Room" : "Unblock Room"}
+                {blockModal.action === "BLOCK" ? t("blockRoom") : t("unblockRoom")}
               </Button>
             </div>
           )}
         </Modal>
 
         {/* Reveal modal */}
-        <Modal open={!!revealTarget && revealedOwner !== revealTarget} onClose={() => setRevealTarget(null)} title="Reveal Identifier">
+        <Modal open={!!revealTarget && revealedOwner !== revealTarget} onClose={() => setRevealTarget(null)} title={t("revealIdentifier")}>
           <div className="flex flex-col gap-4">
-            <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>Provide a reason. This action is audit-logged.</div>
-            <input className="px-3 py-2 rounded-lg outline-none text-[13px]" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} placeholder="Reason..." value={revealReason} onChange={(e) => setRevealReason(e.target.value)} />
-            <Button variant="primary" disabled={!revealReason.trim()} onClick={confirmReveal}>Reveal</Button>
+            <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{t("provideReasonAuditLogged")}</div>
+            <input className="px-3 py-2 rounded-lg outline-none text-[13px]" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} placeholder={t("reasonPlaceholder")} value={revealReason} onChange={(e) => setRevealReason(e.target.value)} />
+            <Button variant="primary" disabled={!revealReason.trim()} onClick={confirmReveal}>{t("reveal")}</Button>
           </div>
         </Modal>
       </div>
