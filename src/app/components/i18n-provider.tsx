@@ -13,6 +13,7 @@ type Translations = {
 const translations: Translations = {
   // ===== Navigation & Header =====
   catalog: { ru: "Каталог", kz: "Каталог", en: "Catalog" },
+  browseRooms: { ru: "Открытые комнаты", kz: "Ашық бөлмелер", en: "Open Rooms" },
   myRooms: { ru: "Мои комнаты", kz: "Менің бөлмелерім", en: "My Rooms" },
   support: { ru: "Поддержка", kz: "Қолдау", en: "Support" },
   aboutUs: { ru: "О нас", kz: "Біз туралы", en: "About Us" },

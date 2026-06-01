@@ -271,7 +271,194 @@ export function joinRoomRequest(
   },
   accessToken: string,
 ) {
-  return requestJson(`/rooms/${roomId}/members`, {
+  return requestJson<RoomMemberDto>(`/rooms/${roomId}/members`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+export interface CategoryDto {
+  id: number;
+  name: string;
+  slug: string;
+  sortOrder: number;
+}
+
+export interface RoomMemberDto {
+  id: number;
+  roomId: number;
+  userId: number;
+  userDisplayName: string;
+  userEmail: string | null;
+  status: string;
+  requiresAdminReview: boolean;
+  accessMethod: string | null;
+  ownerAccessConfirmedAt: string | null;
+  memberConfirmedAt: string | null;
+  activatedAt: string | null;
+  rejectedAt: string | null;
+  endedAt: string | null;
+  consentAcceptedAt: string | null;
+  createdAt: string;
+}
+
+export interface MyRoomMembershipDto {
+  id: number;
+  roomId: number;
+  userId: number;
+  status: string;
+  requiresAdminReview: boolean;
+  identifierType: string | null;
+  identifierMasked: string | null;
+  accessMethod: string | null;
+  ownerAccessConfirmedAt: string | null;
+  memberConfirmedAt: string | null;
+  activatedAt: string | null;
+}
+
+export interface JoinedRoomDto {
+  roomId: number;
+  memberId: number;
+  title: string;
+  roomType: string;
+  roomStatus: string;
+  memberStatus: string;
+  requiresAdminReview: boolean;
+  maxMembers: number;
+  priceTotal: number;
+  pricePerMember: number;
+  currency: string;
+  startDate: string;
+  ownerUserId: number;
+  ownerDisplayName: string;
+  serviceId: number;
+  serviceName: string;
+}
+
+export interface RevealedIdentifierDto {
+  roomId: number;
+  roomMemberId: number;
+  identifierType: string;
+  identifierValue: string;
+  revealedForReason: string;
+}
+
+export interface CreateRoomPayload {
+  categoryId?: number | null;
+  serviceId: number;
+  tariffPlanId?: number | null;
+  roomType: string;
+  title: string;
+  description?: string | null;
+  maxMembers: number;
+  priceTotal?: number | null;
+  pricePerMember?: number | null;
+  currency?: string | null;
+  periodType: string;
+  startDate: string;
+  cancellationPolicy?: string | null;
+  providerName?: string | null;
+  tariffNameSnapshot?: string | null;
+  connectionType?: string | null;
+  operatorRestrictions?: string | null;
+  operatorTermsConfirmed?: boolean | null;
+}
+
+export interface UpdateRoomPayload {
+  title?: string;
+  description?: string;
+  maxMembers?: number;
+  priceTotal?: number;
+  pricePerMember?: number;
+  cancellationPolicy?: string;
+  providerName?: string;
+  tariffNameSnapshot?: string;
+  connectionType?: string;
+  operatorRestrictions?: string;
+  operatorTermsConfirmed?: boolean;
+}
+
+export function getCategories() {
+  return requestJson<CategoryDto[]>("/catalog/categories");
+}
+
+export function createRoomRequest(payload: CreateRoomPayload, accessToken: string) {
+  return requestJson<RoomResponseDto>("/rooms", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+export function getMyRooms(accessToken: string, params: Record<string, string | number | undefined> = {}) {
+  return requestJson<PagedResponse<RoomSummaryDto>>(`/rooms/me${toSearchParams(params)}`, {}, accessToken);
+}
+
+export function getJoinedRooms(accessToken: string) {
+  return requestJson<JoinedRoomDto[]>("/rooms/joined", {}, accessToken);
+}
+
+export function updateRoomRequest(roomId: number, payload: UpdateRoomPayload, accessToken: string) {
+  return requestJson<RoomResponseDto>(`/rooms/${roomId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+export function markRoomReadyRequest(roomId: number, accessToken: string) {
+  return requestJson<RoomResponseDto>(`/rooms/${roomId}/ready-for-verification`, {
+    method: "POST",
+  }, accessToken);
+}
+
+export function cancelRoomRequest(roomId: number, accessToken: string) {
+  return requestJson<RoomResponseDto>(`/rooms/${roomId}/cancel`, {
+    method: "POST",
+  }, accessToken);
+}
+
+export function completeRoomRequest(roomId: number, accessToken: string) {
+  return requestJson<RoomResponseDto>(`/rooms/${roomId}/complete`, {
+    method: "POST",
+  }, accessToken);
+}
+
+export function getRoomMembers(
+  roomId: number,
+  accessToken: string,
+  params: Record<string, string | number | undefined> = {},
+) {
+  return requestJson<PagedResponse<RoomMemberDto>>(`/rooms/${roomId}/members${toSearchParams(params)}`, {}, accessToken);
+}
+
+export function getMyMembership(roomId: number, accessToken: string) {
+  return requestJson<MyRoomMembershipDto>(`/rooms/${roomId}/members/me`, {}, accessToken);
+}
+
+export function confirmOwnerAccessRequest(
+  roomId: number,
+  memberId: number,
+  accessMethod: string,
+  accessToken: string,
+) {
+  return requestJson<RoomMemberDto>(`/rooms/${roomId}/members/${memberId}/owner-access`, {
+    method: "PATCH",
+    body: JSON.stringify({ accessMethod }),
+  }, accessToken);
+}
+
+export function confirmMemberAccessRequest(roomId: number, accessToken: string) {
+  return requestJson<MyRoomMembershipDto>(`/rooms/${roomId}/members/me/confirm-access`, {
+    method: "POST",
+  }, accessToken);
+}
+
+export function revealIdentifierRequest(
+  roomId: number,
+  memberId: number,
+  payload: { reason: string; contextType?: string; contextId?: number },
+  accessToken: string,
+) {
+  return requestJson<RevealedIdentifierDto>(`/rooms/${roomId}/members/${memberId}/reveal-identifier`, {
     method: "POST",
     body: JSON.stringify(payload),
   }, accessToken);

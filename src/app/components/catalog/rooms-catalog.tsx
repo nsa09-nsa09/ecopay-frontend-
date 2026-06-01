@@ -1,0 +1,215 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
+import { Card, Select, RoomStatusBadge, Pill, EmptyState, Button } from "../ds-primitives";
+import { Users, Calendar, Filter, Search, LayoutGrid } from "lucide-react";
+import { getRooms, type RoomSummaryDto } from "../../lib/api";
+
+const moneyFormatter = new Intl.NumberFormat("ru-RU");
+const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
+const formatDate = (v: string | undefined) => (v ? new Date(v).toLocaleDateString() : "TBD");
+
+const TYPE_OPTIONS = [
+  { value: "ALL", label: "All types" },
+  { value: "TELECOM", label: "Telecom" },
+  { value: "DIGITAL", label: "Digital" },
+];
+
+const PRICE_OPTIONS = [
+  { value: "all", label: "All prices" },
+  { value: "low", label: "Under ₸3,000" },
+  { value: "mid", label: "₸3,000 – ₸5,000" },
+  { value: "high", label: "Over ₸5,000" },
+];
+
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest first" },
+  { value: "price_asc", label: "Price: low to high" },
+  { value: "price_desc", label: "Price: high to low" },
+  { value: "start", label: "Starting soonest" },
+];
+
+export function RoomsCatalogPage() {
+  const [rooms, setRooms] = useState<RoomSummaryDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [operatorFilter, setOperatorFilter] = useState("ALL");
+  const [priceFilter, setPriceFilter] = useState("all");
+  const [sort, setSort] = useState("newest");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    getRooms({ status: "OPEN", size: 100 })
+      .then((response) => {
+        if (!cancelled) setRooms(response.items);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Unable to load open rooms right now.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const operatorOptions = useMemo(() => {
+    const names = new Set<string>();
+    rooms.forEach((r) => r.serviceName && names.add(r.serviceName));
+    return [{ value: "ALL", label: "All operators" }, ...[...names].sort().map((n) => ({ value: n, label: n }))];
+  }, [rooms]);
+
+  const visibleRooms = useMemo(() => {
+    const q = query.trim().toLowerCase();
+
+    const filtered = rooms.filter((room) => {
+      if (typeFilter !== "ALL" && room.roomType !== typeFilter) return false;
+      if (operatorFilter !== "ALL" && room.serviceName !== operatorFilter) return false;
+
+      const price = Number(room.pricePerMember ?? 0);
+      if (priceFilter === "low" && !(price < 3000)) return false;
+      if (priceFilter === "mid" && !(price >= 3000 && price <= 5000)) return false;
+      if (priceFilter === "high" && !(price > 5000)) return false;
+
+      if (q) {
+        const haystack = `${room.title} ${room.serviceName} ${room.ownerDisplayName}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+
+    const sorted = [...filtered];
+    switch (sort) {
+      case "price_asc":
+        sorted.sort((a, b) => Number(a.pricePerMember ?? 0) - Number(b.pricePerMember ?? 0));
+        break;
+      case "price_desc":
+        sorted.sort((a, b) => Number(b.pricePerMember ?? 0) - Number(a.pricePerMember ?? 0));
+        break;
+      case "start":
+        sorted.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+        break;
+      default:
+        sorted.sort((a, b) => b.id - a.id);
+    }
+    return sorted;
+  }, [rooms, query, typeFilter, operatorFilter, priceFilter, sort]);
+
+  const clearFilters = () => {
+    setQuery("");
+    setTypeFilter("ALL");
+    setOperatorFilter("ALL");
+    setPriceFilter("all");
+    setSort("newest");
+  };
+
+  return (
+    <div className="max-w-[1200px] mx-auto px-6 py-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <LayoutGrid size={20} style={{ color: "var(--eco-primary)" }} />
+            <h1 className="text-[26px]" style={{ color: "var(--eco-text)" }}>Open Rooms</h1>
+          </div>
+          <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+            Browse rooms currently accepting members. {loading ? "" : `${visibleRooms.length} of ${rooms.length} shown.`}
+          </p>
+        </div>
+        <Link to="/rooms/create" style={{ textDecoration: "none" }}>
+          <Button variant="primary" size="sm">Create Room</Button>
+        </Link>
+      </div>
+
+      {/* Filters */}
+      <Card className="mb-6 flex flex-col gap-4">
+        <div className="relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--eco-text-tertiary)" }} />
+          <input
+            placeholder="Search by room, operator or owner"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 rounded-lg outline-none text-[14px]"
+            style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Select label="Type" options={TYPE_OPTIONS} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} />
+          <Select label="Operator" options={operatorOptions} value={operatorFilter} onChange={(e) => setOperatorFilter(e.target.value)} />
+          <Select label="Price / member" options={PRICE_OPTIONS} value={priceFilter} onChange={(e) => setPriceFilter(e.target.value)} />
+          <Select label="Sort by" options={SORT_OPTIONS} value={sort} onChange={(e) => setSort(e.target.value)} />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+            <Filter size={13} /> Filters apply instantly
+          </span>
+          <Button variant="ghost" size="sm" onClick={clearFilters}>Clear filters</Button>
+        </div>
+      </Card>
+
+      {/* Content */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="flex flex-col gap-3">
+              <div className="h-4 rounded animate-pulse" style={{ background: "var(--eco-surface)" }} />
+              <div className="h-3 rounded w-2/3 animate-pulse" style={{ background: "var(--eco-surface)" }} />
+              <div className="h-3 rounded w-1/2 animate-pulse" style={{ background: "var(--eco-surface)" }} />
+            </Card>
+          ))}
+        </div>
+      ) : error ? (
+        <Card><span style={{ color: "var(--eco-negative)" }}>{error}</span></Card>
+      ) : visibleRooms.length === 0 ? (
+        <EmptyState
+          title={rooms.length === 0 ? "No open rooms yet" : "No rooms match your filters"}
+          description={
+            rooms.length === 0
+              ? "Be the first to open a room and start sharing a plan."
+              : "Try adjusting the filters or clearing them to see all open rooms."
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {visibleRooms.map((room) => (
+            <Link key={room.id} to={`/room/${room.id}`} style={{ textDecoration: "none" }}>
+              <Card className="flex flex-col gap-3 h-full hover:shadow-sm transition-shadow cursor-pointer">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-[15px] truncate" style={{ color: "var(--eco-text)" }}>{room.title}</div>
+                    <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{room.serviceName}</div>
+                  </div>
+                  <RoomStatusBadge status={room.status} />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Pill variant="info">{room.roomType}</Pill>
+                </div>
+
+                <div className="flex items-center justify-between text-[13px] mt-auto">
+                  <span className="inline-flex items-center gap-1.5" style={{ color: "var(--eco-text-secondary)" }}>
+                    <Users size={13} /> Max {room.maxMembers}
+                  </span>
+                  <span style={{ color: "var(--eco-primary)" }}>{formatMoney(room.pricePerMember)}/period</span>
+                </div>
+
+                <div className="flex items-center justify-between text-[12px]">
+                  <span style={{ color: "var(--eco-text-tertiary)" }}>Owner: {room.ownerDisplayName}</span>
+                  <span className="inline-flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}>
+                    <Calendar size={12} /> {formatDate(room.startDate)}
+                  </span>
+                </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

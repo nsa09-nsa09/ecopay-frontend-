@@ -27,6 +27,7 @@ export function AppLayout() {
 
   const navItems = [
     { label: t("catalog"), path: "/" },
+    { label: t("browseRooms"), path: "/browse" },
     { label: t("myRooms"), path: "/rooms" },
     { label: t("support"), path: "/support" },
     { label: t("aboutUs"), path: "/about" },

@@ -103,6 +103,22 @@ export function HomePage() {
           <p className="text-[15px] mt-3 max-w-lg mx-auto" style={{ color: "var(--eco-text-secondary)" }}>
             {t("heroSubtitle")}
           </p>
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <Link
+              to="/browse"
+              className="px-5 py-2.5 rounded-lg text-[14px]"
+              style={{ background: "var(--eco-primary)", color: "#fff", textDecoration: "none" }}
+            >
+              {t("browseRooms")}
+            </Link>
+            <Link
+              to="/rooms/create"
+              className="px-5 py-2.5 rounded-lg text-[14px]"
+              style={{ background: "var(--eco-surface)", color: "var(--eco-text)", border: "1px solid var(--eco-border)", textDecoration: "none" }}
+            >
+              {t("createRoom")}
+            </Link>
+          </div>
         </div>
       </div>
       <WaveDivider flip />

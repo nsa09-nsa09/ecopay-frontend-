@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router";
 import { AppLayout } from "./components/layout";
 import { HomePage } from "./components/catalog/home";
 import { OperatorPage } from "./components/catalog/operator";
+import { RoomsCatalogPage } from "./components/catalog/rooms-catalog";
 import { LoginPage } from "./components/auth/login";
 import { RegisterPage } from "./components/auth/register";
 import { ForgotPasswordPage } from "./components/auth/forgot-password";
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
     ErrorBoundary: ErrorFallback,
     children: [
       { index: true, Component: HomePage },
+      { path: "browse", Component: RoomsCatalogPage },
       { path: "operator/:id", Component: OperatorPage },
       { path: "login", Component: LoginPage },
       { path: "register", Component: RegisterPage },
