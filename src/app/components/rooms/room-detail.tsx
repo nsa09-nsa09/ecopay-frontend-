@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Card, Badge, Button, RoomStatusBadge, Modal, Input, Stepper } from "../ds-primitives";
-import { ArrowLeft, Users, Calendar, Shield, AlertTriangle, Check, Eye } from "lucide-react";
+import { ArrowLeft, Users, Calendar, Shield, AlertTriangle, Check, Eye, Star } from "lucide-react";
 import { roomsApi, roomMembersApi } from "../../../lib/api/rooms";
 import { ApiError } from "../../../lib/api/client";
 import { useAuth } from "../../../lib/auth/AuthContext";
@@ -236,9 +236,24 @@ export function RoomDetailPage() {
             <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>
               {isOwner ? "You" : (r.ownerDisplayName ?? "—")}
             </div>
-            <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-positive)" }}>
-              <Shield size={13} /> Verified owner
-            </div>
+            {r.ownerVerified ? (
+              <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-positive)" }}>
+                <Shield size={13} /> Verified owner
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                <Shield size={13} /> Not verified
+              </div>
+            )}
+            {r.ownerRating != null ? (
+              <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
+                <Star size={13} style={{ color: "var(--eco-warning)", fill: "var(--eco-warning)" }} />
+                {r.ownerRating.toFixed(1)}
+                {r.ownerReviewCount ? ` · ${r.ownerReviewCount} review${r.ownerReviewCount === 1 ? "" : "s"}` : ""}
+              </div>
+            ) : (
+              <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>No reviews yet</div>
+            )}
           </Card>
 
           {!isOwner && !myMember && r.status === "OPEN" && (
