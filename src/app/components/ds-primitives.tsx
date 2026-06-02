@@ -210,6 +210,36 @@ export function RoomStatusBadge({ status }: { status: string }) {
   return <Badge variant={roomStatusMap[status] || "default"}>{status}</Badge>;
 }
 
+const roomStatusLabel: Record<string, string> = {
+  OPEN: "Open",
+  IN_VERIFICATION: "In verification",
+  ACTIVE: "Active",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+  BLOCKED: "Blocked",
+};
+
+/**
+ * Derived availability shown on catalog cards: combines room status with free
+ * seats. OPEN rooms become Open / Almost full / Full depending on seats left.
+ */
+export function roomAvailability(
+  status: string,
+  freeSeats?: number,
+): { label: string; variant: BadgeVariant } {
+  if (status === "OPEN") {
+    if (freeSeats != null && freeSeats <= 0) return { label: "Full", variant: "danger" };
+    if (freeSeats != null && freeSeats <= 1) return { label: "Almost full", variant: "warning" };
+    return { label: "Open", variant: "success" };
+  }
+  return { label: roomStatusLabel[status] ?? status, variant: roomStatusMap[status] || "default" };
+}
+
+export function RoomAvailabilityBadge({ status, freeSeats }: { status: string; freeSeats?: number }) {
+  const a = roomAvailability(status, freeSeats);
+  return <Badge variant={a.variant}>{a.label}</Badge>;
+}
+
 // ─── Cards ───
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
