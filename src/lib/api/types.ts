@@ -145,6 +145,13 @@ export interface RoomSummaryDto {
   ownerReviewCount?: number;
   serviceId: number;
   serviceName?: string;
+  accessType?: AccessType;
+  regionRestriction?: string;
+  operatorRestrictions?: string;
+  tariffNameSnapshot?: string;
+  periodType?: PeriodType;
+  filledSeats?: number;
+  freeSeats?: number;
 }
 
 export interface RoomResponse {

@@ -1,5 +1,6 @@
 import { type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes, type SelectHTMLAttributes, useState, useRef, useEffect } from "react";
-import { Check, ChevronDown, X, AlertCircle, CheckCircle2, Info, Loader2 } from "lucide-react";
+import { Check, ChevronDown, X, AlertCircle, CheckCircle2, Info, Loader2, Users, Star, Shield, Calendar, AlertTriangle, KeyRound } from "lucide-react";
+import type { RoomSummaryDto, AccessType } from "../../lib/api/types";
 
 // ─── Wave SVG ───
 export function WaveDivider({ flip, className }: { flip?: boolean; className?: string }) {
@@ -283,28 +284,88 @@ export function PlanCard({ name, price, features, popular }: { name: string; pri
   );
 }
 
-export function RoomCard({ title, operator, members, maxMembers, status }: { title: string; operator: string; members: number; maxMembers: number; status: string }) {
+const ACCESS_TYPE_SHORT: Record<AccessType, string> = {
+  FAMILY_PLAN: "Family plan",
+  SHARED_ACCOUNT: "Shared account",
+  INVITE_LINK: "Invite link",
+  EMAIL_INVITE: "Email invite",
+};
+
+const PERIOD_SHORT: Record<string, string> = { MONTHLY: "/mo", YEARLY: "/yr", OTHER: "" };
+
+/**
+ * Rich catalog card for a room summary: service + tariff, price per seat,
+ * seat availability, owner trust (verified + rating), next charge date,
+ * access method and a rules warning. Presentational — wrap in a Link.
+ */
+export function RoomCard({ room }: { room: RoomSummaryDto }) {
+  const filled = room.filledSeats ?? 0;
+  const free = room.freeSeats ?? Math.max(0, room.maxMembers - filled);
+  const period = PERIOD_SHORT[room.periodType ?? "MONTHLY"] ?? "";
   return (
-    <Card className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <span className="text-[15px]" style={{ color: "var(--eco-text)" }}>{title}</span>
-        <RoomStatusBadge status={status} />
-      </div>
-      <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{operator}</div>
-      <div className="flex items-center gap-2">
-        <div
-          className="h-1.5 rounded-full flex-1"
-          style={{ background: "var(--eco-neutral-200)" }}
-        >
-          <div
-            className="h-1.5 rounded-full transition-all"
-            style={{ width: `${(members / maxMembers) * 100}%`, background: "var(--eco-primary)" }}
-          />
+    <Card className="flex flex-col gap-3 h-full hover:shadow-sm transition-shadow cursor-pointer">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[15px] truncate" style={{ color: "var(--eco-text)" }}>
+            {room.serviceName ?? room.title}
+          </div>
+          <div className="text-[12px] truncate" style={{ color: "var(--eco-text-tertiary)" }}>
+            {room.tariffNameSnapshot ?? room.title}
+          </div>
         </div>
-        <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-          {members}/{maxMembers}
+        <RoomAvailabilityBadge status={room.status} freeSeats={room.freeSeats} />
+      </div>
+
+      <div className="flex items-baseline gap-1">
+        <span className="text-[20px]" style={{ color: "var(--eco-primary)" }}>
+          ₸{Number(room.pricePerMember).toLocaleString()}
+        </span>
+        <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>per seat{period}</span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="h-1.5 rounded-full flex-1" style={{ background: "var(--eco-neutral-200)" }}>
+          <div className="h-1.5 rounded-full transition-all" style={{ width: `${room.maxMembers ? (filled / room.maxMembers) * 100 : 0}%`, background: "var(--eco-primary)" }} />
+        </div>
+        <span className="inline-flex items-center gap-1 text-[12px] whitespace-nowrap" style={{ color: "var(--eco-text-secondary)" }}>
+          <Users size={12} /> {free} of {room.maxMembers} free
         </span>
       </div>
+
+      <div className="flex items-center justify-between text-[12px]">
+        <span className="inline-flex items-center gap-1 min-w-0" style={{ color: "var(--eco-text-tertiary)" }}>
+          <span className="truncate">{room.ownerDisplayName ?? "Owner"}</span>
+          {room.ownerVerified && <Shield size={11} style={{ color: "var(--eco-positive)" }} />}
+        </span>
+        {room.ownerRating != null ? (
+          <span className="inline-flex items-center gap-0.5" style={{ color: "var(--eco-warning)" }}>
+            <Star size={11} fill="currentColor" /> {room.ownerRating.toFixed(1)}
+            {room.ownerReviewCount ? <span style={{ color: "var(--eco-text-tertiary)" }}> ({room.ownerReviewCount})</span> : null}
+          </span>
+        ) : (
+          <span style={{ color: "var(--eco-text-tertiary)" }}>No reviews</span>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+        {room.accessType && (
+          <span className="inline-flex items-center gap-1">
+            <KeyRound size={11} /> {ACCESS_TYPE_SHORT[room.accessType]}
+          </span>
+        )}
+        {room.startDate && (
+          <span className="inline-flex items-center gap-1">
+            <Calendar size={11} /> {room.startDate.slice(0, 10)}
+          </span>
+        )}
+      </div>
+
+      {room.operatorRestrictions && (
+        <div className="flex items-start gap-1.5 text-[11px] p-2 rounded" style={{ background: "var(--eco-warning-100)", color: "var(--eco-text-secondary)" }}>
+          <AlertTriangle size={12} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
+          <span className="line-clamp-2">{room.operatorRestrictions}</span>
+        </div>
+      )}
     </Card>
   );
 }
