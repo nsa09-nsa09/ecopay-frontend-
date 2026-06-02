@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Card, Button, Badge, Modal, Input } from "../ds-primitives";
+import { Card, Button, Badge, Input } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
@@ -22,6 +22,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { ConfirmActionModal, FlashBanner, useFlash } from "./admin-action-ui";
 
 const PAGE_SIZE = 20;
 
@@ -40,9 +41,9 @@ export function AdminUsersPage() {
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [banModal, setBanModal] = useState<{ user: AdminUserDto; action: "BAN" | "UNBAN" } | null>(null);
-  const [banReason, setBanReason] = useState("");
   const [banSubmitting, setBanSubmitting] = useState(false);
   const [banError, setBanError] = useState<string | null>(null);
+  const { flash, show: showFlash } = useFlash();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -86,21 +87,21 @@ export function AdminUsersPage() {
 
   const closeBanModal = () => {
     setBanModal(null);
-    setBanReason("");
     setBanError(null);
   };
 
-  const submitBan = async () => {
-    if (!banModal || !banReason.trim()) return;
+  const submitBan = async (reason: string) => {
+    if (!banModal) return;
     setBanSubmitting(true);
     setBanError(null);
     try {
       const updated = await authorizedRequest((token) =>
         banModal.action === "BAN"
-          ? banUserRequest(banModal.user.id, banReason.trim(), token)
-          : unbanUserRequest(banModal.user.id, banReason.trim(), token),
+          ? banUserRequest(banModal.user.id, reason, token)
+          : unbanUserRequest(banModal.user.id, reason, token),
       );
       setItems((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+      showFlash("success", t("actionCompletedAndLogged"));
       closeBanModal();
     } catch (err) {
       setBanError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
@@ -126,6 +127,8 @@ export function AdminUsersPage() {
             onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
+
+        <FlashBanner flash={flash} />
 
         {error && !loading && (
           <Card className="flex flex-col gap-2 mb-4">
@@ -296,49 +299,18 @@ export function AdminUsersPage() {
           </div>
         </div>
 
-        <Modal
+        <ConfirmActionModal
           open={!!banModal}
           onClose={closeBanModal}
           title={banModal ? (banModal.action === "BAN" ? t("banUser") : t("unbanUser")) : ""}
-        >
-          {banModal && (
-            <div className="flex flex-col gap-4">
-              <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-                {banModal.action === "BAN" ? t("banUserConfirm") : t("unbanUserConfirm")}
-              </div>
-              <div className="p-3 rounded-lg text-[12px]" style={{ background: "var(--eco-surface)" }}>
-                U-{banModal.user.id} — {banModal.user.displayName}
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px]" style={{ color: "var(--eco-text)" }}>
-                  {t("reason")} <span style={{ color: "var(--eco-negative)" }}>*</span>
-                </label>
-                <textarea
-                  rows={3}
-                  value={banReason}
-                  onChange={(e) => setBanReason(e.target.value)}
-                  placeholder={t("mandatoryAuditLogged")}
-                  className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
-                  style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
-                />
-              </div>
-              {banError && (
-                <div className="text-[13px]" role="alert" style={{ color: "var(--eco-negative)" }}>{banError}</div>
-              )}
-              <div className="text-[11px] flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}>
-                <Shield size={11} /> {t("auditLoggedShort")}
-              </div>
-              <Button
-                variant={banModal.action === "BAN" ? "destructive" : "primary"}
-                disabled={!banReason.trim()}
-                loading={banSubmitting}
-                onClick={() => void submitBan()}
-              >
-                {banModal.action === "BAN" ? t("banUser") : t("unbanUser")}
-              </Button>
-            </div>
-          )}
-        </Modal>
+          description={banModal ? (banModal.action === "BAN" ? t("banUserConfirm") : t("unbanUserConfirm")) : null}
+          subjectLabel={banModal ? `U-${banModal.user.id} — ${banModal.user.displayName}` : null}
+          destructive={banModal?.action === "BAN"}
+          submitLabel={banModal ? (banModal.action === "BAN" ? t("banUser") : t("unbanUser")) : ""}
+          submitting={banSubmitting}
+          errorMessage={banError}
+          onConfirm={submitBan}
+        />
       </div>
     </AdminLayout>
   );

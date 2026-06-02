@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Card, Button, Modal, RoomStatusBadge } from "../ds-primitives";
+import { Card, Button, RoomStatusBadge } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
@@ -11,11 +11,11 @@ import {
 } from "../../lib/api";
 import {
   ShieldX,
-  Shield,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { ConfirmActionModal, FlashBanner, useFlash } from "./admin-action-ui";
 
 const PAGE_SIZE = 20;
 
@@ -31,9 +31,9 @@ export function AdminRoomsPage() {
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [blockModal, setBlockModal] = useState<RoomSummaryDto | null>(null);
-  const [blockReason, setBlockReason] = useState("");
   const [blockSubmitting, setBlockSubmitting] = useState(false);
   const [blockError, setBlockError] = useState<string | null>(null);
+  const { flash, show: showFlash } = useFlash();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -62,22 +62,20 @@ export function AdminRoomsPage() {
 
   const closeBlockModal = () => {
     setBlockModal(null);
-    setBlockReason("");
     setBlockError(null);
   };
 
-  const submitBlock = async () => {
-    if (!blockModal || !blockReason.trim()) return;
+  const submitBlock = async (reason: string) => {
+    if (!blockModal) return;
     setBlockSubmitting(true);
     setBlockError(null);
     try {
-      await authorizedRequest((token) =>
-        blockRoomRequest(blockModal.id, blockReason.trim(), token),
-      );
+      await authorizedRequest((token) => blockRoomRequest(blockModal.id, reason, token));
       // Optimistically update local list
       setItems((prev) =>
         prev.map((r) => (r.id === blockModal.id ? { ...r, status: "BLOCKED" } : r)),
       );
+      showFlash("success", t("actionCompletedAndLogged"));
       closeBlockModal();
     } catch (err) {
       setBlockError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
@@ -95,6 +93,8 @@ export function AdminRoomsPage() {
             <RefreshCw size={13} /> {t("retry")}
           </Button>
         </div>
+
+        <FlashBanner flash={flash} />
 
         {error && !loading && (
           <Card className="flex flex-col gap-2 mb-4">
@@ -220,49 +220,18 @@ export function AdminRoomsPage() {
           </div>
         </div>
 
-        <Modal
+        <ConfirmActionModal
           open={!!blockModal}
           onClose={closeBlockModal}
           title={blockModal ? t("blockRoom") : ""}
-        >
-          {blockModal && (
-            <div className="flex flex-col gap-4">
-              <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-                {t("blockRoomConfirm")}
-              </div>
-              <div className="p-3 rounded-lg text-[12px]" style={{ background: "var(--eco-surface)" }}>
-                R-{blockModal.id} — {blockModal.title}
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px]" style={{ color: "var(--eco-text)" }}>
-                  {t("reason")} <span style={{ color: "var(--eco-negative)" }}>*</span>
-                </label>
-                <textarea
-                  rows={3}
-                  value={blockReason}
-                  onChange={(e) => setBlockReason(e.target.value)}
-                  placeholder={t("mandatoryReasonAudit")}
-                  className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
-                  style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
-                />
-              </div>
-              {blockError && (
-                <div className="text-[13px]" role="alert" style={{ color: "var(--eco-negative)" }}>{blockError}</div>
-              )}
-              <div className="text-[11px] flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}>
-                <Shield size={11} /> {t("actionRecordedAuditLog")}
-              </div>
-              <Button
-                variant="destructive"
-                disabled={!blockReason.trim()}
-                loading={blockSubmitting}
-                onClick={() => void submitBlock()}
-              >
-                {t("blockRoom")}
-              </Button>
-            </div>
-          )}
-        </Modal>
+          description={t("blockRoomConfirm")}
+          subjectLabel={blockModal ? `R-${blockModal.id} — ${blockModal.title}` : null}
+          destructive
+          submitLabel={t("blockRoom")}
+          submitting={blockSubmitting}
+          errorMessage={blockError}
+          onConfirm={submitBlock}
+        />
       </div>
     </AdminLayout>
   );

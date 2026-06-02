@@ -1,29 +1,47 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import {
-  LayoutDashboard, ShieldCheck, Home, Users, MessageSquare,
-  Scale, Undo2, FileText, Search, User, ChevronDown, LogOut, Bell
+  Search, User, ChevronDown, LogOut, Bell,
 } from "lucide-react";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
-
-const NAV_ITEMS = [
-  { key: "dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
-  { key: "moderationQueue", path: "/admin/moderation", icon: ShieldCheck },
-  { key: "rooms", path: "/admin/rooms", icon: Home },
-  { key: "users", path: "/admin/users", icon: Users },
-  { key: "tickets", path: "/admin/tickets", icon: MessageSquare },
-  { key: "disputes", path: "/admin/disputes", icon: Scale },
-  { key: "refunds", path: "/admin/refunds", icon: Undo2 },
-  { key: "adminLogs", path: "/admin/logs", icon: FileText },
-];
+import { ApiError, getAdminDashboardKpisRequest, type AdminDashboardKpisDto } from "../../lib/api";
+import { ADMIN_NAV_ITEMS, defaultLandingForRole, isRoleAllowedFor } from "./admin-nav";
 
 export function AdminLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useI18n();
-  const { user, logout } = useAuth();
+  const { user, logout, authorizedRequest } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [kpis, setKpis] = useState<AdminDashboardKpisDto | null>(null);
+
+  const role = user?.role;
+
+  // KPI badges are admin-only data; SUPPORT must not hit the ADMIN-only endpoint.
+  useEffect(() => {
+    if (role !== "ADMIN") {
+      setKpis(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await authorizedRequest((token) => getAdminDashboardKpisRequest(token));
+        if (!cancelled) setKpis(data);
+      } catch (err) {
+        if (cancelled) return;
+        // Silently ignore — badges are nice-to-have and shouldn't surface as toasts here.
+        if (!(err instanceof ApiError)) {
+          // network errors etc — drop
+        }
+        setKpis(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [role, authorizedRequest]);
 
   const handleSignOut = async () => {
     try {
@@ -32,6 +50,10 @@ export function AdminLayout({ children }: { children: ReactNode }) {
       navigate("/admin-login", { replace: true });
     }
   };
+
+  const navItems = ADMIN_NAV_ITEMS.filter((item) => isRoleAllowedFor(item, role));
+
+  const landingPath = defaultLandingForRole(role);
 
   return (
     <div className="flex min-h-screen" style={{ background: "var(--eco-bg)" }}>
@@ -42,7 +64,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
       >
         {/* Logo */}
         <div className="px-4 py-4 border-b" style={{ borderColor: "var(--eco-border)" }}>
-          <Link to="/admin/dashboard" className="text-[20px] tracking-tight" style={{ color: "var(--eco-text)", textDecoration: "none", fontWeight: 700 }}>
+          <Link to={landingPath} className="text-[20px] tracking-tight" style={{ color: "var(--eco-text)", textDecoration: "none", fontWeight: 700 }}>
             <span style={{ color: "var(--eco-primary)" }}>Eco</span>Pay
           </Link>
           <div className="text-[11px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{t("adminPortal")}</div>
@@ -50,9 +72,10 @@ export function AdminLayout({ children }: { children: ReactNode }) {
 
         {/* Nav */}
         <nav className="flex-1 py-3 px-2 flex flex-col gap-0.5 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
-            const active = location.pathname === item.path;
+          {navItems.map((item) => {
+            const active = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
             const Icon = item.icon;
+            const badgeValue = item.badgeKpi && kpis ? Number(kpis[item.badgeKpi] ?? 0) : 0;
             return (
               <Link
                 key={item.path}
@@ -65,9 +88,14 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                 }}
               >
                 <Icon size={16} />
-                {t(item.key)}
-                {item.key === "moderationQueue" && (
-                  <span className="ml-auto text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--eco-danger-100)", color: "var(--eco-danger-500)" }}>3</span>
+                {t(item.labelKey)}
+                {badgeValue > 0 && (
+                  <span
+                    className="ml-auto text-[11px] px-1.5 py-0.5 rounded-full"
+                    style={{ background: "var(--eco-danger-100)", color: "var(--eco-danger-500)" }}
+                  >
+                    {badgeValue}
+                  </span>
                 )}
               </Link>
             );
@@ -98,10 +126,14 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Notifications */}
-            <button className="relative p-2 rounded-lg cursor-pointer" style={{ background: "var(--eco-surface)", border: "none" }}>
+            {/* Notifications: no fake red dot — surfaced only via real data later */}
+            <button
+              className="relative p-2 rounded-lg cursor-pointer"
+              style={{ background: "var(--eco-surface)", border: "none" }}
+              aria-label={t("notifications")}
+              title={t("noNewNotifications")}
+            >
               <Bell size={16} style={{ color: "var(--eco-text-secondary)" }} />
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ background: "var(--eco-negative)" }} />
             </button>
 
             {/* Profile */}
@@ -122,10 +154,15 @@ export function AdminLayout({ children }: { children: ReactNode }) {
               {profileOpen && (
                 <>
                   <div className="fixed inset-0" onClick={() => setProfileOpen(false)} />
-                  <div className="absolute right-0 top-10 w-44 rounded-xl p-1 shadow-lg z-50" style={{ background: "var(--eco-bg)", border: "1px solid var(--eco-border)" }}>
+                  <div className="absolute right-0 top-10 w-48 rounded-xl p-1 shadow-lg z-50" style={{ background: "var(--eco-bg)", border: "1px solid var(--eco-border)" }}>
                     <div className="px-3 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
                       {user?.email ?? ""}
                     </div>
+                    {role && (
+                      <div className="px-3 pb-2 text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                        {role}
+                      </div>
+                    )}
                     <div className="border-t my-1" style={{ borderColor: "var(--eco-border)" }} />
                     <button
                       onClick={() => {

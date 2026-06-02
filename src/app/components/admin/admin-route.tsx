@@ -3,22 +3,33 @@ import { Navigate, Outlet, useLocation } from "react-router";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n } from "../i18n-provider";
 import { Button } from "../ds-primitives";
-
-type AllowedRole = "ADMIN" | "SUPPORT";
+import {
+  defaultLandingForRole,
+  findNavItem,
+  isRoleAllowedFor,
+  type StaffRole,
+} from "./admin-nav";
 
 interface AdminRouteProps {
   children?: ReactNode;
-  allow?: AllowedRole[];
+  /**
+   * Optional explicit override. When omitted, the guard looks up role
+   * requirements from the centralized nav config based on the current path,
+   * so per-page rules stay in one place.
+   */
+  allow?: readonly StaffRole[];
 }
 
 /**
  * Guards /admin/** routes.
  * - No session  → redirect to /admin-login (preserves the requested path).
- * - Wrong role  → render an access-denied panel rather than bouncing the user
- *   to a login page they can't use.
- * - Allowed     → render children (or <Outlet/> for nested route trees).
+ * - Wrong role  → render an access-denied panel rather than bouncing the
+ *   user back to a login page they can't pass through.
+ *
+ * Role requirements come from `ADMIN_NAV_ITEMS` so the sidebar and the
+ * guard never disagree.
  */
-export function AdminRoute({ children, allow = ["ADMIN", "SUPPORT"] }: AdminRouteProps) {
+export function AdminRoute({ children, allow }: AdminRouteProps) {
   const { user, isAuthenticated, isReady } = useAuth();
   const location = useLocation();
   const { t } = useI18n();
@@ -40,8 +51,22 @@ export function AdminRoute({ children, allow = ["ADMIN", "SUPPORT"] }: AdminRout
     return <Navigate to={`/admin-login${redirect}`} replace />;
   }
 
-  const role = user.role as AllowedRole | "USER";
-  if (!allow.includes(role as AllowedRole)) {
+  const role = user.role as StaffRole | "USER";
+
+  // Per-path rule (from nav config) unless an explicit `allow` override is given.
+  const navItem = findNavItem(location.pathname);
+  const allowed: readonly StaffRole[] = allow ?? navItem?.roles ?? ["ADMIN", "SUPPORT"];
+
+  const hasAccess = allowed.includes(role as StaffRole);
+
+  if (!hasAccess) {
+    // SUPPORT hitting an ADMIN-only path: bounce them to their default
+    // landing page rather than showing a hard "denied" wall if they have
+    // anywhere to go.
+    if (role === "SUPPORT" && navItem) {
+      return <Navigate to={defaultLandingForRole(role)} replace />;
+    }
+    // USERs and everything else: explicit access-denied panel.
     return (
       <div
         className="min-h-screen flex items-center justify-center px-6"
@@ -62,5 +87,9 @@ export function AdminRoute({ children, allow = ["ADMIN", "SUPPORT"] }: AdminRout
     );
   }
 
-  return <>{children ?? <Outlet />}</>;
+  // Allow children to be inlined OR use react-router <Outlet/> in nested trees.
+  if (children) return <>{children}</>;
+  return <Outlet />;
 }
+
+export { isRoleAllowedFor };

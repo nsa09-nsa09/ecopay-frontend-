@@ -1,17 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate, Navigate } from "react-router";
 import { Button, Input } from "../ds-primitives";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import { ApiError, type TwoFactorChallenge } from "../../lib/api";
-import { Shield, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Shield, Lock, Eye, EyeOff, ArrowLeft, LogOut } from "lucide-react";
+import { defaultLandingForRole } from "./admin-nav";
 
 type Stage = "credentials" | "twoFactor";
 
+/**
+ * Returns the `?redirect=` value only when it is a safe, internal /admin/*
+ * path. Anything else (external URLs, protocol-relative, "//evil", or any
+ * non-admin internal path) is rejected to prevent open-redirect abuse.
+ */
+function safeRedirectTarget(rawSearch: string): string | null {
+  const params = new URLSearchParams(rawSearch);
+  const raw = params.get("redirect");
+  if (!raw) return null;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+  // Disallow protocol-relative, absolute URLs, and anything not starting
+  // with `/admin/`. We intentionally exclude `/admin-login` itself so we
+  // don't loop the user back here.
+  if (!decoded.startsWith("/admin/")) return null;
+  if (decoded.startsWith("//")) return null;
+  return decoded;
+}
+
 export function AdminLoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useI18n();
-  const { staffLogin, verifyStaffTwoFactor, resendStaffTwoFactor } = useAuth();
+  const { staffLogin, verifyStaffTwoFactor, resendStaffTwoFactor, user, isAuthenticated, isReady, logout } = useAuth();
 
   const [stage, setStage] = useState<Stage>("credentials");
   const [email, setEmail] = useState("");
@@ -21,9 +46,13 @@ export function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // Challenge lives in component state only — never persisted. Going back
+  // to the credentials stage clears it (see handleBackToCredentials).
   const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendSupported, setResendSupported] = useState(true);
+
+  const redirectTarget = useMemo(() => safeRedirectTarget(location.search), [location.search]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -47,6 +76,44 @@ export function AdminLoginPage() {
     return t("genericSignInError");
   };
 
+  const navigateAfterSuccess = (role: string | undefined | null) => {
+    const fallback = defaultLandingForRole(role);
+    navigate(redirectTarget ?? fallback, { replace: true });
+  };
+
+  // Already logged in? Resolve straight away without re-prompting.
+  if (isReady && isAuthenticated && user) {
+    if (user.role === "ADMIN" || user.role === "SUPPORT") {
+      return <Navigate to={redirectTarget ?? defaultLandingForRole(user.role)} replace />;
+    }
+    // USER role landed here — show a no-access panel with sign-out so they
+    // can switch accounts without the page silently doing nothing.
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--eco-bg)" }}>
+        <div className="w-full max-w-md text-center">
+          <h1 className="text-[22px] mb-2" style={{ color: "var(--eco-text)" }}>
+            {t("accessDeniedTitle")}
+          </h1>
+          <p className="text-[14px] mb-2" style={{ color: "var(--eco-text-secondary)" }}>
+            {t("noStaffAccessError")}
+          </p>
+          <p className="text-[13px] mb-6" style={{ color: "var(--eco-text-tertiary)" }}>
+            {t("signedInAs", { email: user.email })}
+          </p>
+          <Button
+            variant="primary"
+            onClick={async () => {
+              await logout();
+              // Stay on /admin-login so the user can sign in as staff next.
+            }}
+          >
+            <LogOut size={14} /> {t("switchAccount")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const handleCredentialsSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -61,7 +128,7 @@ export function AdminLoginPage() {
         setResendCooldown(30);
         setResendSupported(true);
       } else {
-        navigate("/admin/dashboard", { replace: true });
+        navigateAfterSuccess(result.user.role);
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -83,8 +150,8 @@ export function AdminLoginPage() {
     setLoading(true);
 
     try {
-      await verifyStaffTwoFactor(challenge.challengeId, code.trim());
-      navigate("/admin/dashboard", { replace: true });
+      const signedInUser = await verifyStaffTwoFactor(challenge.challengeId, code.trim());
+      navigateAfterSuccess(signedInUser.role);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(translateApiError(err));

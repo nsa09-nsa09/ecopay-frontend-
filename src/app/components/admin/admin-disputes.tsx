@@ -18,6 +18,7 @@ import {
   UserPlus,
   Scale,
 } from "lucide-react";
+import { FlashBanner, useFlash, REASON_MIN_LENGTH } from "./admin-action-ui";
 
 const PAGE_SIZE = 20;
 
@@ -45,6 +46,7 @@ export function AdminDisputesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [assignSubmitting, setAssignSubmitting] = useState(false);
+  const { flash, show: showFlash } = useFlash();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,6 +84,7 @@ export function AdminDisputesPage() {
     try {
       const updated = await authorizedRequest((token) => assignDisputeToMeRequest(selected.id, token));
       applyUpdate(updated);
+      showFlash("success", t("actionCompletedAndLogged"));
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
     } finally {
@@ -90,7 +93,7 @@ export function AdminDisputesPage() {
   };
 
   const handleDecide = async () => {
-    if (!selected || !decisionComment.trim()) return;
+    if (!selected || decisionComment.trim().length < REASON_MIN_LENGTH) return;
     setSubmitting(true);
     setActionError(null);
     try {
@@ -98,6 +101,7 @@ export function AdminDisputesPage() {
         decideDisputeRequest(selected.id, { decision: decisionType, decisionComment: decisionComment.trim() }, token),
       );
       applyUpdate(updated);
+      showFlash("success", t("actionCompletedAndLogged"));
       setDecisionModalOpen(false);
       setDecisionComment("");
     } catch (err) {
@@ -122,6 +126,8 @@ export function AdminDisputesPage() {
             <RefreshCw size={13} /> {t("retry")}
           </Button>
         </div>
+
+        <FlashBanner flash={flash} />
 
         {error && !loading && (
           <Card className="flex flex-col gap-2 mb-4">
@@ -307,6 +313,9 @@ export function AdminDisputesPage() {
                 className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
                 style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
               />
+              <span className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                {t("reasonMinLength", { n: REASON_MIN_LENGTH })}
+              </span>
             </div>
             {actionError && (
               <div className="text-[13px]" role="alert" style={{ color: "var(--eco-negative)" }}>{actionError}</div>
@@ -316,7 +325,7 @@ export function AdminDisputesPage() {
             </div>
             <Button
               variant="primary"
-              disabled={!decisionComment.trim()}
+              disabled={decisionComment.trim().length < REASON_MIN_LENGTH}
               loading={submitting}
               onClick={() => void handleDecide()}
             >

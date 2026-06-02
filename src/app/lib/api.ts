@@ -799,3 +799,75 @@ export function getRoomEventLogsRequest(
     accessToken,
   );
 }
+
+// ---- Moderation queue ----
+
+export interface ModerationQueueItemDto {
+  id: number;
+  entityType: string;
+  entityId: number;
+  roomId: number | null;
+  roomMemberId: number | null;
+  reasonCode: string | null;
+  riskScore: number | string | null;
+  status: string;
+  assignedAdminId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BatchConfirmRequest {
+  queueIds: number[];
+  reason: string;
+}
+
+export function getModerationQueueRequest(accessToken: string) {
+  return requestJson<ModerationQueueItemDto[]>(
+    "/admin/moderation/queue",
+    {},
+    accessToken,
+  );
+}
+
+export function assignModerationItemRequest(queueId: number, accessToken: string) {
+  return requestJson<ModerationQueueItemDto>(
+    `/admin/moderation/queue/${queueId}/assign`,
+    { method: "PATCH" },
+    accessToken,
+  );
+}
+
+export function confirmModerationItemRequest(
+  queueId: number,
+  reason: string,
+  accessToken: string,
+) {
+  return requestJson<ModerationQueueItemDto>(
+    `/admin/moderation/queue/${queueId}/confirm`,
+    { method: "PATCH", body: JSON.stringify({ reason }) },
+    accessToken,
+  );
+}
+
+export function rejectModerationItemRequest(
+  queueId: number,
+  reason: string,
+  accessToken: string,
+) {
+  return requestJson<ModerationQueueItemDto>(
+    `/admin/moderation/queue/${queueId}/reject`,
+    { method: "PATCH", body: JSON.stringify({ reason }) },
+    accessToken,
+  );
+}
+
+export function batchConfirmModerationRequest(
+  payload: BatchConfirmRequest,
+  accessToken: string,
+) {
+  return requestJson<ModerationQueueItemDto[]>(
+    "/admin/moderation/queue/batch-confirm",
+    { method: "POST", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
