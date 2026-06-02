@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Badge, Pill, Button, Select, RoomAvailabilityBadge, EmptyState, Tabs, WaveDivider } from "../ds-primitives";
+import { Card, Badge, Pill, Button, Input, Select, RoomAvailabilityBadge, EmptyState, Tabs, WaveDivider } from "../ds-primitives";
 import { ArrowLeft, Users, Star, Filter } from "lucide-react";
 import { catalogApi } from "../../../lib/api/catalog";
 import { roomsApi } from "../../../lib/api/rooms";
@@ -95,7 +95,29 @@ const operatorData: Record<string, { name: string; color: string; plans: Plan[];
 export function OperatorPage() {
   const { id } = useParams<{ id: string }>();
   const [tab, setTab] = useState("Plans");
-  const [priceFilter, setPriceFilter] = useState("all");
+
+  // Server-side room filters
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+  const [minFreeSeats, setMinFreeSeats] = useState("0");
+  const [accessTypeFilter, setAccessTypeFilter] = useState("");
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+
+  const roomFilters = {
+    serviceId: id!,
+    status: "OPEN" as const,
+    size: 50,
+    priceMin: priceMin ? Number(priceMin) : undefined,
+    priceMax: priceMax ? Number(priceMax) : undefined,
+    minFreeSeats: minFreeSeats && minFreeSeats !== "0" ? Number(minFreeSeats) : undefined,
+    accessType: accessTypeFilter ? (accessTypeFilter as any) : undefined,
+    verifiedOwnerOnly: verifiedOnly || undefined,
+  };
+
+  const clearFilters = () => {
+    setPriceMin(""); setPriceMax(""); setMinFreeSeats("0"); setAccessTypeFilter(""); setVerifiedOnly(false);
+  };
+  const hasActiveFilters = Boolean(priceMin || priceMax || (minFreeSeats && minFreeSeats !== "0") || accessTypeFilter || verifiedOnly);
 
   const serviceQuery = useQuery({
     queryKey: ["catalog", "service", id],
@@ -108,8 +130,8 @@ export function OperatorPage() {
     enabled: Boolean(id),
   });
   const roomsQuery = useQuery({
-    queryKey: ["rooms", "byService", id],
-    queryFn: () => roomsApi.list({ serviceId: id!, status: "OPEN", size: 50 }),
+    queryKey: ["rooms", "byService", id, roomFilters],
+    queryFn: () => roomsApi.list(roomFilters),
     enabled: Boolean(id),
   });
 
@@ -228,19 +250,49 @@ export function OperatorPage() {
           {tab === "Available Rooms" && (
             <div className="mt-6">
               {/* Filters */}
-              <div className="flex flex-wrap items-center gap-3 mb-4">
-                <Filter size={14} style={{ color: "var(--eco-text-tertiary)" }} />
-                <Select
-                  options={[
-                    { value: "all", label: "All prices" },
-                    { value: "low", label: "Under ₸3,000" },
-                    { value: "mid", label: "₸3,000–₸5,000" },
-                    { value: "high", label: "Over ₸5,000" },
-                  ]}
-                  value={priceFilter}
-                  onChange={(e) => setPriceFilter(e.target.value)}
-                />
-              </div>
+              <Card className="flex flex-col gap-3 mb-4">
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+                    <Filter size={14} /> Filters
+                  </span>
+                  {hasActiveFilters && (
+                    <button onClick={clearFilters} className="text-[12px]" style={{ color: "var(--eco-primary)", background: "none", border: "none", cursor: "pointer" }}>
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <Input label="Price from (₸)" type="number" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} placeholder="0" />
+                  <Input label="Price to (₸)" type="number" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} placeholder="Any" />
+                  <Select
+                    label="Free seats"
+                    options={[
+                      { value: "0", label: "Any" },
+                      { value: "1", label: "1+ free" },
+                      { value: "2", label: "2+ free" },
+                      { value: "3", label: "3+ free" },
+                    ]}
+                    value={minFreeSeats}
+                    onChange={(e) => setMinFreeSeats(e.target.value)}
+                  />
+                  <Select
+                    label="Access type"
+                    options={[
+                      { value: "", label: "Any" },
+                      { value: "FAMILY_PLAN", label: "Family plan" },
+                      { value: "SHARED_ACCOUNT", label: "Shared account" },
+                      { value: "INVITE_LINK", label: "Invite link" },
+                      { value: "EMAIL_INVITE", label: "Email invite" },
+                    ]}
+                    value={accessTypeFilter}
+                    onChange={(e) => setAccessTypeFilter(e.target.value)}
+                  />
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+                  <input type="checkbox" checked={verifiedOnly} onChange={(e) => setVerifiedOnly(e.target.checked)} />
+                  Verified owners only
+                </label>
+              </Card>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {op.rooms.map((r) => (
