@@ -149,14 +149,18 @@ export function OperatorPage() {
     return {
       name,
       color: fallback.color,
-      plans: tariffs.map<Plan>((t) => ({
-        id: t.id,
-        name: t.name,
-        persons: t.seats,
-        price: t.price,
-        perPerson: t.seats > 0 ? Math.round(t.price / t.seats) : t.price,
-        tags: t.features ?? [],
-      })),
+      plans: tariffs.map<Plan>((t) => {
+        const price = t.basePriceTotal ?? 0;
+        const persons = t.maxMembers ?? 0;
+        return {
+          id: String(t.id),
+          name: t.name,
+          persons,
+          price,
+          perPerson: persons > 0 ? Math.round(price / persons) : price,
+          tags: [],
+        };
+      }),
       rooms: rooms.map<Room>((r) => ({
         id: String(r.id),
         plan: r.title ?? r.serviceName ?? "—",
