@@ -432,17 +432,18 @@ export function TableRow({ cells, header }: { cells: ReactNode[]; header?: boole
 }
 
 // ─── Empty State ───
-export function EmptyState({ title, description }: { title: string; description: string }) {
+export function EmptyState({ title, description, icon, action }: { title: string; description: string; icon?: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
       <div
         className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
         style={{ background: "var(--eco-surface)" }}
       >
-        <Info size={20} style={{ color: "var(--eco-text-tertiary)" }} />
+        {icon ?? <Info size={20} style={{ color: "var(--eco-text-tertiary)" }} />}
       </div>
       <div className="text-[15px] mb-1" style={{ color: "var(--eco-text)" }}>{title}</div>
       <div className="text-[13px] max-w-xs" style={{ color: "var(--eco-text-secondary)" }}>{description}</div>
+      {action && <div className="mt-4">{action}</div>}
     </div>
   );
 }
