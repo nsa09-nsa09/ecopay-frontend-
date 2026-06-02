@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { z } from "zod";
 import { Card, Button, Input, Select, Stepper, Badge } from "../ds-primitives";
 import { ArrowLeft, AlertTriangle, Lock, Check, Shield, Info } from "lucide-react";
 import { catalogApi } from "../../../lib/api/catalog";
@@ -9,6 +10,17 @@ import { roomsApi } from "../../../lib/api/rooms";
 import { ApiError } from "../../../lib/api/client";
 
 const stepLabels = ["Operator & Plan", "Room Settings", "Access Method", "Review"];
+const DRAFT_KEY = "ecopay:create-room-draft";
+
+// Primitive field rules (cross-field rules — seats≤plan max, telecom terms, future
+// date — are checked in validate() since they depend on the selected tariff).
+const baseSchema = z.object({
+  serviceId: z.string().min(1, "Choose a service"),
+  tariffId: z.string().min(1, "Choose a plan"),
+  seats: z.coerce.number().int("Whole number").min(2, "At least 2 seats"),
+  totalPrice: z.coerce.number().positive("Price must be greater than 0"),
+  accessType: z.string().min(1, "Choose an access type"),
+});
 
 export function CreateRoomPage() {
   const [step, setStep] = useState(0);
@@ -52,6 +64,48 @@ export function CreateRoomPage() {
   const [accessType, setAccessType] = useState<"FAMILY_PLAN" | "SHARED_ACCOUNT" | "INVITE_LINK" | "EMAIL_INVITE">("FAMILY_PLAN");
   const [confirmed, setConfirmed] = useState(false);
   const [published, setPublished] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  // Restore a saved draft once on mount.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (d.serviceId) setServiceId(d.serviceId);
+      if (d.tariffId) setTariffId(d.tariffId);
+      if (d.seats) setSeats(d.seats);
+      if (d.totalPrice) setTotalPrice(d.totalPrice);
+      if (d.startDate) setStartDate(d.startDate);
+      if (d.access) setAccess(d.access);
+      if (d.accessType) setAccessType(d.accessType);
+      if (typeof d.confirmed === "boolean") setConfirmed(d.confirmed);
+      setDraftRestored(true);
+    } catch {
+      /* ignore malformed draft */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist a draft as the user edits (skip once published).
+  useEffect(() => {
+    if (published) return;
+    const draft = { serviceId, tariffId, seats, totalPrice, startDate, access, accessType, confirmed };
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      /* storage may be unavailable */
+    }
+  }, [serviceId, tariffId, seats, totalPrice, startDate, access, accessType, confirmed, published]);
+
+  const clearDraft = () => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* noop */ }
+    setServiceId(""); setTariffId(""); setSeats("4"); setTotalPrice("19999");
+    setStartDate(""); setAccess("esim"); setAccessType("FAMILY_PLAN"); setConfirmed(false);
+    setErrors({}); setDraftRestored(false); setStep(0);
+    toast.success("Draft cleared");
+  };
 
   // Sync seats/price defaults when tariff selected
   useMemo(() => {
@@ -67,6 +121,47 @@ export function CreateRoomPage() {
     esim: "ESIM",
     sim: "SIM",
     account: "ACCOUNT_LINK",
+  };
+
+  const validate = (): Record<string, string> => {
+    const errs: Record<string, string> = {};
+    const parsed = baseSchema.safeParse({ serviceId, tariffId, seats, totalPrice, accessType });
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const key = String(issue.path[0]);
+        if (!errs[key]) errs[key] = issue.message;
+      }
+    }
+    const seatsNum = Number(seats);
+    if (!errs.seats && selectedTariff && Number.isFinite(seatsNum) && seatsNum > selectedTariff.maxMembers) {
+      errs.seats = `This plan allows up to ${selectedTariff.maxMembers} seats`;
+    }
+    if (roomType === "TELECOM" && !confirmed) {
+      errs.confirmed = "Confirm operator terms to continue";
+    }
+    if (startDate) {
+      const d = new Date(`${startDate}T00:00:00`);
+      if (d.getTime() <= Date.now()) errs.startDate = "Start date must be in the future";
+    }
+    return errs;
+  };
+
+  // Which step a given field lives on, so we can jump back to the first error.
+  const fieldStep: Record<string, number> = {
+    serviceId: 0, tariffId: 0, seats: 1, totalPrice: 1, startDate: 1, accessType: 2, confirmed: 2,
+  };
+
+  const handlePublish = () => {
+    const errs = validate();
+    setErrors(errs);
+    const keys = Object.keys(errs);
+    if (keys.length > 0) {
+      const firstStep = Math.min(...keys.map((k) => fieldStep[k] ?? 0));
+      setStep(firstStep);
+      toast.error("Please fix the highlighted fields before publishing");
+      return;
+    }
+    createMutation.mutate();
   };
 
   const createMutation = useMutation({
@@ -101,6 +196,7 @@ export function CreateRoomPage() {
     },
     onSuccess: (room) => {
       qc.invalidateQueries({ queryKey: ["rooms"] });
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* noop */ }
       toast.success("Room published");
       setPublished(true);
       // Send to owner detail
@@ -120,11 +216,11 @@ export function CreateRoomPage() {
         </div>
         <h1 className="text-[24px] mb-2" style={{ color: "var(--eco-text)" }}>Room Published</h1>
         <p className="text-[13px] mb-6" style={{ color: "var(--eco-text-secondary)" }}>
-          Your room "Beeline Family 4" is now visible in the catalog. Members can apply to join.
+          Your {selectedService?.name ?? "room"}{selectedTariff ? ` ${selectedTariff.name}` : ""} room is now visible in the catalog. Members can apply to join.
         </p>
         <div className="flex gap-3 justify-center">
           <Link to="/rooms" style={{ textDecoration: "none" }}><Button variant="secondary">My Rooms</Button></Link>
-          <Link to="/operator/beeline" style={{ textDecoration: "none" }}><Button variant="primary">View in Catalog</Button></Link>
+          {selectedService && <Link to={`/operator/${selectedService.id}`} style={{ textDecoration: "none" }}><Button variant="primary">View in Catalog</Button></Link>}
         </div>
       </div>
     );
@@ -136,7 +232,18 @@ export function CreateRoomPage() {
         <ArrowLeft size={14} /> My Rooms
       </Link>
 
-      <h1 className="text-[26px] mb-6" style={{ color: "var(--eco-text)" }}>Create Room</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-[26px]" style={{ color: "var(--eco-text)" }}>Create Room</h1>
+        <button onClick={clearDraft} className="text-[12px]" style={{ color: "var(--eco-text-tertiary)", background: "none", border: "none", cursor: "pointer" }}>
+          Clear draft
+        </button>
+      </div>
+
+      {draftRestored && (
+        <div className="p-3 rounded-lg flex items-center gap-2 mb-4 text-[13px]" style={{ background: "var(--eco-brand-50)", color: "var(--eco-text-secondary)" }}>
+          <Info size={14} style={{ color: "var(--eco-primary)" }} /> Restored your saved draft.
+        </div>
+      )}
 
       {/* Critical info banner */}
       <div className="p-4 rounded-lg flex items-start gap-3 mb-6" style={{ background: "var(--eco-warning-100)" }}>
@@ -169,6 +276,7 @@ export function CreateRoomPage() {
           <Card className="flex flex-col gap-4">
             <Select
               label="Operator / Provider"
+              error={errors.serviceId}
               options={[
                 { value: "", label: services.length ? "Select operator" : "Loading..." },
                 ...services.map((s) => ({ value: String(s.id), label: s.name })),
@@ -178,6 +286,7 @@ export function CreateRoomPage() {
             />
             <Select
               label="Plan Type"
+              error={errors.tariffId}
               options={[
                 { value: "", label: tariffs.length ? "Select plan" : (serviceId ? "Loading..." : "Pick operator first") },
                 ...tariffs.map((t) => ({ value: String(t.id), label: `${t.name} — ₸${(t.basePriceTotal ?? 0).toLocaleString()}/mo (${t.maxMembers} seats)` })),
@@ -207,7 +316,8 @@ export function CreateRoomPage() {
               type="number"
               value={seats}
               onChange={(e) => setSeats(e.target.value)}
-              hint="Minimum 2 members including you"
+              error={errors.seats}
+              hint={selectedTariff ? `Minimum 2, up to ${selectedTariff.maxMembers} for this plan` : "Minimum 2 members including you"}
             />
             <Select
               label="Price Model"
@@ -223,12 +333,16 @@ export function CreateRoomPage() {
               type="number"
               value={totalPrice}
               onChange={(e) => setTotalPrice(e.target.value)}
+              error={errors.totalPrice}
+              hint={seats && Number(seats) > 0 ? `≈ ₸${Math.round((Number(totalPrice) || 0) / Number(seats)).toLocaleString()} per member` : undefined}
             />
             <Input
               label="Start Date"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
+              error={errors.startDate}
+              hint="Leave empty to start tomorrow"
             />
             <div className="p-3 rounded-lg flex items-start gap-2 text-[12px]" style={{ background: "var(--eco-warning-100)", color: "var(--eco-text-secondary)" }}>
               <Lock size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
@@ -254,6 +368,7 @@ export function CreateRoomPage() {
               ]}
               value={accessType}
               onChange={(e) => setAccessType(e.target.value as typeof accessType)}
+              error={errors.accessType}
               hint="How you'll grant access after a member pays"
             />
             {roomType === "TELECOM" && (
@@ -269,12 +384,15 @@ export function CreateRoomPage() {
               />
             )}
             {roomType === "TELECOM" && (
-              <label className="flex items-start gap-2 cursor-pointer">
-                <input type="checkbox" className="mt-0.5" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
-                <span className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-                  I confirm that this operator supports family/group plans and I am the account holder or authorized to share.
-                </span>
-              </label>
+              <div className="flex flex-col gap-1">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" className="mt-0.5" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
+                  <span className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+                    I confirm that this operator supports family/group plans and I am the account holder or authorized to share.
+                  </span>
+                </label>
+                {errors.confirmed && <span style={{ color: "var(--eco-negative)", fontSize: 12 }}>{errors.confirmed}</span>}
+              </div>
             )}
             <div className="flex gap-3">
               <Button variant="ghost" onClick={() => setStep(1)}>Back</Button>
@@ -287,12 +405,13 @@ export function CreateRoomPage() {
         {step === 3 && (
           <Card className="flex flex-col gap-4">
             <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Review & Publish</h3>
+            <p className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>This is exactly how members will see your room.</p>
             {[
-              { label: "Operator", value: "Beeline" },
-              { label: "Plan", value: "Family 4 — ₸19,999/mo" },
+              { label: "Service", value: selectedService?.name ?? "—" },
+              { label: "Plan", value: selectedTariff ? `${selectedTariff.name} — ₸${(Number(totalPrice) || 0).toLocaleString()}/mo` : "—" },
               { label: "Seats", value: seats },
-              { label: "Per member", value: `₸${Math.round(parseInt(totalPrice) / parseInt(seats)).toLocaleString()}/mo` },
-              { label: "Start date", value: startDate },
+              { label: "Per member", value: `₸${(Number(seats) > 0 ? Math.round((Number(totalPrice) || 0) / Number(seats)) : 0).toLocaleString()}/mo` },
+              { label: "Start date", value: startDate || "Tomorrow" },
               { label: "Access type", value: { FAMILY_PLAN: "Family / group plan", SHARED_ACCOUNT: "Shared account", INVITE_LINK: "Invite link", EMAIL_INVITE: "Email invite" }[accessType] },
               ...(roomType === "TELECOM" ? [{ label: "Connection", value: access === "esim" ? "eSIM activation" : access === "sim" ? "Physical SIM" : "Account invite" }] : []),
             ].map((row) => (
@@ -308,7 +427,7 @@ export function CreateRoomPage() {
                 variant="primary"
                 className="flex-1"
                 disabled={createMutation.isPending}
-                onClick={() => createMutation.mutate()}
+                onClick={handlePublish}
               >
                 {createMutation.isPending ? "Publishing..." : "Publish Room"}
               </Button>
