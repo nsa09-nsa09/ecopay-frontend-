@@ -4,7 +4,6 @@ import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import {
-  ApiError,
   assignStaffTicketToMeRequest,
   escalateStaffTicketRequest,
   getStaffSupportQueueRequest,
@@ -12,6 +11,7 @@ import {
   updateStaffTicketStatusRequest,
   type SupportTicketResponse,
 } from "../../lib/api";
+import { formatAdminApiError } from "./admin-action-ui";
 import {
   ArrowUpRight,
   AlertTriangle,
@@ -62,7 +62,7 @@ export function AdminTicketsPage() {
       setItems(result.items);
       setTotalPages(Math.max(1, result.totalPages));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setError(formatAdminApiError(err, t));
     } finally {
       setLoading(false);
     }
@@ -81,7 +81,7 @@ export function AdminTicketsPage() {
         setDetail(data);
         setStatusValue(data.status);
       } catch (err) {
-        setDetailError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+        setDetailError(formatAdminApiError(err, t));
       } finally {
         setDetailLoading(false);
       }
@@ -116,7 +116,7 @@ export function AdminTicketsPage() {
       const updated = await authorizedRequest((token) => assignStaffTicketToMeRequest(detail.id, token));
       applyTicketUpdate(updated);
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setActionError(formatAdminApiError(err, t));
     } finally {
       setAssignSubmitting(false);
     }
@@ -132,7 +132,7 @@ export function AdminTicketsPage() {
       );
       applyTicketUpdate(updated);
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setActionError(formatAdminApiError(err, t));
     } finally {
       setStatusSubmitting(false);
     }
@@ -147,7 +147,7 @@ export function AdminTicketsPage() {
       applyTicketUpdate(updated);
       setEscalateModalOpen(false);
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setActionError(formatAdminApiError(err, t));
     } finally {
       setEscalateSubmitting(false);
     }

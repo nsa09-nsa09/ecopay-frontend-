@@ -4,7 +4,6 @@ import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import {
-  ApiError,
   banUserRequest,
   getAdminUsersRequest,
   unbanUserRequest,
@@ -22,7 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { ConfirmActionModal, FlashBanner, useFlash } from "./admin-action-ui";
+import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from "./admin-action-ui";
 
 const PAGE_SIZE = 20;
 
@@ -59,7 +58,7 @@ export function AdminUsersPage() {
         setSelectedId(null);
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setError(formatAdminApiError(err, t));
     } finally {
       setLoading(false);
     }
@@ -104,7 +103,7 @@ export function AdminUsersPage() {
       showFlash("success", t("actionCompletedAndLogged"));
       closeBanModal();
     } catch (err) {
-      setBanError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setBanError(formatAdminApiError(err, t));
     } finally {
       setBanSubmitting(false);
     }
@@ -303,7 +302,18 @@ export function AdminUsersPage() {
           open={!!banModal}
           onClose={closeBanModal}
           title={banModal ? (banModal.action === "BAN" ? t("banUser") : t("unbanUser")) : ""}
-          description={banModal ? (banModal.action === "BAN" ? t("banUserConfirm") : t("unbanUserConfirm")) : null}
+          description={
+            banModal
+              ? (
+                  <>
+                    {banModal.action === "BAN" ? t("banUserConfirm") : t("unbanUserConfirm")}
+                    <div style={{ marginTop: 8, fontSize: 12, color: "var(--eco-text-tertiary)" }}>
+                      {t("banReasonHint")}
+                    </div>
+                  </>
+                )
+              : null
+          }
           subjectLabel={banModal ? `U-${banModal.user.id} — ${banModal.user.displayName}` : null}
           destructive={banModal?.action === "BAN"}
           submitLabel={banModal ? (banModal.action === "BAN" ? t("banUser") : t("unbanUser")) : ""}

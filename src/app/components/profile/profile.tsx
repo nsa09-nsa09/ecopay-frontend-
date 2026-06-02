@@ -33,7 +33,7 @@ export function ProfilePage() {
         <Card className="flex flex-col gap-4 items-start">
           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>Profile</h1>
           <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-            Sign in to manage your EcoSplit account.
+            Sign in to manage your EcoPay account.
           </p>
           <Link to="/login" style={{ textDecoration: "none" }}>
             <Button>Sign in</Button>

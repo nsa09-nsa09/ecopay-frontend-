@@ -68,7 +68,7 @@ export function RegisterPage() {
         <div className="text-center mb-8">
           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("createAccount")}</h1>
           <p className="text-[13px] mt-2" style={{ color: "var(--eco-text-secondary)" }}>
-            {t("joinEcoSplit")}
+            {t("joinEcoPay")}
           </p>
         </div>
         <Card>

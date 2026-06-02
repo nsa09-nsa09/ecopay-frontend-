@@ -115,13 +115,23 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           className="sticky top-0 z-30 flex items-center justify-between px-6 py-3 border-b"
           style={{ background: "var(--eco-bg)", borderColor: "var(--eco-border)" }}
         >
-          {/* Search */}
-          <div className="relative flex items-center">
+          {/* Search — placeholder only for now. The per-section search lives on
+              each list page (e.g. AdminUsers). Disabled to avoid the impression
+              that this control routes globally. */}
+          <div className="relative flex items-center" title={t("adminSearchPlaceholder")}>
             <Search size={15} className="absolute left-2.5" style={{ color: "var(--eco-text-tertiary)" }} />
             <input
               placeholder={t("adminSearchPlaceholder")}
               className="pl-8 pr-3 py-1.5 rounded-lg text-[13px] outline-none w-72"
-              style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
+              style={{
+                background: "var(--eco-surface)",
+                border: "1px solid var(--eco-border)",
+                color: "var(--eco-text-tertiary)",
+                cursor: "not-allowed",
+                opacity: 0.6,
+              }}
+              disabled
+              aria-disabled
             />
           </div>
 

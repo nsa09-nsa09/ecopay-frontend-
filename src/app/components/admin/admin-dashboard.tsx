@@ -4,10 +4,10 @@ import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import {
-  ApiError,
   getAdminDashboardKpisRequest,
   type AdminDashboardKpisDto,
 } from "../../lib/api";
+import { formatAdminApiError } from "./admin-action-ui";
 import {
   ShieldCheck,
   Scale,
@@ -52,7 +52,7 @@ export function AdminDashboardPage() {
       const data = await authorizedRequest((token) => getAdminDashboardKpisRequest(token));
       setKpis(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setError(formatAdminApiError(err, t));
     } finally {
       setLoading(false);
     }

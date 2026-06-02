@@ -4,7 +4,6 @@ import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import {
-  ApiError,
   assignModerationItemRequest,
   blockRoomRequest,
   confirmModerationItemRequest,
@@ -20,7 +19,7 @@ import {
   UserPlus,
   RefreshCw,
 } from "lucide-react";
-import { ConfirmActionModal, FlashBanner, useFlash } from "./admin-action-ui";
+import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from "./admin-action-ui";
 
 type ActionKind = "CONFIRM" | "REJECT" | "BLOCK";
 
@@ -71,7 +70,7 @@ export function AdminModerationPage() {
       const data = await authorizedRequest((token) => getModerationQueueRequest(token));
       setItems(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setError(formatAdminApiError(err, t));
     } finally {
       setLoading(false);
     }
@@ -96,7 +95,7 @@ export function AdminModerationPage() {
       applyUpdate(updated);
       showFlash("success", t("actionCompletedAndLogged"));
     } catch (err) {
-      showFlash("error", err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      showFlash("error", formatAdminApiError(err, t));
     } finally {
       setBusyAssignId(null);
     }
@@ -147,7 +146,7 @@ export function AdminModerationPage() {
       showFlash("success", t("actionCompletedAndLogged"));
       closeAction();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setActionError(formatAdminApiError(err, t));
     } finally {
       setSubmitting(false);
     }

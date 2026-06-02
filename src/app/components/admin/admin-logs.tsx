@@ -4,12 +4,12 @@ import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import {
-  ApiError,
   getAdminActionLogsRequest,
   getRoomEventLogsRequest,
   type AdminActionLogDto,
   type RoomEventLogDto,
 } from "../../lib/api";
+import { formatAdminApiError } from "./admin-action-ui";
 import {
   Shield,
   RefreshCw,
@@ -86,7 +86,7 @@ export function AdminLogsPage() {
         setTotalPages(Math.max(1, result.totalPages));
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setError(formatAdminApiError(err, t));
     } finally {
       setLoading(false);
     }

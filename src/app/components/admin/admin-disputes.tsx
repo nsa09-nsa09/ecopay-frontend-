@@ -4,7 +4,6 @@ import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import {
-  ApiError,
   assignDisputeToMeRequest,
   decideDisputeRequest,
   getAdminDisputesRequest,
@@ -18,7 +17,7 @@ import {
   UserPlus,
   Scale,
 } from "lucide-react";
-import { FlashBanner, useFlash, REASON_MIN_LENGTH } from "./admin-action-ui";
+import { FlashBanner, formatAdminApiError, useFlash, REASON_MIN_LENGTH } from "./admin-action-ui";
 
 const PAGE_SIZE = 20;
 
@@ -58,7 +57,7 @@ export function AdminDisputesPage() {
       setItems(result.items);
       setTotalPages(Math.max(1, result.totalPages));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setError(formatAdminApiError(err, t));
     } finally {
       setLoading(false);
     }
@@ -86,7 +85,7 @@ export function AdminDisputesPage() {
       applyUpdate(updated);
       showFlash("success", t("actionCompletedAndLogged"));
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setActionError(formatAdminApiError(err, t));
     } finally {
       setAssignSubmitting(false);
     }
@@ -105,7 +104,7 @@ export function AdminDisputesPage() {
       setDecisionModalOpen(false);
       setDecisionComment("");
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setActionError(formatAdminApiError(err, t));
     } finally {
       setSubmitting(false);
     }

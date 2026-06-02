@@ -4,7 +4,6 @@ import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import {
-  ApiError,
   blockRoomRequest,
   getAdminRoomsRequest,
   type RoomSummaryDto,
@@ -15,7 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { ConfirmActionModal, FlashBanner, useFlash } from "./admin-action-ui";
+import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from "./admin-action-ui";
 
 const PAGE_SIZE = 20;
 
@@ -45,7 +44,7 @@ export function AdminRoomsPage() {
       setItems(result.items);
       setTotalPages(Math.max(1, result.totalPages));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setError(formatAdminApiError(err, t));
     } finally {
       setLoading(false);
     }
@@ -78,7 +77,7 @@ export function AdminRoomsPage() {
       showFlash("success", t("actionCompletedAndLogged"));
       closeBlockModal();
     } catch (err) {
-      setBlockError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+      setBlockError(formatAdminApiError(err, t));
     } finally {
       setBlockSubmitting(false);
     }

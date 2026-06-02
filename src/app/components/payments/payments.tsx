@@ -32,11 +32,11 @@ function PaymentFooter({ lang }: { lang: L }) {
       </div>
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
         <span className="flex items-center gap-1.5"><Phone size={11} /> +7 (727) 000-00-00</span>
-        <span className="flex items-center gap-1.5"><Mail size={11} /> support@ecosplit.kz</span>
+        <span className="flex items-center gap-1.5"><Mail size={11} /> support@ecopay.kz</span>
         <span className="flex items-center gap-1.5"><MapPin size={11} /> {tx(lang, "Алматы, Казахстан", "Алматы, Қазақстан", "Almaty, Kazakhstan")}</span>
       </div>
       <div className="text-[11px] mt-3" style={{ color: "var(--eco-text-tertiary)" }}>
-        {tx(lang, "© 2026 EcoSplit · ТОО «Apex Digital»", "© 2026 EcoSplit · «Apex Digital» ЖШС", "© 2026 EcoSplit · Apex Digital LLP")}
+        {tx(lang, "© 2026 EcoPay · ТОО «Apex Digital»", "© 2026 EcoPay · «Apex Digital» ЖШС", "© 2026 EcoPay · Apex Digital LLP")}
       </div>
     </div>
   );

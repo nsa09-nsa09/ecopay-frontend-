@@ -2,8 +2,28 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Button, Modal } from "../ds-primitives";
 import { useI18n } from "../i18n-provider";
 import { Shield, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ApiError } from "../../lib/api";
 
 export const REASON_MIN_LENGTH = 10;
+
+/**
+ * Map a thrown error from an admin API call to a short, user-friendly message.
+ * Distinguishes session expiry (401), permission (403), and server errors (500)
+ * so admins do not see a generic "unexpected error" for every failure.
+ */
+export function formatAdminApiError(
+  err: unknown,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string {
+  if (err instanceof ApiError) {
+    if (err.status === 401) return t("sessionExpiredError");
+    if (err.status === 403) return t("noStaffAccessError");
+    if (err.status === 404) return err.message || t("loadFailedTitle");
+    if (err.status === 500) return err.message || t("serverErrorTitle");
+    return err.message || t("loadFailedTitle");
+  }
+  return t("loadFailedTitle");
+}
 
 interface ConfirmActionModalProps {
   open: boolean;
