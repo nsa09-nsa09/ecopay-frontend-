@@ -1,5 +1,6 @@
 import { apiGet, apiPatch, apiPost } from "./client";
 import type {
+  AccessType,
   CancelRoomRequest,
   ConfirmOwnerAccessRequest,
   CreateRoomRequest,
@@ -17,15 +18,24 @@ import type {
   UpdateRoomRequest,
 } from "./types";
 
+export interface RoomListParams extends PageParams {
+  status?: RoomStatus;
+  roomType?: RoomType;
+  categoryId?: number;
+  serviceId?: number;
+  priceMin?: number;
+  priceMax?: number;
+  minFreeSeats?: number;
+  accessType?: AccessType;
+  region?: string;
+  verifiedOwnerOnly?: boolean;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+}
+
 export const roomsApi = {
-  list: (params?: PageParams & {
-    status?: RoomStatus;
-    roomType?: RoomType;
-    categoryId?: number;
-    serviceId?: number;
-    sortBy?: string;
-    sortDir?: "asc" | "desc";
-  }) => apiGet<PagedResponse<RoomSummaryDto>>("/rooms", { params }),
+  list: (params?: RoomListParams) =>
+    apiGet<PagedResponse<RoomSummaryDto>>("/rooms", { params }),
   myMemberships: (params?: PageParams) =>
     apiGet<PagedResponse<RoomSummaryDto>>("/rooms/me", { params }),
   get: (id: string | number) => apiGet<RoomResponse>(`/rooms/${id}`),
