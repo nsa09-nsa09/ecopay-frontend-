@@ -7,6 +7,14 @@ import { ArrowLeft, Users, Calendar, Shield, AlertTriangle, Check, Eye } from "l
 import { roomsApi, roomMembersApi } from "../../../lib/api/rooms";
 import { ApiError } from "../../../lib/api/client";
 import { useAuth } from "../../../lib/auth/AuthContext";
+import type { AccessType } from "../../../lib/api/types";
+
+const ACCESS_TYPE_LABELS: Record<AccessType, string> = {
+  FAMILY_PLAN: "Added to a family / group plan",
+  SHARED_ACCOUNT: "Shared account login",
+  INVITE_LINK: "Invite link",
+  EMAIL_INVITE: "Invite to your email",
+};
 
 export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -135,6 +143,47 @@ export function RoomDetailPage() {
             <div className="h-2 rounded-full flex-1" style={{ background: "var(--eco-neutral-200)" }}>
               <div className="h-2 rounded-full" style={{ width: `${(filled / r.maxMembers) * 100}%`, background: "var(--eco-primary)" }} />
             </div>
+          </Card>
+
+          {/* Access & provider rules */}
+          <Card className="flex flex-col gap-3">
+            <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Access & rules</h3>
+            <div className="flex flex-col gap-2 text-[13px]">
+              {r.accessType && (
+                <div className="flex justify-between">
+                  <span style={{ color: "var(--eco-text-secondary)" }}>How you'll get access</span>
+                  <span style={{ color: "var(--eco-text)" }}>{ACCESS_TYPE_LABELS[r.accessType]}</span>
+                </div>
+              )}
+              {r.accessGrantSlaHours != null && (
+                <div className="flex justify-between">
+                  <span style={{ color: "var(--eco-text-secondary)" }}>Owner grants access within</span>
+                  <span style={{ color: "var(--eco-text)" }}>{r.accessGrantSlaHours}h after payment</span>
+                </div>
+              )}
+              {r.regionRestriction && (
+                <div className="flex justify-between">
+                  <span style={{ color: "var(--eco-text-secondary)" }}>Region</span>
+                  <span style={{ color: "var(--eco-text)" }}>Only {r.regionRestriction}</span>
+                </div>
+              )}
+              {r.requiresEmailForInvite && (
+                <div className="flex items-center gap-1.5" style={{ color: "var(--eco-text-secondary)" }}>
+                  <Check size={13} style={{ color: "var(--eco-positive)" }} /> Your email is required for the invite
+                </div>
+              )}
+              {r.emailChangeForbidden && (
+                <div className="flex items-center gap-1.5" style={{ color: "var(--eco-text-secondary)" }}>
+                  <AlertTriangle size={13} style={{ color: "var(--eco-warning)" }} /> Email cannot be changed after connecting
+                </div>
+              )}
+            </div>
+            {r.operatorRestrictions && (
+              <div className="p-3 rounded-lg flex items-start gap-2 text-[12px]" style={{ background: "var(--eco-warning-100)", color: "var(--eco-text-secondary)" }}>
+                <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
+                {r.operatorRestrictions}
+              </div>
+            )}
           </Card>
 
           {r.description && (

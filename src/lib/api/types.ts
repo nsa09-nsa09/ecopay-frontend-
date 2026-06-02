@@ -10,6 +10,7 @@ export type PeriodType = "MONTHLY" | "YEARLY" | "OTHER";
 export type ConnectionType = "SIM" | "ESIM" | "ACCOUNT_LINK" | "OTHER";
 export type RoomType = "DIGITAL" | "TELECOM";
 export type VerificationMode = "AUTO" | "ADMIN_REQUIRED" | "RISK_BASED";
+export type AccessType = "FAMILY_PLAN" | "SHARED_ACCOUNT" | "INVITE_LINK" | "EMAIL_INVITE";
 export type IdentifierType = "PHONE" | "ACCOUNT" | "SIM" | "ESIM";
 
 export type RoomStatus =
@@ -166,6 +167,11 @@ export interface RoomResponse {
   connectionType?: ConnectionType;
   operatorRestrictions?: string;
   operatorTermsConfirmed?: boolean;
+  accessType?: AccessType;
+  regionRestriction?: string;
+  requiresEmailForInvite?: boolean;
+  emailChangeForbidden?: boolean;
+  accessGrantSlaHours?: number;
   readyForVerificationAt?: string;
   completedAt?: string;
   blockedAt?: string;
@@ -225,6 +231,11 @@ export interface CreateRoomRequest {
   connectionType?: ConnectionType;
   operatorRestrictions?: string;
   operatorTermsConfirmed?: boolean;
+  accessType?: AccessType;
+  regionRestriction?: string;
+  requiresEmailForInvite?: boolean;
+  emailChangeForbidden?: boolean;
+  accessGrantSlaHours?: number;
 }
 
 export interface UpdateRoomRequest {
@@ -239,6 +250,11 @@ export interface UpdateRoomRequest {
   connectionType?: ConnectionType;
   operatorRestrictions?: string;
   operatorTermsConfirmed?: boolean;
+  accessType?: AccessType;
+  regionRestriction?: string;
+  requiresEmailForInvite?: boolean;
+  emailChangeForbidden?: boolean;
+  accessGrantSlaHours?: number;
 }
 
 export interface JoinRoomRequest {
