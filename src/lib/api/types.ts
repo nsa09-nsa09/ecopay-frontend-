@@ -140,6 +140,9 @@ export interface RoomSummaryDto {
   startDate?: string;
   ownerUserId: number;
   ownerDisplayName?: string;
+  ownerVerified?: boolean;
+  ownerRating?: number;
+  ownerReviewCount?: number;
   serviceId: number;
   serviceName?: string;
 }
@@ -147,6 +150,10 @@ export interface RoomSummaryDto {
 export interface RoomResponse {
   id: number;
   ownerUserId: number;
+  ownerDisplayName?: string;
+  ownerVerified?: boolean;
+  ownerRating?: number;
+  ownerReviewCount?: number;
   categoryId?: number;
   serviceId: number;
   tariffPlanId?: number;
