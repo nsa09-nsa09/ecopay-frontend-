@@ -1,8 +1,8 @@
 import { useParams, Link } from "react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Badge, Pill, Button, Input, Select, RoomCard, EmptyState, Tabs, WaveDivider } from "../ds-primitives";
-import { ArrowLeft, Filter } from "lucide-react";
+import { Card, Badge, Pill, Button, Input, Select, RoomCard, EmptyState, SkeletonCard, Tabs, WaveDivider } from "../ds-primitives";
+import { ArrowLeft, Filter, SearchX, Inbox } from "lucide-react";
 import { catalogApi } from "../../../lib/api/catalog";
 import { roomsApi } from "../../../lib/api/rooms";
 
@@ -136,6 +136,9 @@ export function OperatorPage() {
     queryFn: () => roomsApi.list(roomFilters),
     enabled: Boolean(id),
   });
+
+  const rooms = roomsQuery.data?.items ?? [];
+  const allFull = rooms.length > 0 && rooms.every((r) => (r.freeSeats ?? 1) <= 0);
 
   const fallback = operatorData[id || ""] || { name: "—", color: "#888", plans: [], rooms: [] };
 
@@ -314,13 +317,49 @@ export function OperatorPage() {
                 </div>
               </Card>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {(roomsQuery.data?.items ?? []).map((room) => (
-                  <Link key={room.id} to={`/room/${room.id}`} style={{ textDecoration: "none" }}>
-                    <RoomCard room={room} />
-                  </Link>
-                ))}
-              </div>
+              {roomsQuery.isLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <SkeletonCard /><SkeletonCard />
+                </div>
+              ) : rooms.length === 0 ? (
+                hasActiveFilters ? (
+                  <EmptyState
+                    icon={<SearchX size={20} style={{ color: "var(--eco-text-tertiary)" }} />}
+                    title="No rooms match your filters"
+                    description="Try widening the price range, lowering the free-seats requirement, or turning off verified-only."
+                    action={<Button variant="secondary" onClick={clearFilters}>Clear filters</Button>}
+                  />
+                ) : (
+                  <EmptyState
+                    icon={<Inbox size={20} style={{ color: "var(--eco-text-tertiary)" }} />}
+                    title="No open rooms yet"
+                    description={`Nobody is sharing ${op.name} here right now. Be the first to open a room.`}
+                    action={<Link to="/rooms/create" style={{ textDecoration: "none" }}><Button variant="primary">Create a room</Button></Link>}
+                  />
+                )
+              ) : allFull ? (
+                <>
+                  <div className="p-3 rounded-lg flex items-start gap-2 mb-4 text-[13px]" style={{ background: "var(--eco-warning-100)", color: "var(--eco-text-secondary)" }}>
+                    <Inbox size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
+                    All rooms here are currently full. Check back soon or create your own.
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {rooms.map((room) => (
+                      <Link key={room.id} to={`/room/${room.id}`} style={{ textDecoration: "none" }}>
+                        <RoomCard room={room} />
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {rooms.map((room) => (
+                    <Link key={room.id} to={`/room/${room.id}`} style={{ textDecoration: "none" }}>
+                      <RoomCard room={room} />
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </>
