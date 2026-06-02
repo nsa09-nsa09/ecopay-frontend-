@@ -1,100 +1,202 @@
-import { Card, Badge } from "../ds-primitives";
+import { useCallback, useEffect, useState } from "react";
+import { Card, Button } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
-import { ShieldCheck, Scale, Undo2, MessageSquare, Ban, Users, Home, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { useAuth } from "../auth/auth-provider";
+import {
+  ApiError,
+  getAdminDashboardKpisRequest,
+  type AdminDashboardKpisDto,
+} from "../../lib/api";
+import {
+  ShieldCheck,
+  Scale,
+  Undo2,
+  Ban,
+  Users,
+  Home,
+  TrendingUp,
+  RefreshCw,
+} from "lucide-react";
 
-const kpis = [
-  { key: "moderationQueue", value: "3", change: "+1", up: true, icon: ShieldCheck, variant: "warning" as const },
-  { key: "openDisputes", value: "2", change: "0", up: false, icon: Scale, variant: "danger" as const },
-  { key: "refundsPending", value: "5", change: "+2", up: true, icon: Undo2, variant: "warning" as const },
-  { key: "ticketsOpen", value: "12", change: "-3", up: false, icon: MessageSquare, variant: "info" as const },
-  { key: "activeBans", value: "4", change: "+1", up: true, icon: Ban, variant: "danger" as const },
-];
+interface KpiCardConfig {
+  key: string;
+  value: string | number;
+  icon: typeof ShieldCheck;
+  variant: "warning" | "danger" | "info" | "success";
+}
 
-const recentActivity = [
-  { time: "10 min ago", action: "Room #R-2048 flagged for verification", actor: "System" },
-  { time: "25 min ago", action: "User Dana M. ban reviewed by Admin", actor: "admin@ecopay.kz" },
-  { time: "1h ago", action: "Refund ₸5,199 initiated for Ticket T-1018", actor: "admin@ecopay.kz" },
-  { time: "2h ago", action: "Dispute D-104 escalated from Ticket T-1018", actor: "support@ecopay.kz" },
-  { time: "3h ago", action: "Room #R-2045 blocked — compliance review", actor: "admin@ecopay.kz" },
-];
+function formatCount(value: number | null | undefined): string {
+  if (value == null) return "—";
+  return new Intl.NumberFormat("ru-RU").format(value);
+}
 
-const quickStats = [
-  { key: "totalRooms", value: "248", icon: Home },
-  { key: "totalUsers", value: "1,024", icon: Users },
-  { key: "monthlyRevenue", value: "₸4.2M", icon: TrendingUp },
-];
+function formatMoney(value: number | string | null | undefined): string {
+  if (value == null) return "—";
+  const num = typeof value === "string" ? Number(value) : value;
+  if (Number.isNaN(num)) return String(value);
+  return `₸${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(num)}`;
+}
 
 export function AdminDashboardPage() {
   const { t } = useI18n();
+  const { authorizedRequest } = useAuth();
+  const [kpis, setKpis] = useState<AdminDashboardKpisDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await authorizedRequest((token) => getAdminDashboardKpisRequest(token));
+      setKpis(data);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+    } finally {
+      setLoading(false);
+    }
+  }, [authorizedRequest, t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const renderKpiCards = (): KpiCardConfig[] => {
+    if (!kpis) return [];
+    return [
+      { key: "pendingModerationLabel", value: formatCount(kpis.pendingModeration), icon: ShieldCheck, variant: "warning" },
+      { key: "openDisputes", value: formatCount(kpis.openDisputes), icon: Scale, variant: "danger" },
+      { key: "totalRefundsLabel", value: formatMoney(kpis.totalRefunds), icon: Undo2, variant: "warning" },
+      { key: "blockedRoomsLabel", value: formatCount(kpis.blockedRooms), icon: Home, variant: "info" },
+      { key: "bannedUsersLabel", value: formatCount(kpis.bannedUsers), icon: Ban, variant: "danger" },
+    ];
+  };
+
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>{t("dashboard")}</h1>
-
-        {/* KPI cards */}
-        <div className="grid grid-cols-5 gap-4 mb-8">
-          {kpis.map((k) => {
-            const Icon = k.icon;
-            return (
-              <Card key={k.label} className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
-                    background: k.variant === "warning" ? "var(--eco-warning-100)" : k.variant === "danger" ? "var(--eco-danger-100)" : "var(--eco-brand-50)",
-                  }}>
-                    <Icon size={15} style={{
-                      color: k.variant === "warning" ? "var(--eco-warning-500)" : k.variant === "danger" ? "var(--eco-danger-500)" : "var(--eco-brand-600)",
-                    }} />
-                  </div>
-                  {k.change !== "0" && (
-                    <div className="flex items-center gap-0.5 text-[11px]" style={{ color: k.up ? "var(--eco-negative)" : "var(--eco-positive)" }}>
-                      {k.up ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-                      {k.change}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <div className="text-[22px]" style={{ color: "var(--eco-text)" }}>{k.value}</div>
-                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t(k.key)}</div>
-                </div>
-              </Card>
-            );
-          })}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("dashboard")}</h1>
+          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
+            <RefreshCw size={13} /> {t("retry")}
+          </Button>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          {quickStats.map((s) => {
-            const Icon = s.icon;
-            return (
-              <Card key={s.label} className="flex items-center gap-3">
-                <Icon size={18} style={{ color: "var(--eco-text-tertiary)" }} />
-                <div>
-                  <div className="text-[18px]" style={{ color: "var(--eco-text)" }}>{s.value}</div>
-                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t(s.key)}</div>
-                </div>
+        {loading && !kpis && (
+          <div className="grid grid-cols-5 gap-4 mb-8">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Card key={i} className="flex flex-col gap-3">
+                <div className="w-8 h-8 rounded-lg" style={{ background: "var(--eco-surface)" }} />
+                <div className="h-6 rounded" style={{ background: "var(--eco-surface)" }} />
+                <div className="h-3 rounded" style={{ background: "var(--eco-surface)" }} />
               </Card>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {/* Recent activity */}
-        <Card className="flex flex-col gap-0">
-          <h3 className="text-[15px] mb-4" style={{ color: "var(--eco-text)" }}>{t("recentActivity")}</h3>
-          {recentActivity.map((a, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 py-3"
-              style={{ borderTop: i > 0 ? "1px solid var(--eco-border)" : undefined }}
-            >
-              <div className="w-1.5 h-1.5 rounded-full mt-2 shrink-0" style={{ background: "var(--eco-primary)" }} />
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{a.action}</div>
-                <div className="text-[11px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{a.actor}</div>
-              </div>
-              <span className="text-[11px] shrink-0" style={{ color: "var(--eco-text-tertiary)" }}>{a.time}</span>
+        {error && !loading && (
+          <Card className="flex flex-col gap-3 mb-6">
+            <div className="text-[14px]" style={{ color: "var(--eco-negative)" }}>{t("loadFailedTitle")}</div>
+            <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{error}</div>
+            <div>
+              <Button variant="primary" size="sm" onClick={() => void load()}>
+                <RefreshCw size={13} /> {t("retry")}
+              </Button>
             </div>
-          ))}
-        </Card>
+          </Card>
+        )}
+
+        {kpis && (
+          <>
+            <div className="grid grid-cols-5 gap-4 mb-8">
+              {renderKpiCards().map((k) => {
+                const Icon = k.icon;
+                return (
+                  <Card key={k.key} className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center"
+                        style={{
+                          background:
+                            k.variant === "warning"
+                              ? "var(--eco-warning-100)"
+                              : k.variant === "danger"
+                              ? "var(--eco-danger-100)"
+                              : "var(--eco-brand-50)",
+                        }}
+                      >
+                        <Icon
+                          size={15}
+                          style={{
+                            color:
+                              k.variant === "warning"
+                                ? "var(--eco-warning-500)"
+                                : k.variant === "danger"
+                                ? "var(--eco-danger-500)"
+                                : "var(--eco-brand-600)",
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[22px]" style={{ color: "var(--eco-text)" }}>{k.value}</div>
+                      <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t(k.key)}</div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              {[
+                { key: "totalRoomsLabel", value: formatCount(kpis.totalRooms), icon: Home },
+                { key: "totalUsersLabel", value: formatCount(kpis.totalUsers), icon: Users },
+                { key: "totalRevenueLabel", value: formatMoney(kpis.totalRevenue), icon: TrendingUp },
+              ].map((s) => {
+                const Icon = s.icon;
+                return (
+                  <Card key={s.key} className="flex items-center gap-3">
+                    <Icon size={18} style={{ color: "var(--eco-text-tertiary)" }} />
+                    <div>
+                      <div className="text-[18px]" style={{ color: "var(--eco-text)" }}>{s.value}</div>
+                      <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t(s.key)}</div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="flex flex-col gap-2">
+                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("rooms")}</div>
+                <div className="grid grid-cols-2 gap-2 text-[13px]">
+                  <div>
+                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("activeUsersLabel")}</div>
+                    <div style={{ color: "var(--eco-text)" }}>{formatCount(kpis.activeRooms)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("statusOpen")}</div>
+                    <div style={{ color: "var(--eco-text)" }}>{formatCount(kpis.openRooms)}</div>
+                  </div>
+                </div>
+              </Card>
+              <Card className="flex flex-col gap-2">
+                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("users")}</div>
+                <div className="grid grid-cols-2 gap-2 text-[13px]">
+                  <div>
+                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("activeUsersLabel")}</div>
+                    <div style={{ color: "var(--eco-text)" }}>{formatCount(kpis.activeUsers)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("bannedUsersLabel")}</div>
+                    <div style={{ color: "var(--eco-text)" }}>{formatCount(kpis.bannedUsers)}</div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </>
+        )}
       </div>
     </AdminLayout>
   );

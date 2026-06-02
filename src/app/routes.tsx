@@ -27,6 +27,7 @@ import { AdminUsersPage } from "./components/admin/admin-users";
 import { AdminTicketsPage } from "./components/admin/admin-tickets";
 import { AdminDisputesPage } from "./components/admin/admin-disputes";
 import { AdminLogsPage } from "./components/admin/admin-logs";
+import { AdminRoute } from "./components/admin/admin-route";
 import { PaymentRoomDetailsPage, PaymentCheckoutPage, PaymentConfirmationPage, PaymentPendingPage, RefundStatusPage, OwnerPayoutPage } from "./components/payments/payments";
 import { PublicUserProfilePage } from "./components/reputation/public-profile";
 import { I18nTypographyFixPage } from "./components/static/i18n-typography-fix";
@@ -117,6 +118,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/admin",
+    Component: AdminRoute,
     ErrorBoundary: ErrorFallback,
     children: [
       { path: "dashboard", Component: AdminDashboardPage },

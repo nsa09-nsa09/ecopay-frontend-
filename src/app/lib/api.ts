@@ -1,10 +1,12 @@
+export type UserRole = "USER" | "SUPPORT" | "ADMIN";
+
 export interface User {
   id: number;
   email: string;
   displayName: string;
   avatar: string | null;
   status: string;
-  role: string;
+  role: UserRole | string;
   reputation: number;
 }
 
@@ -12,6 +14,19 @@ export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   user: User;
+}
+
+export interface TwoFactorChallenge {
+  requiresTwoFactor: true;
+  challengeId: string;
+  expiresAt: string;
+  maskedEmail: string;
+}
+
+export type StaffLoginResponse = AuthResponse | TwoFactorChallenge;
+
+export function isTwoFactorChallenge(value: StaffLoginResponse): value is TwoFactorChallenge {
+  return (value as TwoFactorChallenge).requiresTwoFactor === true;
 }
 
 export interface ServiceDto {
@@ -462,4 +477,325 @@ export function revealIdentifierRequest(
     method: "POST",
     body: JSON.stringify(payload),
   }, accessToken);
+}
+
+// ============================================================
+// Staff / Admin authentication
+// ============================================================
+//
+// We reuse POST /auth/login for the initial credential step — the backend
+// either returns standard session tokens (current behaviour) or a 2FA
+// challenge envelope ({ requiresTwoFactor, challengeId, expiresAt,
+// maskedEmail }) once 2FA is enabled. Either way, frontend code branches
+// on `isTwoFactorChallenge` and does not need a separate path today.
+//
+// The follow-up verify/resend endpoints live under /auth/login/* to match
+// the existing `/auth/reset-password/confirm` sub-resource style. These
+// are a backend dependency — they become live once Spring implements the
+// 2FA service over the existing `staff_two_factor_challenges` table.
+
+export function staffLoginRequest(email: string, password: string) {
+  return requestJson<StaffLoginResponse>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export function verifyStaffTwoFactorRequest(challengeId: string, code: string) {
+  return requestJson<AuthResponse>("/auth/login/2fa/verify", {
+    method: "POST",
+    body: JSON.stringify({ challengeId, code }),
+  });
+}
+
+export function resendStaffTwoFactorRequest(challengeId: string) {
+  return requestJson<void>("/auth/login/2fa/resend", {
+    method: "POST",
+    body: JSON.stringify({ challengeId }),
+  });
+}
+
+// ============================================================
+// Admin / staff API
+// ============================================================
+
+// Backend uses two slightly different page envelopes: PagedResponse (admin
+// users/rooms) carries hasNext/hasPrevious flags; PageResponse (logs,
+// support tickets, disputes) does not. Both expose page/size/totalItems/
+// totalPages/items, which is all the UI relies on.
+export interface PageResponse<T> {
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+  items: T[];
+}
+
+export interface AdminDashboardKpisDto {
+  totalUsers: number;
+  activeUsers: number;
+  bannedUsers: number;
+  totalRooms: number;
+  openRooms: number;
+  activeRooms: number;
+  completedRooms: number;
+  blockedRooms: number;
+  totalRevenue: number | string;
+  totalRefunds: number | string;
+  openDisputes: number;
+  pendingModeration: number;
+  pendingPayouts: number;
+}
+
+export interface AdminUserDto {
+  id: number;
+  email: string;
+  emailMasked: string | null;
+  displayName: string;
+  phone: string | null;
+  phoneMasked: string | null;
+  phoneVerified: boolean | null;
+  avatar: string | null;
+  role: string | null;
+  status: string | null;
+  reputation: number | null;
+  riskScore: number | null;
+  roomsOwned: number | null;
+  roomsJoined: number | null;
+  tickets: number | null;
+  disputes: number | null;
+  createdAt: string | null;
+}
+
+export interface AdminDecisionRequest {
+  reason: string;
+}
+
+export function getAdminDashboardKpisRequest(accessToken: string) {
+  return requestJson<AdminDashboardKpisDto>("/admin/dashboard/kpis", {}, accessToken);
+}
+
+export function getAdminUsersRequest(
+  accessToken: string,
+  params: Record<string, string | number | undefined> = {},
+) {
+  return requestJson<PagedResponse<AdminUserDto>>(
+    `/admin/users${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function banUserRequest(userId: number, reason: string, accessToken: string) {
+  return requestJson<AdminUserDto>(`/admin/users/${userId}/ban`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  }, accessToken);
+}
+
+export function unbanUserRequest(userId: number, reason: string, accessToken: string) {
+  return requestJson<AdminUserDto>(`/admin/users/${userId}/unban`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  }, accessToken);
+}
+
+export function getAdminRoomsRequest(
+  accessToken: string,
+  params: Record<string, string | number | undefined> = {},
+) {
+  return requestJson<PagedResponse<RoomSummaryDto>>(
+    `/admin/rooms${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function blockRoomRequest(roomId: number, reason: string, accessToken: string) {
+  return requestJson<void>(`/admin/moderation/rooms/${roomId}/block`, {
+    method: "PATCH",
+    body: JSON.stringify({ reason }),
+  }, accessToken);
+}
+
+// ---- Support tickets (staff) ----
+
+export interface SupportMessageDto {
+  id: number;
+  ticketId: number;
+  authorUserId: number;
+  authorRole: string;
+  body: string;
+  internalNote: boolean;
+  createdAt: string;
+}
+
+export interface SupportTicketResponse {
+  id: number;
+  userId: number;
+  roomId: number | null;
+  roomMemberId: number | null;
+  subject: string;
+  topic: string | null;
+  status: string;
+  priority: string | null;
+  escalatedToDispute: boolean | null;
+  createdAt: string;
+  updatedAt: string;
+  closedAt: string | null;
+  messages: SupportMessageDto[] | null;
+}
+
+export function getStaffSupportQueueRequest(
+  accessToken: string,
+  params: Record<string, string | number | undefined> = {},
+) {
+  return requestJson<PageResponse<SupportTicketResponse>>(
+    `/staff/support-tickets/queue${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function getStaffSupportTicketRequest(ticketId: number, accessToken: string) {
+  return requestJson<SupportTicketResponse>(
+    `/staff/support-tickets/${ticketId}`,
+    {},
+    accessToken,
+  );
+}
+
+export function assignStaffTicketToMeRequest(ticketId: number, accessToken: string) {
+  return requestJson<SupportTicketResponse>(
+    `/staff/support-tickets/${ticketId}/assign-to-me`,
+    { method: "POST" },
+    accessToken,
+  );
+}
+
+export function updateStaffTicketStatusRequest(
+  ticketId: number,
+  status: string,
+  accessToken: string,
+) {
+  return requestJson<SupportTicketResponse>(
+    `/staff/support-tickets/${ticketId}/status`,
+    { method: "POST", body: JSON.stringify({ status }) },
+    accessToken,
+  );
+}
+
+export function escalateStaffTicketRequest(ticketId: number, accessToken: string) {
+  return requestJson<SupportTicketResponse>(
+    `/staff/support-tickets/${ticketId}/escalate`,
+    { method: "POST" },
+    accessToken,
+  );
+}
+
+// ---- Disputes ----
+
+export interface DisputeResponse {
+  id: number;
+  roomId: number | null;
+  roomMemberId: number | null;
+  ticketId: number | null;
+  openedByUserId: number | null;
+  assignedAdminId: number | null;
+  reasonCode: string | null;
+  description: string | null;
+  status: string;
+  decision: string | null;
+  decisionComment: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DisputeDecisionRequest {
+  decision: string;
+  decisionComment: string;
+}
+
+export function getAdminDisputesRequest(
+  accessToken: string,
+  params: Record<string, string | number | undefined> = {},
+) {
+  return requestJson<PageResponse<DisputeResponse>>(
+    `/admin/disputes${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function assignDisputeToMeRequest(disputeId: number, accessToken: string) {
+  return requestJson<DisputeResponse>(
+    `/admin/disputes/${disputeId}/assign`,
+    { method: "PATCH" },
+    accessToken,
+  );
+}
+
+export function decideDisputeRequest(
+  disputeId: number,
+  payload: DisputeDecisionRequest,
+  accessToken: string,
+) {
+  return requestJson<DisputeResponse>(
+    `/admin/disputes/${disputeId}/decision`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+// ---- Logs ----
+
+export interface AdminActionLogDto {
+  id: number;
+  eventId: string;
+  adminUserId: number;
+  actionType: string;
+  entityType: string;
+  entityId: number;
+  reason: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+export interface RoomEventLogDto {
+  id: number;
+  eventId: string;
+  actorUserId: number | null;
+  actorRole: string | null;
+  roomId: number;
+  roomMemberId: number | null;
+  eventType: string;
+  oldState: unknown;
+  newState: unknown;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+export function getAdminActionLogsRequest(
+  accessToken: string,
+  params: Record<string, string | number | undefined> = {},
+) {
+  return requestJson<PageResponse<AdminActionLogDto>>(
+    `/admin/logs/admin-actions${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function getRoomEventLogsRequest(
+  accessToken: string,
+  params: Record<string, string | number | undefined> = {},
+) {
+  return requestJson<PageResponse<RoomEventLogDto>>(
+    `/admin/logs/room-events${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
 }

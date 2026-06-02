@@ -1,98 +1,135 @@
-import { useState } from "react";
-import { Card, Button, Badge, Modal, RoomStatusBadge } from "../ds-primitives";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Card, Button, Modal, RoomStatusBadge } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
-import { ShieldX, ShieldCheck, Eye, EyeOff, Shield, Clock, CheckCircle2, AlertTriangle, Users, Calendar, Lock } from "lucide-react";
+import { useAuth } from "../auth/auth-provider";
+import {
+  ApiError,
+  blockRoomRequest,
+  getAdminRoomsRequest,
+  type RoomSummaryDto,
+} from "../../lib/api";
+import {
+  ShieldX,
+  Shield,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
-type RoomEvent = { time: string; action: string; actor: string };
-
-type AdminRoom = {
-  id: string; name: string; operator: string; status: string; owner: string;
-  ownerMasked: string; ownerFull: string; seats: number; filled: number;
-  startDate: string; priceTotal: number; riskScore: number;
-  events: RoomEvent[];
-};
-
-const rooms: AdminRoom[] = [
-  {
-    id: "R-2048", name: "Beeline Family 4", operator: "Beeline", status: "OPEN", owner: "Aidar K.",
-    ownerMasked: "+7 7** *** ** 45", ownerFull: "+7 (707) 234-56-45",
-    seats: 4, filled: 3, startDate: "2026-04-15", priceTotal: 19999, riskScore: 72,
-    events: [
-      { time: "2026-04-03 09:15", action: "Flagged for moderation — risk score 72", actor: "System" },
-      { time: "2026-04-02 18:00", action: "Member Dana M. applied", actor: "System" },
-      { time: "2026-04-01 10:00", action: "Room created", actor: "Aidar K." },
-    ],
-  },
-  {
-    id: "R-2045", name: "Kcell Group 3", operator: "Kcell", status: "BLOCKED", owner: "Unknown",
-    ownerMasked: "+7 7** *** ** 67", ownerFull: "+7 (777) 111-22-67",
-    seats: 3, filled: 2, startDate: "2026-02-01", priceTotal: 11400, riskScore: 91,
-    events: [
-      { time: "2026-04-01 14:00", action: "Room BLOCKED — compliance review", actor: "admin@ecosplit.kz" },
-      { time: "2026-03-28 09:00", action: "Dispute D-103 created by member", actor: "System" },
-      { time: "2026-02-01 08:00", action: "Room activated", actor: "System" },
-      { time: "2026-01-30 12:00", action: "Room created", actor: "Unknown" },
-    ],
-  },
-  {
-    id: "R-2040", name: "Activ Family 5", operator: "Activ", status: "ACTIVE", owner: "Marat S.",
-    ownerMasked: "+7 7** *** ** 89", ownerFull: "+7 (771) 987-65-89",
-    seats: 5, filled: 5, startDate: "2026-03-01", priceTotal: 16000, riskScore: 12,
-    events: [
-      { time: "2026-03-01 08:00", action: "Room activated — all seats filled", actor: "System" },
-      { time: "2026-02-28 10:00", action: "Room created", actor: "Marat S." },
-    ],
-  },
-];
+const PAGE_SIZE = 20;
 
 export function AdminRoomsPage() {
   const { t } = useI18n();
-  const [selected, setSelected] = useState<AdminRoom | null>(null);
-  const [blockModal, setBlockModal] = useState<{ room: AdminRoom; action: "BLOCK" | "UNBLOCK" } | null>(null);
-  const [blockReason, setBlockReason] = useState("");
-  const [revealedOwner, setRevealedOwner] = useState<string | null>(null);
-  const [revealTarget, setRevealTarget] = useState<string | null>(null);
-  const [revealReason, setRevealReason] = useState("");
-  const [localStatuses, setLocalStatuses] = useState<Record<string, string>>({});
+  const { authorizedRequest } = useAuth();
 
-  const handleBlock = () => {
-    if (!blockModal || !blockReason.trim()) return;
-    setLocalStatuses({ ...localStatuses, [blockModal.room.id]: blockModal.action === "BLOCK" ? "BLOCKED" : "ACTIVE" });
+  const [items, setItems] = useState<RoomSummaryDto[]>([]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [blockModal, setBlockModal] = useState<RoomSummaryDto | null>(null);
+  const [blockReason, setBlockReason] = useState("");
+  const [blockSubmitting, setBlockSubmitting] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await authorizedRequest((token) =>
+        getAdminRoomsRequest(token, { page, size: PAGE_SIZE }),
+      );
+      setItems(result.items);
+      setTotalPages(Math.max(1, result.totalPages));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+    } finally {
+      setLoading(false);
+    }
+  }, [authorizedRequest, page, t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const selected = useMemo(
+    () => items.find((r) => r.id === selectedId) ?? null,
+    [items, selectedId],
+  );
+
+  const closeBlockModal = () => {
     setBlockModal(null);
     setBlockReason("");
+    setBlockError(null);
   };
 
-  const handleRevealOwner = (id: string) => {
-    if (revealedOwner === id) { setRevealedOwner(null); return; }
-    setRevealTarget(id);
-  };
-
-  const confirmReveal = () => {
-    if (revealTarget && revealReason.trim()) {
-      setRevealedOwner(revealTarget);
-      setRevealTarget(null);
-      setRevealReason("");
+  const submitBlock = async () => {
+    if (!blockModal || !blockReason.trim()) return;
+    setBlockSubmitting(true);
+    setBlockError(null);
+    try {
+      await authorizedRequest((token) =>
+        blockRoomRequest(blockModal.id, blockReason.trim(), token),
+      );
+      // Optimistically update local list
+      setItems((prev) =>
+        prev.map((r) => (r.id === blockModal.id ? { ...r, status: "BLOCKED" } : r)),
+      );
+      closeBlockModal();
+    } catch (err) {
+      setBlockError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+    } finally {
+      setBlockSubmitting(false);
     }
   };
-
-  const getStatus = (r: AdminRoom) => localStatuses[r.id] || r.status;
 
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>{t("rooms")}</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("rooms")}</h1>
+          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
+            <RefreshCw size={13} /> {t("retry")}
+          </Button>
+        </div>
+
+        {error && !loading && (
+          <Card className="flex flex-col gap-2 mb-4">
+            <div className="text-[14px]" style={{ color: "var(--eco-negative)" }}>{t("loadFailedTitle")}</div>
+            <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{error}</div>
+            <Button variant="primary" size="sm" onClick={() => void load()}>
+              <RefreshCw size={13} /> {t("retry")}
+            </Button>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Room list */}
           <div className="lg:col-span-1 flex flex-col gap-2">
-            {rooms.map((r) => {
-              const status = getStatus(r);
-              const active = selected?.id === r.id;
+            {loading && items.length === 0 && (
+              <>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="p-4 rounded-xl"
+                    style={{ background: "var(--eco-surface-raised)", border: "1px solid var(--eco-border)", minHeight: 80 }}
+                  />
+                ))}
+              </>
+            )}
+            {!loading && items.length === 0 && (
+              <Card className="text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                {t("emptyRooms")}
+              </Card>
+            )}
+            {items.map((r) => {
+              const active = selectedId === r.id;
               return (
                 <button
                   key={r.id}
-                  onClick={() => setSelected(r)}
+                  onClick={() => setSelectedId(r.id)}
                   className="text-left p-4 rounded-xl transition-all cursor-pointer"
                   style={{
                     background: active ? "var(--eco-brand-50)" : "var(--eco-surface-raised)",
@@ -100,17 +137,44 @@ export function AdminRoomsPage() {
                   }}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>{r.id}</span>
-                    <RoomStatusBadge status={status} />
+                    <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>
+                      R-{r.id}
+                    </span>
+                    <RoomStatusBadge status={r.status} />
                   </div>
-                  <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{r.name}</div>
-                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{r.operator} · {r.filled}/{r.seats} {t("seatsLower")}</div>
+                  <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{r.title}</div>
+                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                    {r.serviceName} · {r.maxMembers} {t("seatsLower")}
+                  </div>
                 </button>
               );
             })}
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-2 text-[12px]">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={page <= 0 || loading}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                >
+                  <ChevronLeft size={12} /> {t("prevPage")}
+                </Button>
+                <span style={{ color: "var(--eco-text-tertiary)" }}>
+                  {t("pageOf", { page: page + 1, total: totalPages })}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={page >= totalPages - 1 || loading}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  {t("nextPage")} <ChevronRight size={12} />
+                </Button>
+              </div>
+            )}
           </div>
 
-          {/* Detail */}
           <div className="lg:col-span-2">
             {!selected ? (
               <Card className="flex items-center justify-center py-16 text-[14px]" style={{ color: "var(--eco-text-tertiary)" }}>
@@ -118,30 +182,23 @@ export function AdminRoomsPage() {
               </Card>
             ) : (
               <div className="flex flex-col gap-4">
-                {/* Header */}
                 <Card className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-[18px]" style={{ color: "var(--eco-text)" }}>{selected.name}</div>
-                      <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{selected.id} · {selected.operator}</div>
+                      <div className="text-[18px]" style={{ color: "var(--eco-text)" }}>{selected.title}</div>
+                      <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                        R-{selected.id} · {selected.serviceName}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <RoomStatusBadge status={getStatus(selected)} />
-                      <span className="text-[13px] px-2 py-0.5 rounded" style={{
-                        background: selected.riskScore >= 70 ? "var(--eco-danger-100)" : selected.riskScore >= 40 ? "var(--eco-warning-100)" : "var(--eco-success-100)",
-                        color: selected.riskScore >= 70 ? "var(--eco-danger-500)" : selected.riskScore >= 40 ? "var(--eco-warning-500)" : "var(--eco-success-500)",
-                      }}>
-                        {t("risk")}: {selected.riskScore}
-                      </span>
-                    </div>
+                    <RoomStatusBadge status={selected.status} />
                   </div>
 
                   <div className="grid grid-cols-4 gap-3 text-[13px]">
                     {[
-                      { label: t("seats"), value: `${selected.filled}/${selected.seats}` },
+                      { label: t("seats"), value: `${selected.maxMembers}` },
                       { label: t("startLabel"), value: selected.startDate },
-                      { label: t("totalCost"), value: `₸${selected.priceTotal.toLocaleString()}` },
-                      { label: t("owner"), value: selected.owner },
+                      { label: t("totalCost"), value: `₸${(selected.priceTotal ?? 0).toLocaleString()}` },
+                      { label: t("owner"), value: selected.ownerDisplayName ?? `#${selected.ownerUserId}` },
                     ].map((s) => (
                       <div key={s.label}>
                         <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{s.label}</div>
@@ -150,91 +207,61 @@ export function AdminRoomsPage() {
                     ))}
                   </div>
 
-                  {/* Owner identifier */}
-                  <div className="flex items-center gap-2 text-[12px] pt-2 border-t" style={{ borderColor: "var(--eco-border)" }}>
-                    <Shield size={12} style={{ color: "var(--eco-text-tertiary)" }} />
-                    <span style={{ color: "var(--eco-text-secondary)", fontFamily: "monospace" }}>
-                      {t("ownerIdLabel")}: {revealedOwner === selected.id ? selected.ownerFull : selected.ownerMasked}
-                    </span>
-                    <button className="cursor-pointer p-0.5" onClick={() => handleRevealOwner(selected.id)} style={{ background: "transparent", border: "none" }}>
-                      {revealedOwner === selected.id ? <EyeOff size={12} style={{ color: "var(--eco-text-tertiary)" }} /> : <Eye size={12} style={{ color: "var(--eco-primary)" }} />}
-                    </button>
-                    {revealedOwner !== selected.id && <span className="text-[10px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("reasonRequired")}</span>}
-                  </div>
-
-                  {/* Block/Unblock */}
                   <div className="flex gap-2 pt-2">
-                    {getStatus(selected) !== "BLOCKED" ? (
-                      <Button variant="destructive" size="sm" onClick={() => setBlockModal({ room: selected, action: "BLOCK" })}>
+                    {selected.status !== "BLOCKED" && (
+                      <Button variant="destructive" size="sm" onClick={() => setBlockModal(selected)}>
                         <ShieldX size={13} /> {t("blockRoom")}
-                      </Button>
-                    ) : (
-                      <Button variant="primary" size="sm" onClick={() => setBlockModal({ room: selected, action: "UNBLOCK" })}>
-                        <ShieldCheck size={13} /> {t("unblockRoom")}
                       </Button>
                     )}
                   </div>
-                </Card>
-
-                {/* Event Timeline */}
-                <Card className="flex flex-col gap-0">
-                  <h3 className="text-[14px] mb-3" style={{ color: "var(--eco-text)" }}>{t("roomEventLog")}</h3>
-                  {selected.events.map((ev, i) => (
-                    <div key={i} className="flex items-start gap-3 py-2.5" style={{ borderTop: i > 0 ? "1px solid var(--eco-border)" : undefined }}>
-                      <div className="flex flex-col items-center">
-                        <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{
-                          background: ev.action.includes("BLOCK") ? "var(--eco-negative)" : ev.action.includes("created") ? "var(--eco-positive)" : "var(--eco-primary)",
-                        }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{ev.action}</div>
-                        <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{ev.actor}</div>
-                      </div>
-                      <span className="text-[11px] shrink-0" style={{ color: "var(--eco-text-tertiary)" }}>{ev.time}</span>
-                    </div>
-                  ))}
                 </Card>
               </div>
             )}
           </div>
         </div>
 
-        {/* Block/Unblock modal */}
-        <Modal open={!!blockModal} onClose={() => { setBlockModal(null); setBlockReason(""); }} title={blockModal ? (blockModal.action === "BLOCK" ? t("blockRoom") : t("unblockRoom")) : ""}>
+        <Modal
+          open={!!blockModal}
+          onClose={closeBlockModal}
+          title={blockModal ? t("blockRoom") : ""}
+        >
           {blockModal && (
             <div className="flex flex-col gap-4">
               <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-                {blockModal.action === "BLOCK" ? t("blockRoomConfirm") : t("unblockRoomConfirm")}
+                {t("blockRoomConfirm")}
               </div>
               <div className="p-3 rounded-lg text-[12px]" style={{ background: "var(--eco-surface)" }}>
-                {blockModal.room.id} — {blockModal.room.name}
+                R-{blockModal.id} — {blockModal.title}
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px]" style={{ color: "var(--eco-text)" }}>{t("reason")} <span style={{ color: "var(--eco-negative)" }}>*</span></label>
+                <label className="text-[13px]" style={{ color: "var(--eco-text)" }}>
+                  {t("reason")} <span style={{ color: "var(--eco-negative)" }}>*</span>
+                </label>
                 <textarea
-                  rows={3} value={blockReason} onChange={(e) => setBlockReason(e.target.value)}
+                  rows={3}
+                  value={blockReason}
+                  onChange={(e) => setBlockReason(e.target.value)}
                   placeholder={t("mandatoryReasonAudit")}
                   className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
                   style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
                 />
               </div>
+              {blockError && (
+                <div className="text-[13px]" role="alert" style={{ color: "var(--eco-negative)" }}>{blockError}</div>
+              )}
               <div className="text-[11px] flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}>
                 <Shield size={11} /> {t("actionRecordedAuditLog")}
               </div>
-              <Button variant={blockModal.action === "BLOCK" ? "destructive" : "primary"} disabled={!blockReason.trim()} onClick={handleBlock}>
-                {blockModal.action === "BLOCK" ? t("blockRoom") : t("unblockRoom")}
+              <Button
+                variant="destructive"
+                disabled={!blockReason.trim()}
+                loading={blockSubmitting}
+                onClick={() => void submitBlock()}
+              >
+                {t("blockRoom")}
               </Button>
             </div>
           )}
-        </Modal>
-
-        {/* Reveal modal */}
-        <Modal open={!!revealTarget && revealedOwner !== revealTarget} onClose={() => setRevealTarget(null)} title={t("revealIdentifier")}>
-          <div className="flex flex-col gap-4">
-            <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{t("provideReasonAuditLogged")}</div>
-            <input className="px-3 py-2 rounded-lg outline-none text-[13px]" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} placeholder={t("reasonPlaceholder")} value={revealReason} onChange={(e) => setRevealReason(e.target.value)} />
-            <Button variant="primary" disabled={!revealReason.trim()} onClick={confirmReveal}>{t("reveal")}</Button>
-          </div>
         </Modal>
       </div>
     </AdminLayout>

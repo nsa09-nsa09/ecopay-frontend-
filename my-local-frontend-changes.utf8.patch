@@ -1,0 +1,1745 @@
+﻿diff --git a/I18N_KEY_MAP.md b/I18N_KEY_MAP.md
+index bf7bb79..2169f24 100644
+--- a/I18N_KEY_MAP.md
++++ b/I18N_KEY_MAP.md
+@@ -1,8 +1,8 @@
+-# EcoSplit i18n Key Map
++# EcoPay i18n Key Map
+ 
+ **Complete trilingual coverage (RU/KZ/EN) for the entire application.**
+ 
+-This document serves as a reference for all internationalization keys available in the EcoSplit application. All user-facing strings should use these keys via the `useI18n()` hook and `t()` function.
++This document serves as a reference for all internationalization keys available in the EcoPay application. All user-facing strings should use these keys via the `useI18n()` hook and `t()` function.
+ 
+ ## ЁЯУЛ Usage Example
+ 
+@@ -51,11 +51,11 @@ function MyComponent() {
+ - `createTicket` - ╨б╨╛╨╖╨┤╨░╤В╤М ╨╖╨░╤П╨▓╨║╤Г / ╙и╤В╤Ц╨╜╤Ц╨╝ ╨╢╨░╤Б╨░╤Г / Create Ticket
+ - `ticketStatus` - ╨б╤В╨░╤В╤Г╤Б ╨╖╨░╤П╨▓╨║╨╕ / ╙и╤В╤Ц╨╜╤Ц╨╝ ╨╝╙Щ╤А╤В╨╡╨▒╨╡╤Б╤Ц / Ticket Status
+ - `developedBy` - ╨а╨░╨╖╤А╨░╨▒╨╛╤В╨░╨╜╨╛ Apex Digital / Apex Digital ╙Щ╨╖╤Ц╤А╨╗╨╡╨│╨╡╨╜ / Developed by Apex Digital
+-- `copyright` - ┬й 2026 EcoSplit ┬╖ ╨Р╨╗╨╝╨░╤В╤Л, ╨Ъ╨░╨╖╨░╤Е╤Б╤В╨░╨╜ / ┬й 2026 EcoSplit ┬╖ ╨Р╨╗╨╝╨░╤В╤Л, ╥Ъ╨░╨╖╨░╥Ы╤Б╤В╨░╨╜ / ┬й 2026 EcoSplit ┬╖ Almaty, Kazakhstan
++- `copyright` - ┬й 2026 EcoPay ┬╖ ╨Р╨╗╨╝╨░╤В╤Л, ╨Ъ╨░╨╖╨░╤Е╤Б╤В╨░╨╜ / ┬й 2026 EcoPay ┬╖ ╨Р╨╗╨╝╨░╤В╤Л, ╥Ъ╨░╨╖╨░╥Ы╤Б╤В╨░╨╜ / ┬й 2026 EcoPay ┬╖ Almaty, Kazakhstan
+ 
+ ### Authentication
+ - `createAccount` - ╨б╨╛╨╖╨┤╨░╤В╤М ╨░╨║╨║╨░╤Г╨╜╤В / ╨в╤Ц╤А╨║╨╡╨╗╨│╤Ц ╨╢╨░╤Б╨░╤Г / Create Account
+-- `joinEcoSplit` - ╨Я╤А╨╕╤Б╨╛╨╡╨┤╨╕╨╜╤П╨╣╤В╨╡╤Б╤М ╨║ EcoSplit... / EcoSplit-╨║╨╡ ╥Ы╨╛╤Б╤Л╨╗╤Л╥г╤Л╨╖... / Join EcoSplit to share...
++- `joinEcoPay` - ╨Я╤А╨╕╤Б╨╛╨╡╨┤╨╕╨╜╤П╨╣╤В╨╡╤Б╤М ╨║ EcoPay... / EcoPay-╨║╨╡ ╥Ы╨╛╤Б╤Л╨╗╤Л╥г╤Л╨╖... / Join EcoPay to share...
+ - `displayName` - ╨Ю╤В╨╛╨▒╤А╨░╨╢╨░╨╡╨╝╨╛╨╡ ╨╕╨╝╤П / ╨Ъ╙й╤А╤Б╨╡╤В╤Ц╨╗╨╡╤В╤Ц╨╜ ╨░╤В / Display Name
+ - `email` - ╨н╨╗. ╨┐╨╛╤З╤В╨░ / ╨н╨╗╨╡╨║╤В╤А╨╛╨╜╨┤╤Л╥Ы ╨┐╨╛╤И╤В╨░ / Email
+ - `password` - ╨Я╨░╤А╨╛╨╗╤М / ╥Ъ╥▒╨┐╨╕╤П ╤Б╙й╨╖ / Password
+@@ -65,7 +65,7 @@ function MyComponent() {
+ - `exampleName` - ╨╜╨░╨┐╤А╨╕╨╝╨╡╤А, ╨Р╨╣╨┤╨░╤А / ╨╝╤Л╤Б╨░╨╗╤Л, ╨Р╨╣╨┤╨░╤А / e.g. Aidar
+ - `alreadyHaveAccount` - ╨г╨╢╨╡ ╨╡╤Б╤В╤М ╨░╨║╨║╨░╤Г╨╜╤В? / ╨в╤Ц╤А╨║╨╡╨╗╨│╤Ц╥г╤Ц╨╖ ╨▒╨░╤А ╨╝╨░? / Already have an account?
+ - `dontHaveAccount` - ╨Э╨╡╤В ╨░╨║╨║╨░╤Г╨╜╤В╨░? / ╨в╤Ц╤А╨║╨╡╨╗╨│╤Ц╥г╤Ц╨╖ ╨╢╨╛╥Ы ╨┐╨░? / Don't have an account?
+-- `welcomeBack` - ╨Ф╨╛╨▒╤А╨╛ ╨┐╨╛╨╢╨░╨╗╨╛╨▓╨░╤В╤М ╨▓ EcoSplit / EcoSplit-╨║╨╡ ╥Ы╨░╨╣╤В╨░ ╨║╨╡╨╗╤Ц╥г╤Ц╨╖ / Welcome back to EcoSplit
++- `welcomeBack` - ╨Ф╨╛╨▒╤А╨╛ ╨┐╨╛╨╢╨░╨╗╨╛╨▓╨░╤В╤М ╨▓ EcoPay / EcoPay-╨║╨╡ ╥Ы╨░╨╣╤В╨░ ╨║╨╡╨╗╤Ц╥г╤Ц╨╖ / Welcome back to EcoPay
+ - `rememberMe` - ╨Ч╨░╨┐╨╛╨╝╨╜╨╕╤В╤М ╨╝╨╡╨╜╤П / ╨Ь╨╡╨╜╤Ц ╨╡╤Б╤В╨╡ ╤Б╨░╥Ы╤В╨░ / Remember me
+ - `forgotPassword` - ╨Ч╨░╨▒╤Л╨╗╨╕ ╨┐╨░╤А╨╛╨╗╤М? / ╥Ъ╥▒╨┐╨╕╤П ╤Б╙й╨╖╨┤╤Ц ╥▒╨╝╤Л╤В╤В╤Л╥г╤Л╨╖ ╨▒╨░? / Forgot password?
+ - `resetPassword` - ╨б╨▒╤А╨╛╤Б╨╕╤В╤М ╨┐╨░╤А╨╛╨╗╤М / ╥Ъ╥▒╨┐╨╕╤П ╤Б╙й╨╖╨┤╤Ц ╥Ы╨░╨╗╨┐╤Л╨╜╨░ ╨║╨╡╨╗╤В╤Ц╤А╤Г / Reset Password
+diff --git a/IMPLEMENTATION_SUMMARY.md b/IMPLEMENTATION_SUMMARY.md
+index cb4a08e..0a4afa8 100644
+--- a/IMPLEMENTATION_SUMMARY.md
++++ b/IMPLEMENTATION_SUMMARY.md
+@@ -1,7 +1,7 @@
+-# EcoSplit: i18n & Typography Implementation Summary
++# EcoPay: i18n & Typography Implementation Summary
+ 
+ ## Overview
+-Successfully implemented comprehensive internationalization (i18n) and typography improvements for the EcoSplit web application, along with mobile navigation enhancements.
++Successfully implemented comprehensive internationalization (i18n) and typography improvements for the EcoPay web application, along with mobile navigation enhancements.
+ 
+ ---
+ 
+@@ -52,7 +52,7 @@ Expanded `/src/app/components/i18n-provider.tsx` with **250+ translation keys**
+    - product, company, howItWorks, pricing, faq, about, terms, privacy, forOwners, createTicket, ticketStatus, developedBy, copyright
+ 
+ 3. **Authentication** (22 keys)
+-   - createAccount, joinEcoSplit, displayName, email, password, confirmPassword, enterPassword, yourEmail, exampleName, alreadyHaveAccount, dontHaveAccount, welcomeBack, rememberMe, forgotPassword, resetPassword, backToSignIn, checkYourEmail, resetLinkSent, resendEmail, enterEmailForReset, sendResetLink, show, hide
++   - createAccount, joinEcoPay, displayName, email, password, confirmPassword, enterPassword, yourEmail, exampleName, alreadyHaveAccount, dontHaveAccount, welcomeBack, rememberMe, forgotPassword, resetPassword, backToSignIn, checkYourEmail, resetLinkSent, resendEmail, enterEmailForReset, sendResetLink, show, hide
+ 
+ 4. **Home/Catalog** (22 keys)
+    - heroTitle, heroTitleHighlight, heroSubtitle, mobileOperators, familyGroupPlansAvailable, plansRooms, noFamilyPlansAvailable, homeInternet, bundledInternetPlans, comingQ3, digitalSubscriptions, comingSoon, available, beta, videoStreaming, music, aiTools, premiumApps, viewAll
+@@ -119,7 +119,7 @@ Expanded `/src/app/components/i18n-provider.tsx` with **250+ translation keys**
+ ```
+ 
+ **Elements**:
+-- **Logo**: EcoSplit branding (28px, bold)
++- **Logo**: EcoPay branding (28px, bold)
+ - **Search Icon**: Compact search button (replaces full search bar)
+ - **Language Chip**: Shows current language (╨а╤Г╤Б/╥Ъ╨░╨╖/Eng)
+ - **Hamburger Menu**: Opens slide-out navigation
+diff --git a/REPUTATION_MODULE_SUMMARY.md b/REPUTATION_MODULE_SUMMARY.md
+index 5688466..da7cdd8 100644
+--- a/REPUTATION_MODULE_SUMMARY.md
++++ b/REPUTATION_MODULE_SUMMARY.md
+@@ -1,7 +1,7 @@
+-# EcoSplit: Reputation & Reviews Module тАФ Implementation Summary
++# EcoPay: Reputation & Reviews Module тАФ Implementation Summary
+ 
+ ## Overview
+-Successfully implemented the complete **Reputation & Reviews** module for the EcoSplit application, featuring public user profiles, review eligibility rules, leave review functionality, and reputation explanation system.
++Successfully implemented the complete **Reputation & Reviews** module for the EcoPay application, featuring public user profiles, review eligibility rules, leave review functionality, and reputation explanation system.
+ 
+ **Access URL**: `/user/:id` (e.g., `/user/user-123`)
+ 
+diff --git a/REPUTATION_VISUAL_MAP.md b/REPUTATION_VISUAL_MAP.md
+index 98c736e..9aecffc 100644
+--- a/REPUTATION_VISUAL_MAP.md
++++ b/REPUTATION_VISUAL_MAP.md
+@@ -1,4 +1,4 @@
+-# EcoSplit: Reputation & Reviews тАФ Visual Component Map
++# EcoPay: Reputation & Reviews тАФ Visual Component Map
+ 
+ ## Desktop Layout (1440px)
+ 
+@@ -72,7 +72,7 @@
+ тФМтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФР
+ тФВ                           FOOTER                                тФВ
+ тФВ  [Product] [Company] [Support]                                  тФВ
+-тФВ  ┬й 2026 EcoSplit ┬╖ Almaty, Kazakhstan                           тФВ
++тФВ  ┬й 2026 EcoPay ┬╖ Almaty, Kazakhstan                           тФВ
+ тФФтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФШ
+ ```
+ 
+@@ -161,7 +161,7 @@
+ тФМтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФР
+ тФВ        FOOTER            тФВ
+ тФВ [Product] [Company]      тФВ
+-тФВ ┬й 2026 EcoSplit          тФВ
++тФВ ┬й 2026 EcoPay          тФВ
+ тФФтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФШ
+ ```
+ 
+diff --git a/index.html b/index.html
+index e5c4878..39b9b8d 100644
+--- a/index.html
++++ b/index.html
+@@ -4,7 +4,7 @@
+     <head>
+       <meta charset="UTF-8" />
+       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+-      <title>EcoSplit Design System (Copy)</title>
++      <title>EcoPay</title>
+     </head>
+ 
+     <body>
+diff --git a/src/app/components/admin/admin-dashboard.tsx b/src/app/components/admin/admin-dashboard.tsx
+index fdb94de..1bcf2c7 100644
+--- a/src/app/components/admin/admin-dashboard.tsx
++++ b/src/app/components/admin/admin-dashboard.tsx
+@@ -1,4 +1,4 @@
+-import { Card, Badge } from "../ds-primitives";
++import { Card } from "../ds-primitives";
+ import { AdminLayout } from "./admin-layout";
+ import { useI18n } from "../i18n-provider";
+ import { ShieldCheck, Scale, Undo2, MessageSquare, Ban, Users, Home, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
+@@ -37,7 +37,7 @@ export function AdminDashboardPage() {
+           {kpis.map((k) => {
+             const Icon = k.icon;
+             return (
+-              <Card key={k.label} className="flex flex-col gap-3">
++              <Card key={k.key} className="flex flex-col gap-3">
+                 <div className="flex items-center justify-between">
+                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
+                     background: k.variant === "warning" ? "var(--eco-warning-100)" : k.variant === "danger" ? "var(--eco-danger-100)" : "var(--eco-brand-50)",
+@@ -66,7 +66,7 @@ export function AdminDashboardPage() {
+           {quickStats.map((s) => {
+             const Icon = s.icon;
+             return (
+-              <Card key={s.label} className="flex items-center gap-3">
++              <Card key={s.key} className="flex items-center gap-3">
+                 <Icon size={18} style={{ color: "var(--eco-text-tertiary)" }} />
+                 <div>
+                   <div className="text-[18px]" style={{ color: "var(--eco-text)" }}>{s.value}</div>
+diff --git a/src/app/components/admin/admin-logs.tsx b/src/app/components/admin/admin-logs.tsx
+index aa05021..a23c09a 100644
+--- a/src/app/components/admin/admin-logs.tsx
++++ b/src/app/components/admin/admin-logs.tsx
+@@ -1,59 +1,205 @@
+-import { Card, Badge } from "../ds-primitives";
++import { useCallback, useEffect, useMemo, useRef, useState } from "react";
++import { Card, Badge, Button, Select } from "../ds-primitives";
+ import { AdminLayout } from "./admin-layout";
+ import { useI18n } from "../i18n-provider";
+-import { Shield } from "lucide-react";
+-
+-const logs = [
+-  { time: "2026-04-03 09:30", actor: "admin@ecopay.kz", action: "Viewed identifier for U-1003 (Timur B.)", reason: "Moderation review MQ-300", type: "REVEAL" },
+-  { time: "2026-04-03 09:20", actor: "admin@ecopay.kz", action: "Confirmed MQ-301 тАФ Room R-2048", reason: "Price verified with Beeline catalog", type: "MODERATION" },
+-  { time: "2026-04-03 09:15", actor: "System", action: "Room R-2048 flagged for moderation (risk: 72)", reason: "Auto-trigger", type: "SYSTEM" },
+-  { time: "2026-04-02 14:00", actor: "admin@ecopay.kz", action: "Blocked room R-2045", reason: "Compliance violation тАФ fake plan listing", type: "BLOCK" },
+-  { time: "2026-04-02 11:00", actor: "support@ecopay.kz", action: "Escalated T-1018 to dispute D-104", reason: "User requests refund, owner unresponsive", type: "ESCALATION" },
+-  { time: "2026-04-01 16:00", actor: "admin@ecopay.kz", action: "Banned user U-1004 (Saule R.)", reason: "Multiple fraud reports confirmed", type: "BAN" },
+-  { time: "2026-04-01 10:30", actor: "support@ecopay.kz", action: "Replied to T-1024", reason: "тАФ", type: "TICKET" },
+-  { time: "2026-03-31 09:00", actor: "admin@ecopay.kz", action: "Initiated refund RF-200 (тВ╕3,200)", reason: "Duplicate charge confirmed", type: "REFUND" },
+-];
+-
+-const typeVariant: Record<string, "warning" | "danger" | "info" | "success" | "default"> = {
+-  REVEAL: "warning", MODERATION: "info", SYSTEM: "default", BLOCK: "danger", ESCALATION: "danger", BAN: "danger", TICKET: "info", REFUND: "warning",
+-};
++import { useAuth } from "../auth/auth-provider";
++import {
++  AdminLogEventDto,
++  getAdminActionLogs,
++  getRoomEventLogs,
++  mapAdminActionToEvent,
++  mapRoomEventToEvent,
++} from "../../lib/api";
++import { Shield, RefreshCw, Activity } from "lucide-react";
++
++type SourceFilter = "ALL" | "ADMIN_ACTION" | "ROOM_EVENT";
++
++type LiveStatus = "connected" | "polling" | "reconnecting" | "disconnected";
++
++const POLL_INTERVAL_MS = 12_000;
++const PAGE_SIZE = 50;
++
++function variantFor(type: string): "warning" | "danger" | "info" | "success" | "default" {
++  const t = type.toUpperCase();
++  if (t.includes("BAN") || t.includes("BLOCK") || t.includes("REJECT")) return "danger";
++  if (t.includes("REFUND") || t.includes("REVEAL")) return "warning";
++  if (t.includes("CONFIRM") || t.includes("APPROVE") || t.includes("SUCCESS")) return "success";
++  if (t.includes("ROOM") || t.includes("EVENT") || t.includes("MODERATION")) return "info";
++  return "default";
++}
+ 
+ export function AdminLogsPage() {
+   const { t } = useI18n();
++  const { authorizedRequest } = useAuth();
++
++  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("ALL");
++  const [events, setEvents] = useState<AdminLogEventDto[]>([]);
++  const [loading, setLoading] = useState(false);
++  const [error, setError] = useState<string | null>(null);
++  const [liveStatus, setLiveStatus] = useState<LiveStatus>("polling");
++  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
++
++  const eventsRef = useRef<AdminLogEventDto[]>([]);
++  eventsRef.current = events;
++
++  const mergeEvents = useCallback((incoming: AdminLogEventDto[]) => {
++    setEvents((prev) => {
++      const seen = new Set(prev.map((e) => e.id));
++      const merged = [...prev];
++      for (const e of incoming) {
++        if (!seen.has(e.id)) {
++          merged.push(e);
++          seen.add(e.id);
++        }
++      }
++      merged.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
++      return merged.slice(0, 500);
++    });
++  }, []);
++
++  const fetchLogs = useCallback(async (opts: { showLoading?: boolean } = {}) => {
++    if (opts.showLoading) setLoading(true);
++    try {
++      const needsAdminActions = sourceFilter === "ALL" || sourceFilter === "ADMIN_ACTION";
++      const needsRoomEvents = sourceFilter === "ALL" || sourceFilter === "ROOM_EVENT";
++
++      const results = await Promise.all([
++        needsAdminActions
++          ? authorizedRequest((token) => getAdminActionLogs({ page: 0, size: PAGE_SIZE }, token))
++          : Promise.resolve(null),
++        needsRoomEvents
++          ? authorizedRequest((token) => getRoomEventLogs({ page: 0, size: PAGE_SIZE }, token))
++          : Promise.resolve(null),
++      ]);
++
++      const incoming: AdminLogEventDto[] = [];
++      if (results[0]) incoming.push(...results[0].items.map(mapAdminActionToEvent));
++      if (results[1]) incoming.push(...results[1].items.map(mapRoomEventToEvent));
++
++      mergeEvents(incoming);
++      setError(null);
++      setLiveStatus("connected");
++      setLastUpdate(new Date());
++    } catch (err) {
++      setError(err instanceof Error ? err.message : t("failedToLoadLogs"));
++      setLiveStatus("reconnecting");
++    } finally {
++      if (opts.showLoading) setLoading(false);
++    }
++  }, [authorizedRequest, sourceFilter, mergeEvents, t]);
++
++  // Reset events when changing source filter so list shows only current source
++  useEffect(() => {
++    setEvents([]);
++    fetchLogs({ showLoading: true });
++  }, [sourceFilter, fetchLogs]);
++
++  // Polling loop
++  useEffect(() => {
++    const handle = window.setInterval(() => {
++      fetchLogs({ showLoading: false });
++    }, POLL_INTERVAL_MS);
++    setLiveStatus("polling");
++    return () => window.clearInterval(handle);
++  }, [fetchLogs]);
++
++  const visible = useMemo(() => events, [events]);
++
++  const sourceOptions = [
++    { value: "ALL", label: t("allLogTypes") },
++    { value: "ADMIN_ACTION", label: t("adminActionLogs") },
++    { value: "ROOM_EVENT", label: t("roomEventLogs") },
++  ];
++
++  const statusBadge = (() => {
++    switch (liveStatus) {
++      case "connected":
++        return { label: t("connected"), color: "var(--eco-positive)" };
++      case "polling":
++        return { label: `${t("liveUpdatesEnabled")} ┬╖ ${t("pollingFallback")}`, color: "var(--eco-text-secondary)" };
++      case "reconnecting":
++        return { label: t("reconnecting"), color: "var(--eco-warning)" };
++      default:
++        return { label: t("disconnected"), color: "var(--eco-negative)" };
++    }
++  })();
++
+   return (
+     <AdminLayout>
+-      <div className="max-w-[1100px]">
+-        <div className="flex items-center justify-between mb-6">
++      <div className="max-w-[1200px]">
++        <div className="flex items-center justify-between mb-4">
+           <div>
+             <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("adminLogs")}</h1>
+             <p className="text-[13px] mt-1" style={{ color: "var(--eco-text-tertiary)" }}>{t("auditTrailSubtitle")}</p>
+           </div>
+-          <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+-            <Shield size={13} /> {t("immutableAuditLog")}
++          <div className="flex items-center gap-3">
++            <div className="flex items-center gap-1.5 text-[12px]" style={{ color: statusBadge.color }}>
++              <Activity size={13} /> {statusBadge.label}
++            </div>
++            <Button variant="secondary" size="sm" onClick={() => fetchLogs({ showLoading: true })} disabled={loading}>
++              <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> {t("refresh")}
++            </Button>
+           </div>
+         </div>
+ 
+-        {/* Header */}
++        <Card className="mb-4">
++          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
++            <Select
++              label={t("logSource")}
++              value={sourceFilter}
++              onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
++              options={sourceOptions}
++            />
++            <div className="md:col-span-3 flex items-center gap-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
++              <Shield size={13} /> {t("immutableAuditLog")}
++              {lastUpdate && <span> ┬╖ {lastUpdate.toLocaleTimeString()}</span>}
++            </div>
++          </div>
++        </Card>
++
+         <div className="grid grid-cols-12 gap-3 px-5 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+           <div className="col-span-2">{t("colTimestamp")}</div>
+           <div className="col-span-2">{t("colActor")}</div>
+-          <div className="col-span-1">{t("colType")}</div>
+-          <div className="col-span-4">{t("colAction")}</div>
++          <div className="col-span-2">{t("logType")}</div>
++          <div className="col-span-3">{t("colAction")}</div>
+           <div className="col-span-3">{t("colReason")}</div>
+         </div>
+ 
+         <div className="flex flex-col gap-1.5">
+-          {logs.map((log, i) => (
+-            <Card key={i}>
+-              <div className="grid grid-cols-12 gap-3 items-center">
+-                <div className="col-span-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>{log.time}</div>
+-                <div className="col-span-2 text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>{log.actor}</div>
+-                <div className="col-span-1"><Badge variant={typeVariant[log.type]}>{log.type}</Badge></div>
+-                <div className="col-span-4 text-[13px]" style={{ color: "var(--eco-text)" }}>{log.action}</div>
+-                <div className="col-span-3 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{log.reason}</div>
+-              </div>
+-            </Card>
+-          ))}
++          {loading && visible.length === 0 ? (
++            <Card className="text-[13px] py-8 text-center" style={{ color: "var(--eco-text-tertiary)" }}>{t("loadingLogs")}</Card>
++          ) : error && visible.length === 0 ? (
++            <Card className="text-[13px] py-6 text-center" style={{ color: "var(--eco-negative)" }}>{error}</Card>
++          ) : visible.length === 0 ? (
++            <Card className="text-[13px] py-8 text-center" style={{ color: "var(--eco-text-tertiary)" }}>{t("noLogsFound")}</Card>
++          ) : (
++            visible.map((ev) => (
++              <Card key={ev.id}>
++                <div className="grid grid-cols-12 gap-3 items-center">
++                  <div className="col-span-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>
++                    {new Date(ev.createdAt).toLocaleString()}
++                  </div>
++                  <div className="col-span-2 text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
++                    {ev.actor ?? "тАФ"}
++                  </div>
++                  <div className="col-span-2">
++                    <Badge variant={variantFor(ev.type)}>{ev.type}</Badge>
++                  </div>
++                  <div className="col-span-3 text-[13px]" style={{ color: "var(--eco-text)" }}>
++                    {ev.action}
++                    {ev.entityType && (
++                      <span className="ml-2 text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
++                        {ev.entityType}{ev.entityId != null ? ` #${ev.entityId}` : ""}
++                      </span>
++                    )}
++                  </div>
++                  <div className="col-span-3 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
++                    {ev.reason ?? "тАФ"}
++                  </div>
++                </div>
++              </Card>
++            ))
++          )}
+         </div>
+       </div>
+     </AdminLayout>
+diff --git a/src/app/components/admin/admin-rooms.tsx b/src/app/components/admin/admin-rooms.tsx
+index 067db33..cd2c9f2 100644
+--- a/src/app/components/admin/admin-rooms.tsx
++++ b/src/app/components/admin/admin-rooms.tsx
+@@ -1,8 +1,8 @@
+ import { useState } from "react";
+-import { Card, Button, Badge, Modal, RoomStatusBadge } from "../ds-primitives";
++import { Card, Button, Modal, RoomStatusBadge } from "../ds-primitives";
+ import { AdminLayout } from "./admin-layout";
+ import { useI18n } from "../i18n-provider";
+-import { ShieldX, ShieldCheck, Eye, EyeOff, Shield, Clock, CheckCircle2, AlertTriangle, Users, Calendar, Lock } from "lucide-react";
++import { ShieldX, ShieldCheck, Eye, EyeOff, Shield } from "lucide-react";
+ 
+ type RoomEvent = { time: string; action: string; actor: string };
+ 
+@@ -29,7 +29,7 @@ const rooms: AdminRoom[] = [
+     ownerMasked: "+7 7** *** ** 67", ownerFull: "+7 (777) 111-22-67",
+     seats: 3, filled: 2, startDate: "2026-02-01", priceTotal: 11400, riskScore: 91,
+     events: [
+-      { time: "2026-04-01 14:00", action: "Room BLOCKED тАФ compliance review", actor: "admin@ecosplit.kz" },
++      { time: "2026-04-01 14:00", action: "Room BLOCKED тАФ compliance review", actor: "admin@ecopay.kz" },
+       { time: "2026-03-28 09:00", action: "Dispute D-103 created by member", actor: "System" },
+       { time: "2026-02-01 08:00", action: "Room activated", actor: "System" },
+       { time: "2026-01-30 12:00", action: "Room created", actor: "Unknown" },
+diff --git a/src/app/components/admin/admin-users.tsx b/src/app/components/admin/admin-users.tsx
+index ec02b50..debc45f 100644
+--- a/src/app/components/admin/admin-users.tsx
++++ b/src/app/components/admin/admin-users.tsx
+@@ -1,183 +1,415 @@
+-import { useState } from "react";
+-import { Card, Button, Badge, Modal } from "../ds-primitives";
++import { useCallback, useEffect, useMemo, useRef, useState } from "react";
++import { Card, Button, Badge, Modal, Select } from "../ds-primitives";
+ import { AdminLayout } from "./admin-layout";
+ import { useI18n } from "../i18n-provider";
+-import { Ban, ShieldCheck, Eye, EyeOff, Shield, Star, Home, MessageSquare, AlertTriangle } from "lucide-react";
++import { useAuth } from "../auth/auth-provider";
++import {
++  ApiError,
++  AdminUserDto,
++  AdminUsersQuery,
++  AdminUsersSortField,
++  AdminUserStatus,
++  PagedResponse,
++  banAdminUser,
++  getAdminUser,
++  getAdminUsers,
++  unbanAdminUser,
++} from "../../lib/api";
++import {
++  Ban,
++  ShieldCheck,
++  Shield,
++  Star,
++  Home,
++  MessageSquare,
++  AlertTriangle,
++  RefreshCw,
++  Search,
++} from "lucide-react";
+ 
+-type AdminUser = {
+-  id: string; name: string; email: string; joined: string; banned: boolean;
+-  riskScore: number; rating: number; roomsOwned: number; roomsJoined: number;
+-  tickets: number; disputes: number; identifierMasked: string; identifierFull: string;
+-};
++const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+ 
+-const users: AdminUser[] = [
+-  { id: "U-1001", name: "Aidar K.", email: "a***@mail.kz", joined: "Jan 2026", banned: false, riskScore: 15, rating: 4.8, roomsOwned: 5, roomsJoined: 2, tickets: 1, disputes: 0, identifierMasked: "+7 7** *** ** 45", identifierFull: "+7 (707) 234-56-45" },
+-  { id: "U-1002", name: "Dana M.", email: "d***@gmail.com", joined: "Feb 2026", banned: false, riskScore: 22, rating: 4.5, roomsOwned: 0, roomsJoined: 4, tickets: 2, disputes: 0, identifierMasked: "+7 7** *** ** 89", identifierFull: "+7 (771) 987-65-89" },
+-  { id: "U-1003", name: "Timur B.", email: "t***@inbox.kz", joined: "Mar 2026", banned: false, riskScore: 58, rating: 3.2, roomsOwned: 1, roomsJoined: 6, tickets: 4, disputes: 1, identifierMasked: "+7 7** *** ** 12", identifierFull: "+7 (702) 555-12-12" },
+-  { id: "U-1004", name: "Saule R.", email: "s***@mail.ru", joined: "Jan 2026", banned: true, riskScore: 89, rating: 1.5, roomsOwned: 2, roomsJoined: 0, tickets: 8, disputes: 3, identifierMasked: "+7 7** *** ** 67", identifierFull: "+7 (777) 111-22-67" },
+-];
++type StatusOption = "ALL" | AdminUserStatus;
++
++const isBanned = (u: AdminUserDto) => u.status === "BANNED";
+ 
+ export function AdminUsersPage() {
+   const { t } = useI18n();
+-  const [selected, setSelected] = useState<AdminUser | null>(null);
+-  const [banModal, setBanModal] = useState<{ user: AdminUser; action: "BAN" | "UNBAN" } | null>(null);
++  const { authorizedRequest } = useAuth();
++
++  // Filters/sort/pagination
++  const [search, setSearch] = useState("");
++  const [debouncedSearch, setDebouncedSearch] = useState("");
++  const [status, setStatus] = useState<StatusOption>("ALL");
++  const [sort, setSort] = useState<AdminUsersSortField>("createdAt");
++  const [direction, setDirection] = useState<"asc" | "desc">("desc");
++  const [page, setPage] = useState(0);
++  const [size, setSize] = useState(20);
++
++  // Data state
++  const [data, setData] = useState<PagedResponse<AdminUserDto> | null>(null);
++  const [loading, setLoading] = useState(false);
++  const [error, setError] = useState<string | null>(null);
++
++  // Selection state
++  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
++  const [selected, setSelected] = useState<AdminUserDto | null>(null);
++
++  // Ban/unban modal
++  const [banModal, setBanModal] = useState<{ user: AdminUserDto; action: "BAN" | "UNBAN" } | null>(null);
+   const [banReason, setBanReason] = useState("");
+-  const [localBans, setLocalBans] = useState<Record<string, boolean>>({});
+-  const [revealedId, setRevealedId] = useState<string | null>(null);
+-  const [revealTarget, setRevealTarget] = useState<string | null>(null);
+-  const [revealReason, setRevealReason] = useState("");
+-
+-  const isBanned = (u: AdminUser) => localBans[u.id] ?? u.banned;
+-
+-  const handleBan = () => {
+-    if (!banModal || !banReason.trim()) return;
+-    setLocalBans({ ...localBans, [banModal.user.id]: banModal.action === "BAN" });
+-    setBanModal(null);
+-    setBanReason("");
+-  };
++  const [banSubmitting, setBanSubmitting] = useState(false);
++  const [banError, setBanError] = useState<string | null>(null);
+ 
+-  const handleReveal = (id: string) => {
+-    if (revealedId === id) { setRevealedId(null); return; }
+-    setRevealTarget(id);
+-  };
+-  const confirmReveal = () => {
+-    if (revealTarget && revealReason.trim()) { setRevealedId(revealTarget); setRevealTarget(null); setRevealReason(""); }
++  // Debounce search input
++  useEffect(() => {
++    const handle = window.setTimeout(() => {
++      setDebouncedSearch(search.trim());
++      setPage(0);
++    }, 400);
++    return () => window.clearTimeout(handle);
++  }, [search]);
++
++  const query = useMemo<AdminUsersQuery>(() => ({
++    search: debouncedSearch || undefined,
++    status,
++    page,
++    size,
++    sort,
++    direction,
++  }), [debouncedSearch, status, page, size, sort, direction]);
++
++  const requestSeqRef = useRef(0);
++  const fetchUsers = useCallback(async () => {
++    const seq = ++requestSeqRef.current;
++    setLoading(true);
++    setError(null);
++    try {
++      const result = await authorizedRequest((token) => getAdminUsers(query, token));
++      if (seq !== requestSeqRef.current) return;
++      setData(result);
++    } catch (err) {
++      if (seq !== requestSeqRef.current) return;
++      setError(err instanceof Error ? err.message : t("failedToLoadUsers"));
++    } finally {
++      if (seq === requestSeqRef.current) setLoading(false);
++    }
++  }, [authorizedRequest, query, t]);
++
++  useEffect(() => {
++    fetchUsers();
++  }, [fetchUsers]);
++
++  // Keep selected user fresh when current page contents include it
++  useEffect(() => {
++    if (selectedUserId == null) {
++      setSelected(null);
++      return;
++    }
++    const inPage = data?.items.find((u) => u.id === selectedUserId);
++    if (inPage) {
++      setSelected(inPage);
++      return;
++    }
++    // Otherwise fetch details directly
++    let cancelled = false;
++    authorizedRequest((token) => getAdminUser(selectedUserId, token))
++      .then((u) => { if (!cancelled) setSelected(u); })
++      .catch(() => { if (!cancelled) setSelected(null); });
++    return () => { cancelled = true; };
++  }, [selectedUserId, data, authorizedRequest]);
++
++  const submitBan = async () => {
++    if (!banModal || banReason.trim().length < 3) return;
++    setBanSubmitting(true);
++    setBanError(null);
++    try {
++      const action = banModal.action;
++      const id = banModal.user.id;
++      const reason = banReason.trim();
++      const updated = await authorizedRequest((token) =>
++        action === "BAN" ? banAdminUser(id, reason, token) : unbanAdminUser(id, reason, token),
++      );
++      setSelected(updated);
++      setBanModal(null);
++      setBanReason("");
++      await fetchUsers();
++    } catch (err) {
++      const message = err instanceof ApiError
++        ? err.message
++        : err instanceof Error ? err.message : "Action failed";
++      setBanError(message);
++    } finally {
++      setBanSubmitting(false);
++    }
+   };
+ 
++  const totalItems = data?.totalItems ?? 0;
++  const totalPages = data?.totalPages ?? 0;
++  const items = data?.items ?? [];
++
++  const statusOptions = useMemo(() => [
++    { value: "ALL", label: t("allStatuses") },
++    { value: "ACTIVE", label: t("activeUsers") },
++    { value: "BANNED", label: t("bannedUsers") },
++  ], [t]);
++
++  const sortOptions = useMemo<{ value: AdminUsersSortField; label: string }[]>(() => [
++    { value: "createdAt", label: t("sortCreatedAt") },
++    { value: "displayName", label: t("sortName") },
++    { value: "email", label: t("sortEmail") },
++    { value: "riskScore", label: t("sortRiskScore") },
++    { value: "reputation", label: t("sortRating") },
++    { value: "status", label: t("status") },
++  ], [t]);
++
++  const directionOptions = useMemo(() => [
++    { value: "desc", label: t("desc") },
++    { value: "asc", label: t("asc") },
++  ], [t]);
++
++  const pageSizeOptions = useMemo(
++    () => PAGE_SIZE_OPTIONS.map((n) => ({ value: String(n), label: String(n) })),
++    [],
++  );
++
+   return (
+     <AdminLayout>
+-      <div className="max-w-[1100px]">
+-        <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>{t("users")}</h1>
++      <div className="max-w-[1200px]">
++        <div className="flex items-center justify-between mb-4">
++          <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("users")}</h1>
++          <div className="flex items-center gap-2">
++            <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
++              {t("totalUsers")}: {totalItems}
++            </span>
++            <Button variant="secondary" size="sm" onClick={fetchUsers} disabled={loading}>
++              <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> {t("refresh")}
++            </Button>
++          </div>
++        </div>
++
++        {/* Filters */}
++        <Card className="mb-4">
++          <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
++            <div className="md:col-span-2 flex flex-col gap-1.5">
++              <label className="text-[13px]" style={{ color: "var(--eco-text)" }}>{t("usersSearch")}</label>
++              <div className="relative">
++                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--eco-text-tertiary)" }} />
++                <input
++                  className="w-full pl-8 pr-3 py-2 rounded-lg outline-none text-[14px]"
++                  style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
++                  placeholder={t("searchUsersPlaceholder")}
++                  value={search}
++                  onChange={(e) => setSearch(e.target.value)}
++                />
++              </div>
++            </div>
++            <Select
++              label={t("statusFilter")}
++              value={status}
++              onChange={(e) => { setStatus(e.target.value as StatusOption); setPage(0); }}
++              options={statusOptions}
++            />
++            <Select
++              label={t("sortBy")}
++              value={sort}
++              onChange={(e) => { setSort(e.target.value as AdminUsersSortField); setPage(0); }}
++              options={sortOptions}
++            />
++            <Select
++              label={t("sortDirection")}
++              value={direction}
++              onChange={(e) => { setDirection(e.target.value as "asc" | "desc"); setPage(0); }}
++              options={directionOptions}
++            />
++            <Select
++              label={t("rowsPerPage")}
++              value={String(size)}
++              onChange={(e) => { setSize(Number(e.target.value)); setPage(0); }}
++              options={pageSizeOptions}
++            />
++          </div>
++        </Card>
+ 
+         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           {/* List */}
+           <div className="lg:col-span-1 flex flex-col gap-2">
+-            {users.map((u) => {
+-              const banned = isBanned(u);
+-              return (
+-                <button
+-                  key={u.id}
+-                  onClick={() => setSelected(u)}
+-                  className="text-left p-4 rounded-xl cursor-pointer transition-all"
+-                  style={{
+-                    background: selected?.id === u.id ? "var(--eco-brand-50)" : "var(--eco-surface-raised)",
+-                    border: `1px solid ${selected?.id === u.id ? "var(--eco-primary)" : "var(--eco-border)"}`,
+-                  }}
+-                >
+-                  <div className="flex items-center justify-between mb-1">
+-                    <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>{u.id}</span>
+-                    {banned && <Badge variant="danger">{t("bannedBadge")}</Badge>}
+-                  </div>
+-                  <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{u.name}</div>
+-                  <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+-                    <span className="flex items-center gap-0.5" style={{ color: "var(--eco-warning-500)" }}><Star size={10} fill="currentColor" /> {u.rating}</span>
+-                    ┬╖ Risk: <span style={{ color: u.riskScore >= 70 ? "var(--eco-negative)" : u.riskScore >= 40 ? "var(--eco-warning)" : "var(--eco-positive)" }}>{u.riskScore}</span>
+-                  </div>
+-                </button>
+-              );
+-            })}
++            {loading && items.length === 0 ? (
++              <Card className="text-[13px] py-8 text-center" style={{ color: "var(--eco-text-tertiary)" }}>{t("loadingUsers")}</Card>
++            ) : error ? (
++              <Card className="text-[13px] py-6 text-center" style={{ color: "var(--eco-negative)" }}>{error}</Card>
++            ) : items.length === 0 ? (
++              <Card className="text-[13px] py-8 text-center" style={{ color: "var(--eco-text-tertiary)" }}>{t("noUsersFound")}</Card>
++            ) : (
++              items.map((u) => {
++                const banned = isBanned(u);
++                const risk = u.riskScore ?? 0;
++                return (
++                  <button
++                    key={u.id}
++                    onClick={() => setSelectedUserId(u.id)}
++                    className="text-left p-4 rounded-xl cursor-pointer transition-all"
++                    style={{
++                      background: selectedUserId === u.id ? "var(--eco-brand-50)" : "var(--eco-surface-raised)",
++                      border: `1px solid ${selectedUserId === u.id ? "var(--eco-primary)" : "var(--eco-border)"}`,
++                    }}
++                  >
++                    <div className="flex items-center justify-between mb-1">
++                      <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>U-{u.id}</span>
++                      {banned && <Badge variant="danger">{t("bannedBadge")}</Badge>}
++                    </div>
++                    <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{u.displayName}</div>
++                    <div className="text-[11px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>
++                      {u.emailMasked ?? u.email ?? "тАФ"}
++                    </div>
++                    <div className="flex items-center gap-2 text-[12px] mt-1" style={{ color: "var(--eco-text-tertiary)" }}>
++                      <span className="flex items-center gap-0.5" style={{ color: "var(--eco-warning-500)" }}>
++                        <Star size={10} fill="currentColor" /> {u.reputation ?? 0}
++                      </span>
++                      ┬╖ {t("risk")}:{" "}
++                      <span style={{ color: risk >= 70 ? "var(--eco-negative)" : risk >= 40 ? "var(--eco-warning)" : "var(--eco-positive)" }}>
++                        {risk}
++                      </span>
++                    </div>
++                  </button>
++                );
++              })
++            )}
++
++            {/* Pagination */}
++            {totalPages > 0 && (
++              <div className="flex items-center justify-between mt-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
++                <Button variant="secondary" size="sm" disabled={page <= 0 || loading} onClick={() => setPage((p) => Math.max(0, p - 1))}>
++                  {t("previousPage")}
++                </Button>
++                <span>
++                  {t("page")} {page + 1} / {Math.max(1, totalPages)}
++                </span>
++                <Button variant="secondary" size="sm" disabled={!data?.hasNext || loading} onClick={() => setPage((p) => p + 1)}>
++                  {t("nextPage")}
++                </Button>
++              </div>
++            )}
+           </div>
+ 
+           {/* Detail */}
+           <div className="lg:col-span-2">
+             {!selected ? (
+-              <Card className="flex items-center justify-center py-16 text-[14px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("selectUserToView")}</Card>
++              <Card className="flex items-center justify-center py-16 text-[14px]" style={{ color: "var(--eco-text-tertiary)" }}>
++                {t("selectUserToView")}
++              </Card>
+             ) : (
+-              <div className="flex flex-col gap-4">
+-                <Card className="flex flex-col gap-4">
+-                  <div className="flex items-center justify-between">
+-                    <div className="flex items-center gap-3">
+-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-[14px]" style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)" }}>
+-                        {selected.name.charAt(0)}
+-                      </div>
+-                      <div>
+-                        <div className="text-[18px]" style={{ color: "var(--eco-text)" }}>{selected.name}</div>
+-                        <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{selected.id} ┬╖ {selected.email} ┬╖ {t("sinceLabel")} {selected.joined}</div>
+-                      </div>
++              <Card className="flex flex-col gap-4">
++                <div className="flex items-center justify-between">
++                  <div className="flex items-center gap-3">
++                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-[14px]" style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)" }}>
++                      {selected.displayName?.charAt(0) ?? "?"}
+                     </div>
+-                    <div className="flex items-center gap-2">
+-                      {isBanned(selected) && <Badge variant="danger">{t("bannedBadge")}</Badge>}
+-                      <span className="text-[13px] px-2 py-0.5 rounded" style={{
+-                        background: selected.riskScore >= 70 ? "var(--eco-danger-100)" : selected.riskScore >= 40 ? "var(--eco-warning-100)" : "var(--eco-success-100)",
+-                        color: selected.riskScore >= 70 ? "var(--eco-danger-500)" : selected.riskScore >= 40 ? "var(--eco-warning-500)" : "var(--eco-success-500)",
+-                      }}>Risk: {selected.riskScore}</span>
++                    <div>
++                      <div className="text-[18px]" style={{ color: "var(--eco-text)" }}>{selected.displayName}</div>
++                      <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
++                        U-{selected.id} ┬╖ {selected.emailMasked ?? selected.email ?? "тАФ"}
++                        {selected.createdAt && <> ┬╖ {t("sinceLabel")} {new Date(selected.createdAt).toLocaleDateString()}</>}
++                      </div>
+                     </div>
+                   </div>
++                  <div className="flex items-center gap-2">
++                    {isBanned(selected) && <Badge variant="danger">{t("bannedBadge")}</Badge>}
++                    <span className="text-[13px] px-2 py-0.5 rounded" style={{
++                      background: (selected.riskScore ?? 0) >= 70 ? "var(--eco-danger-100)" : (selected.riskScore ?? 0) >= 40 ? "var(--eco-warning-100)" : "var(--eco-success-100)",
++                      color: (selected.riskScore ?? 0) >= 70 ? "var(--eco-danger-500)" : (selected.riskScore ?? 0) >= 40 ? "var(--eco-warning-500)" : "var(--eco-success-500)",
++                    }}>{t("risk")}: {selected.riskScore ?? 0}</span>
++                  </div>
++                </div>
+ 
+-                  {/* Reputation summary */}
+-                  <div className="grid grid-cols-5 gap-3">
+-                    {[
+-                      { label: t("rating"), value: `${selected.rating}`, icon: Star },
+-                      { label: t("owned"), value: `${selected.roomsOwned}`, icon: Home },
+-                      { label: t("joinedCount"), value: `${selected.roomsJoined}`, icon: Home },
+-                      { label: t("tickets"), value: `${selected.tickets}`, icon: MessageSquare },
+-                      { label: t("disputes"), value: `${selected.disputes}`, icon: AlertTriangle },
+-                    ].map((s) => {
+-                      const Icon = s.icon;
+-                      return (
+-                        <div key={s.label} className="p-2.5 rounded-lg" style={{ background: "var(--eco-surface)" }}>
+-                          <div className="flex items-center gap-1.5 text-[11px] mb-0.5" style={{ color: "var(--eco-text-tertiary)" }}><Icon size={11} /> {s.label}</div>
+-                          <div className="text-[15px]" style={{ color: "var(--eco-text)" }}>{s.value}</div>
++                <div className="grid grid-cols-5 gap-3">
++                  {[
++                    { label: t("rating"), value: `${selected.reputation ?? 0}`, icon: Star },
++                    { label: t("owned"), value: `${selected.roomsOwned ?? 0}`, icon: Home },
++                    { label: t("joinedCount"), value: `${selected.roomsJoined ?? 0}`, icon: Home },
++                    { label: t("tickets"), value: `${selected.tickets ?? 0}`, icon: MessageSquare },
++                    { label: t("disputes"), value: `${selected.disputes ?? 0}`, icon: AlertTriangle },
++                  ].map((s) => {
++                    const Icon = s.icon;
++                    return (
++                      <div key={s.label} className="p-2.5 rounded-lg" style={{ background: "var(--eco-surface)" }}>
++                        <div className="flex items-center gap-1.5 text-[11px] mb-0.5" style={{ color: "var(--eco-text-tertiary)" }}>
++                          <Icon size={11} /> {s.label}
+                         </div>
+-                      );
+-                    })}
+-                  </div>
++                        <div className="text-[15px]" style={{ color: "var(--eco-text)" }}>{s.value}</div>
++                      </div>
++                    );
++                  })}
++                </div>
+ 
+-                  {/* Identifier */}
+-                  <div className="flex items-center gap-2 text-[12px] pt-3 border-t" style={{ borderColor: "var(--eco-border)" }}>
+-                    <Shield size={12} style={{ color: "var(--eco-text-tertiary)" }} />
+-                    <span style={{ color: "var(--eco-text-secondary)", fontFamily: "monospace" }}>
+-                      {revealedId === selected.id ? selected.identifierFull : selected.identifierMasked}
+-                    </span>
+-                    <button className="cursor-pointer p-0.5" onClick={() => handleReveal(selected.id)} style={{ background: "transparent", border: "none" }}>
+-                      {revealedId === selected.id ? <EyeOff size={12} style={{ color: "var(--eco-text-tertiary)" }} /> : <Eye size={12} style={{ color: "var(--eco-primary)" }} />}
+-                    </button>
+-                    {revealedId !== selected.id && <span className="text-[10px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("reasonRequiredAuditLogged")}</span>}
+-                  </div>
++                {/* Masked identifier тАФ reveal endpoint not implemented yet */}
++                <div className="flex items-center gap-2 text-[12px] pt-3 border-t" style={{ borderColor: "var(--eco-border)" }}>
++                  <Shield size={12} style={{ color: "var(--eco-text-tertiary)" }} />
++                  <span style={{ color: "var(--eco-text-secondary)", fontFamily: "monospace" }}>
++                    {selected.phoneMasked ?? "тАФ"}
++                  </span>
++                  <span className="text-[10px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("reasonRequiredAuditLogged")}</span>
++                </div>
+ 
+-                  {/* Ban/Unban */}
+-                  <div className="flex gap-2">
+-                    {!isBanned(selected) ? (
+-                      <Button variant="destructive" size="sm" onClick={() => setBanModal({ user: selected, action: "BAN" })}>
+-                        <Ban size={13} /> {t("banUser")}
+-                      </Button>
+-                    ) : (
+-                      <Button variant="primary" size="sm" onClick={() => setBanModal({ user: selected, action: "UNBAN" })}>
+-                        <ShieldCheck size={13} /> {t("unbanUser")}
+-                      </Button>
+-                    )}
+-                  </div>
+-                </Card>
+-              </div>
++                <div className="flex gap-2">
++                  {!isBanned(selected) ? (
++                    <Button variant="destructive" size="sm" onClick={() => { setBanError(null); setBanReason(""); setBanModal({ user: selected, action: "BAN" }); }}>
++                      <Ban size={13} /> {t("banUser")}
++                    </Button>
++                  ) : (
++                    <Button variant="primary" size="sm" onClick={() => { setBanError(null); setBanReason(""); setBanModal({ user: selected, action: "UNBAN" }); }}>
++                      <ShieldCheck size={13} /> {t("unbanUser")}
++                    </Button>
++                  )}
++                </div>
++              </Card>
+             )}
+           </div>
+         </div>
+ 
+-        {/* Ban modal */}
+-        <Modal open={!!banModal} onClose={() => { setBanModal(null); setBanReason(""); }} title={banModal ? (banModal.action === "BAN" ? t("banUser") : t("unbanUser")) : ""}>
++        <Modal
++          open={!!banModal}
++          onClose={() => { if (!banSubmitting) { setBanModal(null); setBanReason(""); setBanError(null); } }}
++          title={banModal ? (banModal.action === "BAN" ? t("banUser") : t("unbanUser")) : ""}
++        >
+           {banModal && (
+             <div className="flex flex-col gap-4">
+               <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+                 {banModal.action === "BAN" ? t("banUserConfirm") : t("unbanUserConfirm")}
+               </div>
+-              <div className="p-3 rounded-lg text-[12px]" style={{ background: "var(--eco-surface)" }}>{banModal.user.id} тАФ {banModal.user.name}</div>
++              <div className="p-3 rounded-lg text-[12px]" style={{ background: "var(--eco-surface)" }}>
++                U-{banModal.user.id} тАФ {banModal.user.displayName}
++              </div>
+               <div className="flex flex-col gap-1.5">
+-                <label className="text-[13px]" style={{ color: "var(--eco-text)" }}>{t("reason")} <span style={{ color: "var(--eco-negative)" }}>*</span></label>
+-                <textarea rows={3} value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder={t("mandatoryAuditLogged")} className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} />
++                <label className="text-[13px]" style={{ color: "var(--eco-text)" }}>
++                  {t("reason")} <span style={{ color: "var(--eco-negative)" }}>*</span>
++                </label>
++                <textarea
++                  rows={3}
++                  value={banReason}
++                  onChange={(e) => setBanReason(e.target.value)}
++                  placeholder={t("mandatoryAuditLogged")}
++                  className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
++                  style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
++                />
++              </div>
++              {banError && (
++                <div className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{banError}</div>
++              )}
++              <div className="text-[11px] flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}>
++                <Shield size={11} /> {t("auditLoggedShort")}
+               </div>
+-              <div className="text-[11px] flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}><Shield size={11} /> {t("auditLoggedShort")}</div>
+-              <Button variant={banModal.action === "BAN" ? "destructive" : "primary"} disabled={!banReason.trim()} onClick={handleBan}>{banModal.action === "BAN" ? t("banUser") : t("unbanUser")}</Button>
++              <Button
++                variant={banModal.action === "BAN" ? "destructive" : "primary"}
++                disabled={banReason.trim().length < 3 || banSubmitting}
++                loading={banSubmitting}
++                onClick={submitBan}
++              >
++                {banModal.action === "BAN" ? t("banUser") : t("unbanUser")}
++              </Button>
+             </div>
+           )}
+         </Modal>
+-
+-        <Modal open={!!revealTarget && revealedId !== revealTarget} onClose={() => setRevealTarget(null)} title={t("revealIdentifier")}>
+-          <div className="flex flex-col gap-4">
+-            <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{t("provideReasonAuditLoggedShort")}</div>
+-            <input className="px-3 py-2 rounded-lg outline-none text-[13px]" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }} placeholder={t("reasonPlaceholder")} value={revealReason} onChange={(e) => setRevealReason(e.target.value)} />
+-            <Button variant="primary" disabled={!revealReason.trim()} onClick={confirmReveal}>{t("reveal")}</Button>
+-          </div>
+-        </Modal>
+       </div>
+     </AdminLayout>
+   );
+diff --git a/src/app/components/auth/register.tsx b/src/app/components/auth/register.tsx
+index 7a45fea..554dcdb 100644
+--- a/src/app/components/auth/register.tsx
++++ b/src/app/components/auth/register.tsx
+@@ -61,7 +61,7 @@ export function RegisterPage() {
+         <div className="text-center mb-8">
+           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("createAccount")}</h1>
+           <p className="text-[13px] mt-2" style={{ color: "var(--eco-text-secondary)" }}>
+-            {t("joinEcoSplit")}
++            {t("joinEcoPay")}
+           </p>
+         </div>
+         <Card>
+diff --git a/src/app/components/i18n-provider.tsx b/src/app/components/i18n-provider.tsx
+index 466a2f2..63218ee 100644
+--- a/src/app/components/i18n-provider.tsx
++++ b/src/app/components/i18n-provider.tsx
+@@ -223,8 +223,8 @@ const translations: Translations = {
+   moderationQueue: { ru: "╨Ю╤З╨╡╤А╨╡╨┤╤М ╨╝╨╛╨┤╨╡╤А╨░╤Ж╨╕╨╕", kz: "╨Ь╨╛╨┤╨╡╤А╨░╤Ж╨╕╤П ╨║╨╡╨╖╨╡╨│╤Ц", en: "Moderation Queue" },
+   users: { ru: "╨Я╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╨╕", kz: "╨Я╨░╨╣╨┤╨░╨╗╨░╨╜╤Г╤И╤Л╨╗╨░╤А", en: "Users" },
+   rooms: { ru: "╨Ъ╨╛╨╝╨╜╨░╤В╤Л", kz: "╨С╙й╨╗╨╝╨╡╨╗╨╡╤А", en: "Rooms" },
+-  disputes: { ru: "╨б╨┐╨╛╤А╤Л", kz: "╨Ф╨░╤Г-╨┤╨░╨╝╨░╨╣╨╗╨░╤А", en: "Disputes" },
+-  refunds: { ru: "╨Т╨╛╨╖╨▓╤А╨░╤В╤Л", kz: "╥Ъ╨░╨╣╤В╨░╤А╤Г╨╗╨░╤А", en: "Refunds" },
++  disputes: { ru: "╨б╨┐╨╛╤А╤Л", kz: "╨Ф╨░╤Г╨╗╨░╤А", en: "Disputes" },
++  refunds: { ru: "╨Т╨╛╨╖╨▓╤А╨░╤В╤Л", kz: "╥Ъ╨░╨╣╤В╨░╤А╤Л╨╝╨┤╨░╤А", en: "Refunds" },
+   analytics: { ru: "╨Р╨╜╨░╨╗╨╕╤В╨╕╨║╨░", kz: "╨Р╨╜╨░╨╗╨╕╤В╨╕╨║╨░", en: "Analytics" },
+   logs: { ru: "╨Ы╨╛╨│╨╕", kz: "╨Ы╨╛╨│╤В╨░╤А", en: "Logs" },
+   totalUsers: { ru: "╨Т╤Б╨╡╨│╨╛ ╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╨╡╨╣", kz: "╨С╨░╤А╨╗╤Л╥Ы ╨┐╨░╨╣╨┤╨░╨╗╨░╨╜╤Г╤И╤Л╨╗╨░╤А", en: "Total Users" },
+@@ -338,7 +338,7 @@ const translations: Translations = {
+   reputationFactorsDesc: { ru: "╨а╨╡╨┐╤Г╤В╨░╤Ж╨╕╤П ╤А╨░╤Б╤Б╤З╨╕╤В╤Л╨▓╨░╨╡╤В╤Б╤П ╨╜╨░ ╨╛╤Б╨╜╨╛╨▓╨╡:", kz: "╨С╨╡╨┤╨╡╨╗╤Ц ╨╝╤Л╨╜╨░ ╨╜╨╡╨│╤Ц╨╖╨┤╨╡ ╨╡╤Б╨╡╨┐╤В╨╡╨╗╨╡╨┤╤Ц:", en: "Reputation is calculated based on:" },
+   factorAverageRating: { ru: "╨б╤А╨╡╨┤╨╜╨╕╨╣ ╤А╨╡╨╣╤В╨╕╨╜╨│ ╨╛╤В ╨╛╤В╨╖╤Л╨▓╨╛╨▓", kz: "╨Я╤Ц╨║╤Ц╤А╨╗╨╡╤А╨┤╤Ц╥г ╨╛╤А╤В╨░╤И╨░ ╤А╨╡╨╣╤В╨╕╨╜╨│╤Ц", en: "Average rating from reviews" },
+   factorCompletedPeriods: { ru: "╨Ъ╨╛╨╗╨╕╤З╨╡╤Б╤В╨▓╨╛ ╨╖╨░╨▓╨╡╤А╤И╤С╨╜╨╜╤Л╤Е ╨┐╨╡╤А╨╕╨╛╨┤╨╛╨▓", kz: "╨Р╤П╥Ы╤В╨░╨╗╥У╨░╨╜ ╨║╨╡╨╖╨╡╥г╨┤╨╡╤А ╤Б╨░╨╜╤Л", en: "Number of completed periods" },
+-  factorDisputes: { ru: "╨б╨┐╨╛╤А╤Л ╨╕ ╨╢╨░╨╗╨╛╨▒╤Л", kz: "╨Ф╨░╤Г-╨┤╨░╨╝╨░╨╣╨╗╨░╤А ╨╢╙Щ╨╜╨╡ ╤И╨░╥У╤Л╨╝╨┤╨░╤А", en: "Disputes and complaints" },
++  factorDisputes: { ru: "╨б╨┐╨╛╤А╤Л ╨╕ ╨╢╨░╨╗╨╛╨▒╤Л", kz: "╨Ф╨░╤Г╨╗╨░╤А ╨╝╨╡╨╜ ╤И╨░╥У╤Л╨╝╨┤╨░╤А", en: "Disputes and complaints" },
+   factorViolations: { ru: "╨Я╨╛╨┤╤В╨▓╨╡╤А╨╢╨┤╤С╨╜╨╜╤Л╨╡ ╨╜╨░╤А╤Г╤И╨╡╨╜╨╕╤П", kz: "╨а╨░╤Б╤В╨░╨╗╥У╨░╨╜ ╨▒╥▒╨╖╤Г╤И╤Л╨╗╤Л╥Ы╤В╨░╤А", en: "Confirmed violations" },
+   reportedByAdmin: { ru: "╨б╨╛╨╛╨▒╤Й╨╡╨╜╨╛ ╨░╨┤╨╝╨╕╨╜╨╕╤Б╤В╤А╨░╤В╨╛╤А╨╛╨╝", kz: "╙Ш╨║╤Ц╨╝╤И╤Ц ╤Е╨░╨▒╨░╤А╨╗╨░╥У╨░╨╜", en: "Reported by Admin" },
+   hiddenByAdmin: { ru: "╨б╨║╤А╤Л╤В╨╛ ╨░╨┤╨╝╨╕╨╜╨╕╤Б╤В╤А╨░╤В╨╛╤А╨╛╨╝", kz: "╙Ш╨║╤Ц╨╝╤И╤Ц ╨╢╨░╤Б╤Л╤А╥У╨░╨╜", en: "Hidden by Admin" },
+@@ -509,7 +509,6 @@ const translations: Translations = {
+   topicWrongTariff: { ru: "╨Я╨╛╨┤╨║╨╗╤О╤З╨╕╨╗╨╕ ╨╜╨╡ ╤В╨╛╤В ╤В╨░╤А╨╕╤Д", kz: "╨С╨░╤Б╥Ы╨░ ╤В╨░╤А╨╕╤Д ╥Ы╨╛╤Б╤Л╨╗╥У╨░╨╜", en: "Wrong tariff connected" },
+   topicEarlyDisconnect: { ru: "╨а╨░╨╜╨╜╨╡╨╡ ╨╛╤В╨║╨╗╤О╤З╨╡╨╜╨╕╨╡", kz: "╨Х╤А╤В╨╡ ╨░╨╢╤Л╤А╨░╤В╤Г", en: "Early disconnect" },
+   topicOther: { ru: "╨Ф╤А╤Г╨│╨╛╨╡", kz: "╨С╨░╤Б╥Ы╨░", en: "Other" },
+-  selectRoom: { ru: "╨Т╤Л╨▒╨╡╤А╨╕╤В╨╡ ╨║╨╛╨╝╨╜╨░╤В╤Г", kz: "╨С╙й╨╗╨╝╨╡╨╜╤Ц ╤В╨░╥г╨┤╨░╥г╤Л╨╖", en: "Select room" },
+   evidenceUpload: { ru: "╨Ч╨░╨│╤А╤Г╨╖╨║╨░ ╨┤╨╛╨║╨░╨╖╨░╤В╨╡╨╗╤М╤Б╤В╨▓", kz: "╨Ф╙Щ╨╗╨╡╨╗╨┤╨╡╨╝╨╡╨╗╨╡╤А╨┤╤Ц ╨╢╥п╨║╤В╨╡╤Г", en: "Evidence Upload" },
+   evidenceRules: { ru: "PNG, JPG ╨╕╨╗╨╕ PDF, ╨╝╨░╨║╤Б. 5 ╨Ь╨С, ╨┤╨╛ 3 ╤Д╨░╨╣╨╗╨╛╨▓", kz: "PNG, JPG ╨╜╨╡╨╝╨╡╤Б╨╡ PDF, ╨╝╨░╨║╤Б. 5 ╨Ь╨С, 3 ╤Д╨░╨╣╨╗╥У╨░ ╨┤╨╡╨╣╤Ц╨╜", en: "PNG, JPG or PDF, max 5 MB, up to 3 files" },
+   shortDescription: { ru: "╨Ъ╤А╨░╤В╨║╨╛╨╡ ╨╛╨┐╨╕╤Б╨░╨╜╨╕╨╡", kz: "╥Ъ╤Л╤Б╥Ы╨░╤И╨░ ╤Б╨╕╨┐╨░╤В╤В╨░╨╝╨░", en: "Short description" },
+@@ -577,15 +576,12 @@ const translations: Translations = {
+   catPayments: { ru: "╨Я╨╗╨░╤В╨╡╨╢╨╕", kz: "╨в╙й╨╗╨╡╨╝╨┤╨╡╤А", en: "Payments" },
+   catSupport: { ru: "╨Я╨╛╨┤╨┤╨╡╤А╨╢╨║╨░", kz: "╥Ъ╨╛╨╗╨┤╨░╤Г", en: "Support" },
+   catSecurity: { ru: "╨С╨╡╨╖╨╛╨┐╨░╤Б╨╜╨╛╤Б╤В╤М", kz: "╥Ъ╨░╤Г╤Ц╨┐╤Б╤Ц╨╖╨┤╤Ц╨║", en: "Security" },
+-  viewAll: { ru: "╨б╨╝╨╛╤В╤А╨╡╤В╤М ╨▓╤Б╨╡", kz: "╨С╨░╤А╨╗╤Л╥У╤Л╨╜ ╨║╙й╤А╤Г", en: "View all" },
+   justNow: { ru: "╨в╨╛╨╗╤М╨║╨╛ ╤З╤В╨╛", kz: "╨Ц╨░╥г╨░ ╥У╨░╨╜╨░", en: "Just now" },
+   minutesAgo: { ru: "╨╝╨╕╨╜ ╨╜╨░╨╖╨░╨┤", kz: "╨╝╨╕╨╜ ╨▒╥▒╤А╤Л╨╜", en: "min ago" },
+   hoursAgo: { ru: "╤З ╨╜╨░╨╖╨░╨┤", kz: "╤Б╨░╥У ╨▒╥▒╤А╤Л╨╜", en: "h ago" },
+-  yesterday: { ru: "╨Т╤З╨╡╤А╨░", kz: "╨Ъ╨╡╤И╨╡", en: "Yesterday" },
+   viewRoom: { ru: "╨Я╨╡╤А╨╡╨╣╤В╨╕ ╨║ ╨║╨╛╨╝╨╜╨░╤В╨╡", kz: "╨С╙й╨╗╨╝╨╡╨│╨╡ ╙й╤В╤Г", en: "View room" },
+   viewPayment: { ru: "╨Я╨╡╤А╨╡╨╣╤В╨╕ ╨║ ╨┐╨╗╨░╤В╨╡╨╢╤Г", kz: "╨в╙й╨╗╨╡╨╝╨│╨╡ ╙й╤В╤Г", en: "View payment" },
+   viewDispute: { ru: "╨Я╨╡╤А╨╡╨╣╤В╨╕ ╨║ ╤Б╨┐╨╛╤А╤Г", kz: "╨Ф╨░╤Г╥У╨░ ╙й╤В╤Г", en: "View dispute" },
+-  viewProfile: { ru: "╨Я╨╡╤А╨╡╨╣╤В╨╕ ╨║ ╨┐╤А╨╛╤Д╨╕╨╗╤О", kz: "╨Я╤А╨╛╤Д╨╕╨╗╤М╨│╨╡ ╙й╤В╤Г", en: "View profile" },
+   notifUserJoinedRoom: { ru: "╨Э╨╛╨▓╤Л╨╣ ╤Г╤З╨░╤Б╤В╨╜╨╕╨║ ╨┐╤А╨╕╤Б╨╛╨╡╨┤╨╕╨╜╨╕╨╗╤Б╤П ╨║ ╨▓╨░╤И╨╡╨╣ ╨║╨╛╨╝╨╜╨░╤В╨╡", kz: "╨Ц╨░╥г╨░ ╥Ы╨░╤В╤Л╤Б╤Г╤И╤Л ╨▒╙й╨╗╨╝╨╡╥г╤Ц╨╖╨│╨╡ ╥Ы╨╛╤Б╤Л╨╗╨┤╤Л", en: "A new member joined your room" },
+   notifUserJoinedRoomBody: { ru: "User_k9x3p ╨┐╤А╨╕╤Б╨╛╨╡╨┤╨╕╨╜╨╕╨╗╤Б╤П ╨║ ┬лBeeline Family 30GB┬╗. ╨Я╤А╨╡╨┤╨╛╤Б╤В╨░╨▓╤М╤В╨╡ ╨┤╨╛╤Б╤В╤Г╨┐ ╨║ ╤В╨░╤А╨╕╤Д╤Г.", kz: "User_k9x3p ┬лBeeline Family 30GB┬╗ ╨▒╙й╨╗╨╝╨╡╤Б╤Ц╨╜╨╡ ╥Ы╨╛╤Б╤Л╨╗╨┤╤Л. ╨в╨░╤А╨╕╤Д╨║╨╡ ╥Ы╨░╤В╤Л╨╜╨░╤Б ╨▒╨╡╤А╤Ц╥г╤Ц╨╖.", en: "User_k9x3p joined 'Beeline Family 30GB'. Please grant plan access." },
+   notifAccessGranted: { ru: "╨Т╨╗╨░╨┤╨╡╨╗╨╡╤Ж ╨┐╤А╨╡╨┤╨╛╤Б╤В╨░╨▓╨╕╨╗ ╨┤╨╛╤Б╤В╤Г╨┐", kz: "╨Ш╨╡╤Б╤Ц ╥Ы╨░╤В╤Л╨╜╨░╤Б ╨▒╨╡╤А╨┤╤Ц", en: "Owner granted access" },
+@@ -626,8 +622,6 @@ const translations: Translations = {
+   moduleSupport: { ru: "╨Я╨╛╨┤╨┤╨╡╤А╨╢╨║╨░", kz: "╥Ъ╨╛╨╗╨┤╨░╤Г", en: "Support" },
+   moduleAdmin: { ru: "╨Р╨┤╨╝╨╕╨╜", kz: "╙Ш╨║╤Ц╨╝╤И╤Ц", en: "Admin" },
+   stateError: { ru: "╨Ю╤И╨╕╨▒╨║╨░", kz: "╥Ъ╨░╤В╨╡", en: "Error" },
+-  stateEmpty: { ru: "╨Я╤Г╤Б╤В╨╛", kz: "╨С╨╛╤Б", en: "Empty" },
+-  stateLoading: { ru: "╨Ч╨░╨│╤А╤Г╨╖╨║╨░", kz: "╨Ц╥п╨║╤В╨╡╨╗╤Г", en: "Loading" },
+   stateInfo: { ru: "╨Ш╨╜╤Д╨╛╤А╨╝╨░╤Ж╨╕╤П", kz: "╨Р╥Ы╨┐╨░╤А╨░╤В", en: "Info" },
+   recommendedCta: { ru: "╨а╨╡╨║╨╛╨╝╨╡╨╜╨┤╤Г╨╡╨╝╤Л╨╣ CTA", kz: "╥░╤Б╤Л╨╜╤Л╨╗╥У╨░╨╜ CTA", en: "Recommended CTA" },
+   authLoginError: { ru: "╨Э╨╡╨▓╨╡╤А╨╜╤Л╨╣ ╨╜╨╛╨╝╨╡╤А ╤В╨╡╨╗╨╡╤Д╨╛╨╜╨░ ╨╕╨╗╨╕ ╨┐╨░╤А╨╛╨╗╤М", kz: "╨в╨╡╨╗╨╡╤Д╨╛╨╜ ╨╜╙й╨╝╤Ц╤А╤Ц ╨╜╨╡╨╝╨╡╤Б╨╡ ╥Ы╥▒╨┐╨╕╤П ╤Б╙й╨╖ ╥Ы╨░╤В╨╡", en: "Incorrect phone number or password" },
+@@ -651,7 +645,6 @@ const translations: Translations = {
+   roomJoinClosed: { ru: "╨Я╤А╨╕╤Б╨╛╨╡╨┤╨╕╨╜╨╡╨╜╨╕╨╡ ╨╖╨░╨║╤А╤Л╤В╨╛", kz: "╥Ъ╨╛╤Б╤Л╨╗╤Г ╨╢╨░╨▒╤Л╥Ы", en: "Joining is closed" },
+   roomJoinClosedDesc: { ru: "╨Т╤Б╤В╤Г╨┐╨╗╨╡╨╜╨╕╨╡ ╨╖╨░╨║╤А╤Л╤В╨╛ ╨┐╨╛╤Б╨╗╨╡ ╨┤╨░╤В╤Л ╤Б╤В╨░╤А╤В╨░ ╤В╨░╤А╨╕╤Д╨░", kz: "╨в╨░╤А╨╕╤Д ╨▒╨░╤Б╤В╨░╨╗╥У╨░╨╜ ╨║╥п╨╜╨╜╨╡╨╜ ╨║╨╡╨╣╤Ц╨╜ ╥Ы╨╛╤Б╤Л╨╗╤Г ╨╢╨░╨▒╤Л╨╗╨┤╤Л", en: "Joining closed after the plan start date" },
+   roomJoinClosedCta: { ru: "╨б╨╝╨╛╤В╤А╨╡╤В╤М ╨║╨░╤В╨░╨╗╨╛╨│", kz: "╨Ъ╨░╤В╨░╨╗╨╛╨│╤В╤Л ╥Ы╨░╤А╨░╤Г", en: "Browse catalog" },
+-  paymentFailed: { ru: "╨Я╨╗╨░╤В╤С╨╢ ╨╜╨╡ ╨┐╤А╨╛╤И╤С╨╗", kz: "╨в╙й╨╗╨╡╨╝ ╤Б╙Щ╤В╤Б╤Ц╨╖ ╨▒╨╛╨╗╨┤╤Л", en: "Payment failed" },
+   paymentFailedDesc: { ru: "╨в╤А╨░╨╜╨╖╨░╨║╤Ж╨╕╤П ╨╛╤В╨║╨╗╨╛╨╜╨╡╨╜╨░ ╨▒╨░╨╜╨║╨╛╨╝. ╨б╤А╨╡╨┤╤Б╤В╨▓╨░ ╨╜╨╡ ╤Б╨┐╨╕╤Б╨░╨╜╤Л.", kz: "╨в╤А╨░╨╜╨╖╨░╨║╤Ж╨╕╤П ╨▒╨░╨╜╨║ ╤В╨░╤А╨░╨┐╤Л╨╜╨░╨╜ ╥Ы╨░╨▒╤Л╨╗╨┤╨░╨╜╨▒╨░╨┤╤Л. ╥Ъ╨░╤А╨░╨╢╨░╤В ╤И╤Л╥У╨░╤А╤Л╨╗╨╝╨░╨┤╤Л.", en: "Transaction declined by bank. No funds were charged." },
+   paymentFailedCta: { ru: "╨Я╨╛╨▓╤В╨╛╤А╨╕╤В╤М ╨╛╨┐╨╗╨░╤В╤Г", kz: "╨в╙й╨╗╨╡╨╝╨┤╤Ц ╥Ы╨░╨╣╤В╨░╨╗╨░╤Г", en: "Retry payment" },
+   paymentPendingHold: { ru: "╨Я╨╗╨░╤В╤С╨╢ ╨╛╨▒╤А╨░╨▒╨░╤В╤Л╨▓╨░╨╡╤В╤Б╤П", kz: "╨в╙й╨╗╨╡╨╝ ╙й╥г╨┤╨╡╨╗╤Г╨┤╨╡", en: "Payment is processing" },
+@@ -690,7 +683,6 @@ const translations: Translations = {
+   contrastAaaLabel: { ru: "AAA (7:1)", kz: "AAA (7:1)", en: "AAA (7:1)" },
+   inlineValidation: { ru: "╨Т╤Б╤В╤А╨╛╨╡╨╜╨╜╨░╤П ╨▓╨░╨╗╨╕╨┤╨░╤Ж╨╕╤П", kz: "╨Ъ╤Ц╤А╤Ц╤Б╤В╤Ц╤А╤Ц╨╗╨│╨╡╨╜ ╨▓╨░╨╗╨╕╨┤╨░╤Ж╨╕╤П", en: "Inline validation" },
+   summaryValidation: { ru: "╨б╨▓╨╛╨┤╨║╨░ ╨╛╤И╨╕╨▒╨╛╨║", kz: "╥Ъ╨░╤В╨╡╨╗╨╡╤А ╨╢╨╕╤Л╨╜╤В╤Л╥У╤Л", en: "Error summary" },
+-  fieldRequired: { ru: "╨Ю╨▒╤П╨╖╨░╤В╨╡╨╗╤М╨╜╨╛╨╡ ╨┐╨╛╨╗╨╡", kz: "╨Ь╤Ц╨╜╨┤╨╡╤В╤В╤Ц ╙й╤А╤Ц╤Б", en: "Required field" },
+   fieldInvalidPhone: { ru: "╨д╨╛╤А╨╝╨░╤В: +7 (XXX) XXX-XX-XX", kz: "╨д╨╛╤А╨╝╨░╤В: +7 (XXX) XXX-XX-XX", en: "Format: +7 (XXX) XXX-XX-XX" },
+   fieldPasswordWeak: { ru: "╨Ь╨╕╨╜. 8 ╤Б╨╕╨╝╨▓╨╛╨╗╨╛╨▓, ╨▒╤Г╨║╨▓╨░ ╨╕ ╤Ж╨╕╤Д╤А╨░", kz: "╨Ъ╨╡╨╝ ╨┤╨╡╨│╨╡╨╜╨┤╨╡ 8 ╤В╨░╥г╨▒╨░, ╙Щ╤А╤Ц╨┐ ╨┐╨╡╨╜ ╤Б╨░╨╜", en: "Min 8 chars, letter and number" },
+   fieldPriceRange: { ru: "╨ж╨╡╨╜╨░ ╨╛╤В 500 ╨┤╨╛ 50 000 тВ╕", kz: "╨С╨░╥У╨░ 500-╨┤╨╡╨╜ 50 000 тВ╕-╨│╨╡ ╨┤╨╡╨╣╤Ц╨╜", en: "Price from 500 to 50,000 тВ╕" },
+@@ -773,7 +765,7 @@ const translations: Translations = {
+   sectionAcceptance: { ru: "╨Ъ╤А╨╕╤В╨╡╤А╨╕╨╕ ╨┐╤А╨╕╤С╨╝╨║╨╕", kz: "╥Ъ╨░╨▒╤Л╨╗╨┤╨░╤Г ╨║╤А╨╕╤В╨╡╤А╨╕╨╣╨╗╨╡╤А╤Ц", en: "Acceptance Criteria" },
+   stateEmpty: { ru: "╨Я╤Г╤Б╤В╨╛", kz: "╨С╨╛╤Б", en: "Empty" },
+   stateLoading: { ru: "╨Ч╨░╨│╤А╤Г╨╖╨║╨░", kz: "╨Ц╥п╨║╤В╨╡╨╗╤Г╨┤╨╡", en: "Loading" },
+-  statePermission: { ru: "╨Э╨╡╤В ╨┤╨╛╤Б╤В╤Г╨┐╨░", kz: "╥Ъ╨░╤В╤Л╨╜╨░╤Б ╨╢╨╛╥Ы", en: "No Access" },
++  statePermission: { ru: "╨Э╨╡╤В ╨┤╨╛╤Б╤В╤Г╨┐╨░", kz: "╥Ъ╨░╤В╤Л╨╜╨░╤Б ╨╢╨╛╥Ы", en: "No access" },
+   stateOffline: { ru: "╨Ю╤Д╤Д╨╗╨░╨╣╨╜", kz: "╨Ю╤Д╤Д╨╗╨░╨╣╨╜", en: "Offline" },
+   stateRateLimit: { ru: "╨Ы╨╕╨╝╨╕╤В ╨╖╨░╨┐╤А╨╛╤Б╨╛╨▓", kz: "╨б╥▒╤А╨░╤Г╨╗╨░╤А ╤И╨╡╨║╤В╨╡╤Г╤Ц", en: "Rate-Limited" },
+   covered: { ru: "╨Я╨╛╨║╤А╤Л╤В╨╛", kz: "╥Ъ╨░╨╝╤В╤Л╨╗╥У╨░╨╜", en: "Covered" },
+@@ -1054,7 +1046,7 @@ const translations: Translations = {
+   // ===== Admin: shared chrome =====
+   adminPortal: { ru: "╨Р╨┤╨╝╨╕╨╜-╨┐╨╛╤А╤В╨░╨╗", kz: "╙Ш╨║╤Ц╨╝╤И╤Ц ╨┐╨╛╤А╤В╨░╨╗╤Л", en: "Admin Portal" },
+   dashboard: { ru: "╨Я╨░╨╜╨╡╨╗╤М ╤Г╨┐╤А╨░╨▓╨╗╨╡╨╜╨╕╤П", kz: "╨С╨░╤Б╥Ы╨░╤А╤Г ╤В╨░╥Ы╤В╨░╤Б╤Л", en: "Dashboard" },
+-  adminLogs: { ru: "╨Ы╨╛╨│╨╕ ╨░╨┤╨╝╨╕╨╜╨╕╤Б╤В╤А╨░╤В╨╛╤А╨░", kz: "╙Ш╨║╤Ц╨╝╤И╤Ц ╨╗╨╛╨│╤В╨░╤А╤Л", en: "Admin Logs" },
++  adminLogs: { ru: "╨Ы╨╛╨│╨╕ ╨░╨┤╨╝╨╕╨╜╨╕╤Б╤В╤А╨░╤В╨╛╤А╨░", kz: "╙Ш╨║╤Ц╨╝╤И╤Ц ╨╢╤Г╤А╨╜╨░╨╗╨┤╨░╤А╤Л", en: "Admin Logs" },
+   adminSearchPlaceholder: { ru: "╨Я╨╛╨╕╤Б╨║ ╨║╨╛╨╝╨╜╨░╤В, ╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╨╡╨╣, ╨╖╨░╤П╨▓╨╛╨║...", kz: "╨С╙й╨╗╨╝╨╡╨╗╨╡╤А╨┤╤Ц, ╨┐╨░╨╣╨┤╨░╨╗╨░╨╜╤Г╤И╤Л╨╗╨░╤А╨┤╤Л, ╙й╤В╤Ц╨╜╤Ц╨╝╨┤╨╡╤А╨┤╤Ц ╤Ц╨╖╨┤╨╡╤Г...", en: "Search rooms, users, tickets..." },
+   adminRoleLabel: { ru: "╨Р╨┤╨╝╨╕╨╜╨╕╤Б╤В╤А╨░╤В╨╛╤А", kz: "╙Ш╨║╤Ц╨╝╤И╤Ц", en: "Admin" },
+   administrationAndSupport: { ru: "╨Р╨┤╨╝╨╕╨╜╨╕╤Б╤В╤А╨╕╤А╨╛╨▓╨░╨╜╨╕╨╡ ╨╕ ╨┐╨╛╨┤╨┤╨╡╤А╨╢╨║╨░", kz: "╙Ш╨║╤Ц╨╝╤И╤Ц╨╗╤Ц╨║ ╨╢╙Щ╨╜╨╡ ╥Ы╨╛╨╗╨┤╨░╤Г", en: "Administration & Support" },
+@@ -1143,6 +1135,42 @@ const translations: Translations = {
+   mandatoryAuditLogged: { ru: "╨Ю╨▒╤П╨╖╨░╤В╨╡╨╗╤М╨╜╨╛ (╨╖╨░╨┐╨╕╤Б╤Л╨▓╨░╨╡╤В╤Б╤П ╨▓ ╨░╤Г╨┤╨╕╤В)...", kz: "╨Ь╤Ц╨╜╨┤╨╡╤В╤В╤Ц (╨░╤Г╨┤╨╕╤В╨║╨╡ ╨╢╨░╨╖╤Л╨╗╨░╨┤╤Л)...", en: "Mandatory (audit logged)..." },
+   auditLoggedShort: { ru: "╨Ч╨░╨┐╨╕╤Б╨░╨╜╨╛ ╨▓ ╨░╤Г╨┤╨╕╤В.", kz: "╨Р╤Г╨┤╨╕╤В╨║╨╡ ╨╢╨░╨╖╤Л╨╗╨┤╤Л.", en: "Audit logged." },
+   provideReasonAuditLoggedShort: { ru: "╨г╨║╨░╨╢╨╕╤В╨╡ ╨┐╤А╨╕╤З╨╕╨╜╤Г. ╨Ч╨░╨┐╨╕╤Б╤Л╨▓╨░╨╡╤В╤Б╤П ╨▓ ╨░╤Г╨┤╨╕╤В.", kz: "╨б╨╡╨▒╨╡╨┐╤В╤Ц ╨║╙й╤А╤Б╨╡╤В╤Ц╥г╤Ц╨╖. ╨Р╤Г╨┤╨╕╤В╨║╨╡ ╨╢╨░╨╖╤Л╨╗╨░╨┤╤Л.", en: "Provide reason. Audit logged." },
++  searchUsersPlaceholder: { ru: "╨Я╨╛╨╕╤Б╨║ ╨┐╨╛ ╨╕╨╝╨╡╨╜╨╕, email ╨╕╨╗╨╕ ID...", kz: "╨Р╤В╤Л, email ╨╜╨╡╨╝╨╡╤Б╨╡ ID ╨▒╨╛╨╣╤Л╨╜╤И╨░ ╤Ц╨╖╨┤╨╡╤Г...", en: "Search by name, email or ID..." },
++  usersSearch: { ru: "╨Я╨╛╨╕╤Б╨║ ╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╨╡╨╣", kz: "╨Я╨░╨╣╨┤╨░╨╗╨░╨╜╤Г╤И╤Л╨╗╨░╤А╨┤╤Л ╤Ц╨╖╨┤╨╡╤Г", en: "Search users" },
++  statusFilter: { ru: "╨д╨╕╨╗╤М╤В╤А ╨┐╨╛ ╤Б╤В╨░╤В╤Г╤Б╤Г", kz: "╨Ь╙Щ╤А╤В╨╡╨▒╨╡ ╨▒╨╛╨╣╤Л╨╜╤И╨░ ╤Б╥п╨╖╤Г", en: "Status filter" },
++  activeUsers: { ru: "╨Р╨║╤В╨╕╨▓╨╜╤Л╨╡", kz: "╨С╨╡╨╗╤Б╨╡╨╜╨┤╤Ц", en: "Active" },
++  bannedUsers: { ru: "╨Ч╨░╨▒╨╗╨╛╨║╨╕╤А╨╛╨▓╨░╨╜╨╜╤Л╨╡", kz: "╨С╥▒╥У╨░╤В╤В╨░╨╗╥У╨░╨╜╨┤╨░╤А", en: "Banned" },
++  sortDirection: { ru: "╨Э╨░╨┐╤А╨░╨▓╨╗╨╡╨╜╨╕╨╡ ╤Б╨╛╤А╤В╨╕╤А╨╛╨▓╨║╨╕", kz: "╨б╥▒╤А╤Л╨┐╤В╨░╤Г ╨▒╨░╥У╤Л╤В╤Л", en: "Sort direction" },
++  sortCreatedAt: { ru: "╨Ф╨░╤В╨░ ╤А╨╡╨│╨╕╤Б╤В╤А╨░╤Ж╨╕╨╕", kz: "╨в╤Ц╤А╨║╨╡╨╗╤Г ╨║╥п╨╜╤Ц", en: "Created at" },
++  sortRiskScore: { ru: "╨г╤А╨╛╨▓╨╡╨╜╤М ╤А╨╕╤Б╨║╨░", kz: "╨в╙Щ╤Г╨╡╨║╨╡╨╗ ╨┤╨╡╥г╨│╨╡╨╣╤Ц", en: "Risk score" },
++  sortName: { ru: "╨Ш╨╝╤П", kz: "╨Р╤В╤Л", en: "Name" },
++  sortEmail: { ru: "Email", kz: "Email", en: "Email" },
++  asc: { ru: "╨Я╨╛ ╨▓╨╛╨╖╤А╨░╤Б╤В╨░╨╜╨╕╤О", kz: "╙и╤Б╤Г ╨▒╨╛╨╣╤Л╨╜╤И╨░", en: "Ascending" },
++  desc: { ru: "╨Я╨╛ ╤Г╨▒╤Л╨▓╨░╨╜╨╕╤О", kz: "╨Ъ╨╡╨╝╤Г ╨▒╨╛╨╣╤Л╨╜╤И╨░", en: "Descending" },
++  page: { ru: "╨б╤В╤А╨░╨╜╨╕╤Ж╨░", kz: "╨С╨╡╤В", en: "Page" },
++  nextPage: { ru: "╨б╨╗╨╡╨┤╤Г╤О╤Й╨░╤П", kz: "╨Ъ╨╡╨╗╨╡╤Б╤Ц", en: "Next" },
++  previousPage: { ru: "╨Я╤А╨╡╨┤╤Л╨┤╤Г╤Й╨░╤П", kz: "╨Р╨╗╨┤╤Л╥г╥У╤Л", en: "Previous" },
++  rowsPerPage: { ru: "╨Э╨░ ╤Б╤В╤А╨░╨╜╨╕╤Ж╨╡", kz: "╨С╨╡╤В╤В╨╡", en: "Rows per page" },
++  noUsersFound: { ru: "╨Я╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╨╕ ╨╜╨╡ ╨╜╨░╨╣╨┤╨╡╨╜╤Л", kz: "╨Я╨░╨╣╨┤╨░╨╗╨░╨╜╤Г╤И╤Л╨╗╨░╤А ╤В╨░╨▒╤Л╨╗╨╝╨░╨┤╤Л", en: "No users found" },
++  loadingUsers: { ru: "╨Ч╨░╨│╤А╤Г╨╖╨║╨░ ╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╨╡╨╣...", kz: "╨Я╨░╨╣╨┤╨░╨╗╨░╨╜╤Г╤И╤Л╨╗╨░╤А ╨╢╥п╨║╤В╨╡╨╗╤Г╨┤╨╡...", en: "Loading users..." },
++  failedToLoadUsers: { ru: "╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╨╖╨░╨│╤А╤Г╨╖╨╕╤В╤М ╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╨╡╨╣", kz: "╨Я╨░╨╣╨┤╨░╨╗╨░╨╜╤Г╤И╤Л╨╗╨░╤А╨┤╤Л ╨╢╥п╨║╤В╨╡╤Г ╨╝╥п╨╝╨║╤Ц╨╜ ╨▒╨╛╨╗╨╝╨░╨┤╤Л", en: "Failed to load users" },
++  refresh: { ru: "╨Ю╨▒╨╜╨╛╨▓╨╕╤В╤М", kz: "╨Ц╨░╥г╨░╤А╤В╤Г", en: "Refresh" },
++
++  // ===== Admin: logs (live) =====
++  realTimeLogs: { ru: "╨Ы╨╛╨│╨╕ ╨▓ ╤А╨╡╨░╨╗╤М╨╜╨╛╨╝ ╨▓╤А╨╡╨╝╨╡╨╜╨╕", kz: "╨Э╨░╥Ы╤В╤Л ╤Г╨░╥Ы╤Л╤В╤В╨░╥У╤Л ╨╢╤Г╤А╨╜╨░╨╗╨┤╨░╤А", en: "Real-time logs" },
++  connected: { ru: "╨Я╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╛", kz: "╥Ъ╨╛╤Б╤Л╨╗╥У╨░╨╜", en: "Connected" },
++  disconnected: { ru: "╨Ю╤В╨║╨╗╤О╤З╨╡╨╜╨╛", kz: "╨Р╨╢╤Л╤А╨░╤В╤Л╨╗╥У╨░╨╜", en: "Disconnected" },
++  reconnecting: { ru: "╨Я╨╡╤А╨╡╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╕╨╡...", kz: "╥Ъ╨░╨╣╤В╨░ ╥Ы╨╛╤Б╤Л╨╗╤Г╨┤╨░...", en: "Reconnecting..." },
++  logType: { ru: "╨в╨╕╨┐ ╤Б╨╛╨▒╤Л╤В╨╕╤П", kz: "╨Ю╥Ы╨╕╥У╨░ ╤В╥п╤А╤Ц", en: "Event type" },
++  logSource: { ru: "╨Ш╤Б╤В╨╛╤З╨╜╨╕╨║", kz: "╨Ф╨╡╤А╨╡╨║╨║╙й╨╖╤Ц", en: "Source" },
++  adminActionLogs: { ru: "╨Ф╨╡╨╣╤Б╤В╨▓╨╕╤П ╨░╨┤╨╝╨╕╨╜╨╕╤Б╤В╤А╨░╤В╨╛╤А╨░", kz: "╙Ш╨║╤Ц╨╝╤И╤Ц ╙Щ╤А╨╡╨║╨╡╤В╤В╨╡╤А╤Ц", en: "Admin actions" },
++  roomEventLogs: { ru: "╨б╨╛╨▒╤Л╤В╨╕╤П ╨║╨╛╨╝╨╜╨░╤В", kz: "╨С╙й╨╗╨╝╨╡ ╨╛╥Ы╨╕╥У╨░╨╗╨░╤А╤Л", en: "Room events" },
++  allLogTypes: { ru: "╨Т╤Б╨╡ ╤В╨╕╨┐╤Л", kz: "╨С╨░╤А╨╗╤Л╥Ы ╤В╥п╤А╨╗╨╡╤А╤Ц", en: "All types" },
++  noLogsFound: { ru: "╨Ч╨░╨┐╨╕╤Б╨╕ ╨╜╨╡ ╨╜╨░╨╣╨┤╨╡╨╜╤Л", kz: "╨Ц╨░╨╖╨▒╨░╨╗╨░╤А ╤В╨░╨▒╤Л╨╗╨╝╨░╨┤╤Л", en: "No logs found" },
++  loadingLogs: { ru: "╨Ч╨░╨│╤А╤Г╨╖╨║╨░ ╨╗╨╛╨│╨╛╨▓...", kz: "╨Ц╤Г╤А╨╜╨░╨╗╨┤╨░╤А ╨╢╥п╨║╤В╨╡╨╗╤Г╨┤╨╡...", en: "Loading logs..." },
++  failedToLoadLogs: { ru: "╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╨╖╨░╨│╤А╤Г╨╖╨╕╤В╤М ╨╗╨╛╨│╨╕", kz: "╨Ц╤Г╤А╨╜╨░╨╗╨┤╨░╤А╨┤╤Л ╨╢╥п╨║╤В╨╡╤Г ╨╝╥п╨╝╨║╤Ц╨╜ ╨▒╨╛╨╗╨╝╨░╨┤╤Л", en: "Failed to load logs" },
++  liveUpdatesEnabled: { ru: "Live-╨╛╨▒╨╜╨╛╨▓╨╗╨╡╨╜╨╕╤П ╨▓╨║╨╗╤О╤З╨╡╨╜╤Л", kz: "Live-╨╢╨░╥г╨░╤А╤В╤Г╨╗╨░╤А ╥Ы╨╛╤Б╤Г╨╗╤Л", en: "Live updates enabled" },
++  pollingFallback: { ru: "╨а╨╡╨╖╨╡╤А╨▓╨╜╤Л╨╣ ╨╛╨┐╤А╨╛╤Б", kz: "╥Ъ╨╛╤Б╨░╨╗╥Ы╤Л ╤Б╥▒╤А╨░╤Г", en: "Polling fallback" },
+ 
+   // ===== Admin: tickets =====
+   ticketsSupportView: { ru: "╨Ч╨░╤П╨▓╨║╨╕ (╨┐╨╛╨┤╨┤╨╡╤А╨╢╨║╨░)", kz: "╙и╤В╤Ц╨╜╤Ц╨╝╨┤╨╡╤А (╥Ы╨╛╨╗╨┤╨░╤Г)", en: "Tickets (Support View)" },
+diff --git a/src/app/components/payments/payments.tsx b/src/app/components/payments/payments.tsx
+index 327c755..0159e8e 100644
+--- a/src/app/components/payments/payments.tsx
++++ b/src/app/components/payments/payments.tsx
+@@ -32,11 +32,11 @@ function PaymentFooter({ lang }: { lang: L }) {
+       </div>
+       <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+         <span className="flex items-center gap-1.5"><Phone size={11} /> +7 (727) 000-00-00</span>
+-        <span className="flex items-center gap-1.5"><Mail size={11} /> support@ecosplit.kz</span>
++        <span className="flex items-center gap-1.5"><Mail size={11} /> support@ecopay.kz</span>
+         <span className="flex items-center gap-1.5"><MapPin size={11} /> {tx(lang, "╨Р╨╗╨╝╨░╤В╤Л, ╨Ъ╨░╨╖╨░╤Е╤Б╤В╨░╨╜", "╨Р╨╗╨╝╨░╤В╤Л, ╥Ъ╨░╨╖╨░╥Ы╤Б╤В╨░╨╜", "Almaty, Kazakhstan")}</span>
+       </div>
+       <div className="text-[11px] mt-3" style={{ color: "var(--eco-text-tertiary)" }}>
+-        {tx(lang, "┬й 2026 EcoSplit ┬╖ ╨в╨Ю╨Ю ┬лApex Digital┬╗", "┬й 2026 EcoSplit ┬╖ ┬лApex Digital┬╗ ╨Ц╨и╨б", "┬й 2026 EcoSplit ┬╖ Apex Digital LLP")}
++        {tx(lang, "┬й 2026 EcoPay ┬╖ ╨в╨Ю╨Ю ┬лApex Digital┬╗", "┬й 2026 EcoPay ┬╖ ┬лApex Digital┬╗ ╨Ц╨и╨б", "┬й 2026 EcoPay ┬╖ Apex Digital LLP")}
+       </div>
+     </div>
+   );
+diff --git a/src/app/components/profile/profile.tsx b/src/app/components/profile/profile.tsx
+index 9dc8f02..12ee25c 100644
+--- a/src/app/components/profile/profile.tsx
++++ b/src/app/components/profile/profile.tsx
+@@ -33,7 +33,7 @@ export function ProfilePage() {
+         <Card className="flex flex-col gap-4 items-start">
+           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>Profile</h1>
+           <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+-            Sign in to manage your EcoSplit account.
++            Sign in to manage your EcoPay account.
+           </p>
+           <Link to="/login" style={{ textDecoration: "none" }}>
+             <Button>Sign in</Button>
+diff --git a/src/app/components/static/about.tsx b/src/app/components/static/about.tsx
+index ef41f14..bdef1fc 100644
+--- a/src/app/components/static/about.tsx
++++ b/src/app/components/static/about.tsx
+@@ -8,7 +8,7 @@ export function AboutPage() {
+       <div className="py-16 px-6" style={{ background: "var(--eco-surface)" }}>
+         <div className="max-w-[800px] mx-auto">
+           <h1 className="text-[32px] sm:text-[40px] tracking-tight mb-4" style={{ color: "var(--eco-text)" }}>
+-            About EcoSplit
++            About EcoPay
+           </h1>
+           <p className="text-[16px]" style={{ color: "var(--eco-text-secondary)" }}>
+             Kazakhstan's trusted platform for shared telecom plans
+@@ -28,7 +28,7 @@ export function AboutPage() {
+             <div>
+               <h2 className="text-[20px] mb-2" style={{ color: "var(--eco-text)" }}>Our Mission</h2>
+               <p className="text-[14px] leading-relaxed" style={{ color: "var(--eco-text-secondary)" }}>
+-                EcoSplit makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly billтАФno contracts, no hassle.
++                EcoPay makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly billтАФno contracts, no hassle.
+               </p>
+             </div>
+           </div>
+@@ -98,7 +98,7 @@ export function AboutPage() {
+             <div className="flex items-start gap-3">
+               <Mail size={18} className="mt-0.5 shrink-0" style={{ color: "var(--eco-primary)" }} />
+               <div>
+-                <p className="text-[14px]" style={{ color: "var(--eco-text)" }}>support@ecosplit.kz</p>
++                <p className="text-[14px]" style={{ color: "var(--eco-text)" }}>support@ecopay.kz</p>
+               </div>
+             </div>
+ 
+diff --git a/src/app/components/static/build-checklist.tsx b/src/app/components/static/build-checklist.tsx
+index d20f9a7..0c336ab 100644
+--- a/src/app/components/static/build-checklist.tsx
++++ b/src/app/components/static/build-checklist.tsx
+@@ -249,7 +249,7 @@ const MODULES: ModuleChecklist[] = [
+       { id: "pay-3", task: "Payment history with tabs", acceptance: ["Tab 1: My Payments тАФ summary cards + transaction table", "Tab 2: All Transactions (admin) тАФ 6-stat dashboard", "Tab 3: Receipt view тАФ standalone + modal", "Period filter: this month, 3mo, 6mo, all-time", "CSV + PDF export buttons", "Copyable Intent/TXN/Refund IDs"], priority: "critical", status: "done" },
+       { id: "pay-4", task: "Refund status page", acceptance: ["Refund timeline: initiated тЖТ processing тЖТ completed/denied", "Timeline shows each step with timestamp", "Estimated return: 3-5 business days", "Partial refund shows original + refund amounts"], priority: "must", status: "done" },
+       { id: "pay-5", task: "Owner payout dashboard", acceptance: ["Total earned, pending, withdrawn amounts", "Payout history table with dates + amounts", "Minimum payout threshold: 5,000 тВ╕", "Bank account management (masked display)"], priority: "must", status: "done" },
+-      { id: "pay-6", task: "Receipt print/PDF", acceptance: ["Print-ready layout with EcoSplit logo", "All IDs visible and copyable", "Date, amount, operator, plan, room ID, parties", "Separate URL for standalone receipt view"], priority: "must", status: "done" },
++      { id: "pay-6", task: "Receipt print/PDF", acceptance: ["Print-ready layout with EcoPay logo", "All IDs visible and copyable", "Date, amount, operator, plan, room ID, parties", "Separate URL for standalone receipt view"], priority: "must", status: "done" },
+     ],
+   },
+   {
+diff --git a/src/app/components/static/copy-library.tsx b/src/app/components/static/copy-library.tsx
+index d355eaf..1e12c80 100644
+--- a/src/app/components/static/copy-library.tsx
++++ b/src/app/components/static/copy-library.tsx
+@@ -196,7 +196,7 @@ const COPY_CATEGORIES: CopyCategory[] = [
+       { key: "secPrivacyNote", ru: "╨Ь╤Л ╨╜╨╡ ╨┐╨╡╤А╨╡╨┤╨░╤С╨╝ ╨▓╨░╤И╨╕ ╨┤╨░╨╜╨╜╤Л╨╡ ╤В╤А╨╡╤В╤М╨╕╨╝ ╨╗╨╕╤Ж╨░╨╝", kz: "╨Ф╨╡╤А╨╡╨║╤В╨╡╤А╤Ц╥г╤Ц╨╖╨┤╤Ц ╥п╤И╤Ц╨╜╤И╤Ц ╤В╨░╤А╨░╨┐╥Ы╨░ ╨▒╨╡╤А╨╝╨╡╨╣╨╝╤Ц╨╖", en: "We don't share your data with third parties", context: "Privacy reassurance in settings", tone: "reassuring" },
+       { key: "secGeoPrivacy", ru: "╨Ъ╨╛╨╛╤А╨┤╨╕╨╜╨░╤В╤Л ╨╜╨╡ ╤Б╨╛╤Е╤А╨░╨╜╤П╤О╤В╤Б╤П ╨╕ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╤Г╤О╤В╤Б╤П ╤В╨╛╨╗╤М╨║╨╛ ╨┤╨╗╤П ╨┐╨╛╨┤╨▒╨╛╤А╨░", kz: "╨Ъ╨╛╨╛╤А╨┤╨╕╨╜╨░╤В╨░╨╗╨░╤А ╤Б╨░╥Ы╤В╨░╨╗╨╝╨░╨╣╨┤╤Л ╨╢╙Щ╨╜╨╡ ╤В╨╡╨║ ╤В╨░╥г╨┤╨░╤Г ╥п╤И╤Ц╨╜ ╥Ы╨╛╨╗╨┤╨░╨╜╤Л╨╗╨░╨┤╤Л", en: "Your coordinates aren't stored тАФ only used for matching", context: "Geolocation privacy note", tone: "reassuring" },
+       { key: "secDataEncrypted", ru: "╨Т╤Б╨╡ ╨┤╨░╨╜╨╜╤Л╨╡ ╨╖╨░╤И╨╕╤Д╤А╨╛╨▓╨░╨╜╤Л ╨╕ ╨╖╨░╤Й╨╕╤Й╨╡╨╜╤Л", kz: "╨С╨░╤А╨╗╤Л╥Ы ╨┤╨╡╤А╨╡╨║╤В╨╡╤А ╤И╨╕╤Д╤А╨╗╨░╨╜╥У╨░╨╜ ╨╢╙Щ╨╜╨╡ ╥Ы╨╛╤А╥У╨░╨╗╥У╨░╨╜", en: "All data is encrypted and protected", context: "Security footer note", tone: "reassuring" },
+-      { key: "secFraudWarning", ru: "╨Э╨╡ ╨┤╨╡╨╗╨╕╤В╨╡╤Б╤М ╨┐╨░╤А╨╛╨╗╨╡╨╝ ╨╕╨╗╨╕ ╨║╨╛╨┤╨╛╨╝ ╨┐╨╛╨┤╤В╨▓╨╡╤А╨╢╨┤╨╡╨╜╨╕╤П ╨╜╨╕ ╤Б ╨║╨╡╨╝, ╨▓╨║╨╗╤О╤З╨░╤П ╤Б╨╛╤В╤А╤Г╨┤╨╜╨╕╨║╨╛╨▓ EcoSplit", kz: "╥Ъ╥▒╨┐╨╕╤П╤Б╙й╨╖╤Ц╥г╤Ц╨╖╨┤╤Ц ╨╜╨╡╨╝╨╡╤Б╨╡ ╤А╨░╤Б╤В╨░╤Г ╨║╨╛╨┤╤Л╨╜ ╨╡╤И╨║╤Ц╨╝╨╝╨╡╨╜, ╤Б╨╛╨╜╤Л╥г ╤Ц╤И╤Ц╨╜╨┤╨╡ EcoSplit ╥Ы╤Л╨╖╨╝╨╡╤В╨║╨╡╤А╨╗╨╡╤А╤Ц╨╝╨╡╨╜ ╨▒╙й╨╗╤Ц╤Б╨┐╨╡╥г╤Ц╨╖", en: "Never share your password or verification code with anyone, including EcoSplit staff", context: "Anti-fraud warning in profile/settings", tone: "warning" },
++      { key: "secFraudWarning", ru: "╨Э╨╡ ╨┤╨╡╨╗╨╕╤В╨╡╤Б╤М ╨┐╨░╤А╨╛╨╗╨╡╨╝ ╨╕╨╗╨╕ ╨║╨╛╨┤╨╛╨╝ ╨┐╨╛╨┤╤В╨▓╨╡╤А╨╢╨┤╨╡╨╜╨╕╤П ╨╜╨╕ ╤Б ╨║╨╡╨╝, ╨▓╨║╨╗╤О╤З╨░╤П ╤Б╨╛╤В╤А╤Г╨┤╨╜╨╕╨║╨╛╨▓ EcoPay", kz: "╥Ъ╥▒╨┐╨╕╤П╤Б╙й╨╖╤Ц╥г╤Ц╨╖╨┤╤Ц ╨╜╨╡╨╝╨╡╤Б╨╡ ╤А╨░╤Б╤В╨░╤Г ╨║╨╛╨┤╤Л╨╜ ╨╡╤И╨║╤Ц╨╝╨╝╨╡╨╜, ╤Б╨╛╨╜╤Л╥г ╤Ц╤И╤Ц╨╜╨┤╨╡ EcoPay ╥Ы╤Л╨╖╨╝╨╡╤В╨║╨╡╤А╨╗╨╡╤А╤Ц╨╝╨╡╨╜ ╨▒╙й╨╗╤Ц╤Б╨┐╨╡╥г╤Ц╨╖", en: "Never share your password or verification code with anyone, including EcoPay staff", context: "Anti-fraud warning in profile/settings", tone: "warning" },
+       { key: "secVerifyIdentity", ru: "╨Я╨╛╨┤╤В╨▓╨╡╤А╨┤╨╕╤В╨╡ ╨▓╨░╤И╤Г ╨╗╨╕╤З╨╜╨╛╤Б╤В╤М ╨┤╨╗╤П ╨┐╤А╨╛╨┤╨╛╨╗╨╢╨╡╨╜╨╕╤П", kz: "╨Ц╨░╨╗╥У╨░╤Б╤Вя┐╜я┐╜╤А╤Г ╥п╤И╤Ц╨╜ ╨╢╨╡╨║╨╡ ╨▒╨░╤Б╤Л╥г╤Л╨╖╨┤╤Л ╤А╨░╤Б╤В╨░╥г╤Л╨╖", en: "Verify your identity to continue", context: "Step-up auth prompt", tone: "neutral" },
+       { key: "secRevealReason", ru: "╨Ф╨╗╤П ╨┐╤А╨╛╤Б╨╝╨╛╤В╤А╨░ ╨┐╨╛╨╗╨╜╤Л╤Е ╨┤╨░╨╜╨╜╤Л╤Е ╤Г╨║╨░╨╢╨╕╤В╨╡ ╨┐╤А╨╕╤З╨╕╨╜╤Г", kz: "╨в╨╛╨╗╤Л╥Ы ╨┤╨╡╤А╨╡╨║╤В╨╡╤А╨┤╤Ц ╨║╙й╤А╤Г ╥п╤И╤Ц╨╜ ╤Б╨╡╨▒╨╡╨┐ ╨║╙й╤А╤Б╨╡╤В╤Ц╥г╤Ц╨╖", en: "Provide a reason to reveal full data", context: "Admin PII reveal prompt", tone: "neutral" },
+     ],
+@@ -242,7 +242,7 @@ const COPY_CATEGORIES: CopyCategory[] = [
+       { key: "notifDisputeFiled", ru: "╨Ю╤В╨║╤А╤Л╤В ╤Б╨┐╨╛╤А ╨┐╨╛ ╨║╨╛╨╝╨╜╨░╤В╨╡ {room}", kz: "{room} ╨▒╙й╨╗╨╝╨╡╤Б╤Ц ╨▒╨╛╨╣╤Л╨╜╤И╨░ ╨┤╨░╤Г ╨░╤И╤Л╨╗╨┤╤Л", en: "Dispute opened for room {room}", context: "Dispute filed notification", tone: "warning", placeholders: ["{room}"] },
+       { key: "notifDisputeResolved", ru: "╨б╨┐╨╛╤А #{id} ╨╖╨░╨║╤А╤Л╤В", kz: "#{id} ╨┤╨░╤Г ╨╢╨░╨▒╤Л╨╗╨┤╤Л", en: "Dispute #{id} resolved", context: "Dispute resolution notification", tone: "positive", placeholders: ["{id}"] },
+       { key: "notifMaintenance", ru: "╨Я╨╗╨░╨╜╨╛╨▓╤Л╨╡ ╤А╨░╨▒╨╛╤В╤Л {date} ╤Б {from} ╨┤╨╛ {to}", kz: "{date} ╨╢╨╛╤Б╨┐╨░╤А╨╗╤Л ╨╢╥▒╨╝╤Л╤Б╤В╨░╤А {from}тАУ{to}", en: "Scheduled maintenance on {date}, {from}тАУ{to}", context: "System maintenance notification", tone: "neutral", placeholders: ["{date}", "{from}", "{to}"] },
+-      { key: "notifWelcome", ru: "╨Ф╨╛╨▒╤А╨╛ ╨┐╨╛╨╢╨░╨╗╨╛╨▓╨░╤В╤М ╨▓ EcoSplit", kz: "EcoSplit-╨║╨╡ ╥Ы╨╛╤И ╨║╨╡╨╗╨┤╤Ц╥г╤Ц╨╖", en: "Welcome to EcoSplit", context: "First login welcome notification", tone: "celebratory" },
++      { key: "notifWelcome", ru: "╨Ф╨╛╨▒╤А╨╛ ╨┐╨╛╨╢╨░╨╗╨╛╨▓╨░╤В╤М ╨▓ EcoPay", kz: "EcoPay-╨║╨╡ ╥Ы╨╛╤И ╨║╨╡╨╗╨┤╤Ц╥г╤Ц╨╖", en: "Welcome to EcoPay", context: "First login welcome notification", tone: "celebratory" },
+     ],
+   },
+ 
+@@ -458,7 +458,7 @@ function ToneGuide() {
+     { tone: "warning" as Tone, doText: "Be factual and direct. State the consequence clearly.", dontText: "Don't use scary language or ALL CAPS.", example: "╨Т╤Е╨╛╨┤ ╤Б ╨╜╨╛╨▓╨╛╨│╨╛ ╤Г╤Б╤В╤А╨╛╨╣╤Б╤В╨▓╨░ тЖТ Login from a new device" },
+     { tone: "urgent" as Tone, doText: "Lead with the action needed. Make the path clear.", dontText: "Don't panic. Never use 'DANGER' or 'ALERT'.", example: "╨н╤В╨╛ ╨┤╨╡╨╣╤Б╤В╨▓╨╕╨╡ ╨╜╨╡╨╗╤М╨╖╤П ╨╛╤В╨╝╨╡╨╜╨╕╤В╤М тЖТ This can't be undone" },
+     { tone: "empathetic" as Tone, doText: "Acknowledge frustration. Take responsibility.", dontText: "Don't deflect ('This is your bank's issue').", example: "╨з╤В╨╛-╤В╨╛ ╨┐╨╛╤И╨╗╨╛ ╨╜╨╡ ╤В╨░╨║ тЖТ Something went wrong" },
+-    { tone: "celebratory" as Tone, doText: "Brief positive moment. Used sparingly for milestones.", dontText: "Don't use for routine actions. No emoji in copy.", example: "╨Ф╨╛╨▒╤А╨╛ ╨┐╨╛╨╢╨░╨╗╨╛╨▓╨░╤В╤М ╨▓ EcoSplit тЖТ Welcome to EcoSplit" },
++    { tone: "celebratory" as Tone, doText: "Brief positive moment. Used sparingly for milestones.", dontText: "Don't use for routine actions. No emoji in copy.", example: "╨Ф╨╛╨▒╤А╨╛ ╨┐╨╛╨╢╨░╨╗╨╛╨▓╨░╤В╤М ╨▓ EcoPay тЖТ Welcome to EcoPay" },
+   ];
+ 
+   return (
+@@ -580,7 +580,7 @@ function PluralGuide() {
+ /* тХРтХРтХРтХРтХРтХРтХР WRITING RULES тХРтХРтХРтХРтХРтХРтХР */
+ function WritingRules() {
+   const rules = [
+-    { icon: Type, title: "Sentence case everywhere", desc: "Capitalize first word only. 'View all rooms' not 'View All Rooms'. Exception: proper nouns (EcoSplit, Beeline)." },
++    { icon: Type, title: "Sentence case everywhere", desc: "Capitalize first word only. 'View all rooms' not 'View All Rooms'. Exception: proper nouns (EcoPay, Beeline)." },
+     { icon: Minus, title: "No exclamation marks", desc: "Errors, warnings, and even success messages use periods or no punctuation. Buttons never have punctuation." },
+     { icon: Clock, title: "Max 2 sentences per state", desc: "Empty states, errors, confirmations: 1 title + 1 subtitle. Don't write essays in modals." },
+     { icon: Zap, title: "Verb-first for buttons", desc: "'Pay now', 'Join room', 'Save changes'. Not 'Payment', 'Room joining', 'Changes'." },
+diff --git a/src/app/components/static/data-contracts-api-mapping.tsx b/src/app/components/static/data-contracts-api-mapping.tsx
+index 79e4e8d..c7fdd7b 100644
+--- a/src/app/components/static/data-contracts-api-mapping.tsx
++++ b/src/app/components/static/data-contracts-api-mapping.tsx
+@@ -185,7 +185,7 @@ const CONTRACTS: ScreenContract[] = [
+       { name: "selected_method_id", type: "uuid | null", required: false, nullHandling: "Pre-select is_default", example: "pm_a1b2c3" },
+       { name: "amount", type: "int (tiyn)", required: true, nullHandling: "тАФ", example: "87250" },
+       { name: "currency", type: "string", required: true, nullHandling: "'KZT'", example: "KZT" },
+-      { name: "promo_code", type: "string | null", required: false, nullHandling: "No discount applied", example: "ECOSPLIT20" },
++      { name: "promo_code", type: "string | null", required: false, nullHandling: "No discount applied", example: "ECOPAY20" },
+       { name: "discount_amount", type: "int (tiyn) | null", required: false, nullHandling: "0", example: "17450" },
+       { name: "final_amount", type: "int (tiyn)", required: true, nullHandling: "= amount", example: "69800" },
+       { name: "terms_accepted", type: "boolean", required: true, nullHandling: "false тЖТ disable pay button", example: "true" },
+diff --git a/src/app/components/static/how-it-works.tsx b/src/app/components/static/how-it-works.tsx
+index a199474..77cf27b 100644
+--- a/src/app/components/static/how-it-works.tsx
++++ b/src/app/components/static/how-it-works.tsx
+@@ -39,7 +39,7 @@ export function HowItWorksPage() {
+       <div className="py-16 px-6" style={{ background: "var(--eco-surface)" }}>
+         <div className="max-w-[900px] mx-auto text-center">
+           <h1 className="text-[32px] sm:text-[40px] tracking-tight mb-4" style={{ color: "var(--eco-text)" }}>
+-            How EcoSplit Works
++            How EcoPay Works
+           </h1>
+           <p className="text-[16px] max-w-[600px] mx-auto" style={{ color: "var(--eco-text-secondary)" }}>
+             Join shared telecom plans in four simple steps. Save money without the hassle.
+@@ -117,7 +117,7 @@ export function HowItWorksPage() {
+                 Important: No User-to-User Chat
+               </h3>
+               <p className="text-[14px] leading-relaxed" style={{ color: "var(--eco-text-secondary)" }}>
+-                EcoSplit does not provide direct messaging between users. All communication, questions, and coordination happen through official support tickets monitored by our team. This protects your privacy and ensures all interactions are secure and documented.
++                EcoPay does not provide direct messaging between users. All communication, questions, and coordination happen through official support tickets monitored by our team. This protects your privacy and ensures all interactions are secure and documented.
+               </p>
+             </div>
+           </div>
+diff --git a/src/app/components/static/i18n-typography-fix.tsx b/src/app/components/static/i18n-typography-fix.tsx
+index e141d1c..3d272dd 100644
+--- a/src/app/components/static/i18n-typography-fix.tsx
++++ b/src/app/components/static/i18n-typography-fix.tsx
+@@ -170,7 +170,7 @@ export function I18nTypographyFixPage() {
+               </div>
+               <div className="flex items-baseline gap-3">
+                 <span className="text-[12px] w-16 shrink-0" style={{ color: "var(--eco-text-tertiary)" }}>16px</span>
+-                <span style={{ fontSize: "16px", color: "var(--eco-text)", lineHeight: 1.6 }}>Body text тАФ base reading size for EcoSplit</span>
++                <span style={{ fontSize: "16px", color: "var(--eco-text)", lineHeight: 1.6 }}>Body text тАФ base reading size for EcoPay</span>
+               </div>
+               <div className="flex items-baseline gap-3">
+                 <span className="text-[12px] w-16 shrink-0" style={{ color: "var(--eco-text-tertiary)" }}>14px</span>
+diff --git a/src/app/components/static/notification-preferences.tsx b/src/app/components/static/notification-preferences.tsx
+index 1708e72..d7613fa 100644
+--- a/src/app/components/static/notification-preferences.tsx
++++ b/src/app/components/static/notification-preferences.tsx
+@@ -70,7 +70,7 @@ function makeDefaults(): NotifCategory[] {
+       id: "marketing", titleKey: "npCatMarketing", icon: Newspaper, color: "var(--eco-text-tertiary)",
+       events: [
+         { id: "mkt_newplans", label: "New plans available", desc: "Operators add new shareable plans", inApp: true, push: false, email: false },
+-        { id: "mkt_promo", label: "Promotions & offers", desc: "Special deals from EcoSplit", inApp: false, push: false, email: false },
++        { id: "mkt_promo", label: "Promotions & offers", desc: "Special deals from EcoPay", inApp: false, push: false, email: false },
+         { id: "mkt_tips", label: "Tips & guides", desc: "How to save more with sharing", inApp: false, push: false, email: false },
+       ],
+     },
+diff --git a/src/app/components/static/payment-history-receipts.tsx b/src/app/components/static/payment-history-receipts.tsx
+index b8cf5ac..c0879fd 100644
+--- a/src/app/components/static/payment-history-receipts.tsx
++++ b/src/app/components/static/payment-history-receipts.tsx
+@@ -119,7 +119,7 @@ function ReceiptPanel({ txn, onClose }: { txn: Txn; onClose: () => void }) {
+         <div className="p-6">
+           {/* Logo + status */}
+           <div className="text-center mb-6">
+-            <div className="text-[28px] mb-1" style={{ color: "var(--eco-primary)" }}>EcoSplit</div>
++            <div className="text-[28px] mb-1" style={{ color: "var(--eco-primary)" }}>EcoPay</div>
+             <StatusBadge status={txn.status} />
+           </div>
+ 
+@@ -178,7 +178,7 @@ function ReceiptPanel({ txn, onClose }: { txn: Txn; onClose: () => void }) {
+         <div className="px-6 py-3 text-center" style={{ background: "var(--eco-bg)", borderTop: "1px solid var(--eco-border)" }}>
+           <div className="flex items-center justify-center gap-1.5">
+             <Shield size={10} style={{ color: "var(--eco-text-tertiary)" }} />
+-            <span className="text-[10px]" style={{ color: "var(--eco-text-tertiary)" }}>EcoSplit does not store full card numbers. All payments processed by certified PSP.</span>
++            <span className="text-[10px]" style={{ color: "var(--eco-text-tertiary)" }}>EcoPay does not store full card numbers. All payments processed by certified PSP.</span>
+           </div>
+         </div>
+       </div>
+@@ -561,7 +561,7 @@ function ReceiptSampleView() {
+           {/* Header with wave */}
+           <div className="relative px-6 pt-6 pb-10" style={{ background: "var(--eco-primary)" }}>
+             <div className="flex items-center justify-between mb-6">
+-              <span className="text-[22px]" style={{ color: "var(--eco-text-on-primary)" }}>EcoSplit</span>
++              <span className="text-[22px]" style={{ color: "var(--eco-text-on-primary)" }}>EcoPay</span>
+               <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.2)", color: "var(--eco-text-on-primary)" }}>{t("phReceiptView")}</span>
+             </div>
+             <div className="text-center">
+@@ -654,7 +654,7 @@ function ReceiptSampleView() {
+             <div className="mt-4 flex items-center justify-center gap-1.5 text-center">
+               <Shield size={10} style={{ color: "var(--eco-text-tertiary)" }} />
+               <span className="text-[10px]" style={{ color: "var(--eco-text-tertiary)" }}>
+-                {t("phReceiptGenerated")}: {new Date().toLocaleString("ru-KZ")} ┬╖ EcoSplit does not store full card data
++                {t("phReceiptGenerated")}: {new Date().toLocaleString("ru-KZ")} ┬╖ EcoPay does not store full card data
+               </span>
+             </div>
+           </div>
+diff --git a/src/app/components/static/privacy-audit-patterns.tsx b/src/app/components/static/privacy-audit-patterns.tsx
+index 360d55d..e5a6974 100644
+--- a/src/app/components/static/privacy-audit-patterns.tsx
++++ b/src/app/components/static/privacy-audit-patterns.tsx
+@@ -460,7 +460,7 @@ function AuditTrailFrame() {
+   const auditEntries = [
+     {
+       id: "aud-1",
+-      actor: "admin@ecosplit.kz",
++      actor: "admin@ecopay.kz",
+       role: "Admin",
+       roleVariant: "danger" as const,
+       timestamp: "2026-04-03 14:22:01",
+@@ -480,7 +480,7 @@ function AuditTrailFrame() {
+     },
+     {
+       id: "aud-3",
+-      actor: "admin@ecosplit.kz",
++      actor: "admin@ecopay.kz",
+       role: "Admin",
+       roleVariant: "danger" as const,
+       timestamp: "2026-04-02 18:03:12",
+@@ -490,7 +490,7 @@ function AuditTrailFrame() {
+     },
+     {
+       id: "aud-4",
+-      actor: "admin@ecosplit.kz",
++      actor: "admin@ecopay.kz",
+       role: "Admin",
+       roleVariant: "danger" as const,
+       timestamp: "2026-04-02 11:45:00",
+diff --git a/src/app/components/static/privacy.tsx b/src/app/components/static/privacy.tsx
+index 9cc4c65..d8d7431 100644
+--- a/src/app/components/static/privacy.tsx
++++ b/src/app/components/static/privacy.tsx
+@@ -144,7 +144,7 @@ export function PrivacyPage() {
+             Privacy Questions?
+           </h3>
+           <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+-            If you have questions about this privacy policy or how we handle your data, contact us at <strong style={{ color: "var(--eco-primary)" }}>privacy@ecosplit.kz</strong> or through our support system.
++            If you have questions about this privacy policy or how we handle your data, contact us at <strong style={{ color: "var(--eco-primary)" }}>privacy@ecopay.kz</strong> or through our support system.
+           </p>
+         </div>
+       </div>
+diff --git a/src/app/components/static/terms.tsx b/src/app/components/static/terms.tsx
+index 429061a..30516cc 100644
+--- a/src/app/components/static/terms.tsx
++++ b/src/app/components/static/terms.tsx
+@@ -3,15 +3,15 @@ import { FileText, Calendar } from "lucide-react";
+ 
+ export function TermsPage() {
+   const sections = [
+-    { id: "acceptance", title: "1. Acceptance of Terms", preview: "By accessing and using EcoSplit, you agree to be bound by these Terms of Service..." },
++    { id: "acceptance", title: "1. Acceptance of Terms", preview: "By accessing and using EcoPay, you agree to be bound by these Terms of Service..." },
+     { id: "eligibility", title: "2. Eligibility", preview: "You must be at least 18 years old and a resident of Kazakhstan to use this service..." },
+     { id: "accounts", title: "3. User Accounts", preview: "You are responsible for maintaining the confidentiality of your account credentials..." },
+-    { id: "services", title: "4. Description of Services", preview: "EcoSplit provides a platform to facilitate shared telecom family plans between users..." },
++    { id: "services", title: "4. Description of Services", preview: "EcoPay provides a platform to facilitate shared telecom family plans between users..." },
+     { id: "payments", title: "5. Payments & Billing", preview: "All payments are processed securely. You agree to pay all fees associated with your subscription..." },
+     { id: "user-conduct", title: "6. User Conduct", preview: "You agree not to misuse the platform, engage in fraudulent activity, or violate any laws..." },
+-    { id: "privacy", title: "7. Privacy & Data Protection", preview: "Your use of EcoSplit is also governed by our Privacy Policy, which can be found separately..." },
++    { id: "privacy", title: "7. Privacy & Data Protection", preview: "Your use of EcoPay is also governed by our Privacy Policy, which can be found separately..." },
+     { id: "termination", title: "8. Termination", preview: "We reserve the right to suspend or terminate your account for violations of these terms..." },
+-    { id: "disclaimers", title: "9. Disclaimers & Limitations", preview: "EcoSplit is provided \"as is\" without warranties of any kind, express or implied..." },
++    { id: "disclaimers", title: "9. Disclaimers & Limitations", preview: "EcoPay is provided \"as is\" without warranties of any kind, express or implied..." },
+     { id: "changes", title: "10. Changes to Terms", preview: "We may update these terms from time to time. Continued use constitutes acceptance..." },
+     { id: "contact", title: "11. Contact & Support", preview: "For questions about these terms, please contact us through our support system..." },
+   ];
+@@ -67,7 +67,7 @@ export function TermsPage() {
+             <strong>Questions about our terms?</strong>
+           </p>
+           <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+-            Please contact our support team or email legal@ecosplit.kz
++            Please contact our support team or email legal@ecopay.kz
+           </p>
+         </div>
+       </div>
+diff --git a/src/app/lib/api.ts b/src/app/lib/api.ts
+index fccb0b2..caf8a53 100644
+--- a/src/app/lib/api.ts
++++ b/src/app/lib/api.ts
+@@ -276,3 +276,193 @@ export function joinRoomRequest(
+     body: JSON.stringify(payload),
+   }, accessToken);
+ }
++
++// =====================================================
++// Admin: Users
++// =====================================================
++
++export type AdminUserStatus = "ACTIVE" | "BANNED";
++
++export interface AdminUserDto {
++  id: number;
++  email: string | null;
++  emailMasked: string | null;
++  displayName: string;
++  phone: string | null;
++  phoneMasked: string | null;
++  phoneVerified: boolean;
++  avatar: string | null;
++  role: string | null;
++  status: AdminUserStatus | string | null;
++  reputation: number | null;
++  riskScore: number | null;
++  roomsOwned: number | null;
++  roomsJoined: number | null;
++  tickets: number | null;
++  disputes: number | null;
++  createdAt: string | null;
++}
++
++export type AdminUsersSortField =
++  | "createdAt"
++  | "displayName"
++  | "email"
++  | "reputation"
++  | "riskScore"
++  | "status";
++
++export interface AdminUsersQuery {
++  search?: string;
++  status?: AdminUserStatus | "ALL";
++  page?: number;
++  size?: number;
++  sort?: AdminUsersSortField;
++  direction?: "asc" | "desc";
++}
++
++export function getAdminUsers(query: AdminUsersQuery, accessToken: string) {
++  const params: Record<string, string | number | undefined> = {
++    search: query.search,
++    page: query.page,
++    size: query.size,
++    sort: query.sort,
++    direction: query.direction,
++  };
++  if (query.status && query.status !== "ALL") {
++    params.status = query.status;
++  }
++  return requestJson<PagedResponse<AdminUserDto>>(`/admin/users${toSearchParams(params)}`, {}, accessToken);
++}
++
++export function getAdminUser(id: number, accessToken: string) {
++  return requestJson<AdminUserDto>(`/admin/users/${id}`, {}, accessToken);
++}
++
++export function banAdminUser(id: number, reason: string, accessToken: string) {
++  return requestJson<AdminUserDto>(`/admin/users/${id}/ban`, {
++    method: "POST",
++    body: JSON.stringify({ reason }),
++  }, accessToken);
++}
++
++export function unbanAdminUser(id: number, reason: string, accessToken: string) {
++  return requestJson<AdminUserDto>(`/admin/users/${id}/unban`, {
++    method: "POST",
++    body: JSON.stringify({ reason }),
++  }, accessToken);
++}
++
++// =====================================================
++// Admin: Logs
++// =====================================================
++
++export interface AdminActionLogDto {
++  id: number;
++  eventId: string | null;
++  adminUserId: number | null;
++  actionType: string;
++  entityType: string | null;
++  entityId: number | null;
++  reason: string | null;
++  ipAddress: string | null;
++  userAgent: string | null;
++  createdAt: string;
++}
++
++export interface RoomEventLogDto {
++  id: number;
++  eventId: string | null;
++  actorUserId: number | null;
++  actorRole: string | null;
++  roomId: number | null;
++  roomMemberId: number | null;
++  eventType: string;
++  oldState: unknown;
++  newState: unknown;
++  ipAddress: string | null;
++  userAgent: string | null;
++  createdAt: string;
++}
++
++export interface AdminLogEventDto {
++  id: string;
++  source: "ADMIN_ACTION" | "ROOM_EVENT";
++  type: string;
++  actor: string | null;
++  action: string;
++  entityType: string | null;
++  entityId: number | null;
++  reason: string | null;
++  createdAt: string;
++}
++
++export interface BackendPageResponse<T> {
++  page: number;
++  size: number;
++  totalItems: number;
++  totalPages: number;
++  items: T[];
++}
++
++export interface AdminLogsQuery {
++  page?: number;
++  size?: number;
++  entityType?: string;
++  actorUserId?: number;
++  dateFrom?: string;
++  dateTo?: string;
++}
++
++export interface RoomEventLogsQuery {
++  page?: number;
++  size?: number;
++  roomId?: number;
++  actorUserId?: number;
++  eventType?: string;
++  dateFrom?: string;
++  dateTo?: string;
++}
++
++export function getAdminActionLogs(query: AdminLogsQuery, accessToken: string) {
++  return requestJson<BackendPageResponse<AdminActionLogDto>>(
++    `/admin/logs/admin-actions${toSearchParams({ ...query })}`,
++    {},
++    accessToken,
++  );
++}
++
++export function getRoomEventLogs(query: RoomEventLogsQuery, accessToken: string) {
++  return requestJson<BackendPageResponse<RoomEventLogDto>>(
++    `/admin/logs/room-events${toSearchParams({ ...query })}`,
++    {},
++    accessToken,
++  );
++}
++
++export function mapAdminActionToEvent(log: AdminActionLogDto): AdminLogEventDto {
++  return {
++    id: `A-${log.id}`,
++    source: "ADMIN_ACTION",
++    type: log.actionType,
++    actor: log.adminUserId != null ? `admin#${log.adminUserId}` : null,
++    action: log.actionType.replace(/_/g, " "),
++    entityType: log.entityType,
++    entityId: log.entityId,
++    reason: log.reason,
++    createdAt: log.createdAt,
++  };
++}
++
++export function mapRoomEventToEvent(log: RoomEventLogDto): AdminLogEventDto {
++  return {
++    id: `R-${log.id}`,
++    source: "ROOM_EVENT",
++    type: log.eventType,
++    actor: log.actorUserId != null ? `${log.actorRole ?? "user"}#${log.actorUserId}` : "System",
++    action: log.eventType.replace(/_/g, " "),
++    entityType: log.roomId != null ? "ROOM" : null,
++    entityId: log.roomId,
++    reason: null,
++    createdAt: log.createdAt,
++  };
++}
+diff --git a/src/app/routes.tsx b/src/app/routes.tsx
+index a5b0af5..fa82538 100644
+--- a/src/app/routes.tsx
++++ b/src/app/routes.tsx
+@@ -18,33 +18,8 @@ import { AboutPage } from "./components/static/about";
+ import { TermsPage } from "./components/static/terms";
+ import { PrivacyPage } from "./components/static/privacy";
+ import { HowItWorksPage } from "./components/static/how-it-works";
+-import { AdminLoginPage } from "./components/admin/admin-login";
+-import { AdminDashboardPage } from "./components/admin/admin-dashboard";
+-import { AdminModerationPage } from "./components/admin/admin-moderation";
+-import { AdminRoomsPage } from "./components/admin/admin-rooms";
+-import { AdminUsersPage } from "./components/admin/admin-users";
+-import { AdminTicketsPage } from "./components/admin/admin-tickets";
+-import { AdminDisputesPage } from "./components/admin/admin-disputes";
+-import { AdminLogsPage } from "./components/admin/admin-logs";
+ import { PaymentRoomDetailsPage, PaymentCheckoutPage, PaymentConfirmationPage, PaymentPendingPage, RefundStatusPage, OwnerPayoutPage } from "./components/payments/payments";
+ import { PublicUserProfilePage } from "./components/reputation/public-profile";
+-import { I18nTypographyFixPage } from "./components/static/i18n-typography-fix";
+-import { StatesSlaEdgeCasesPage } from "./components/static/states-sla-edge-cases";
+-import { PrivacyAuditPatternsPage } from "./components/static/privacy-audit-patterns";
+-import { DisputesUserAdminPage } from "./components/static/disputes-user-admin";
+-import { NotificationsInboxPage } from "./components/static/notifications-inbox";
+-import { QualityPassStatesPage } from "./components/static/quality-pass-states";
+-import { AccessibilityContentSafetyPage } from "./components/static/accessibility-content-safety";
+-import { ComponentAuditPage } from "./components/static/component-audit-variants";
+-import { QaReleaseReadinessPage } from "./components/static/qa-release-readiness";
+-import { GovernanceRulesPage } from "./components/static/governance-rules";
+-import { PaymentHistoryPage } from "./components/static/payment-history-receipts";
+-import { GeoBestOperatorPage } from "./components/static/geo-best-operator";
+-import { NotificationPreferencesPage } from "./components/static/notification-preferences";
+-import { DataContractsApiMappingPage } from "./components/static/data-contracts-api-mapping";
+-import { CopyLibraryPage } from "./components/static/copy-library";
+-import { BuildChecklistPage } from "./components/static/build-checklist";
+-import { AnalyticsEventTrackingPage } from "./components/static/analytics-event-tracking";
+ 
+ function ErrorFallback() {
+   return (
+@@ -89,42 +64,42 @@ export const router = createBrowserRouter([
+       { path: "payment/refund", Component: RefundStatusPage },
+       { path: "payment/payout", Component: OwnerPayoutPage },
+       { path: "user/:id", Component: PublicUserProfilePage },
+-      { path: "i18n-typography", Component: I18nTypographyFixPage },
+-      { path: "states-sla", Component: StatesSlaEdgeCasesPage },
+-      { path: "privacy-audit", Component: PrivacyAuditPatternsPage },
+-      { path: "disputes-flows", Component: DisputesUserAdminPage },
+-      { path: "notifications-inbox", Component: NotificationsInboxPage },
+-      { path: "quality-pass", Component: QualityPassStatesPage },
+-      { path: "accessibility-safety", Component: AccessibilityContentSafetyPage },
+-      { path: "component-audit", Component: ComponentAuditPage },
+-      { path: "qa-release", Component: QaReleaseReadinessPage },
+-      { path: "governance", Component: GovernanceRulesPage },
+-      { path: "payment-history", Component: PaymentHistoryPage },
+-      { path: "geo-operator", Component: GeoBestOperatorPage },
+-      { path: "notification-prefs", Component: NotificationPreferencesPage },
+-      { path: "data-contracts", Component: DataContractsApiMappingPage },
+-      { path: "copy-library", Component: CopyLibraryPage },
+-      { path: "build-checklist", Component: BuildChecklistPage },
+-      { path: "analytics-events", Component: AnalyticsEventTrackingPage },
++      { path: "i18n-typography", lazy: async () => ({ Component: (await import("./components/static/i18n-typography-fix")).I18nTypographyFixPage }) },
++      { path: "states-sla", lazy: async () => ({ Component: (await import("./components/static/states-sla-edge-cases")).StatesSlaEdgeCasesPage }) },
++      { path: "privacy-audit", lazy: async () => ({ Component: (await import("./components/static/privacy-audit-patterns")).PrivacyAuditPatternsPage }) },
++      { path: "disputes-flows", lazy: async () => ({ Component: (await import("./components/static/disputes-user-admin")).DisputesUserAdminPage }) },
++      { path: "notifications-inbox", lazy: async () => ({ Component: (await import("./components/static/notifications-inbox")).NotificationsInboxPage }) },
++      { path: "quality-pass", lazy: async () => ({ Component: (await import("./components/static/quality-pass-states")).QualityPassStatesPage }) },
++      { path: "accessibility-safety", lazy: async () => ({ Component: (await import("./components/static/accessibility-content-safety")).AccessibilityContentSafetyPage }) },
++      { path: "component-audit", lazy: async () => ({ Component: (await import("./components/static/component-audit-variants")).ComponentAuditPage }) },
++      { path: "qa-release", lazy: async () => ({ Component: (await import("./components/static/qa-release-readiness")).QaReleaseReadinessPage }) },
++      { path: "governance", lazy: async () => ({ Component: (await import("./components/static/governance-rules")).GovernanceRulesPage }) },
++      { path: "payment-history", lazy: async () => ({ Component: (await import("./components/static/payment-history-receipts")).PaymentHistoryPage }) },
++      { path: "geo-operator", lazy: async () => ({ Component: (await import("./components/static/geo-best-operator")).GeoBestOperatorPage }) },
++      { path: "notification-prefs", lazy: async () => ({ Component: (await import("./components/static/notification-preferences")).NotificationPreferencesPage }) },
++      { path: "data-contracts", lazy: async () => ({ Component: (await import("./components/static/data-contracts-api-mapping")).DataContractsApiMappingPage }) },
++      { path: "copy-library", lazy: async () => ({ Component: (await import("./components/static/copy-library")).CopyLibraryPage }) },
++      { path: "build-checklist", lazy: async () => ({ Component: (await import("./components/static/build-checklist")).BuildChecklistPage }) },
++      { path: "analytics-events", lazy: async () => ({ Component: (await import("./components/static/analytics-event-tracking")).AnalyticsEventTrackingPage }) },
+     ],
+   },
+   {
+     path: "/admin-login",
+-    Component: AdminLoginPage,
++    lazy: async () => ({ Component: (await import("./components/admin/admin-login")).AdminLoginPage }),
+     ErrorBoundary: ErrorFallback,
+   },
+   {
+     path: "/admin",
+     ErrorBoundary: ErrorFallback,
+     children: [
+-      { path: "dashboard", Component: AdminDashboardPage },
+-      { path: "moderation", Component: AdminModerationPage },
+-      { path: "rooms", Component: AdminRoomsPage },
+-      { path: "users", Component: AdminUsersPage },
+-      { path: "tickets", Component: AdminTicketsPage },
+-      { path: "disputes", Component: AdminDisputesPage },
+-      { path: "refunds", Component: AdminDisputesPage },
+-      { path: "logs", Component: AdminLogsPage },
++      { path: "dashboard", lazy: async () => ({ Component: (await import("./components/admin/admin-dashboard")).AdminDashboardPage }) },
++      { path: "moderation", lazy: async () => ({ Component: (await import("./components/admin/admin-moderation")).AdminModerationPage }) },
++      { path: "rooms", lazy: async () => ({ Component: (await import("./components/admin/admin-rooms")).AdminRoomsPage }) },
++      { path: "users", lazy: async () => ({ Component: (await import("./components/admin/admin-users")).AdminUsersPage }) },
++      { path: "tickets", lazy: async () => ({ Component: (await import("./components/admin/admin-tickets")).AdminTicketsPage }) },
++      { path: "disputes", lazy: async () => ({ Component: (await import("./components/admin/admin-disputes")).AdminDisputesPage }) },
++      { path: "refunds", lazy: async () => ({ Component: (await import("./components/admin/admin-disputes")).AdminDisputesPage }) },
++      { path: "logs", lazy: async () => ({ Component: (await import("./components/admin/admin-logs")).AdminLogsPage }) },
+     ],
+   },
+ ]);
+diff --git a/src/main/resources/db/migration/V1__init_schema.sql b/src/main/resources/db/migration/V1__init_schema.sql
+index 80fd19e..330923c 100644
+--- a/src/main/resources/db/migration/V1__init_schema.sql
++++ b/src/main/resources/db/migration/V1__init_schema.sql
+@@ -1,5 +1,5 @@
+ -- =========================================================
+--- B├╢lip T├╢le / EcoSplit schema
++-- B├╢lip T├╢le / EcoPay schema
+ -- DATABASE: splitup
+ -- PostgreSQL 14+
+ -- V1 INIT SCHEMA
+diff --git a/src/main/resources/db/seed/dev_seed.sql b/src/main/resources/db/seed/dev_seed.sql
+index da6c87f..bbe3395 100644
+--- a/src/main/resources/db/seed/dev_seed.sql
++++ b/src/main/resources/db/seed/dev_seed.sql
+@@ -1,5 +1,5 @@
+ -- =========================================================
+--- EcoSplit DEV SEED
++-- EcoPay DEV SEED
+ -- =========================================================
+ 
+ TRUNCATE TABLE

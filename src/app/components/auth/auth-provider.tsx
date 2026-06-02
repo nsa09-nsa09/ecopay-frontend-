@@ -2,14 +2,21 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import {
   ApiError,
   type User,
+  type TwoFactorChallenge,
+  type AuthResponse,
+  type StaffLoginResponse,
   getCurrentUser,
+  isTwoFactorChallenge,
   loginRequest,
   logoutRequest,
   refreshRequest,
   registerRequest,
   requestPasswordResetRequest,
   confirmPasswordResetRequest,
+  resendStaffTwoFactorRequest,
+  staffLoginRequest,
   updateCurrentUser,
+  verifyStaffTwoFactorRequest,
 } from "../../lib/api";
 
 interface SessionState {
@@ -18,11 +25,18 @@ interface SessionState {
   user: User | null;
 }
 
+export type StaffLoginResult =
+  | { kind: "session"; user: User }
+  | { kind: "twoFactor"; challenge: TwoFactorChallenge };
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isReady: boolean;
   login: (email: string, password: string) => Promise<User>;
+  staffLogin: (email: string, password: string) => Promise<StaffLoginResult>;
+  verifyStaffTwoFactor: (challengeId: string, code: string) => Promise<User>;
+  resendStaffTwoFactor: (challengeId: string) => Promise<void>;
   register: (displayName: string, email: string, password: string, phone: string) => Promise<User>;
   logout: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
@@ -139,6 +153,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return response.user;
   };
 
+  const isStaff = (role: string | undefined | null) => role === "ADMIN" || role === "SUPPORT";
+
+  const commitStaffSession = (response: AuthResponse): User => {
+    if (!isStaff(response.user?.role)) {
+      // Never persist a non-staff session via the admin login path.
+      commitSession(null);
+      throw new ApiError(403, "This account does not have staff access.");
+    }
+    commitSession({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+      user: response.user,
+    });
+    return response.user;
+  };
+
+  const staffLogin = async (email: string, password: string): Promise<StaffLoginResult> => {
+    const response: StaffLoginResponse = await staffLoginRequest(email, password);
+
+    if (isTwoFactorChallenge(response)) {
+      return { kind: "twoFactor", challenge: response };
+    }
+
+    const user = commitStaffSession(response);
+    return { kind: "session", user };
+  };
+
+  const verifyStaffTwoFactor = async (challengeId: string, code: string) => {
+    const response = await verifyStaffTwoFactorRequest(challengeId, code);
+    return commitStaffSession(response);
+  };
+
+  const resendStaffTwoFactor = async (challengeId: string) => {
+    await resendStaffTwoFactorRequest(challengeId);
+  };
+
   const register = async (displayName: string, email: string, password: string, phone: string) => {
     const response = await registerRequest(displayName, email, password, phone);
     const nextSession = {
@@ -223,6 +273,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: Boolean(session?.accessToken),
         isReady,
         login,
+        staffLogin,
+        verifyStaffTwoFactor,
+        resendStaffTwoFactor,
         register,
         logout,
         requestPasswordReset,

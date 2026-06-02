@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from "react";
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard, ShieldCheck, Home, Users, MessageSquare,
   Scale, Undo2, FileText, Search, User, ChevronDown, LogOut, Bell
 } from "lucide-react";
 import { useI18n } from "../i18n-provider";
+import { useAuth } from "../auth/auth-provider";
 
 const NAV_ITEMS = [
   { key: "dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
@@ -19,8 +20,18 @@ const NAV_ITEMS = [
 
 export function AdminLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { t } = useI18n();
+  const { user, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate("/admin-login", { replace: true });
+    }
+  };
 
   return (
     <div className="flex min-h-screen" style={{ background: "var(--eco-bg)" }}>
@@ -103,23 +114,29 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                 <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "var(--eco-primary)" }}>
                   <User size={12} style={{ color: "var(--eco-text-on-primary)" }} />
                 </div>
-                <span className="text-[13px]" style={{ color: "var(--eco-text)" }}>{t("adminRoleLabel")}</span>
+                <span className="text-[13px]" style={{ color: "var(--eco-text)" }}>
+                  {user?.displayName ?? t("adminRoleLabel")}
+                </span>
                 <ChevronDown size={13} style={{ color: "var(--eco-text-tertiary)" }} />
               </button>
               {profileOpen && (
                 <>
                   <div className="fixed inset-0" onClick={() => setProfileOpen(false)} />
                   <div className="absolute right-0 top-10 w-44 rounded-xl p-1 shadow-lg z-50" style={{ background: "var(--eco-bg)", border: "1px solid var(--eco-border)" }}>
-                    <div className="px-3 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>admin@ecopay.kz</div>
+                    <div className="px-3 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                      {user?.email ?? ""}
+                    </div>
                     <div className="border-t my-1" style={{ borderColor: "var(--eco-border)" }} />
-                    <Link
-                      to="/admin-login"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-[13px]"
-                      style={{ color: "var(--eco-negative)", textDecoration: "none" }}
+                    <button
+                      onClick={() => {
+                        setProfileOpen(false);
+                        void handleSignOut();
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 rounded-lg text-[13px] cursor-pointer"
+                      style={{ color: "var(--eco-negative)", background: "transparent", border: "none", textAlign: "left" }}
                     >
                       <LogOut size={13} /> {t("signOut")}
-                    </Link>
+                    </button>
                   </div>
                 </>
               )}
