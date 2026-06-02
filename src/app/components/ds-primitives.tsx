@@ -100,10 +100,12 @@ export function Input({ label, error, hint, className = "", ...props }: InputPro
 // ─── Select ───
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
+  error?: string;
+  hint?: string;
   options: { value: string; label: string }[];
 }
 
-export function Select({ label, options, className = "", ...props }: SelectProps) {
+export function Select({ label, error, hint, options, className = "", ...props }: SelectProps) {
   return (
     <div className="flex flex-col gap-1.5">
       {label && <label style={{ color: "var(--eco-text)", fontSize: 14 }}>{label}</label>}
@@ -112,7 +114,7 @@ export function Select({ label, options, className = "", ...props }: SelectProps
           className={`w-full appearance-none px-3 py-2 pr-8 rounded-lg outline-none ${className}`}
           style={{
             background: "var(--eco-surface)",
-            border: "1px solid var(--eco-border)",
+            border: `1px solid ${error ? "var(--eco-negative)" : "var(--eco-border)"}`,
             color: "var(--eco-text)",
             fontSize: 14,
           }}
@@ -124,6 +126,8 @@ export function Select({ label, options, className = "", ...props }: SelectProps
         </select>
         <ChevronDown size={16} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--eco-text-tertiary)" }} />
       </div>
+      {error && <span style={{ color: "var(--eco-negative)", fontSize: 12 }}>{error}</span>}
+      {hint && !error && <span style={{ color: "var(--eco-text-tertiary)", fontSize: 12 }}>{hint}</span>}
     </div>
   );
 }
