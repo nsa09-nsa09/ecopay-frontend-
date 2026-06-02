@@ -1,8 +1,8 @@
 import { useParams, Link } from "react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Badge, Pill, Button, Input, Select, RoomAvailabilityBadge, EmptyState, Tabs, WaveDivider } from "../ds-primitives";
-import { ArrowLeft, Users, Star, Filter } from "lucide-react";
+import { Card, Badge, Pill, Button, Input, Select, RoomCard, EmptyState, Tabs, WaveDivider } from "../ds-primitives";
+import { ArrowLeft, Filter } from "lucide-react";
 import { catalogApi } from "../../../lib/api/catalog";
 import { roomsApi } from "../../../lib/api/rooms";
 
@@ -315,31 +315,9 @@ export function OperatorPage() {
               </Card>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {op.rooms.map((r) => (
-                  <Link key={r.id} to={`/room/${r.id}`} style={{ textDecoration: "none" }}>
-                    <Card className="flex flex-col gap-3 hover:shadow-sm transition-shadow cursor-pointer">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[14px]" style={{ color: "var(--eco-text)" }}>{r.plan}</span>
-                        <RoomAvailabilityBadge status={r.status} freeSeats={r.freeSeats} />
-                      </div>
-                      <div className="flex items-center justify-between text-[13px]">
-                        <span style={{ color: "var(--eco-text-secondary)" }}>
-                          <span className="inline-flex items-center gap-1">
-                            <Users size={13} /> {r.freeSeats ?? Math.max(0, r.seats - r.filled)} of {r.seats} free
-                          </span>
-                        </span>
-                        <span style={{ color: "var(--eco-primary)" }}>₸{r.price.toLocaleString()}/mo</span>
-                      </div>
-                      <div className="h-1.5 rounded-full" style={{ background: "var(--eco-neutral-200)" }}>
-                        <div className="h-1.5 rounded-full transition-all" style={{ width: `${r.seats ? (r.filled / r.seats) * 100 : 0}%`, background: "var(--eco-primary)" }} />
-                      </div>
-                      <div className="flex items-center justify-between text-[12px]">
-                        <span style={{ color: "var(--eco-text-tertiary)" }}>Owner: {r.owner}</span>
-                        <span className="flex items-center gap-0.5" style={{ color: "var(--eco-warning)" }}>
-                          <Star size={12} fill="currentColor" /> {r.rating}
-                        </span>
-                      </div>
-                    </Card>
+                {(roomsQuery.data?.items ?? []).map((room) => (
+                  <Link key={room.id} to={`/room/${room.id}`} style={{ textDecoration: "none" }}>
+                    <RoomCard room={room} />
                   </Link>
                 ))}
               </div>
