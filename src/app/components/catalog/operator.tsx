@@ -102,6 +102,7 @@ export function OperatorPage() {
   const [minFreeSeats, setMinFreeSeats] = useState("0");
   const [accessTypeFilter, setAccessTypeFilter] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [sortBy, setSortBy] = useState("newest");
 
   const roomFilters = {
     serviceId: id!,
@@ -112,6 +113,7 @@ export function OperatorPage() {
     minFreeSeats: minFreeSeats && minFreeSeats !== "0" ? Number(minFreeSeats) : undefined,
     accessType: accessTypeFilter ? (accessTypeFilter as any) : undefined,
     verifiedOwnerOnly: verifiedOnly || undefined,
+    sortBy,
   };
 
   const clearFilters = () => {
@@ -288,10 +290,28 @@ export function OperatorPage() {
                     onChange={(e) => setAccessTypeFilter(e.target.value)}
                   />
                 </div>
-                <label className="flex items-center gap-2 cursor-pointer text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-                  <input type="checkbox" checked={verifiedOnly} onChange={(e) => setVerifiedOnly(e.target.checked)} />
-                  Verified owners only
-                </label>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+                    <input type="checkbox" checked={verifiedOnly} onChange={(e) => setVerifiedOnly(e.target.checked)} />
+                    Verified owners only
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>Sort by</span>
+                    <Select
+                      options={[
+                        { value: "newest", label: "Newest" },
+                        { value: "price_asc", label: "Cheaper first" },
+                        { value: "price_desc", label: "More expensive" },
+                        { value: "most_seats", label: "Most free seats" },
+                        { value: "best_rating", label: "Best owner rating" },
+                        { value: "starting_soon", label: "Starting soon" },
+                        { value: "popular", label: "Popular" },
+                      ]}
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                    />
+                  </div>
+                </div>
               </Card>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
