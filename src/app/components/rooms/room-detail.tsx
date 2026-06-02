@@ -16,6 +16,8 @@ const ACCESS_TYPE_LABELS: Record<AccessType, string> = {
   EMAIL_INVITE: "Invite to your email",
 };
 
+const PERIOD_SUFFIX: Record<string, string> = { MONTHLY: "/mo", YEARLY: "/yr", OTHER: "" };
+
 export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -101,8 +103,11 @@ export function RoomDetailPage() {
   const isOwner = user?.id === r.ownerUserId;
   const myMember = myMembershipQuery.data;
   const members = membersQuery.data?.items ?? [];
-  // Seat fill is only known to the owner (members list is owner-scoped); members count PENDING+ACTIVE.
-  const filled = members.filter((m) => m.status === "PENDING" || m.status === "ACTIVE").length;
+  // Prefer backend-computed seat counts (visible to everyone); fall back to the
+  // owner-scoped members list (PENDING + ACTIVE occupy a seat).
+  const filled = r.filledSeats ?? members.filter((m) => m.status === "PENDING" || m.status === "ACTIVE").length;
+  const free = r.freeSeats ?? Math.max(0, r.maxMembers - filled);
+  const isFull = free <= 0;
   const priceTotal = Number(r.priceTotal ?? Number(r.pricePerMember) * r.maxMembers);
 
   return (
@@ -145,6 +150,23 @@ export function RoomDetailPage() {
             </div>
           </Card>
 
+          {/* What you're buying + what happens after payment */}
+          <Card className="flex flex-col gap-3">
+            <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>What you're buying</h3>
+            <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+              One seat in a shared <strong>{r.serviceName ?? "subscription"}</strong>
+              {r.tariffNameSnapshot ? <> ({r.tariffNameSnapshot})</> : null}. You pay{" "}
+              <strong style={{ color: "var(--eco-primary)" }}>₸{Number(r.pricePerMember).toLocaleString()}{PERIOD_SUFFIX[r.periodType ?? "MONTHLY"]}</strong>
+              {r.startDate ? <>, first charge around <strong>{r.startDate.slice(0, 10)}</strong></> : null}.
+            </p>
+            <ol className="flex flex-col gap-2 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+              <li className="flex gap-2"><span style={{ color: "var(--eco-primary)" }}>1.</span> You pay your share now — held until access is confirmed.</li>
+              <li className="flex gap-2"><span style={{ color: "var(--eco-primary)" }}>2.</span> The owner grants access{r.accessType ? <> via <strong>{ACCESS_TYPE_LABELS[r.accessType].toLowerCase()}</strong></> : null}{r.accessGrantSlaHours != null ? <> within <strong>{r.accessGrantSlaHours}h</strong></> : null}.</li>
+              <li className="flex gap-2"><span style={{ color: "var(--eco-primary)" }}>3.</span> You confirm you received access — your membership becomes <strong>ACTIVE</strong>.</li>
+              <li className="flex gap-2"><span style={{ color: "var(--eco-primary)" }}>4.</span> If access isn't delivered, you can open a dispute for a refund.</li>
+            </ol>
+          </Card>
+
           {/* Access & provider rules */}
           <Card className="flex flex-col gap-3">
             <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Access & rules</h3>
@@ -184,6 +206,24 @@ export function RoomDetailPage() {
                 {r.operatorRestrictions}
               </div>
             )}
+          </Card>
+
+          {/* Refund & risks */}
+          <Card className="flex flex-col gap-3">
+            <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Refund & protection</h3>
+            <div className="flex items-start gap-2 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+              <Shield size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-positive)" }} />
+              Your payment is protected: if the owner doesn't grant access in time, you can open a dispute and get refunded.
+            </div>
+            {r.cancellationPolicy && (
+              <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+                <span style={{ color: "var(--eco-text-tertiary)" }}>Cancellation policy: </span>{r.cancellationPolicy}
+              </div>
+            )}
+            <div className="flex items-start gap-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+              <AlertTriangle size={13} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
+              Risks: access depends on the owner keeping the plan active. Sharing some services may be limited by the provider's terms — review the rules above before joining.
+            </div>
           </Card>
 
           {r.description && (
@@ -256,19 +296,32 @@ export function RoomDetailPage() {
             )}
           </Card>
 
-          {!isOwner && !myMember && r.status === "OPEN" && (
+          {!isOwner && !myMember && (
             <Card className="flex flex-col gap-3">
               <div className="text-[20px]" style={{ color: "var(--eco-primary)" }}>
                 ₸{Number(r.pricePerMember).toLocaleString()}
-                <span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>/mo</span>
+                <span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{PERIOD_SUFFIX[r.periodType ?? "MONTHLY"]}</span>
               </div>
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={() => { setJoinOpen(true); setJoinStep(0); }}
-              >
-                Join Room
-              </Button>
+              {r.status === "OPEN" && !isFull && (
+                <>
+                  <div className="text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>{free} of {r.maxMembers} seats free</div>
+                  <Button variant="primary" size="lg" onClick={() => { setJoinOpen(true); setJoinStep(0); }}>
+                    Join Room
+                  </Button>
+                </>
+              )}
+              {r.status === "OPEN" && isFull && (
+                <>
+                  <div className="text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>All seats are taken.</div>
+                  <Button variant="secondary" size="lg" disabled>Room full</Button>
+                </>
+              )}
+              {r.status !== "OPEN" && (
+                <>
+                  <div className="text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>This room is not accepting new members.</div>
+                  <Button variant="secondary" size="lg" disabled>Not available</Button>
+                </>
+              )}
             </Card>
           )}
 
