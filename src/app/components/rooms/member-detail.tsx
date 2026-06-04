@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { Card, Button, MemberStatusBadge, RoomStatusBadge } from "../ds-primitives";
-import { ArrowLeft, CheckCircle2, Clock, Shield, AlertTriangle, LifeBuoy } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Shield, AlertTriangle, LifeBuoy, CreditCard } from "lucide-react";
 import {
   ApiError,
   confirmMemberAccessRequest,
+  createPaymentIntentRequest,
   getRoom,
   getMyMembership,
   type MyRoomMembershipDto,
@@ -22,7 +23,7 @@ const POST_PAYMENT = new Set(["PENDING", "ACTIVE"]);
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const roomId = Number(id);
-  const { authorizedRequest } = useAuth();
+  const { authorizedRequest, user } = useAuth();
 
   const [room, setRoom] = useState<RoomResponseDto | null>(null);
   const [membership, setMembership] = useState<MyRoomMembershipDto | null>(null);
@@ -31,6 +32,9 @@ export function MemberDetailPage() {
 
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!roomId) {
@@ -74,6 +78,41 @@ export function MemberDetailPage() {
       setConfirmError(err instanceof ApiError ? err.message : "Unable to confirm access right now.");
     } finally {
       setConfirming(false);
+    }
+  };
+
+  const handlePay = async () => {
+    if (!membership) return;
+    setPaying(true);
+    setPayError(null);
+    try {
+      const intent = await authorizedRequest((token) =>
+        createPaymentIntentRequest(membership.id, { idempotencyKey: crypto.randomUUID() }, token),
+      );
+
+      if (intent.status === "SUCCESS") {
+        // Mock gateway charges synchronously: the membership has advanced to
+        // PENDING — re-fetch to drive the timeline forward.
+        const updated = await authorizedRequest((token) => getMyMembership(roomId, token));
+        setMembership(updated);
+      } else if (intent.requiresRedirect && intent.paymentUrl) {
+        // Real Freedom Pay flow: remember which intent/room we're paying for so
+        // the redirect-back page can reconcile and route us back, then hand off
+        // to the hosted payment page.
+        window.localStorage.setItem(
+          "ecopay.pendingPayment",
+          JSON.stringify({ intentId: intent.id, roomId }),
+        );
+        window.location.href = intent.paymentUrl;
+      } else if (intent.status === "FAILED") {
+        setPayError(intent.failureMessage ?? "Payment failed. You can safely retry.");
+      } else {
+        setPayError("Payment is still processing. Refresh in a moment to see the latest status.");
+      }
+    } catch (err) {
+      setPayError(err instanceof ApiError ? err.message : "Unable to start payment right now.");
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -179,6 +218,41 @@ export function MemberDetailPage() {
             ))}
           </div>
         </Card>
+
+        {/* Payment panel when APPLIED — pay your share to reserve the seat */}
+        {membership.status === "APPLIED" && (
+          <Card className="flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <CreditCard size={16} style={{ color: "var(--eco-primary)" }} />
+              <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>Complete Payment</h3>
+            </div>
+            <div className="p-4 rounded-lg" style={{ background: "var(--eco-surface)" }}>
+              <div className="flex justify-between text-[14px] mb-1">
+                <span style={{ color: "var(--eco-text-secondary)" }}>Your share</span>
+                <span style={{ color: "var(--eco-text)" }}>{formatMoney(room.pricePerMember)}</span>
+              </div>
+              <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                Pay to reserve your seat. Funds are held until the owner grants access and you confirm it.
+              </div>
+            </div>
+            {user && !user.phoneVerified ? (
+              <div className="p-3 rounded-lg text-[13px] flex items-start gap-2" style={{ background: "var(--eco-warning-100)", color: "var(--eco-text-secondary)" }}>
+                <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
+                <span>
+                  Verify your phone number before paying.{" "}
+                  <Link to="/profile" style={{ color: "var(--eco-primary)" }}>Go to profile</Link>.
+                </span>
+              </div>
+            ) : (
+              <>
+                {payError && <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{payError}</p>}
+                <Button variant="primary" size="md" loading={paying} onClick={handlePay}>
+                  <CreditCard size={14} /> Pay {formatMoney(room.pricePerMember)}
+                </Button>
+              </>
+            )}
+          </Card>
+        )}
 
         {/* Action panel when PENDING */}
         {membership.status === "PENDING" && (

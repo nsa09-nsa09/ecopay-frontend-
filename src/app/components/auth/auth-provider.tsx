@@ -42,6 +42,7 @@ interface AuthContextType {
   requestPasswordReset: (email: string) => Promise<void>;
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
   updateProfile: (payload: { displayName: string; avatar?: string | null }) => Promise<User>;
+  refreshUser: () => Promise<User | null>;
   authorizedRequest: <T>(operation: (accessToken: string) => Promise<T>) => Promise<T>;
 }
 
@@ -266,6 +267,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user;
   };
 
+  /** Re-fetch /users/me and update the stored session (e.g. after phone verification). */
+  const refreshUser = async () => {
+    const user = await authorizedRequest((accessToken) => getCurrentUser(accessToken));
+
+    setSession((currentSession) => {
+      if (!currentSession) {
+        persistSession(null);
+        return null;
+      }
+
+      const nextSession = { ...currentSession, user };
+      persistSession(nextSession);
+      return nextSession;
+    });
+
+    return user;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -281,6 +300,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         requestPasswordReset,
         confirmPasswordReset,
         updateProfile,
+        refreshUser,
         authorizedRequest,
       }}
     >

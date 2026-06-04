@@ -6,7 +6,6 @@ import {
   Tabs,
   RoomStatusBadge,
   MemberStatusBadge,
-  Badge,
   EmptyState,
   Select,
 } from "../ds-primitives";
@@ -290,9 +289,6 @@ export function MyRoomsPage() {
 
                       <div className="flex items-center gap-2">
                         <RoomStatusBadge status={room.status} />
-                        {room.applicants > 0 && (
-                          <Badge variant="warning">{t("pendingCount", { count: room.applicants })}</Badge>
-                        )}
                       </div>
                     </div>
 
@@ -302,11 +298,11 @@ export function MyRoomsPage() {
                       </span>
 
                       <span className="flex items-center gap-1.5">
-                        <Users size={13} /> {room.filled}/{room.seats} {t("seatsLower")}
+                        <Users size={13} /> {room.maxMembers} {t("seatsLower")}
                       </span>
 
                       <span style={{ color: "var(--eco-primary)" }}>
-                        {formatMoney(room.perMember)}{t("perMemberMonth")}
+                        {formatMoney(room.pricePerMember)}{t("perMemberMonth")}
                       </span>
                     </div>
 

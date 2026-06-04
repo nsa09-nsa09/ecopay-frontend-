@@ -29,6 +29,7 @@ import { AdminDisputesPage } from "./components/admin/admin-disputes";
 import { AdminLogsPage } from "./components/admin/admin-logs";
 import { AdminRoute } from "./components/admin/admin-route";
 import { PaymentRoomDetailsPage, PaymentCheckoutPage, PaymentConfirmationPage, PaymentPendingPage, RefundStatusPage, OwnerPayoutPage } from "./components/payments/payments";
+import { PaymentReturnPage } from "./components/payments/payment-return";
 import { PublicUserProfilePage } from "./components/reputation/public-profile";
 import { I18nTypographyFixPage } from "./components/static/i18n-typography-fix";
 import { StatesSlaEdgeCasesPage } from "./components/static/states-sla-edge-cases";
@@ -87,7 +88,12 @@ export const router = createBrowserRouter([
       { path: "how-it-works", Component: HowItWorksPage },
       { path: "payment/room", Component: PaymentRoomDetailsPage },
       { path: "payment/checkout", Component: PaymentCheckoutPage },
-      { path: "payment/confirmation", Component: PaymentConfirmationPage },
+      // Freedom Pay redirect-back targets (success_url / failure_url) — wired to
+      // the live reconciliation page.
+      { path: "payment/confirmation", Component: PaymentReturnPage },
+      { path: "payment/failure", Component: PaymentReturnPage },
+      // Static design reference for the old confirmation mockup.
+      { path: "payment/confirmation-demo", Component: PaymentConfirmationPage },
       { path: "payment/pending", Component: PaymentPendingPage },
       { path: "payment/refund", Component: RefundStatusPage },
       { path: "payment/payout", Component: OwnerPayoutPage },

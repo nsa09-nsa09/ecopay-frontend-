@@ -24,7 +24,7 @@ export function RoomDetailPage() {
   const roomId = Number(id);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, authorizedRequest } = useAuth();
+  const { isAuthenticated, authorizedRequest, user } = useAuth();
 
   const [room, setRoom] = useState<RoomResponseDto | null>(null);
   const [summary, setSummary] = useState<RoomSummaryDto | null>(null);
@@ -281,6 +281,15 @@ export function RoomDetailPage() {
 
             {joinStep === 0 && (
               <div className="flex flex-col gap-4">
+                {user && !user.phoneVerified && (
+                  <div className="p-3 rounded-lg text-[12px] flex items-start gap-2" style={{ background: "var(--eco-warning-100)", color: "var(--eco-text-secondary)" }}>
+                    <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
+                    <span>
+                      Verify your phone number before joining a room.{" "}
+                      <Link to="/profile" style={{ color: "var(--eco-primary)" }}>Go to profile</Link>.
+                    </span>
+                  </div>
+                )}
                 {requiresIdentifier && (
                   <>
                     <Select
@@ -316,7 +325,11 @@ export function RoomDetailPage() {
                 <Button
                   variant="primary"
                   className="w-full"
-                  disabled={!consent || (requiresIdentifier && !identifierValue.trim())}
+                  disabled={
+                    !consent ||
+                    (requiresIdentifier && !identifierValue.trim()) ||
+                    (!!user && !user.phoneVerified)
+                  }
                   onClick={() => setJoinStep(1)}
                 >
                   Continue
@@ -358,9 +371,14 @@ export function RoomDetailPage() {
             </div>
             <div className="text-[15px]" style={{ color: "var(--eco-text)" }}>Application Submitted</div>
             <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-              Your membership is now <Badge variant="info">APPLIED</Badge>.
+              Your membership is now <Badge variant="info">APPLIED</Badge>. Next, complete payment to reserve your seat.
             </div>
-            <Button variant="secondary" className="mt-2" onClick={() => setJoinOpen(false)}>Close</Button>
+            <div className="flex gap-2 mt-2">
+              <Button variant="primary" onClick={() => navigate(`/rooms/member/${room.id}`)}>
+                Continue to payment
+              </Button>
+              <Button variant="secondary" onClick={() => setJoinOpen(false)}>Close</Button>
+            </div>
           </div>
         )}
       </Modal>

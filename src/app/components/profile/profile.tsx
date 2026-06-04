@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Card, Badge, Button, Input } from "../ds-primitives";
-import { Shield, UserRound, Mail, Star } from "lucide-react";
+import { Shield, UserRound, Mail, Star, Phone, CheckCircle2 } from "lucide-react";
 import { useAuth } from "../auth/auth-provider";
-import { ApiError } from "../../lib/api";
+import { ApiError, requestPhoneCodeRequest, verifyPhoneRequest } from "../../lib/api";
 
 export function ProfilePage() {
   const { user, isAuthenticated, isReady, updateProfile } = useAuth();
@@ -145,6 +145,8 @@ export function ProfilePage() {
             </form>
           </Card>
 
+          <PhoneVerificationCard />
+
           <Card className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="rounded-lg p-4" style={{ background: "var(--eco-surface)" }}>
               <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
@@ -168,5 +170,141 @@ export function ProfilePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Lets an already-registered user verify (or change + verify) their phone number.
+ * Backend flow: POST /auth/phone/request-code → SMS code → POST /auth/phone/verify.
+ */
+function PhoneVerificationCard() {
+  const { user, authorizedRequest, refreshUser } = useAuth();
+
+  const [phone, setPhone] = useState(user?.phone ?? "+7");
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setPhone(user?.phone ?? "+7");
+  }, [user?.phone]);
+
+  const verified = Boolean(user?.phoneVerified);
+  // A verified user editing their number must re-verify the new one.
+  const phoneChanged = verified && phone !== (user?.phone ?? "");
+
+  const handleRequestCode = async () => {
+    setMessage(null);
+    setError(null);
+    setFieldErrors({});
+    setSending(true);
+
+    try {
+      await authorizedRequest((token) => requestPhoneCodeRequest(phone, token));
+      setCodeSent(true);
+      setMessage("We sent a 6-digit code to your phone. Enter it below.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+        setFieldErrors(err.errors);
+      } else {
+        setError("Unable to send a code right now.");
+      }
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleVerify = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setMessage(null);
+    setError(null);
+    setFieldErrors({});
+    setVerifying(true);
+
+    try {
+      await authorizedRequest((token) => verifyPhoneRequest(phone, code, token));
+      await refreshUser();
+      setCode("");
+      setCodeSent(false);
+      setMessage("Phone number verified.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+        setFieldErrors(err.errors);
+      } else {
+        setError("Unable to verify the code right now.");
+      }
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  return (
+    <Card className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-[16px]" style={{ color: "var(--eco-text)" }}>
+          <Phone size={16} /> Phone number
+        </h3>
+        {verified && !phoneChanged ? (
+          <Badge variant="success">Verified</Badge>
+        ) : (
+          <Badge>Not verified</Badge>
+        )}
+      </div>
+
+      {verified && !phoneChanged && (
+        <p className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-positive)" }}>
+          <CheckCircle2 size={14} /> {user?.phone} is verified.
+        </p>
+      )}
+
+      <Input
+        label="Phone"
+        value={phone}
+        onChange={(event) => {
+          setPhone(event.target.value);
+          setCodeSent(false);
+        }}
+        error={fieldErrors.phone}
+        hint="Format: +7XXXXXXXXXX"
+        placeholder="+77001234567"
+      />
+
+      {!codeSent ? (
+        <Button onClick={handleRequestCode} loading={sending} disabled={verified && !phoneChanged}>
+          {phoneChanged ? "Send code to new number" : "Send verification code"}
+        </Button>
+      ) : (
+        <form className="flex flex-col gap-3" onSubmit={handleVerify}>
+          <Input
+            label="Verification code"
+            value={code}
+            onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+            error={fieldErrors.code}
+            hint="6-digit code from the SMS"
+            inputMode="numeric"
+            placeholder="123456"
+          />
+          <div className="flex gap-2">
+            <Button type="submit" loading={verifying}>Verify</Button>
+            <Button type="button" variant="ghost" onClick={handleRequestCode} loading={sending}>
+              Resend code
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {error && (
+        <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{error}</p>
+      )}
+      {message && (
+        <p className="text-[12px]" style={{ color: "var(--eco-positive)" }}>{message}</p>
+      )}
+    </Card>
   );
 }

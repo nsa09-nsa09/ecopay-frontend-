@@ -4,6 +4,8 @@ export interface User {
   id: number;
   email: string;
   displayName: string;
+  phone: string | null;
+  phoneVerified: boolean;
   avatar: string | null;
   status: string;
   role: UserRole | string;
@@ -257,6 +259,37 @@ export function updateCurrentUser(
   );
 }
 
+/**
+ * Send a 6-digit SMS code to verify the given phone for the signed-in user.
+ * Backend: POST /api/v1/auth/phone/request-code (auth required).
+ * Phone must be in +7XXXXXXXXXX format.
+ */
+export function requestPhoneCodeRequest(phone: string, accessToken: string) {
+  return requestJson<void>(
+    "/auth/phone/request-code",
+    {
+      method: "POST",
+      body: JSON.stringify({ phone }),
+    },
+    accessToken,
+  );
+}
+
+/**
+ * Confirm the SMS code for the signed-in user, marking their phone verified.
+ * Backend: POST /api/v1/auth/phone/verify (auth required).
+ */
+export function verifyPhoneRequest(phone: string, code: string, accessToken: string) {
+  return requestJson<void>(
+    "/auth/phone/verify",
+    {
+      method: "POST",
+      body: JSON.stringify({ phone, code }),
+    },
+    accessToken,
+  );
+}
+
 export function getServices(categoryId?: number) {
   return requestJson<ServiceDto[]>(`/catalog/services${toSearchParams({ categoryId })}`);
 }
@@ -476,6 +509,64 @@ export function revealIdentifierRequest(
   return requestJson<RevealedIdentifierDto>(`/rooms/${roomId}/members/${memberId}/reveal-identifier`, {
     method: "POST",
     body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+// ============================================================
+// Payments (membership checkout)
+// ============================================================
+//
+// A member pays their share to advance the membership from APPLIED → PENDING.
+// In dev the backend uses the in-memory mock gateway, which charges
+// synchronously and returns status SUCCESS (no redirect). Real Freedom Pay in
+// prod returns requiresRedirect + paymentUrl, and the webhook finalizes later.
+
+export type PaymentIntentStatus = "PENDING" | "SUCCESS" | "FAILED" | "EXPIRED" | string;
+
+export interface PaymentIntentResponseDto {
+  id: number;
+  idempotencyKey: string;
+  amount: number;
+  currency: string;
+  status: PaymentIntentStatus;
+  providerName: string;
+  externalPaymentId: string | null;
+  roomMemberId: number;
+  paymentUrl: string | null;
+  requiresRedirect: boolean;
+  saveCardRequested: boolean;
+  failureCode: string | null;
+  failureMessage: string | null;
+}
+
+export function createPaymentIntentRequest(
+  roomMemberId: number,
+  payload: { idempotencyKey: string; saveCard?: boolean; savedCardId?: number },
+  accessToken: string,
+) {
+  return requestJson<PaymentIntentResponseDto>(`/payments/members/${roomMemberId}/intent`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+export function getPaymentIntentRequest(intentId: number, accessToken: string) {
+  return requestJson<PaymentIntentResponseDto>(`/payments/intents/${intentId}`, {}, accessToken);
+}
+
+/**
+ * Redirect-back reconciliation: called when the user returns from the Freedom
+ * Pay hosted page. The backend actively queries the gateway and finalizes the
+ * intent (and the membership) if the payment already succeeded.
+ */
+export function confirmPaymentSuccessRequest(
+  intentId: number,
+  accessToken: string,
+  externalTransactionId?: string,
+) {
+  return requestJson<PaymentIntentResponseDto>(`/payments/intents/${intentId}/confirm-success`, {
+    method: "POST",
+    body: JSON.stringify({ externalTransactionId: externalTransactionId ?? "" }),
   }, accessToken);
 }
 
