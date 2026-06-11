@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { Card, Button, Badge, MemberStatusBadge, RoomStatusBadge, Modal, Select } from "../ds-primitives";
-import { ArrowLeft, Eye, Shield, CheckCircle2, Lock, Users, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Eye, Shield, CheckCircle2, Lock, Users, Calendar, Clock, Star } from "lucide-react";
 import {
   ApiError,
   confirmOwnerAccessRequest,
@@ -12,6 +12,7 @@ import {
   type RoomResponseDto,
 } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
+import { LeaveReviewModal } from "../reputation/leave-review-modal";
 
 const moneyFormatter = new Intl.NumberFormat("ru-RU");
 const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
@@ -52,6 +53,9 @@ export function OwnerDetailPage() {
   const [grantChecklist, setGrantChecklist] = useState<Record<string, boolean>>({});
   const [grantError, setGrantError] = useState<string | null>(null);
   const [granting, setGranting] = useState(false);
+
+  // Review flow
+  const [reviewTarget, setReviewTarget] = useState<RoomMemberDto | null>(null);
 
   const loadMembers = useCallback(async () => {
     const result = await authorizedRequest((token) => getRoomMembers(roomId, token, { size: 100 }));
@@ -248,6 +252,14 @@ export function OwnerDetailPage() {
                           {p.accessMethod ? ` via ${p.accessMethod}` : ""}
                         </div>
                       )}
+
+                      {room.status === "COMPLETED" && postPayment && (
+                        <div className="pt-1">
+                          <Button variant="secondary" size="sm" onClick={() => setReviewTarget(p)}>
+                            <Star size={13} /> Leave a review
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -384,6 +396,14 @@ export function OwnerDetailPage() {
           </Button>
         </div>
       </Modal>
+
+      <LeaveReviewModal
+        open={!!reviewTarget}
+        onClose={() => setReviewTarget(null)}
+        recipientId={reviewTarget?.userId ?? 0}
+        roomId={roomId}
+        recipientName={reviewTarget?.userDisplayName}
+      />
     </div>
   );
 }

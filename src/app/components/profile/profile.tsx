@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { Card, Badge, Button, Input } from "../ds-primitives";
 import { Shield, UserRound, Mail, Star, Phone, CheckCircle2 } from "lucide-react";
 import { useAuth } from "../auth/auth-provider";
-import { ApiError, requestPhoneCodeRequest, verifyPhoneRequest } from "../../lib/api";
+import { ApiError, requestPhoneCodeRequest, resendVerificationEmailRequest, verifyPhoneRequest } from "../../lib/api";
 
 export function ProfilePage() {
   const { user, isAuthenticated, isReady, updateProfile } = useAuth();
@@ -146,6 +146,8 @@ export function ProfilePage() {
           </Card>
 
           <PhoneVerificationCard />
+
+          <EmailVerificationCard email={user.email} />
 
           <Card className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="rounded-lg p-4" style={{ background: "var(--eco-surface)" }}>
@@ -305,6 +307,42 @@ function PhoneVerificationCard() {
       {message && (
         <p className="text-[12px]" style={{ color: "var(--eco-positive)" }}>{message}</p>
       )}
+    </Card>
+  );
+}
+
+function EmailVerificationCard({ email }: { email: string }) {
+  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleResend = async () => {
+    setSending(true);
+    setMessage(null);
+    setError(null);
+    try {
+      await resendVerificationEmailRequest(email);
+      setMessage("If unverified, a new verification email has been sent.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Unable to resend verification email.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <h3 className="flex items-center gap-2 text-[16px]" style={{ color: "var(--eco-text)" }}>
+        <Mail size={16} /> Email verification
+      </h3>
+      <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+        Didn't get the verification email for <strong>{email}</strong>? Resend it.
+      </p>
+      <Button variant="secondary" loading={sending} onClick={handleResend}>
+        Resend verification email
+      </Button>
+      {message && <p className="text-[12px]" style={{ color: "var(--eco-positive)" }}>{message}</p>}
+      {error && <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{error}</p>}
     </Card>
   );
 }

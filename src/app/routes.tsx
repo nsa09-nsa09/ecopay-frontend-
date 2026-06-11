@@ -7,6 +7,7 @@ import { LoginPage } from "./components/auth/login";
 import { RegisterPage } from "./components/auth/register";
 import { ForgotPasswordPage } from "./components/auth/forgot-password";
 import { ResetPasswordConfirmPage } from "./components/auth/reset-password-confirm";
+import { VerifyEmailPage } from "./components/auth/verify-email";
 import { RoomDetailPage } from "./components/rooms/room-detail";
 import { CreateRoomPage } from "./components/rooms/create-room";
 import { MyRoomsPage } from "./components/rooms/my-rooms";
@@ -71,6 +72,7 @@ export const router = createBrowserRouter([
       { path: "register", Component: RegisterPage },
       { path: "forgot-password", Component: ForgotPasswordPage },
       { path: "reset-password/confirm", Component: ResetPasswordConfirmPage },
+      { path: "verify-email", Component: VerifyEmailPage },
       { path: "room/:id", Component: RoomDetailPage },
       { path: "rooms", Component: MyRoomsPage },
       { path: "rooms/create", Component: CreateRoomPage },

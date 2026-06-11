@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { Card, Badge, Button, RoomStatusBadge, Modal, Input, Stepper, Select } from "../ds-primitives";
-import { ArrowLeft, Users, Calendar, Shield, AlertTriangle, Check } from "lucide-react";
+import { ArrowLeft, Users, Calendar, Shield, AlertTriangle, Check, Star } from "lucide-react";
 import { ApiError, getRoom, getRooms, joinRoomRequest, type RoomResponseDto, type RoomSummaryDto } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
+import { LeaveReviewModal } from "../reputation/leave-review-modal";
 
 const moneyFormatter = new Intl.NumberFormat("ru-RU");
 
@@ -39,6 +40,7 @@ export function RoomDetailPage() {
   const [identifierValue, setIdentifierValue] = useState("");
   const [joinError, setJoinError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -271,8 +273,28 @@ export function RoomDetailPage() {
               {requiresIdentifier ? "Your identifier is only shared after you confirm the join request." : "You can submit a join request from this page."}
             </p>
           </Card>
+
+          {room.status === "COMPLETED" && isAuthenticated && user && user.id !== room.ownerUserId && (
+            <Card className="flex flex-col gap-3">
+              <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Share your feedback</h3>
+              <p className="text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
+                This room is completed. Leave a review for {ownerName}.
+              </p>
+              <Button variant="secondary" size="md" onClick={() => setReviewOpen(true)}>
+                <Star size={14} /> Leave a review
+              </Button>
+            </Card>
+          )}
         </div>
       </div>
+
+      <LeaveReviewModal
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        recipientId={room.ownerUserId}
+        roomId={room.id}
+        recipientName={ownerName}
+      />
 
       <Modal open={joinOpen} onClose={() => setJoinOpen(false)} title="Join Room">
         {!joinDone ? (

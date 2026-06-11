@@ -713,11 +713,10 @@ export function blockRoomRequest(roomId: number, reason: string, accessToken: st
 
 export interface SupportMessageDto {
   id: number;
-  ticketId: number;
-  authorUserId: number;
-  authorRole: string;
-  body: string;
-  internalNote: boolean;
+  senderUserId: number;
+  senderRole: string;
+  message: string;
+  attachmentUrl: string | null;
   createdAt: string;
 }
 
@@ -727,14 +726,14 @@ export interface SupportTicketResponse {
   roomId: number | null;
   roomMemberId: number | null;
   subject: string;
-  topic: string | null;
+  topic: string;
   status: string;
-  priority: string | null;
-  escalatedToDispute: boolean | null;
+  priority: string;
+  escalatedToDispute: boolean;
   createdAt: string;
   updatedAt: string;
   closedAt: string | null;
-  messages: SupportMessageDto[] | null;
+  messages: SupportMessageDto[];
 }
 
 export function getStaffSupportQueueRequest(
@@ -961,4 +960,192 @@ export function batchConfirmModerationRequest(
     { method: "POST", body: JSON.stringify(payload) },
     accessToken,
   );
+}
+
+// ============================================================
+// Reviews
+// ============================================================
+
+export interface ReviewDto {
+  id: number;
+  authorId: number;
+  authorDisplayName: string;
+  recipientId: number;
+  roomId: number;
+  rating: number;
+  text: string | null;
+  createdAt: string;
+}
+
+export interface CreateReviewPayload {
+  recipientId: number;
+  roomId: number;
+  rating: number;
+  text?: string;
+}
+
+export function createReviewRequest(payload: CreateReviewPayload, accessToken: string) {
+  return requestJson<ReviewDto>("/reviews", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+// ============================================================
+// Reputation (public)
+// ============================================================
+
+export interface ReputationDto {
+  userId: number;
+  displayName: string;
+  reputation: number;
+  averageRating: number | null;
+  reviewsCount: number;
+  completedRoomsCount: number;
+}
+
+export function getReputationRequest(userId: number) {
+  return requestJson<ReputationDto>(`/reputation/users/${userId}`);
+}
+
+export function getReputationReviewsRequest(userId: number) {
+  return requestJson<ReviewDto[]>(`/reputation/users/${userId}/reviews`);
+}
+
+// ============================================================
+// Support tickets (current user)
+// ============================================================
+
+export interface CreateSupportTicketPayload {
+  roomId?: number;
+  roomMemberId?: number;
+  subject: string;
+  topic: string;
+  message: string;
+}
+
+export function createSupportTicketRequest(
+  payload: CreateSupportTicketPayload,
+  accessToken: string,
+) {
+  return requestJson<SupportTicketResponse>("/support-tickets", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+export function getMySupportTicketsRequest(accessToken: string) {
+  return requestJson<SupportTicketResponse[]>("/support-tickets", {}, accessToken);
+}
+
+export function getMySupportTicketRequest(ticketId: number, accessToken: string) {
+  return requestJson<SupportTicketResponse>(`/support-tickets/${ticketId}`, {}, accessToken);
+}
+
+export function postSupportTicketMessageRequest(
+  ticketId: number,
+  message: string,
+  accessToken: string,
+) {
+  return requestJson<SupportTicketResponse>(`/support-tickets/${ticketId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ message }),
+  }, accessToken);
+}
+
+// ============================================================
+// Payouts (owner)
+// ============================================================
+
+export interface PayoutDto {
+  id: number;
+  amount: number;
+  currency: string;
+  status: string;
+  providerPayoutId: string | null;
+  failureReason: string | null;
+  roomId: number | null;
+  createdAt: string;
+  processedAt: string | null;
+}
+
+export interface PayoutMethodDto {
+  id: number;
+  providerName: string;
+  panMask: string;
+  isDefault: boolean;
+  status: string;
+  createdAt: string;
+}
+
+export function getMyPayoutsRequest(accessToken: string) {
+  return requestJson<PayoutDto[]>("/payouts/me", {}, accessToken);
+}
+
+export function getPayoutRequest(payoutId: number, accessToken: string) {
+  return requestJson<PayoutDto>(`/payouts/${payoutId}`, {}, accessToken);
+}
+
+export function getPayoutMethodsRequest(accessToken: string) {
+  return requestJson<PayoutMethodDto[]>("/payouts/methods", {}, accessToken);
+}
+
+export function registerPayoutMethodRequest(
+  payload: { providerCardToken: string; panMask?: string },
+  accessToken: string,
+) {
+  return requestJson<PayoutMethodDto>("/payouts/methods", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+export function deletePayoutMethodRequest(methodId: number, accessToken: string) {
+  return requestJson<void>(`/payouts/methods/${methodId}`, {
+    method: "DELETE",
+  }, accessToken);
+}
+
+// ============================================================
+// Refunds (member)
+// ============================================================
+
+export interface RefundTransactionResponse {
+  id: number;
+  paymentTransactionId: number;
+  disputeId: number | null;
+  adminUserId: number | null;
+  status: string;
+  amount: number;
+  currency: string;
+  reason: string | null;
+  idempotencyKey: string;
+  providerRefundId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function getMyRefundsRequest(accessToken: string) {
+  return requestJson<RefundTransactionResponse[]>("/refunds/me", {}, accessToken);
+}
+
+export function getRefundRequest(refundId: number, accessToken: string) {
+  return requestJson<RefundTransactionResponse>(`/refunds/${refundId}`, {}, accessToken);
+}
+
+// ============================================================
+// Email verification
+// ============================================================
+
+// Backend returns a plain text body on success; requestJson<string> falls
+// through the JSON.parse catch and hands us the raw string.
+export function verifyEmailRequest(token: string) {
+  return requestJson<string>(`/auth/verify-email${toSearchParams({ token })}`);
+}
+
+export function resendVerificationEmailRequest(email: string) {
+  return requestJson<void>("/auth/resend-verification", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
 }

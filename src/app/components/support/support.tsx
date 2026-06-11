@@ -1,26 +1,36 @@
-import { useState, useRef } from "react";
-import { Link } from "react-router";
-import { Card, Button, Input, Select, Badge, Tabs, EmptyState, Skeleton, SkeletonCard } from "../ds-primitives";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { Card, Button, Select, Badge, EmptyState, Skeleton, SkeletonCard } from "../ds-primitives";
 import {
-  ArrowLeft, Upload, Send, Paperclip, AlertCircle, Clock, CheckCircle2,
-  Shield, Plus, Filter, ChevronDown, ChevronUp, Image, FileText,
-  AlertTriangle, X, Loader2, MessageSquare, LifeBuoy
+  ArrowLeft, Send, AlertCircle, CheckCircle2,
+  Shield, Plus, Filter, ChevronDown, ChevronUp,
+  AlertTriangle, Loader2, MessageSquare,
 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  ApiError,
+  createSupportTicketRequest,
+  getMySupportTicketRequest,
+  getMySupportTicketsRequest,
+  postSupportTicketMessageRequest,
+  type SupportTicketResponse,
+} from "../../lib/api";
+import { useAuth } from "../auth/auth-provider";
 
-// ─── Types ───
-type TicketStatus = "OPEN" | "IN_PROGRESS" | "CLOSED";
-type TopicKey = "access" | "payment" | "wrong_plan" | "refund" | "abuse" | "other";
+const TOPIC_OPTIONS = [
+  { value: "access", label: "Access not granted" },
+  { value: "payment", label: "Payment issue" },
+  { value: "wrong_plan", label: "Wrong plan" },
+  { value: "refund", label: "Refund request" },
+  { value: "abuse", label: "Abuse report" },
+  { value: "other", label: "Other" },
+];
 
-const TOPIC_LABELS: Record<TopicKey, string> = {
-  access: "Access not granted",
-  payment: "Payment issue",
-  wrong_plan: "Wrong plan",
-  refund: "Refund request",
-  abuse: "Abuse report",
-  other: "Other",
-};
+const TOPIC_LABELS: Record<string, string> = Object.fromEntries(
+  TOPIC_OPTIONS.map((o) => [o.value, o.label]),
+);
 
-const TOPIC_BADGE_VARIANT: Record<TopicKey, "default" | "success" | "warning" | "danger" | "info"> = {
+const TOPIC_VARIANT: Record<string, "default" | "success" | "warning" | "danger" | "info"> = {
   access: "warning",
   payment: "danger",
   wrong_plan: "info",
@@ -29,98 +39,55 @@ const TOPIC_BADGE_VARIANT: Record<TopicKey, "default" | "success" | "warning" | 
   other: "default",
 };
 
-const STATUS_BADGE_VARIANT: Record<TicketStatus, "default" | "success" | "warning" | "danger" | "info"> = {
+const STATUS_VARIANT: Record<string, "default" | "success" | "warning" | "danger" | "info"> = {
   OPEN: "warning",
   IN_PROGRESS: "info",
   CLOSED: "success",
 };
 
-// ─── Mock Data ───
-type Ticket = {
-  id: string;
-  topic: TopicKey;
-  title: string;
-  room: string | null;
-  status: TicketStatus;
-  updated: string;
-  createdAt: string;
-  escalated?: boolean;
-};
+function relativeTime(iso: string): string {
+  const date = new Date(iso);
+  const diffMs = Date.now() - date.getTime();
+  const m = Math.floor(diffMs / 60_000);
+  if (m < 1) return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  const w = Math.floor(d / 7);
+  if (w < 5) return `${w}w ago`;
+  return date.toLocaleDateString();
+}
 
-const mockTickets: Ticket[] = [
-  { id: "T-1024", topic: "access", title: "Owner hasn't granted access after 48h", room: "Beeline Family 4", status: "OPEN", updated: "2h ago", createdAt: "2026-04-01 14:30" },
-  { id: "T-1020", topic: "payment", title: "Double charge on March payment", room: "Activ Family 5", status: "IN_PROGRESS", updated: "1d ago", createdAt: "2026-03-28 09:15" },
-  { id: "T-1018", topic: "refund", title: "Refund for blocked room", room: "Kcell Group 3", status: "OPEN", updated: "3d ago", createdAt: "2026-03-25 16:00", escalated: true },
-  { id: "T-1012", topic: "wrong_plan", title: "Listed plan doesn't match actual operator plan", room: "Tele2 Duo", status: "CLOSED", updated: "1w ago", createdAt: "2026-03-18 11:30" },
-  { id: "T-1005", topic: "abuse", title: "Suspicious room owner activity", room: null, status: "CLOSED", updated: "2w ago", createdAt: "2026-03-10 08:45" },
-];
-
-type Message = {
-  id: string;
-  from: "user" | "support" | "admin";
-  name: string;
-  text: string;
-  time: string;
-  attachments?: { name: string; type: "image" | "pdf"; url?: string }[];
-};
-
-const mockMessages: Record<string, { messages: Message[]; escalated: boolean }> = {
-  "T-1024": {
-    escalated: false,
-    messages: [
-      { id: "m1", from: "user", name: "You", text: "The room owner hasn't granted me access. It's been over 48 hours and the SLA has expired.", time: "Apr 1, 14:30", attachments: [{ name: "sla_screenshot.png", type: "image" }] },
-      { id: "m2", from: "support", name: "Support", text: "Thank you for reporting this. We've contacted the room owner and given them a 24-hour notice. If no response, we'll process a full refund.", time: "Apr 1, 15:45" },
-      { id: "m3", from: "user", name: "You", text: "Thank you. Please keep me updated on the status.", time: "Apr 1, 16:00" },
-      { id: "m4", from: "support", name: "Support", text: "Update: The owner has been notified again. We're monitoring the situation. You'll receive an automatic notification when access is granted or a refund is initiated.", time: "Apr 2, 10:30" },
-    ],
-  },
-  "T-1020": {
-    escalated: false,
-    messages: [
-      { id: "m1", from: "user", name: "You", text: "I was charged twice for my March payment in the Activ Family 5 room. Transaction IDs attached.", time: "Mar 28, 09:15", attachments: [{ name: "receipt_march.pdf", type: "pdf" }, { name: "bank_statement.png", type: "image" }] },
-      { id: "m2", from: "support", name: "Support", text: "We can see the duplicate transaction. A refund for ₸3,200 has been initiated and should appear within 3-5 business days.", time: "Mar 28, 11:00" },
-    ],
-  },
-  "T-1018": {
-    escalated: true,
-    messages: [
-      { id: "m1", from: "user", name: "You", text: "My room was blocked without explanation. I need a refund for the remaining period.", time: "Mar 25, 16:00" },
-      { id: "m2", from: "support", name: "Support", text: "The room was blocked following a compliance review. We're escalating this to our dispute resolution team.", time: "Mar 25, 17:30" },
-      { id: "m3", from: "admin", name: "Admin", text: "This ticket has been escalated to dispute review. A senior representative will handle your case within 48 hours. Refund eligibility will be determined during the review.", time: "Mar 26, 09:00" },
-    ],
-  },
-  "T-1012": {
-    escalated: false,
-    messages: [
-      { id: "m1", from: "user", name: "You", text: "The plan listed as 'Tele2 Duo' doesn't match the actual operator plan. The price and features are different.", time: "Mar 18, 11:30" },
-      { id: "m2", from: "support", name: "Support", text: "Thank you for flagging this. We've verified the discrepancy and the room owner has been notified to update the listing. Your membership has been adjusted.", time: "Mar 18, 14:00" },
-      { id: "m3", from: "support", name: "Support", text: "This ticket is now resolved. The room listing has been corrected. Please reopen if you notice any further issues.", time: "Mar 19, 10:00" },
-    ],
-  },
-  "T-1005": {
-    escalated: false,
-    messages: [
-      { id: "m1", from: "user", name: "You", text: "I believe the owner of a room I saw is creating fake listings to collect payments.", time: "Mar 10, 08:45" },
-      { id: "m2", from: "admin", name: "Admin", text: "Thank you for the report. Our trust & safety team has investigated and taken action. The account has been flagged.", time: "Mar 11, 14:00" },
-    ],
-  },
-};
-
-// ─── Ticket List with Filters ───
-function TicketListView({ onSelect, onCreate }: { onSelect: (id: string) => void; onCreate: () => void }) {
+// ─── Ticket List ───
+function TicketListView({
+  tickets,
+  loading,
+  error,
+  onSelect,
+  onCreate,
+  onRetry,
+}: {
+  tickets: SupportTicketResponse[];
+  loading: boolean;
+  error: string | null;
+  onSelect: (id: number) => void;
+  onCreate: () => void;
+  onRetry: () => void;
+}) {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [topicFilter, setTopicFilter] = useState("ALL");
   const [showFilters, setShowFilters] = useState(false);
 
-  const filtered = mockTickets.filter((t) => {
+  const filtered = useMemo(() => tickets.filter((t) => {
     if (statusFilter !== "ALL" && t.status !== statusFilter) return false;
     if (topicFilter !== "ALL" && t.topic !== topicFilter) return false;
     return true;
-  });
+  }), [tickets, statusFilter, topicFilter]);
 
   return (
     <>
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-[26px] mb-1" style={{ color: "var(--eco-text)" }}>Support Center</h1>
@@ -133,21 +100,22 @@ function TicketListView({ onSelect, onCreate }: { onSelect: (id: string) => void
         </Button>
       </div>
 
-      {/* Filter toggle */}
-      <div className="mb-4">
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] cursor-pointer transition-colors"
-          style={{ color: "var(--eco-text-secondary)", background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
-        >
-          <Filter size={14} />
-          Filters
-          {(statusFilter !== "ALL" || topicFilter !== "ALL") && (
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--eco-primary)" }} />
-          )}
-          {showFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        </button>
-      </div>
+      {!loading && !error && tickets.length > 0 && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] cursor-pointer transition-colors"
+            style={{ color: "var(--eco-text-secondary)", background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
+          >
+            <Filter size={14} />
+            Filters
+            {(statusFilter !== "ALL" || topicFilter !== "ALL") && (
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--eco-primary)" }} />
+            )}
+            {showFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        </div>
+      )}
 
       {showFilters && (
         <Card className="mb-4">
@@ -165,15 +133,7 @@ function TicketListView({ onSelect, onCreate }: { onSelect: (id: string) => void
             />
             <Select
               label="Topic"
-              options={[
-                { value: "ALL", label: "All topics" },
-                { value: "access", label: "Access not granted" },
-                { value: "payment", label: "Payment issue" },
-                { value: "wrong_plan", label: "Wrong plan" },
-                { value: "refund", label: "Refund request" },
-                { value: "abuse", label: "Abuse report" },
-                { value: "other", label: "Other" },
-              ]}
+              options={[{ value: "ALL", label: "All topics" }, ...TOPIC_OPTIONS]}
               value={topicFilter}
               onChange={(e) => setTopicFilter(e.target.value)}
             />
@@ -186,15 +146,24 @@ function TicketListView({ onSelect, onCreate }: { onSelect: (id: string) => void
         </Card>
       )}
 
-      {/* Ticket list */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <TicketListSkeleton />
+      ) : error ? (
+        <Card className="flex flex-col gap-3 items-start">
+          <div className="flex items-center gap-2 text-[14px]" style={{ color: "var(--eco-negative)" }}>
+            <AlertCircle size={15} /> {error}
+          </div>
+          <Button variant="secondary" size="sm" onClick={onRetry}>Try again</Button>
+        </Card>
+      ) : tickets.length === 0 ? (
+        <NoTicketsEmpty onCreate={onCreate} />
+      ) : filtered.length === 0 ? (
         <EmptyState title="No Tickets Found" description="No tickets match your current filters. Adjust filters or create a new ticket." />
       ) : (
         <div className="flex flex-col gap-2">
-          {/* Desktop header */}
           <div className="hidden sm:grid sm:grid-cols-12 gap-3 px-5 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
             <div className="col-span-1">ID</div>
-            <div className="col-span-4">Title</div>
+            <div className="col-span-4">Subject</div>
             <div className="col-span-2">Topic</div>
             <div className="col-span-2">Status</div>
             <div className="col-span-2">Room</div>
@@ -202,56 +171,53 @@ function TicketListView({ onSelect, onCreate }: { onSelect: (id: string) => void
           </div>
 
           {filtered.map((t) => (
-            <Card
-              key={t.id}
-              className="cursor-pointer hover:shadow-sm transition-shadow"
-            >
+            <Card key={t.id} className="cursor-pointer hover:shadow-sm transition-shadow">
               <button
                 className="w-full text-left cursor-pointer"
                 style={{ background: "transparent", border: "none", padding: 0 }}
                 onClick={() => onSelect(t.id)}
               >
-                {/* Desktop row */}
                 <div className="hidden sm:grid sm:grid-cols-12 gap-3 items-center">
-                  <div className="col-span-1 text-[13px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>{t.id}</div>
+                  <div className="col-span-1 text-[13px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>T-{t.id}</div>
                   <div className="col-span-4 flex items-center gap-2">
-                    <span className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t.title}</span>
-                    {t.escalated && (
+                    <span className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t.subject}</span>
+                    {t.escalatedToDispute && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "var(--eco-danger-100)", color: "var(--eco-danger-500)" }}>
                         Escalated
                       </span>
                     )}
                   </div>
                   <div className="col-span-2">
-                    <Badge variant={TOPIC_BADGE_VARIANT[t.topic]}>{TOPIC_LABELS[t.topic]}</Badge>
+                    <Badge variant={TOPIC_VARIANT[t.topic] ?? "default"}>{TOPIC_LABELS[t.topic] ?? t.topic}</Badge>
                   </div>
                   <div className="col-span-2">
-                    <Badge variant={STATUS_BADGE_VARIANT[t.status]}>{t.status.replace("_", " ")}</Badge>
+                    <Badge variant={STATUS_VARIANT[t.status] ?? "default"}>{t.status.replace("_", " ")}</Badge>
                   </div>
                   <div className="col-span-2 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-                    {t.room || "—"}
+                    {t.roomId ? `Room #${t.roomId}` : "—"}
                   </div>
-                  <div className="col-span-1 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t.updated}</div>
+                  <div className="col-span-1 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                    {relativeTime(t.updatedAt)}
+                  </div>
                 </div>
 
-                {/* Mobile card */}
                 <div className="sm:hidden flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>{t.id}</span>
-                      <Badge variant={STATUS_BADGE_VARIANT[t.status]}>{t.status.replace("_", " ")}</Badge>
-                      {t.escalated && (
+                      <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>T-{t.id}</span>
+                      <Badge variant={STATUS_VARIANT[t.status] ?? "default"}>{t.status.replace("_", " ")}</Badge>
+                      {t.escalatedToDispute && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "var(--eco-danger-100)", color: "var(--eco-danger-500)" }}>
                           Escalated
                         </span>
                       )}
                     </div>
-                    <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t.updated}</span>
+                    <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{relativeTime(t.updatedAt)}</span>
                   </div>
-                  <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t.title}</div>
+                  <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t.subject}</div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={TOPIC_BADGE_VARIANT[t.topic]}>{TOPIC_LABELS[t.topic]}</Badge>
-                    {t.room && <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t.room}</span>}
+                    <Badge variant={TOPIC_VARIANT[t.topic] ?? "default"}>{TOPIC_LABELS[t.topic] ?? t.topic}</Badge>
+                    {t.roomId && <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>Room #{t.roomId}</span>}
                   </div>
                 </div>
               </button>
@@ -264,39 +230,46 @@ function TicketListView({ onSelect, onCreate }: { onSelect: (id: string) => void
 }
 
 // ─── Create Ticket ───
-function CreateTicketView({ onBack }: { onBack: () => void }) {
-  const [submitted, setSubmitted] = useState(false);
-  const [topic, setTopic] = useState("access");
-  const [room, setRoom] = useState("");
-  const [message, setMessage] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+function CreateTicketView({ onBack, onCreated }: { onBack: () => void; onCreated: (ticketId: number) => void }) {
+  const { authorizedRequest, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files).slice(0, 3 - files.length);
-      setFiles([...files, ...newFiles]);
+  const [subject, setSubject] = useState("");
+  const [topic, setTopic] = useState("access");
+  const [roomId, setRoomId] = useState("");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login?redirect=/support/new");
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleSubmit = async () => {
+    if (!subject.trim() || !message.trim()) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const parsedRoomId = roomId.trim() ? Number(roomId.trim()) : undefined;
+      const ticket = await authorizedRequest((token) =>
+        createSupportTicketRequest({
+          subject: subject.trim(),
+          topic,
+          message: message.trim(),
+          roomId: parsedRoomId && !Number.isNaN(parsedRoomId) ? parsedRoomId : undefined,
+        }, token),
+      );
+      toast.success(`Ticket T-${ticket.id} created`);
+      onCreated(ticket.id);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Unable to create ticket right now.";
+      setError(msg);
+    } finally {
+      setSubmitting(false);
     }
   };
-
-  const removeFile = (index: number) => {
-    setFiles(files.filter((_, i) => i !== index));
-  };
-
-  if (submitted) {
-    return (
-      <div className="text-center py-16">
-        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: "var(--eco-success-100)" }}>
-          <CheckCircle2 size={24} style={{ color: "var(--eco-positive)" }} />
-        </div>
-        <div className="text-[18px] mb-2" style={{ color: "var(--eco-text)" }}>Ticket Created</div>
-        <div className="text-[14px] mb-6" style={{ color: "var(--eco-text-secondary)" }}>
-          Ticket #T-1025 has been submitted. Our team will respond within 24 hours.
-        </div>
-        <Button variant="secondary" onClick={onBack}>Back to Tickets</Button>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -307,116 +280,68 @@ function CreateTicketView({ onBack }: { onBack: () => void }) {
       <h2 className="text-[22px]" style={{ color: "var(--eco-text)" }}>Create Support Ticket</h2>
 
       <Card className="flex flex-col gap-5">
-        {/* Topic */}
+        <div className="flex flex-col gap-1.5">
+          <label style={{ color: "var(--eco-text)", fontSize: 14 }}>Subject</label>
+          <input
+            placeholder="Short summary"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value.slice(0, 200))}
+            maxLength={200}
+            className="px-3 py-2.5 rounded-lg outline-none"
+            style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)", fontSize: 14 }}
+          />
+        </div>
+
         <Select
           label="Topic"
-          options={[
-            { value: "access", label: "Access not granted" },
-            { value: "payment", label: "Payment issue" },
-            { value: "wrong_plan", label: "Wrong plan" },
-            { value: "refund", label: "Refund request" },
-            { value: "abuse", label: "Abuse report" },
-            { value: "other", label: "Other" },
-          ]}
+          options={TOPIC_OPTIONS}
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
         />
 
-        {/* Related room */}
-        <Select
-          label="Related Room (optional)"
-          options={[
-            { value: "", label: "Select a room..." },
-            { value: "r1", label: "Beeline Family 4" },
-            { value: "r2", label: "Activ Family 5" },
-            { value: "r3", label: "Kcell Group 3" },
-            { value: "r4", label: "Tele2 Duo" },
-          ]}
-          value={room}
-          onChange={(e) => setRoom(e.target.value)}
-        />
+        <div className="flex flex-col gap-1.5">
+          <label style={{ color: "var(--eco-text)", fontSize: 14 }}>Related Room ID (optional)</label>
+          <input
+            placeholder="e.g. 42"
+            value={roomId}
+            onChange={(e) => setRoomId(e.target.value.replace(/\D/g, ""))}
+            inputMode="numeric"
+            className="px-3 py-2.5 rounded-lg outline-none"
+            style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)", fontSize: 14 }}
+          />
+        </div>
 
-        {/* Message */}
         <div className="flex flex-col gap-1.5">
           <label style={{ color: "var(--eco-text)", fontSize: 14 }}>Message</label>
           <textarea
             rows={5}
             placeholder="Describe your issue in detail..."
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => setMessage(e.target.value.slice(0, 5000))}
+            maxLength={5000}
             className="px-3 py-2.5 rounded-lg outline-none resize-none"
             style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)", fontSize: 14 }}
           />
+          <span className="text-[11px] self-end" style={{ color: "var(--eco-text-tertiary)" }}>{message.length}/5000</span>
         </div>
 
-        {/* Attachments */}
-        <div className="flex flex-col gap-2">
-          <label style={{ color: "var(--eco-text)", fontSize: 14 }}>Attachments (optional)</label>
-          <div
-            className="rounded-lg border-2 border-dashed p-6 text-center cursor-pointer transition-colors hover:border-[var(--eco-primary)]"
-            style={{ borderColor: "var(--eco-border)" }}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload size={24} className="mx-auto mb-2" style={{ color: "var(--eco-text-tertiary)" }} />
-            <div className="text-[14px]" style={{ color: "var(--eco-text-secondary)" }}>
-              Click to upload or drag files here
-            </div>
-            <div className="text-[12px] mt-1" style={{ color: "var(--eco-text-tertiary)" }}>
-              PNG, JPG, or PDF · Max 5 MB per file · Up to 3 files
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              multiple
-              accept=".png,.jpg,.jpeg,.pdf"
-              onChange={handleFileChange}
-            />
-          </div>
-
-          {/* Uploaded files */}
-          {files.length > 0 && (
-            <div className="flex flex-col gap-1.5 mt-1">
-              {files.map((f, i) => (
-                <div
-                  key={`file-${i}-${f.name}`}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg"
-                  style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {f.type.includes("pdf") ? (
-                      <FileText size={14} style={{ color: "var(--eco-text-tertiary)" }} />
-                    ) : (
-                      <Image size={14} style={{ color: "var(--eco-text-tertiary)" }} />
-                    )}
-                    <span className="text-[13px] truncate" style={{ color: "var(--eco-text-secondary)" }}>{f.name}</span>
-                    <span className="text-[11px] shrink-0" style={{ color: "var(--eco-text-tertiary)" }}>
-                      {(f.size / 1024).toFixed(0)} KB
-                    </span>
-                  </div>
-                  <button className="cursor-pointer p-0.5 shrink-0" onClick={() => removeFile(i)} style={{ background: "transparent", border: "none" }}>
-                    <X size={14} style={{ color: "var(--eco-text-tertiary)" }} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Anti-flood notice */}
         <div className="flex items-start gap-2 p-3 rounded-lg" style={{ background: "var(--eco-surface)" }}>
           <AlertCircle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-text-tertiary)" }} />
           <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-            Please avoid repeated messages — our support team will respond within 24 hours. Max 5 tickets per 24-hour period.
+            Please avoid repeated messages — our support team will respond within 24 hours.
           </div>
         </div>
 
-        {/* Submit */}
+        {error && (
+          <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{error}</p>
+        )}
+
         <Button
           variant="primary"
           className="w-full"
-          disabled={!message.trim()}
-          onClick={() => setSubmitted(true)}
+          loading={submitting}
+          disabled={!subject.trim() || !message.trim()}
+          onClick={handleSubmit}
         >
           Submit Ticket
         </Button>
@@ -425,42 +350,74 @@ function CreateTicketView({ onBack }: { onBack: () => void }) {
   );
 }
 
-// ─── Ticket Detail "Chat" Thread ───
-function TicketDetailView({ ticketId, onBack }: { ticketId: string; onBack: () => void }) {
+// ─── Ticket Detail ───
+function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () => void }) {
+  const { authorizedRequest, user } = useAuth();
+  const [ticket, setTicket] = useState<SupportTicketResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
-  const [localMessages, setLocalMessages] = useState<Message[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const ticket = mockTickets.find((t) => t.id === ticketId)!;
-  const threadData = mockMessages[ticketId];
-  const allMessages = [...(threadData?.messages || []), ...localMessages];
-  const isEscalated = threadData?.escalated || false;
-  const isClosed = ticket.status === "CLOSED";
+  const [sending, setSending] = useState(false);
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
-    setLocalMessages([
-      ...localMessages,
-      {
-        id: `local-${Date.now()}`,
-        from: "user",
-        name: "You",
-        text: newMessage,
-        time: "Just now",
-      },
-    ]);
-    setNewMessage("");
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    authorizedRequest((token) => getMySupportTicketRequest(ticketId, token))
+      .then((data) => { if (!cancelled) setTicket(data); })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof ApiError ? err.message : "Unable to load this ticket right now.");
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [ticketId, authorizedRequest]);
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !ticket) return;
+    setSending(true);
+    try {
+      const updated = await authorizedRequest((token) =>
+        postSupportTicketMessageRequest(ticket.id, newMessage.trim(), token),
+      );
+      setTicket(updated);
+      setNewMessage("");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to send message");
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      void sendMessage();
     }
   };
 
+  if (loading) return <TicketDetailSkeleton />;
+
+  if (error || !ticket) {
+    return (
+      <div className="flex flex-col gap-4">
+        <button onClick={onBack} className="inline-flex items-center gap-1 text-[13px] cursor-pointer self-start" style={{ color: "var(--eco-primary)", background: "transparent", border: "none" }}>
+          <ArrowLeft size={14} /> Back to Tickets
+        </button>
+        <Card>
+          <div className="flex items-center gap-2 text-[14px]" style={{ color: "var(--eco-negative)" }}>
+            <AlertCircle size={15} /> {error ?? "Ticket not found."}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  const isClosed = ticket.status === "CLOSED";
+  const isEscalated = !!ticket.escalatedToDispute;
+
   return (
     <div className="flex flex-col" style={{ minHeight: "calc(100vh - 200px)" }}>
-      {/* Back */}
       <button
         onClick={onBack}
         className="inline-flex items-center gap-1 text-[13px] cursor-pointer self-start mb-4"
@@ -469,50 +426,35 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: string; onBack: () =
         <ArrowLeft size={14} /> Back to Tickets
       </button>
 
-      {/* Ticket header card */}
       <Card className="flex flex-col gap-3 mb-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>{ticket.id}</span>
-            <h2 className="text-[18px]" style={{ color: "var(--eco-text)" }}>{ticket.title}</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Online indicator */}
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ background: "var(--eco-positive)" }} />
-              <span className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>Support online</span>
-            </div>
+            <span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>T-{ticket.id}</span>
+            <h2 className="text-[18px]" style={{ color: "var(--eco-text)" }}>{ticket.subject}</h2>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Badge variant={TOPIC_BADGE_VARIANT[ticket.topic]}>{TOPIC_LABELS[ticket.topic]}</Badge>
-          <Badge variant={STATUS_BADGE_VARIANT[ticket.status]}>{ticket.status.replace("_", " ")}</Badge>
-          {ticket.room && (
-            <span className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-              Room: {ticket.room}
-            </span>
+          <Badge variant={TOPIC_VARIANT[ticket.topic] ?? "default"}>{TOPIC_LABELS[ticket.topic] ?? ticket.topic}</Badge>
+          <Badge variant={STATUS_VARIANT[ticket.status] ?? "default"}>{ticket.status.replace("_", " ")}</Badge>
+          {ticket.roomId && (
+            <span className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>Room #{ticket.roomId}</span>
           )}
           <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-            Created {ticket.createdAt}
+            Created {new Date(ticket.createdAt).toLocaleString()}
           </span>
         </div>
 
-        {/* Status bar (read-only) */}
         <div className="flex items-center gap-0 mt-1">
-          {(["OPEN", "IN_PROGRESS", "CLOSED"] as TicketStatus[]).map((s, i) => {
-            const statusOrder: Record<TicketStatus, number> = { OPEN: 0, IN_PROGRESS: 1, CLOSED: 2 };
-            const currentOrder = statusOrder[ticket.status];
-            const thisOrder = statusOrder[s];
-            const isActive = thisOrder <= currentOrder;
+          {(["OPEN", "IN_PROGRESS", "CLOSED"] as const).map((s, i, arr) => {
+            const order: Record<string, number> = { OPEN: 0, IN_PROGRESS: 1, CLOSED: 2 };
+            const isActive = order[s] <= order[ticket.status];
             return (
               <div key={s} className="flex items-center">
                 <div className="flex items-center gap-1.5">
                   <div
                     className="w-5 h-5 rounded-full flex items-center justify-center"
-                    style={{
-                      background: isActive ? "var(--eco-primary)" : "var(--eco-neutral-200)",
-                    }}
+                    style={{ background: isActive ? "var(--eco-primary)" : "var(--eco-neutral-200)" }}
                   >
                     {isActive && <CheckCircle2 size={11} style={{ color: "var(--eco-text-on-primary)" }} />}
                   </div>
@@ -520,8 +462,8 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: string; onBack: () =
                     {s.replace("_", " ")}
                   </span>
                 </div>
-                {i < 2 && (
-                  <div className="w-8 h-px mx-1.5" style={{ background: thisOrder < currentOrder ? "var(--eco-primary)" : "var(--eco-neutral-200)" }} />
+                {i < arr.length - 1 && (
+                  <div className="w-8 h-px mx-1.5" style={{ background: order[s] < order[ticket.status] ? "var(--eco-primary)" : "var(--eco-neutral-200)" }} />
                 )}
               </div>
             );
@@ -529,7 +471,6 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: string; onBack: () =
         </div>
       </Card>
 
-      {/* Escalation banner */}
       {isEscalated && (
         <div className="flex items-start gap-3 p-4 rounded-xl mb-4" style={{ background: "var(--eco-danger-100)", border: "1px solid var(--eco-danger-500)" }}>
           <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: "var(--eco-danger-500)" }} />
@@ -542,95 +483,73 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: string; onBack: () =
         </div>
       )}
 
-      {/* Message thread */}
       <Card className="flex flex-col flex-1">
         <div className="flex flex-col gap-5 mb-4 flex-1 overflow-y-auto" style={{ maxHeight: 480 }}>
-          {allMessages.map((m) => (
-            <div key={m.id} className={`flex flex-col gap-1 ${m.from === "user" ? "items-end" : "items-start"}`}>
-              {/* Sender label */}
-              <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                {m.from === "support" && (
-                  <div className="flex items-center gap-1">
-                    <Shield size={11} style={{ color: "var(--eco-primary)" }} />
-                    <span style={{ color: "var(--eco-primary)" }}>Support</span>
-                  </div>
-                )}
-                {m.from === "admin" && (
-                  <div className="flex items-center gap-1">
-                    <Shield size={11} style={{ color: "var(--eco-negative)" }} />
-                    <span style={{ color: "var(--eco-negative)" }}>Admin</span>
-                  </div>
-                )}
-                {m.from === "user" && <span>You</span>}
-                <span>·</span>
-                <span>{m.time}</span>
-              </div>
-
-              {/* Bubble */}
-              <div
-                className="max-w-sm sm:max-w-md px-4 py-3 rounded-xl text-[14px]"
-                style={{
-                  background:
-                    m.from === "user"
+          {ticket.messages.length === 0 && (
+            <div className="text-[13px] text-center py-8" style={{ color: "var(--eco-text-tertiary)" }}>
+              No messages yet.
+            </div>
+          )}
+          {ticket.messages.map((m) => {
+            const isMine = user?.id != null && m.senderUserId === user.id;
+            const isStaff = m.senderRole === "SUPPORT" || m.senderRole === "ADMIN";
+            return (
+              <div key={m.id} className={`flex flex-col gap-1 ${isMine ? "items-end" : "items-start"}`}>
+                <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                  {isStaff ? (
+                    <div className="flex items-center gap-1">
+                      <Shield size={11} style={{ color: m.senderRole === "ADMIN" ? "var(--eco-negative)" : "var(--eco-primary)" }} />
+                      <span style={{ color: m.senderRole === "ADMIN" ? "var(--eco-negative)" : "var(--eco-primary)" }}>
+                        {m.senderRole === "ADMIN" ? "Admin" : "Support"}
+                      </span>
+                    </div>
+                  ) : (
+                    <span>{isMine ? "You" : "User"}</span>
+                  )}
+                  <span>·</span>
+                  <span>{new Date(m.createdAt).toLocaleString()}</span>
+                </div>
+                <div
+                  className="max-w-sm sm:max-w-md px-4 py-3 rounded-xl text-[14px]"
+                  style={{
+                    background: isMine
                       ? "var(--eco-brand-50)"
-                      : m.from === "admin"
+                      : m.senderRole === "ADMIN"
                         ? "var(--eco-danger-100)"
                         : "var(--eco-surface)",
-                  color: "var(--eco-text)",
-                  borderBottomRightRadius: m.from === "user" ? 4 : undefined,
-                  borderBottomLeftRadius: m.from !== "user" ? 4 : undefined,
-                }}
-              >
-                {m.text}
-              </div>
-
-              {/* Attachments */}
-              {m.attachments && m.attachments.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {m.attachments.map((a, ai) => (
-                    <div
-                      key={`att-${m.id}-${ai}`}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] cursor-pointer"
-                      style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text-secondary)" }}
-                    >
-                      {a.type === "pdf" ? <FileText size={13} /> : <Image size={13} />}
-                      {a.name}
-                    </div>
-                  ))}
+                    color: "var(--eco-text)",
+                    borderBottomRightRadius: isMine ? 4 : undefined,
+                    borderBottomLeftRadius: !isMine ? 4 : undefined,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {m.message}
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
 
-        {/* Reply box */}
         {!isClosed ? (
           <div className="flex items-end gap-2 pt-4 border-t" style={{ borderColor: "var(--eco-border)" }}>
-            <button
-              className="cursor-pointer p-2 rounded-lg shrink-0"
-              style={{ background: "var(--eco-surface)", border: "none" }}
-              onClick={() => fileInputRef.current?.click()}
-              title="Add attachment"
-            >
-              <Paperclip size={16} style={{ color: "var(--eco-text-tertiary)" }} />
-            </button>
-            <input ref={fileInputRef} type="file" className="hidden" accept=".png,.jpg,.jpeg,.pdf" />
             <textarea
               placeholder="Type your message..."
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={(e) => setNewMessage(e.target.value.slice(0, 5000))}
               onKeyDown={handleKeyDown}
               rows={1}
+              maxLength={5000}
               className="flex-1 px-3 py-2.5 rounded-lg text-[14px] outline-none resize-none"
               style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)", minHeight: 40, maxHeight: 120 }}
             />
             <button
               className="cursor-pointer p-2.5 rounded-lg shrink-0 disabled:opacity-40"
               style={{ background: "var(--eco-primary)", border: "none" }}
-              onClick={sendMessage}
-              disabled={!newMessage.trim()}
+              onClick={() => void sendMessage()}
+              disabled={!newMessage.trim() || sending}
+              aria-label="Send message"
             >
-              <Send size={15} style={{ color: "var(--eco-text-on-primary)" }} />
+              {sending ? <Loader2 size={15} className="animate-spin" style={{ color: "var(--eco-text-on-primary)" }} /> : <Send size={15} style={{ color: "var(--eco-text-on-primary)" }} />}
             </button>
           </div>
         ) : (
@@ -640,44 +559,13 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: string; onBack: () =
           </div>
         )}
       </Card>
-
-      {/* Mobile sticky reply bar */}
-      {!isClosed && (
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 p-3 border-t flex items-center gap-2" style={{ background: "var(--eco-bg)", borderColor: "var(--eco-border)" }}>
-          <button
-            className="cursor-pointer p-2 rounded-lg shrink-0"
-            style={{ background: "var(--eco-surface)", border: "none" }}
-          >
-            <Paperclip size={16} style={{ color: "var(--eco-text-tertiary)" }} />
-          </button>
-          <input
-            placeholder="Message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            className="flex-1 px-3 py-2 rounded-lg text-[14px] outline-none"
-            style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
-          />
-          <button
-            className="cursor-pointer p-2.5 rounded-lg shrink-0"
-            style={{ background: "var(--eco-primary)", border: "none" }}
-            onClick={sendMessage}
-          >
-            <Send size={14} style={{ color: "var(--eco-text-on-primary)" }} />
-          </button>
-        </div>
-      )}
     </div>
   );
 }
 
-// ─── Loading Skeletons ───
 function TicketListSkeleton() {
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between mb-4">
-        <Skeleton width="40%" height={28} />
-        <Skeleton width={120} height={36} rounded={8} />
-      </div>
       {[1, 2, 3, 4].map((i) => (
         <Card key={i} className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
@@ -702,16 +590,7 @@ function TicketDetailSkeleton() {
   return (
     <div className="flex flex-col gap-4">
       <Skeleton width={100} height={14} />
-      <Card className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <Skeleton width={60} height={14} />
-          <Skeleton width="60%" height={20} />
-        </div>
-        <div className="flex gap-2">
-          <Skeleton width={100} height={20} rounded={4} />
-          <Skeleton width={80} height={20} rounded={4} />
-        </div>
-      </Card>
+      <SkeletonCard />
       <Card className="flex flex-col gap-4">
         {[1, 2, 3].map((i) => (
           <div key={i} className={`flex flex-col gap-1 ${i % 2 === 1 ? "items-end" : "items-start"}`}>
@@ -719,15 +598,11 @@ function TicketDetailSkeleton() {
             <Skeleton width={240} height={48} rounded={12} />
           </div>
         ))}
-        <div className="border-t pt-3" style={{ borderColor: "var(--eco-border)" }}>
-          <Skeleton width="100%" height={40} rounded={8} />
-        </div>
       </Card>
     </div>
   );
 }
 
-// ─── Empty States ───
 function NoTicketsEmpty({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
@@ -745,63 +620,80 @@ function NoTicketsEmpty({ onCreate }: { onCreate: () => void }) {
   );
 }
 
-// ─── Main Support Page ───
 export function SupportPage() {
-  const [view, setView] = useState<"list" | "create" | "detail" | "skeleton-list" | "skeleton-detail" | "empty">("list");
-  const [selectedTicket, setSelectedTicket] = useState("T-1024");
+  const { authorizedRequest, isAuthenticated, isReady } = useAuth();
+  const navigate = useNavigate();
+  const [view, setView] = useState<"list" | "create" | "detail">("list");
+  const [selectedTicket, setSelectedTicket] = useState<number | null>(null);
+  const [tickets, setTickets] = useState<SupportTicketResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const reloadCounter = useRef(0);
+
+  useEffect(() => {
+    if (isReady && !isAuthenticated) {
+      navigate("/login?redirect=/support");
+    }
+  }, [isReady, isAuthenticated, navigate]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    authorizedRequest((token) => getMySupportTicketsRequest(token))
+      .then((data) => { if (!cancelled) setTickets(data); })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof ApiError ? err.message : "Unable to load tickets right now.");
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [authorizedRequest, isAuthenticated, view, reloadCounter.current]);
+
+  const retry = () => {
+    reloadCounter.current += 1;
+    setError(null);
+    setLoading(true);
+    authorizedRequest((token) => getMySupportTicketsRequest(token))
+      .then((data) => setTickets(data))
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Unable to load tickets right now."))
+      .finally(() => setLoading(false));
+  };
 
   return (
     <div className="max-w-[900px] mx-auto px-6 py-8">
       {view === "list" && (
         <TicketListView
+          tickets={tickets}
+          loading={loading}
+          error={error}
           onSelect={(id) => { setSelectedTicket(id); setView("detail"); }}
           onCreate={() => setView("create")}
+          onRetry={retry}
         />
       )}
-
       {view === "create" && (
-        <CreateTicketView onBack={() => setView("list")} />
+        <CreateTicketView
+          onBack={() => setView("list")}
+          onCreated={(id) => { setSelectedTicket(id); setView("detail"); }}
+        />
       )}
-
-      {view === "detail" && (
+      {view === "detail" && selectedTicket != null && (
         <TicketDetailView ticketId={selectedTicket} onBack={() => setView("list")} />
-      )}
-
-      {view === "skeleton-list" && <TicketListSkeleton />}
-      {view === "skeleton-detail" && <TicketDetailSkeleton />}
-      {view === "empty" && <NoTicketsEmpty onCreate={() => setView("create")} />}
-
-      {/* Dev: view switcher for demo */}
-      {view === "list" && (
-        <div className="mt-12 pt-6 border-t" style={{ borderColor: "var(--eco-border)" }}>
-          <div className="text-[12px] mb-2" style={{ color: "var(--eco-text-tertiary)" }}>Demo: Preview states</div>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { label: "Loading (list)", value: "skeleton-list" as const },
-              { label: "Loading (detail)", value: "skeleton-detail" as const },
-              { label: "Empty state", value: "empty" as const },
-            ].map((s) => (
-              <button
-                key={s.value}
-                onClick={() => setView(s.value)}
-                className="px-3 py-1.5 rounded-lg text-[12px] cursor-pointer"
-                style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text-secondary)" }}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </div>
       )}
     </div>
   );
 }
 
-// ─── Route-specific new ticket view ───
 export function NewTicketPage() {
+  const navigate = useNavigate();
   return (
     <div className="max-w-[900px] mx-auto px-6 py-8">
-      <CreateTicketView onBack={() => window.history.back()} />
+      <CreateTicketView
+        onBack={() => navigate("/support")}
+        onCreated={(id) => navigate(`/support?ticket=${id}`)}
+      />
     </div>
   );
 }

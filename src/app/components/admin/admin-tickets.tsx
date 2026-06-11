@@ -345,13 +345,13 @@ export function AdminTicketsPage() {
                     {detail.messages.map((m) => (
                       <div key={m.id} className="flex flex-col gap-1">
                         <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                          {m.authorRole} · {new Date(m.createdAt).toLocaleString()}
+                          {m.senderRole} · {new Date(m.createdAt).toLocaleString()}
                         </div>
                         <div
                           className="px-3 py-2 rounded-lg text-[13px]"
                           style={{ background: "var(--eco-surface)", color: "var(--eco-text)" }}
                         >
-                          {m.body}
+                          {m.message}
                         </div>
                       </div>
                     ))}

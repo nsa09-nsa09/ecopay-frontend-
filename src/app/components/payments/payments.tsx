@@ -1,12 +1,26 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { Card, Badge, Button } from "../ds-primitives";
+import { toast } from "sonner";
+import { Card, Badge, Button, Skeleton, EmptyState } from "../ds-primitives";
 import { useI18n, type Language } from "../i18n-provider";
 import {
   CheckCircle2, XCircle, Clock, Shield, ArrowRight, CreditCard,
   Lock, RefreshCw, AlertTriangle, ChevronRight, MessageSquare,
-  ArrowLeft, FileText, Phone, Mail, MapPin, ExternalLink, Timer, Send
+  ArrowLeft, FileText, Phone, Mail, MapPin, ExternalLink, Timer, Send,
+  Plus, Trash2, AlertCircle
 } from "lucide-react";
+import {
+  ApiError,
+  deletePayoutMethodRequest,
+  getMyPayoutsRequest,
+  getMyRefundsRequest,
+  getPayoutMethodsRequest,
+  registerPayoutMethodRequest,
+  type PayoutDto,
+  type PayoutMethodDto,
+  type RefundTransactionResponse,
+} from "../../lib/api";
+import { useAuth } from "../auth/auth-provider";
 
 // ─── Localized text helper ───
 type L = Language;
@@ -516,81 +530,129 @@ export function PaymentPendingPage() {
   );
 }
 
-// ─── 5) Refund Status ───
+// ─── 5) Refund Status (history) ───
+function refundStatusVariant(s: string): "warning" | "info" | "success" | "danger" | "default" {
+  const u = s.toUpperCase();
+  if (u === "SUCCESS" || u === "COMPLETED" || u === "SENT") return "success";
+  if (u === "FAILED" || u === "REJECTED" || u === "CANCELLED") return "danger";
+  if (u === "PENDING" || u === "REQUESTED") return "warning";
+  if (u === "IN_REVIEW" || u === "APPROVED" || u === "PROCESSING") return "info";
+  return "default";
+}
+
 export function RefundStatusPage() {
   const { language } = useI18n();
   const l = language as L;
+  const { authorizedRequest, isAuthenticated, isReady } = useAuth();
 
-  const refund = {
-    id: "RF-201",
-    amount: 5400,
-    room: "Beeline Family 4",
-    created: "2026-04-03",
-  };
+  const [refunds, setRefunds] = useState<RefundTransactionResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const steps = [
-    { label: tx(l, "Запрошен", "Сұралды", "Requested"), done: true, time: "Apr 3, 09:30" },
-    { label: tx(l, "На рассмотрении", "Қарастырылуда", "In Review"), done: true, time: "Apr 3, 10:00" },
-    { label: tx(l, "Одобрен", "Мақұлданды", "Approved"), done: false, active: true, time: tx(l, "Ожидание", "Күтілуде", "Pending") },
-    { label: tx(l, "Отправлен", "Жіберілді", "Sent"), done: false, time: "" },
-  ];
+  useEffect(() => {
+    if (!isReady) return;
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    authorizedRequest((token) => getMyRefundsRequest(token))
+      .then((data) => { if (!cancelled) setRefunds(data); })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof ApiError ? err.message : "Unable to load refunds right now.");
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [authorizedRequest, isAuthenticated, isReady]);
 
   return (
-    <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-[800px] mx-auto px-4 sm:px-6 py-8">
       <Link to="/rooms" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-text-tertiary)", textDecoration: "none" }}>
         <ArrowLeft size={14} /> {tx(l, "Мои комнаты", "Менің бөлмелерім", "My Rooms")}
       </Link>
 
-      <h1 className="text-[24px] mb-2" style={{ color: "var(--eco-text)" }}>{tx(l, "Статус возврата", "Қайтару мәртебесі", "Refund Status")}</h1>
+      <h1 className="text-[24px] mb-2" style={{ color: "var(--eco-text)" }}>{tx(l, "История возвратов", "Қайтарулар тарихы", "Refund History")}</h1>
+      <p className="text-[13px] mb-6" style={{ color: "var(--eco-text-tertiary)" }}>
+        {tx(l,
+          "Все возвраты, инициированные по вашим платежам.",
+          "Сіздің төлемдеріңіз бойынша барлық қайтарулар.",
+          "All refunds initiated on your payments."
+        )}
+      </p>
 
-      <Card className="flex flex-col gap-4 mb-6">
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { label: tx(l, "Номер возврата", "Қайтару нөмірі", "Reference ID"), value: refund.id },
-            { label: tx(l, "Сумма", "Сома", "Amount"), value: `₸${refund.amount.toLocaleString()}` },
-            { label: tx(l, "Комната", "Бөлме", "Room"), value: refund.room },
-            { label: tx(l, "Дата запроса", "Сұрау күні", "Request Date"), value: refund.created },
-          ].map((row) => (
-            <div key={row.label}>
-              <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{row.label}</div>
-              <div className="text-[14px] mt-0.5" style={{ color: "var(--eco-text)" }}>{row.value}</div>
-            </div>
+      {!isAuthenticated && isReady ? (
+        <Card>
+          <Link to="/login?redirect=/payment/refund" className="text-[14px]" style={{ color: "var(--eco-primary)" }}>
+            {tx(l, "Войдите, чтобы увидеть возвраты", "Қайтаруларды көру үшін кіріңіз", "Sign in to view refunds")}
+          </Link>
+        </Card>
+      ) : loading ? (
+        <div className="flex flex-col gap-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="flex flex-col gap-2">
+              <Skeleton width="40%" height={14} />
+              <Skeleton width="60%" height={14} />
+            </Card>
           ))}
         </div>
-      </Card>
-
-      {/* Refund timeline */}
-      <Card className="flex flex-col gap-0 mb-6">
-        <h3 className="text-[15px] mb-4" style={{ color: "var(--eco-text)" }}>{tx(l, "Ход возврата", "Қайтару барысы", "Refund Progress")}</h3>
-        {steps.map((step, i) => (
-          <div key={i} className="flex gap-3">
-            <div className="flex flex-col items-center">
-              <div
-                className="w-3 h-3 rounded-full shrink-0 mt-1"
-                style={{
-                  background: step.done ? "var(--eco-positive)" : step.active ? "var(--eco-primary)" : "var(--eco-neutral-100)",
-                }}
-              />
-              {i < steps.length - 1 && (
-                <div className="w-px flex-1 my-1" style={{ background: step.done ? "var(--eco-positive)" : "var(--eco-border)", minHeight: 32 }} />
-              )}
-            </div>
-            <div className="pb-4">
-              <div className="text-[13px]" style={{ color: step.done || step.active ? "var(--eco-text)" : "var(--eco-text-tertiary)" }}>{step.label}</div>
-              {step.time && <div className="text-[11px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{step.time}</div>}
-              {step.active && (
-                <div className="flex items-center gap-1 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--eco-primary)" }} />
-                  <span className="text-[11px]" style={{ color: "var(--eco-primary)" }}>{tx(l, "Обрабатывается", "Өңделуде", "Processing")}</span>
+      ) : error ? (
+        <Card>
+          <div className="flex items-center gap-2 text-[14px]" style={{ color: "var(--eco-negative)" }}>
+            <AlertCircle size={15} /> {error}
+          </div>
+        </Card>
+      ) : refunds.length === 0 ? (
+        <EmptyState
+          title={tx(l, "Возвратов нет", "Қайтарулар жоқ", "No refunds")}
+          description={tx(l,
+            "Когда вам будет инициирован возврат, он появится здесь.",
+            "Сізге қайтару бастамаланғанда, ол осы жерде пайда болады.",
+            "Refunds initiated for you will appear here."
+          )}
+        />
+      ) : (
+        <div className="flex flex-col gap-3">
+          {refunds.map((r) => (
+            <Card key={r.id} className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>RF-{r.id}</span>
+                  <Badge variant={refundStatusVariant(r.status)}>{r.status}</Badge>
+                </div>
+                <div className="text-[18px]" style={{ color: "var(--eco-primary)" }}>
+                  {r.currency === "KZT" ? "₸" : `${r.currency} `}{Number(r.amount).toLocaleString()}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div>
+                  <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{tx(l, "Транзакция", "Транзакция", "Transaction")}</div>
+                  <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>#{r.paymentTransactionId}</div>
+                </div>
+                <div>
+                  <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{tx(l, "Создан", "Жасалған", "Created")}</div>
+                  <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{new Date(r.createdAt).toLocaleString()}</div>
+                </div>
+                {r.providerRefundId && (
+                  <div>
+                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{tx(l, "Провайдер", "Провайдер", "Provider Ref")}</div>
+                    <div className="text-[13px] truncate" style={{ color: "var(--eco-text)" }}>{r.providerRefundId}</div>
+                  </div>
+                )}
+              </div>
+              {r.reason && (
+                <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                  {tx(l, "Причина:", "Себебі:", "Reason:")} {r.reason}
                 </div>
               )}
-            </div>
-          </div>
-        ))}
-      </Card>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {/* Safe copy */}
-      <div className="flex items-start gap-2 p-4 rounded-lg mb-4" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}>
+      <div className="flex items-start gap-2 p-4 rounded-lg my-6" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}>
         <Shield size={13} className="mt-0.5 shrink-0" style={{ color: "var(--eco-text-tertiary)" }} />
         <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
           {tx(l,
@@ -612,88 +674,304 @@ export function RefundStatusPage() {
   );
 }
 
-// ─── 6) Owner Payout Status ───
+// ─── 6) Owner Payouts (history + methods) ───
+function payoutStatusVariant(s: string): "warning" | "info" | "success" | "danger" | "default" {
+  const u = s.toUpperCase();
+  if (u === "SUCCESS" || u === "SENT" || u === "PROCESSED") return "success";
+  if (u === "FAILED" || u === "REJECTED") return "danger";
+  if (u === "PENDING" || u === "QUEUED") return "warning";
+  if (u === "PROCESSING") return "info";
+  return "default";
+}
+
+function PayoutMethodsCard({
+  methods,
+  loading,
+  error,
+  onAdd,
+  onDelete,
+  l,
+}: {
+  methods: PayoutMethodDto[];
+  loading: boolean;
+  error: string | null;
+  onAdd: (payload: { providerCardToken: string; panMask?: string }) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
+  l: L;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [token, setToken] = useState("");
+  const [panMask, setPanMask] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const submit = async () => {
+    if (!token.trim()) return;
+    setBusy(true);
+    try {
+      await onAdd({ providerCardToken: token.trim(), panMask: panMask.trim() || undefined });
+      setToken("");
+      setPanMask("");
+      setAdding(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (id: number) => {
+    setDeletingId(id);
+    try {
+      await onDelete(id);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <Card className="flex flex-col gap-4 mb-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>
+          {tx(l, "Способы выплаты", "Төлем тәсілдері", "Payout Methods")}
+        </h3>
+        {!adding && (
+          <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
+            <Plus size={13} /> {tx(l, "Добавить", "Қосу", "Add")}
+          </Button>
+        )}
+      </div>
+
+      {loading ? (
+        <Skeleton width="100%" height={48} />
+      ) : error ? (
+        <div className="text-[13px]" style={{ color: "var(--eco-negative)" }}>{error}</div>
+      ) : methods.length === 0 && !adding ? (
+        <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+          {tx(l, "Метод выплаты не задан.", "Төлем тәсілі белгіленбеген.", "No payout method yet.")}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {methods.map((m) => (
+            <div key={m.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: "var(--eco-surface)" }}>
+              <div className="flex items-center gap-3 min-w-0">
+                <CreditCard size={16} style={{ color: "var(--eco-text-tertiary)" }} />
+                <div className="min-w-0">
+                  <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>
+                    {m.providerName} · {m.panMask || "—"}
+                  </div>
+                  <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                    {m.status}{m.isDefault ? ` · ${tx(l, "по умолчанию", "әдепкі", "default")}` : ""}
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                loading={deletingId === m.id}
+                onClick={() => void remove(m.id)}
+                aria-label="Delete payout method"
+              >
+                <Trash2 size={14} style={{ color: "var(--eco-negative)" }} />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {adding && (
+        <div className="flex flex-col gap-3 p-3 rounded-lg" style={{ background: "var(--eco-surface)" }}>
+          <input
+            placeholder={tx(l, "Провайдерский токен карты", "Провайдер карта токені", "Provider card token")}
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            className="px-3 py-2 rounded-lg outline-none"
+            style={{ background: "var(--eco-bg)", border: "1px solid var(--eco-border)", color: "var(--eco-text)", fontSize: 14 }}
+          />
+          <input
+            placeholder={tx(l, "Маска карты (необязательно), напр. **** 4821", "Карта маскасы (міндетті емес)", "PAN mask (optional), e.g. **** 4821")}
+            value={panMask}
+            onChange={(e) => setPanMask(e.target.value)}
+            className="px-3 py-2 rounded-lg outline-none"
+            style={{ background: "var(--eco-bg)", border: "1px solid var(--eco-border)", color: "var(--eco-text)", fontSize: 14 }}
+          />
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => { setAdding(false); setToken(""); setPanMask(""); }} disabled={busy}>
+              {tx(l, "Отмена", "Бас тарту", "Cancel")}
+            </Button>
+            <Button variant="primary" size="sm" loading={busy} disabled={!token.trim()} onClick={() => void submit()}>
+              {tx(l, "Сохранить", "Сақтау", "Save")}
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export function OwnerPayoutPage() {
   const { language } = useI18n();
   const l = language as L;
+  const { authorizedRequest, isAuthenticated, isReady } = useAuth();
 
-  const payout = {
-    id: "PO-101",
-    amount: 14999,
-    room: "Beeline Family 4",
-    seats: 3,
-    period: tx(l, "Апрель 2026", "Сәуір 2026", "April 2026"),
+  const [payouts, setPayouts] = useState<PayoutDto[]>([]);
+  const [methods, setMethods] = useState<PayoutMethodDto[]>([]);
+  const [loadingPayouts, setLoadingPayouts] = useState(true);
+  const [loadingMethods, setLoadingMethods] = useState(true);
+  const [payoutsError, setPayoutsError] = useState<string | null>(null);
+  const [methodsError, setMethodsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isReady) return;
+    if (!isAuthenticated) {
+      setLoadingPayouts(false);
+      setLoadingMethods(false);
+      return;
+    }
+    let cancelled = false;
+
+    authorizedRequest((token) => getMyPayoutsRequest(token))
+      .then((data) => { if (!cancelled) setPayouts(data); })
+      .catch((err) => { if (!cancelled) setPayoutsError(err instanceof ApiError ? err.message : "Unable to load payouts."); })
+      .finally(() => { if (!cancelled) setLoadingPayouts(false); });
+
+    authorizedRequest((token) => getPayoutMethodsRequest(token))
+      .then((data) => { if (!cancelled) setMethods(data); })
+      .catch((err) => { if (!cancelled) setMethodsError(err instanceof ApiError ? err.message : "Unable to load payout methods."); })
+      .finally(() => { if (!cancelled) setLoadingMethods(false); });
+
+    return () => { cancelled = true; };
+  }, [authorizedRequest, isAuthenticated, isReady]);
+
+  const handleAddMethod = async (payload: { providerCardToken: string; panMask?: string }) => {
+    try {
+      const m = await authorizedRequest((token) => registerPayoutMethodRequest(payload, token));
+      setMethods((prev) => [m, ...prev]);
+      toast.success(tx(l, "Способ выплаты добавлен", "Төлем тәсілі қосылды", "Payout method added"));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to add method");
+    }
   };
 
-  const steps = [
-    { label: tx(l, "Оплаты участников собраны", "Қатысушы төлемдері жиналды", "Member payments collected"), done: true, time: "Apr 1" },
-    { label: tx(l, "Окно споров (7 дней)", "Дау терезесі (7 күн)", "Dispute window (7 days)"), done: true, time: "Apr 1–7" },
-    { label: tx(l, "Выплата обрабатывается", "Төлем өңделуде", "Payout processing"), done: false, active: true, time: tx(l, "Ожидание", "Күтілуде", "Pending") },
-    { label: tx(l, "Выплата отправлена", "Төлем жіберілді", "Payout Sent"), done: false, time: "" },
-  ];
+  const handleDeleteMethod = async (id: number) => {
+    try {
+      await authorizedRequest((token) => deletePayoutMethodRequest(id, token));
+      setMethods((prev) => prev.filter((m) => m.id !== id));
+      toast.success(tx(l, "Способ выплаты удалён", "Төлем тәсілі жойылды", "Payout method removed"));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to remove method");
+    }
+  };
 
   return (
-    <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-[800px] mx-auto px-4 sm:px-6 py-8">
       <Link to="/rooms" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-text-tertiary)", textDecoration: "none" }}>
         <ArrowLeft size={14} /> {tx(l, "Мои комнаты", "Менің бөлмелерім", "My Rooms")}
       </Link>
 
-      <h1 className="text-[24px] mb-2" style={{ color: "var(--eco-text)" }}>{tx(l, "Статус выплаты", "Төлем мәртебесі", "Payout Status")}</h1>
-      <div className="flex items-center gap-2 mb-6">
-        <Badge variant="warning">{tx(l, "Ожидает выплаты", "Төлем күтілуде", "Payout Pending")}</Badge>
-      </div>
+      <h1 className="text-[24px] mb-2" style={{ color: "var(--eco-text)" }}>
+        {tx(l, "Выплаты владельцу", "Иеге төлемдер", "Owner Payouts")}
+      </h1>
+      <p className="text-[13px] mb-6" style={{ color: "var(--eco-text-tertiary)" }}>
+        {tx(l,
+          "История выплат и настройка способов выплаты.",
+          "Төлемдер тарихы мен төлем тәсілдерін баптау.",
+          "Payout history and method management."
+        )}
+      </p>
 
-      <Card className="flex flex-col gap-4 mb-6">
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { label: tx(l, "Номер выплаты", "Төлем нөмірі", "Payout ID"), value: payout.id },
-            { label: tx(l, "Сумма", "Сома", "Amount"), value: `₸${payout.amount.toLocaleString()}` },
-            { label: tx(l, "Комната", "Бөлме", "Room"), value: payout.room },
-            { label: tx(l, "Период", "Кезең", "Period"), value: payout.period },
-          ].map((row) => (
-            <div key={row.label}>
-              <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{row.label}</div>
-              <div className="text-[14px] mt-0.5" style={{ color: "var(--eco-text)" }}>{row.value}</div>
+      {!isAuthenticated && isReady ? (
+        <Card>
+          <Link to="/login?redirect=/payment/payout" className="text-[14px]" style={{ color: "var(--eco-primary)" }}>
+            {tx(l, "Войдите, чтобы увидеть выплаты", "Төлемдерді көру үшін кіріңіз", "Sign in to view payouts")}
+          </Link>
+        </Card>
+      ) : (
+        <>
+          <PayoutMethodsCard
+            methods={methods}
+            loading={loadingMethods}
+            error={methodsError}
+            onAdd={handleAddMethod}
+            onDelete={handleDeleteMethod}
+            l={l}
+          />
+
+          <h3 className="text-[16px] mb-3" style={{ color: "var(--eco-text)" }}>
+            {tx(l, "История выплат", "Төлемдер тарихы", "Payout History")}
+          </h3>
+
+          {loadingPayouts ? (
+            <div className="flex flex-col gap-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="flex flex-col gap-2">
+                  <Skeleton width="40%" height={14} />
+                  <Skeleton width="60%" height={14} />
+                </Card>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-          {tx(l, "Участников оплатило:", "Төлеген қатысушылар:", "Members paid:")} {payout.seats}/{payout.seats}
-        </div>
-      </Card>
-
-      {/* Timeline */}
-      <Card className="flex flex-col gap-0 mb-6">
-        <h3 className="text-[15px] mb-4" style={{ color: "var(--eco-text)" }}>{tx(l, "Ход выплаты", "Төлем барысы", "Payout Progress")}</h3>
-        {steps.map((step, i) => (
-          <div key={i} className="flex gap-3">
-            <div className="flex flex-col items-center">
-              <div
-                className="w-3 h-3 rounded-full shrink-0 mt-1"
-                style={{
-                  background: step.done ? "var(--eco-positive)" : step.active ? "var(--eco-primary)" : "var(--eco-neutral-100)",
-                }}
-              />
-              {i < steps.length - 1 && (
-                <div className="w-px flex-1 my-1" style={{ background: step.done ? "var(--eco-positive)" : "var(--eco-border)", minHeight: 32 }} />
+          ) : payoutsError ? (
+            <Card>
+              <div className="flex items-center gap-2 text-[14px]" style={{ color: "var(--eco-negative)" }}>
+                <AlertCircle size={15} /> {payoutsError}
+              </div>
+            </Card>
+          ) : payouts.length === 0 ? (
+            <EmptyState
+              title={tx(l, "Выплат пока нет", "Әзірге төлемдер жоқ", "No payouts yet")}
+              description={tx(l,
+                "Когда участники оплатят и пройдёт окно споров, выплата появится здесь.",
+                "Қатысушылар төлеп, дау терезесі өткеннен кейін, төлем осы жерде пайда болады.",
+                "Once members pay and the dispute window closes, payouts will appear here."
               )}
+            />
+          ) : (
+            <div className="flex flex-col gap-3">
+              {payouts.map((p) => (
+                <Card key={p.id} className="flex flex-col gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>PO-{p.id}</span>
+                      <Badge variant={payoutStatusVariant(p.status)}>{p.status}</Badge>
+                    </div>
+                    <div className="text-[18px]" style={{ color: "var(--eco-primary)" }}>
+                      {p.currency === "KZT" ? "₸" : `${p.currency} `}{Number(p.amount).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {p.roomId != null && (
+                      <div>
+                        <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{tx(l, "Комната", "Бөлме", "Room")}</div>
+                        <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>#{p.roomId}</div>
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{tx(l, "Создана", "Жасалған", "Created")}</div>
+                      <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{new Date(p.createdAt).toLocaleString()}</div>
+                    </div>
+                    {p.processedAt && (
+                      <div>
+                        <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{tx(l, "Обработана", "Өңделген", "Processed")}</div>
+                        <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{new Date(p.processedAt).toLocaleString()}</div>
+                      </div>
+                    )}
+                  </div>
+                  {p.failureReason && (
+                    <div className="text-[12px]" style={{ color: "var(--eco-negative)" }}>
+                      {tx(l, "Ошибка:", "Қате:", "Failure:")} {p.failureReason}
+                    </div>
+                  )}
+                  {p.providerPayoutId && (
+                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                      {tx(l, "Провайдер:", "Провайдер:", "Provider:")} {p.providerPayoutId}
+                    </div>
+                  )}
+                </Card>
+              ))}
             </div>
-            <div className="pb-4">
-              <div className="text-[13px]" style={{ color: step.done || step.active ? "var(--eco-text)" : "var(--eco-text-tertiary)" }}>{step.label}</div>
-              {step.time && <div className="text-[11px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{step.time}</div>}
-              {step.active && (
-                <div className="flex items-center gap-1 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--eco-primary)" }} />
-                  <span className="text-[11px]" style={{ color: "var(--eco-primary)" }}>{tx(l, "Обрабатывается", "Өңделуде", "Processing")}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </Card>
+          )}
+        </>
+      )}
 
-      {/* Policy note */}
-      <div className="flex items-start gap-2 p-4 rounded-lg mb-4" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}>
+      <div className="flex items-start gap-2 p-4 rounded-lg my-6" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}>
         <Shield size={13} className="mt-0.5 shrink-0" style={{ color: "var(--eco-text-tertiary)" }} />
         <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
           {tx(l,
@@ -702,15 +980,6 @@ export function OwnerPayoutPage() {
             "Payout available after verification and dispute window. This protects both parties."
           )}
         </span>
-      </div>
-
-      <div className="flex items-start gap-1.5 mt-2 text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-        <Shield size={11} className="mt-0.5 shrink-0" />
-        {tx(l,
-          "Действия ограничены по частоте. Проверки на мошенничество могут потребовать дополнительной верификации.",
-          "Әрекеттер жиілікпен шектелген. Алаяқтық тексерулері қосымша верификация талап етуі мүмкін.",
-          "Rate-limited actions. Fraud checks may require additional review."
-        )}
       </div>
 
       <PaymentFooter lang={l} />
