@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Card, Button, Badge, Modal, Select } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
+import { Client } from "@stomp/stompjs";
 import {
   assignStaffTicketToMeRequest,
+  buildSupportWebSocketUrl,
   escalateStaffTicketRequest,
   getStaffSupportQueueRequest,
   getStaffSupportTicketRequest,
@@ -12,7 +14,7 @@ import {
   updateStaffTicketStatusRequest,
   type SupportTicketResponse,
 } from "../../lib/api";
-import { formatAdminApiError, FlashBanner, useFlash } from "./admin-action-ui";
+import { formatAdminApiError } from "./admin-action-ui";
 import {
   ArrowUpRight,
   AlertTriangle,
@@ -35,7 +37,6 @@ const statusVariant: Record<string, "warning" | "info" | "success"> = {
 export function AdminTicketsPage() {
   const { t, language } = useI18n();
   const { authorizedRequest } = useAuth();
-  const { flash, show: showFlash } = useFlash();
 
   const [items, setItems] = useState<SupportTicketResponse[]>([]);
   const [page, setPage] = useState(0);
@@ -57,6 +58,8 @@ export function AdminTicketsPage() {
 
   const [replyText, setReplyText] = useState("");
   const [replySending, setReplySending] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const stompClientRef = useRef<Client | null>(null);
 
   const tx = (ru: string, kz: string, en: string) =>
     language === "ru" ? ru : language === "kz" ? kz : en;
@@ -105,6 +108,75 @@ export function AdminTicketsPage() {
     }
     void loadDetail(selectedId);
   }, [selectedId, loadDetail]);
+
+  // Auto-scroll chat when messages change
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [detail?.messages]);
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    let cancelled = false;
+    let client: Client | null = null;
+    const applyRealtimeUpdate = (updatedTicket: SupportTicketResponse) => {
+      setItems((prev) => {
+        if (updatedTicket.status === "CLOSED") {
+          return prev.filter((it) => it.id !== updatedTicket.id);
+        }
+
+        if (prev.some((it) => it.id === updatedTicket.id)) {
+          return prev.map((it) => (
+            it.id === updatedTicket.id ? { ...it, ...updatedTicket, messages: it.messages } : it
+          ));
+        }
+        return [updatedTicket, ...prev].slice(0, PAGE_SIZE);
+      });
+
+      if (selectedId === updatedTicket.id) {
+        setDetail(updatedTicket);
+        setStatusValue(updatedTicket.status);
+      }
+    };
+
+    void authorizedRequest(async (token) => {
+      if (cancelled) return null;
+
+      client = new Client({
+        webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl(token)),
+        reconnectDelay: 5000,
+        onConnect: () => {
+          client?.subscribe("/topic/staff/support-queue", (message) => {
+            applyRealtimeUpdate(JSON.parse(message.body) as SupportTicketResponse);
+          });
+
+          if (selectedId != null) {
+            client?.subscribe(`/topic/support-tickets/${selectedId}`, (message) => {
+              applyRealtimeUpdate(JSON.parse(message.body) as SupportTicketResponse);
+            });
+          }
+        },
+        onStompError: (frame) => {
+          console.error("Admin support WebSocket error:", frame);
+        },
+        onWebSocketError: (event) => {
+          console.error("Admin support WebSocket connection error:", event);
+        },
+      });
+
+      client.activate();
+      stompClientRef.current = client;
+      return null;
+    }).catch((err) => {
+      console.error("Unable to start admin support WebSocket:", err);
+    });
+
+    return () => {
+      cancelled = true;
+      void client?.deactivate();
+    };
+  }, [authorizedRequest, selectedId]);
 
   const summaryById = useMemo(
     () => new Map(items.map((t) => [t.id, t] as const)),
@@ -172,7 +244,6 @@ export function AdminTicketsPage() {
       );
       applyTicketUpdate(updated);
       setReplyText("");
-      showFlash("success", t("actionCompletedAndLogged"));
     } catch (err) {
       setActionError(formatAdminApiError(err, t));
     } finally {
@@ -195,9 +266,6 @@ export function AdminTicketsPage() {
             <RefreshCw size={13} /> {t("retry")}
           </Button>
         </div>
-
-        <FlashBanner flash={flash} />
-
         {error && !loading && (
           <Card className="flex flex-col gap-2 mb-4">
             <div className="text-[14px]" style={{ color: "var(--eco-negative)" }}>{t("loadFailedTitle")}</div>
@@ -324,14 +392,16 @@ export function AdminTicketsPage() {
                   )}
 
                   <div className="flex flex-wrap items-end gap-3">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      loading={assignSubmitting}
-                      onClick={() => void handleAssignToMe()}
-                    >
-                      <UserPlus size={13} /> {t("takeTicket")}
-                    </Button>
+                    {detail.assignedAdminId == null && detail.status !== "CLOSED" && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        loading={assignSubmitting}
+                        onClick={() => void handleAssignToMe()}
+                      >
+                        <UserPlus size={13} /> {t("takeTicket")}
+                      </Button>
+                    )}
 
                     <div style={{ minWidth: 180 }}>
                       <Select
@@ -375,33 +445,38 @@ export function AdminTicketsPage() {
                       {tx("Сообщений пока нет.", "Әзірге хабарламалар жоқ.", "No messages yet.")}
                     </div>
                   ) : (
-                    detail.messages.map((m) => {
-                      const isStaff = m.senderRole === "SUPPORT" || m.senderRole === "ADMIN";
-                      return (
-                        <div key={m.id} className="flex flex-col gap-1">
-                          <div className="text-[11px] flex items-center gap-1.5" style={{ color: "var(--eco-text-tertiary)" }}>
-                            {isStaff && (
-                              <Shield size={10} style={{ color: m.senderRole === "ADMIN" ? "var(--eco-negative)" : "var(--eco-primary)" }} />
-                            )}
-                            <span style={{ color: isStaff ? (m.senderRole === "ADMIN" ? "var(--eco-negative)" : "var(--eco-primary)") : undefined }}>
-                              {m.senderRole}
-                            </span>
-                            <span>·</span>
-                            <span>{new Date(m.createdAt).toLocaleString()}</span>
-                          </div>
-                          <div
-                            className="px-3 py-2 rounded-lg text-[13px]"
-                            style={{
-                              background: isStaff ? "var(--eco-brand-50)" : "var(--eco-surface)",
-                              color: "var(--eco-text)",
-                              whiteSpace: "pre-wrap",
-                            }}
+                    <div ref={chatScrollRef} className="flex flex-col gap-3 max-h-[400px] overflow-y-auto">
+                      {detail.messages.map((m) => {
+                        const isStaff = m.senderRole === "SUPPORT" || m.senderRole === "ADMIN";
+                        return (
+                          <div 
+                            key={m.id} 
+                            className={`flex flex-col gap-1 ${isStaff ? "items-end" : "items-start"}`}
                           >
-                            {m.message}
+                            <div className="text-[11px] flex items-center gap-1.5" style={{ color: "var(--eco-text-tertiary)" }}>
+                              {isStaff && (
+                                <Shield size={10} style={{ color: m.senderRole === "ADMIN" ? "var(--eco-negative)" : "var(--eco-primary)" }} />
+                              )}
+                              <span style={{ color: isStaff ? (m.senderRole === "ADMIN" ? "var(--eco-negative)" : "var(--eco-primary)") : undefined }}>
+                                {m.senderRole}
+                              </span>
+                              <span>·</span>
+                              <span>{new Date(m.createdAt).toLocaleString()}</span>
+                            </div>
+                            <div
+                              className="px-3 py-2 rounded-lg text-[13px] max-w-[80%]"
+                              style={{
+                                background: isStaff ? "var(--eco-brand-50)" : "var(--eco-surface)",
+                                color: "var(--eco-text)",
+                                whiteSpace: "pre-wrap",
+                              }}
+                            >
+                              {m.message}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })
+                        );
+                      })}
+                    </div>
                   )}
 
                   {detail.status !== "CLOSED" && (

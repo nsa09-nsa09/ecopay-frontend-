@@ -116,6 +116,17 @@ interface ErrorPayload {
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api/v1").replace(/\/$/, "");
 
+export function buildSupportWebSocketUrl(accessToken: string) {
+  const wsUrl = new URL(
+    "/ws",
+    /^https?:\/\//.test(API_BASE_URL) ? new URL(API_BASE_URL).origin : window.location.origin,
+  );
+
+  wsUrl.protocol = wsUrl.protocol === "https:" ? "wss:" : "ws:";
+  wsUrl.searchParams.set("token", accessToken);
+  return wsUrl.toString();
+}
+
 export class ApiError extends Error {
   status: number;
   errors: Record<string, string>;
@@ -772,6 +783,7 @@ export interface SupportTicketResponse {
   status: string;
   priority: string;
   escalatedToDispute: boolean;
+  assignedAdminId: number | null;
   createdAt: string;
   updatedAt: string;
   closedAt: string | null;

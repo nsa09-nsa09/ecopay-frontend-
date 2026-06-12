@@ -9,6 +9,7 @@ import {
 import { toast } from "sonner";
 import {
   ApiError,
+  buildSupportWebSocketUrl,
   createSupportTicketRequest,
   getMySupportTicketRequest,
   getMySupportTicketsRequest,
@@ -17,6 +18,7 @@ import {
 } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n, type Language } from "../i18n-provider";
+import { Client } from "@stomp/stompjs";
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === "ru" ? ru : l === "kz" ? kz : en;
@@ -418,6 +420,8 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
   const [error, setError] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const stompClientRef = useRef<Client | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -432,6 +436,50 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [ticketId, authorizedRequest, language]);
+
+  // Auto-scroll chat when messages change
+  useEffect(() => {
+    if (chatEndRef.current && chatEndRef.current.parentElement) {
+      chatEndRef.current.parentElement.scrollTop = chatEndRef.current.parentElement.scrollHeight;
+    }
+  }, [ticket?.messages]);
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    let cancelled = false;
+    let client: Client | null = null;
+
+    void authorizedRequest(async (token) => {
+      if (cancelled) return null;
+
+      client = new Client({
+        webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl(token)),
+        reconnectDelay: 5000,
+        onConnect: () => {
+          client?.subscribe(`/topic/support-tickets/${ticketId}`, (message) => {
+            setTicket(JSON.parse(message.body) as SupportTicketResponse);
+          });
+        },
+        onStompError: (frame) => {
+          console.error("User support WebSocket error:", frame);
+        },
+        onWebSocketError: (event) => {
+          console.error("User support WebSocket connection error:", event);
+        },
+      });
+
+      client.activate();
+      stompClientRef.current = client;
+      return null;
+    }).catch((err) => {
+      console.error("Unable to start user support WebSocket:", err);
+    });
+
+    return () => {
+      cancelled = true;
+      void client?.deactivate();
+    };
+  }, [authorizedRequest, ticketId]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !ticket) return;
@@ -599,6 +647,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
               </div>
             );
           })}
+          <div ref={chatEndRef} />
         </div>
 
         {!isClosed ? (
