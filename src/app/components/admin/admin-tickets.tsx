@@ -257,6 +257,10 @@ export function AdminTicketsPage() {
     { value: "CLOSED", label: t("statusClosed") },
   ];
 
+  const assignedAdminLabel = detail?.assignedAdminId == null
+    ? null
+    : (detail.assignedAdminDisplayName?.trim() || `#${detail.assignedAdminId}`);
+
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
@@ -378,6 +382,11 @@ export function AdminTicketsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-[16px]" style={{ color: "var(--eco-text)" }}>{detail.subject}</div>
+                      {assignedAdminLabel && (
+                        <div className="text-[12px] mt-1" style={{ color: "var(--eco-text-secondary)" }}>
+                          {t("assignedTo")}: {assignedAdminLabel}
+                        </div>
+                      )}
                       <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
                         T-{detail.id} · #{detail.userId}
                         {detail.topic ? ` · ${detail.topic}` : ""}

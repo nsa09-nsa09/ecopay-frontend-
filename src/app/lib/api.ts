@@ -784,6 +784,7 @@ export interface SupportTicketResponse {
   priority: string;
   escalatedToDispute: boolean;
   assignedAdminId: number | null;
+  assignedAdminDisplayName: string | null;
   createdAt: string;
   updatedAt: string;
   closedAt: string | null;
