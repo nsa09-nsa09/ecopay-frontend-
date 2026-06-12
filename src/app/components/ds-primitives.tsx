@@ -1,6 +1,7 @@
 import { type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes, type SelectHTMLAttributes, useState, useRef, useEffect } from "react";
 import { Check, ChevronDown, X, AlertCircle, CheckCircle2, Info, Loader2 } from "lucide-react";
-import { useI18n } from "./i18n-provider";
+import { BrandLogo } from "./brand-logo";
+import { useI18n, type Language } from "./i18n-provider";
 
 // ─── Wave SVG ───
 export function WaveDivider({ flip, className }: { flip?: boolean; className?: string }) {
@@ -129,23 +130,30 @@ export function Select({ label, options, className = "", ...props }: SelectProps
 }
 
 // ─── Tabs ───
-export function Tabs({ tabs, active, onChange }: { tabs: string[]; active: string; onChange: (t: string) => void }) {
+type TabItem = string | { id: string; label: string };
+
+export function Tabs({ tabs, active, onChange }: { tabs: TabItem[]; active: string; onChange: (t: string) => void }) {
   return (
     <div className="flex gap-0 border-b" style={{ borderColor: "var(--eco-border)" }}>
-      {tabs.map((t) => (
+      {tabs.map((tab) => {
+        const id = typeof tab === "string" ? tab : tab.id;
+        const label = typeof tab === "string" ? tab : tab.label;
+
+        return (
         <button
-          key={t}
-          onClick={() => onChange(t)}
+          key={id}
+          onClick={() => onChange(id)}
           className="px-4 py-2.5 text-[14px] transition-colors cursor-pointer"
           style={{
-            color: active === t ? "var(--eco-primary)" : "var(--eco-text-secondary)",
-            borderBottom: active === t ? "2px solid var(--eco-primary)" : "2px solid transparent",
+            color: active === id ? "var(--eco-primary)" : "var(--eco-text-secondary)",
+            borderBottom: active === id ? "2px solid var(--eco-primary)" : "2px solid transparent",
             marginBottom: -1,
           }}
         >
-          {t}
+          {label}
         </button>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -203,16 +211,31 @@ const roomStatusMap: Record<string, BadgeVariant> = {
   BLOCKED: "danger",
 };
 
+export const statusLabel = (status: string, lang: Language) => {
+  const labels: Record<string, { ru: string; kz: string; en: string }> = {
+    APPLIED: { ru: "Заявка", kz: "Өтінім", en: "Applied" },
+    PENDING: { ru: "Ожидает", kz: "Күтуде", en: "Pending" },
+    ACTIVE: { ru: "Активно", kz: "Белсенді", en: "Active" },
+    REJECTED: { ru: "Отклонено", kz: "Қабылданбады", en: "Rejected" },
+    BLOCKED: { ru: "Заблокировано", kz: "Бұғатталған", en: "Blocked" },
+    BLOCKED_BY_ADMIN: { ru: "Заблокировано", kz: "Бұғатталған", en: "Blocked" },
+    OPEN: { ru: "Открыта", kz: "Ашық", en: "Open" },
+    IN_VERIFICATION: { ru: "На проверке", kz: "Тексеруде", en: "In verification" },
+    COMPLETED: { ru: "Завершена", kz: "Аяқталды", en: "Completed" },
+    CANCELLED: { ru: "Отменена", kz: "Бас тартылды", en: "Cancelled" },
+  };
+
+  return labels[status]?.[lang] ?? status;
+};
+
 export function MemberStatusBadge({ status }: { status: string }) {
-  const { t } = useI18n();
-  const label = t(`memberStatus.${status}`);
-  return <Badge variant={memberStatusMap[status] || "default"}>{label.startsWith("memberStatus.") ? status : label}</Badge>;
+  const { language } = useI18n();
+  return <Badge variant={memberStatusMap[status] || "default"}>{statusLabel(status, language)}</Badge>;
 }
 
 export function RoomStatusBadge({ status }: { status: string }) {
-  const { t } = useI18n();
-  const label = t(`roomStatus.${status}`);
-  return <Badge variant={roomStatusMap[status] || "default"}>{label.startsWith("roomStatus.") ? status : label}</Badge>;
+  const { language } = useI18n();
+  return <Badge variant={roomStatusMap[status] || "default"}>{statusLabel(status, language)}</Badge>;
 }
 
 // ─── Cards ───
@@ -527,9 +550,7 @@ export function TopNav() {
       style={{ background: "var(--eco-bg)", borderColor: "var(--eco-border)" }}
     >
       <div className="flex items-center gap-6">
-        <span className="text-[28px] tracking-tight" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
-          <span style={{ color: "var(--eco-primary)" }}>Eco</span>Pay
-        </span>
+        <BrandLogo size="md" />
         <div className="hidden md:flex items-center gap-4">
           {["Plans", "Rooms", "Dashboard"].map((item) => (
             <a key={item} href="#" className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{item}</a>

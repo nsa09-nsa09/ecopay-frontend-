@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, Navigate } from "react-router";
 import { Button, Input } from "../ds-primitives";
+import { BrandLogo } from "../brand-logo";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import { ApiError, type TwoFactorChallenge } from "../../lib/api";
@@ -202,10 +203,8 @@ export function AdminLoginPage() {
     <div className="min-h-screen flex items-center justify-center px-6" style={{ background: "var(--eco-bg)" }}>
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="text-[32px] tracking-tight mb-1" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
-            <span style={{ color: "var(--eco-primary)" }}>Eco</span>Pay {t("adminPortal")}
-          </div>
+        <div className="text-center mb-8 flex flex-col items-center gap-2">
+          <BrandLogo size="lg" sublabel={t("adminPortal")} />
           <div className="text-[14px]" style={{ color: "var(--eco-text-tertiary)" }}>
             {t("administrationAndSupport")}
           </div>

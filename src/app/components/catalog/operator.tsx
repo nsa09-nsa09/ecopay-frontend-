@@ -159,9 +159,12 @@ export function OperatorPage() {
       ) : (
         <>
           <Tabs
-            tabs={[t("tabPlans"), t("availableRooms")]}
-            active={tab === "plans" ? t("tabPlans") : t("availableRooms")}
-            onChange={(label) => setTab(label === t("tabPlans") ? "plans" : "rooms")}
+            tabs={[
+              { id: "plans", label: t("tabPlans") },
+              { id: "rooms", label: t("availableRooms") },
+            ]}
+            active={tab}
+            onChange={(id) => setTab(id as "plans" | "rooms")}
           />
 
           {tab === "plans" && (

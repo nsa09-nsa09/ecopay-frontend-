@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
+import { BrandLogo } from "../brand-logo";
 import { ApiError, getAdminDashboardKpisRequest, type AdminDashboardKpisDto } from "../../lib/api";
 import { ADMIN_NAV_ITEMS, defaultLandingForRole, isRoleAllowedFor } from "./admin-nav";
 
@@ -64,10 +65,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
       >
         {/* Logo */}
         <div className="px-4 py-4 border-b" style={{ borderColor: "var(--eco-border)" }}>
-          <Link to={landingPath} className="text-[20px] tracking-tight" style={{ color: "var(--eco-text)", textDecoration: "none", fontWeight: 700 }}>
-            <span style={{ color: "var(--eco-primary)" }}>Eco</span>Pay
-          </Link>
-          <div className="text-[11px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{t("adminPortal")}</div>
+          <BrandLogo to={landingPath} size="sm" sublabel={t("adminPortal")} />
         </div>
 
         {/* Nav */}

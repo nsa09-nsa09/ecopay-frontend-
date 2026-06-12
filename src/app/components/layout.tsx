@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { Button, LanguageSwitcher, WaveDivider } from "./ds-primitives";
+import { BrandLogo } from "./brand-logo";
 import { Menu, X, Search } from "lucide-react";
 import { useI18n } from "./i18n-provider";
 import { useAuth } from "./auth/auth-provider";
@@ -54,9 +55,7 @@ export function AppLayout() {
       >
         <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between h-14">
           <div className="flex items-center gap-6">
-            <Link to="/" className="text-[28px] tracking-tight shrink-0" style={{ color: "var(--eco-text)", textDecoration: "none", fontWeight: 700 }}>
-              <span style={{ color: "var(--eco-primary)" }}>Eco</span>Pay
-            </Link>
+            <BrandLogo to="/" size="md" className="shrink-0" />
             <div className="hidden md:flex items-center gap-1">
               {navItems.map((item) => (
                 <Link
@@ -241,6 +240,9 @@ export function AppLayout() {
       <WaveDivider />
       <footer style={{ background: "var(--eco-surface)" }} className="py-12 px-6">
         <div className="max-w-[1200px] mx-auto">
+          <div className="mb-8">
+            <BrandLogo to="/" size="sm" />
+          </div>
           <div className="hidden md:grid md:grid-cols-3 gap-8 mb-8">
             <div>
               <h4 className="text-[14px] mb-3" style={{ color: "var(--eco-text)" }}>{t("product")}</h4>
