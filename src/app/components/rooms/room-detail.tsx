@@ -4,7 +4,11 @@ import { Card, Badge, Button, RoomStatusBadge, Modal, Input, Stepper, Select } f
 import { ArrowLeft, Users, Calendar, Shield, AlertTriangle, Check, Star } from "lucide-react";
 import { ApiError, getRoom, getRooms, joinRoomRequest, type RoomResponseDto, type RoomSummaryDto } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
+import { useI18n, type Language } from "../i18n-provider";
 import { LeaveReviewModal } from "../reputation/leave-review-modal";
+
+const tx = (l: Language, ru: string, kz: string, en: string) =>
+  l === "ru" ? ru : l === "kz" ? kz : en;
 
 const moneyFormatter = new Intl.NumberFormat("ru-RU");
 
@@ -12,16 +16,15 @@ function formatMoney(value: number | null | undefined) {
   return `₸${moneyFormatter.format(Number(value ?? 0))}`;
 }
 
-function formatDate(value: string | undefined) {
-  if (!value) {
-    return "TBD";
-  }
-
-  return new Date(value).toLocaleDateString();
+function formatDate(value: string | undefined, l: Language) {
+  if (!value) return tx(l, "—", "—", "TBD");
+  const locale = l === "ru" ? "ru-RU" : l === "kz" ? "kk-KZ" : "en-US";
+  return new Date(value).toLocaleDateString(locale);
 }
 
 export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { language } = useI18n();
   const roomId = Number(id);
   const location = useLocation();
   const navigate = useNavigate();
@@ -47,7 +50,7 @@ export function RoomDetailPage() {
 
     async function loadRoom() {
       if (!roomId) {
-        setLoadError("Room not found.");
+        setLoadError(tx(language, "Комната не найдена.", "Бөлме табылмады.", "Room not found."));
         setLoading(false);
         return;
       }
@@ -64,7 +67,7 @@ export function RoomDetailPage() {
         }
       } catch {
         if (!isCancelled) {
-          setLoadError("Unable to load this room right now.");
+          setLoadError(tx(language, "Не удалось загрузить комнату.", "Бөлмені жүктеу мүмкін болмады.", "Unable to load this room right now."));
         }
       } finally {
         if (!isCancelled) {
@@ -78,12 +81,12 @@ export function RoomDetailPage() {
     return () => {
       isCancelled = true;
     };
-  }, [roomId]);
+  }, [roomId, language]);
 
   if (loading) {
     return (
       <div className="max-w-[1200px] mx-auto px-6 py-8">
-        <Card>Loading room details...</Card>
+        <Card>{tx(language, "Загрузка деталей комнаты...", "Бөлме деректері жүктелуде...", "Loading room details...")}</Card>
       </div>
     );
   }
@@ -91,7 +94,7 @@ export function RoomDetailPage() {
   if (loadError || !room) {
     return (
       <div className="max-w-[1200px] mx-auto px-6 py-8">
-        <Card>{loadError ?? "Room not found."}</Card>
+        <Card>{loadError ?? tx(language, "Комната не найдена.", "Бөлме табылмады.", "Room not found.")}</Card>
       </div>
     );
   }
@@ -99,7 +102,9 @@ export function RoomDetailPage() {
   const requiresIdentifier = room.roomType === "TELECOM";
   const ownerName = summary?.ownerDisplayName ?? `User #${room.ownerUserId}`;
   const totalDue = Number(room.pricePerMember ?? 0);
-  const ctaLabel = isAuthenticated ? "Join Room" : "Sign in to join";
+  const ctaLabel = isAuthenticated
+    ? tx(language, "Присоединиться", "Қосылу", "Join Room")
+    : tx(language, "Войдите, чтобы присоединиться", "Қосылу үшін кіріңіз", "Sign in to join");
 
   const openJoinFlow = () => {
     if (!isAuthenticated) {
@@ -121,12 +126,12 @@ export function RoomDetailPage() {
     setJoinError(null);
 
     if (!consent) {
-      setJoinError("Consent must be accepted.");
+      setJoinError(tx(language, "Нужно подтвердить согласие.", "Келісім қажет.", "Consent must be accepted."));
       return;
     }
 
     if (requiresIdentifier && !identifierValue.trim()) {
-      setJoinError("Identifier is required for telecom rooms.");
+      setJoinError(tx(language, "Идентификатор обязателен для телеком-комнат.", "Телеком-бөлмелер үшін идентификатор міндетті.", "Identifier is required for telecom rooms."));
       return;
     }
 
@@ -149,7 +154,7 @@ export function RoomDetailPage() {
       if (err instanceof ApiError) {
         setJoinError(err.message);
       } else {
-        setJoinError("Unable to submit the room request right now.");
+        setJoinError(tx(language, "Не удалось отправить заявку.", "Өтінімді жіберу мүмкін болмады.", "Unable to submit the room request right now."));
       }
     } finally {
       setSubmitting(false);
@@ -179,13 +184,15 @@ export function RoomDetailPage() {
           </div>
 
           <Card className="flex flex-col gap-4">
-            <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Plan Summary</h3>
+            <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>
+              {tx(language, "Параметры тарифа", "Тариф параметрлері", "Plan Summary")}
+            </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { label: "Total plan cost", value: `${formatMoney(room.priceTotal)}/period` },
-                { label: "Members", value: `${room.maxMembers}`, icon: Users },
-                { label: "Your share", value: `${formatMoney(room.pricePerMember)}/period`, highlight: true },
-                { label: "Start date", value: formatDate(room.startDate), icon: Calendar },
+                { label: tx(language, "Стоимость тарифа", "Тариф құны", "Total plan cost"), value: `${formatMoney(room.priceTotal)}${tx(language, "/период", "/кезең", "/period")}` },
+                { label: tx(language, "Участники", "Қатысушылар", "Members"), value: `${room.maxMembers}`, icon: Users },
+                { label: tx(language, "Ваша доля", "Сіздің үлесіңіз", "Your share"), value: `${formatMoney(room.pricePerMember)}${tx(language, "/период", "/кезең", "/period")}`, highlight: true },
+                { label: tx(language, "Дата старта", "Басталу күні", "Start date"), value: formatDate(room.startDate, language), icon: Calendar },
               ].map((item) => (
                 <div key={item.label}>
                   <div className="text-[12px] mb-1" style={{ color: "var(--eco-text-tertiary)" }}>{item.label}</div>
@@ -198,11 +205,13 @@ export function RoomDetailPage() {
           </Card>
 
           <Card className="flex flex-col gap-3">
-            <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Price Breakdown</h3>
+            <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>
+              {tx(language, "Расчёт стоимости", "Құнның есебі", "Price Breakdown")}
+            </h3>
             {[
-              { label: "Plan cost", value: formatMoney(room.priceTotal) },
-              { label: `Split between ${room.maxMembers} members`, value: `÷${room.maxMembers}` },
-              { label: "Your share", value: formatMoney(room.pricePerMember), bold: true },
+              { label: tx(language, "Стоимость тарифа", "Тариф құны", "Plan cost"), value: formatMoney(room.priceTotal) },
+              { label: tx(language, `Делится на ${room.maxMembers} участников`, `${room.maxMembers} қатысушыға бөлінеді`, `Split between ${room.maxMembers} members`), value: `÷${room.maxMembers}` },
+              { label: tx(language, "Ваша доля", "Сіздің үлесіңіз", "Your share"), value: formatMoney(room.pricePerMember), bold: true },
             ].map((row) => (
               <div key={row.label} className="flex justify-between text-[13px]">
                 <span style={{ color: "var(--eco-text-secondary)" }}>{row.label}</span>
@@ -210,7 +219,9 @@ export function RoomDetailPage() {
               </div>
             ))}
             <div className="border-t pt-3 flex justify-between text-[14px]" style={{ borderColor: "var(--eco-border)" }}>
-              <span style={{ color: "var(--eco-text)" }}>Due on join</span>
+              <span style={{ color: "var(--eco-text)" }}>
+                {tx(language, "К оплате при вступлении", "Қосылу кезінде төлеу", "Due on join")}
+              </span>
               <span style={{ color: "var(--eco-primary)" }}>{formatMoney(totalDue)}</span>
             </div>
           </Card>
@@ -236,7 +247,9 @@ export function RoomDetailPage() {
 
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col gap-3">
-            <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Room Owner</h3>
+            <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>
+              {tx(language, "Владелец комнаты", "Бөлме иесі", "Room Owner")}
+            </h3>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "var(--eco-surface)" }}>
                 <span className="text-[14px]" style={{ color: "var(--eco-text-secondary)" }}>
@@ -246,19 +259,21 @@ export function RoomDetailPage() {
               <div>
                 <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{ownerName}</div>
                 <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                  {room.verificationMode} verification
+                  {tx(language, "Верификация", "Растау", "Verification")}: {room.verificationMode}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-positive)" }}>
-              <Shield size={13} /> Data is stored encrypted in the backend.
+              <Shield size={13} /> {tx(language, "Данные хранятся зашифрованными.", "Деректер шифрланған түрде сақталады.", "Data is stored encrypted in the backend.")}
             </div>
           </Card>
 
           <Card className="flex flex-col gap-3">
             <div className="text-[20px]" style={{ color: "var(--eco-primary)" }}>
               {formatMoney(totalDue)}
-              <span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>/period</span>
+              <span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                {tx(language, "/период", "/кезең", "/period")}
+              </span>
             </div>
             <Button
               variant="primary"
@@ -270,18 +285,37 @@ export function RoomDetailPage() {
               {ctaLabel}
             </Button>
             <p className="text-[11px] text-center" style={{ color: "var(--eco-text-tertiary)" }}>
-              {requiresIdentifier ? "Your identifier is only shared after you confirm the join request." : "You can submit a join request from this page."}
+              {requiresIdentifier
+                ? tx(
+                    language,
+                    "Идентификатор раскрывается владельцу только после оплаты.",
+                    "Идентификатор иесіне төлемнен кейін ғана ашылады.",
+                    "Your identifier is only shared after you confirm the join request.",
+                  )
+                : tx(
+                    language,
+                    "Заявку на вступление можно отправить с этой страницы.",
+                    "Қосылу өтінімін осы беттен жіберуге болады.",
+                    "You can submit a join request from this page.",
+                  )}
             </p>
           </Card>
 
           {room.status === "COMPLETED" && isAuthenticated && user && user.id !== room.ownerUserId && (
             <Card className="flex flex-col gap-3">
-              <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>Share your feedback</h3>
+              <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>
+                {tx(language, "Поделитесь впечатлениями", "Әсеріңізбен бөлісіңіз", "Share your feedback")}
+              </h3>
               <p className="text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
-                This room is completed. Leave a review for {ownerName}.
+                {tx(
+                  language,
+                  `Комната завершена. Оставьте отзыв о ${ownerName}.`,
+                  `Бөлме аяқталды. ${ownerName} туралы пікір қалдырыңыз.`,
+                  `This room is completed. Leave a review for ${ownerName}.`,
+                )}
               </p>
               <Button variant="secondary" size="md" onClick={() => setReviewOpen(true)}>
-                <Star size={14} /> Leave a review
+                <Star size={14} /> {tx(language, "Оставить отзыв", "Пікір қалдыру", "Leave a review")}
               </Button>
             </Card>
           )}
@@ -296,10 +330,18 @@ export function RoomDetailPage() {
         recipientName={ownerName}
       />
 
-      <Modal open={joinOpen} onClose={() => setJoinOpen(false)} title="Join Room">
+      <Modal open={joinOpen} onClose={() => setJoinOpen(false)} title={tx(language, "Присоединиться к комнате", "Бөлмеге қосылу", "Join Room")}>
         {!joinDone ? (
           <div className="flex flex-col gap-5">
-            <Stepper steps={[requiresIdentifier ? "Identifier" : "Consent", "Submit"]} current={joinStep} />
+            <Stepper
+              steps={[
+                requiresIdentifier
+                  ? tx(language, "Идентификатор", "Идентификатор", "Identifier")
+                  : tx(language, "Согласие", "Келісім", "Consent"),
+                tx(language, "Отправка", "Жіберу", "Submit"),
+              ]}
+              current={joinStep}
+            />
 
             {joinStep === 0 && (
               <div className="flex flex-col gap-4">
@@ -307,27 +349,30 @@ export function RoomDetailPage() {
                   <div className="p-3 rounded-lg text-[12px] flex items-start gap-2" style={{ background: "var(--eco-warning-100)", color: "var(--eco-text-secondary)" }}>
                     <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
                     <span>
-                      Verify your phone number before joining a room.{" "}
-                      <Link to="/profile" style={{ color: "var(--eco-primary)" }}>Go to profile</Link>.
+                      {tx(language, "Подтвердите номер телефона перед вступлением.", "Қосылмас бұрын телефон нөміріңізді растаңыз.", "Verify your phone number before joining a room.")}{" "}
+                      <Link to="/profile" style={{ color: "var(--eco-primary)" }}>
+                        {tx(language, "Перейти в профиль", "Профильге өту", "Go to profile")}
+                      </Link>
+                      .
                     </span>
                   </div>
                 )}
                 {requiresIdentifier && (
                   <>
                     <Select
-                      label="Identifier type"
+                      label={tx(language, "Тип идентификатора", "Идентификатор түрі", "Identifier type")}
                       value={identifierType}
                       onChange={(event) => setIdentifierType(event.target.value)}
                       options={[
-                        { value: "PHONE", label: "Phone" },
-                        { value: "ACCOUNT", label: "Account ID" },
+                        { value: "PHONE", label: tx(language, "Телефон", "Телефон", "Phone") },
+                        { value: "ACCOUNT", label: tx(language, "ID лицевого счёта", "Жеке шот ID", "Account ID") },
                         { value: "SIM", label: "SIM" },
                         { value: "ESIM", label: "eSIM" },
                       ]}
                     />
                     <Input
-                      label="Telecom Identifier"
-                      placeholder="Phone number or contract ID"
+                      label={tx(language, "Идентификатор", "Идентификатор", "Telecom Identifier")}
+                      placeholder={tx(language, "Номер телефона или ID договора", "Телефон нөмірі немесе келісімшарт ID", "Phone number or contract ID")}
                       value={identifierValue}
                       onChange={(event) => setIdentifierValue(event.target.value)}
                     />
@@ -336,7 +381,12 @@ export function RoomDetailPage() {
                 <label className="flex items-start gap-2 cursor-pointer">
                   <input type="checkbox" className="mt-0.5" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
                   <span className="text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
-                    I consent to sharing the required room data with the owner according to the room rules.
+                    {tx(
+                      language,
+                      "Я согласен передать владельцу необходимые данные согласно правилам комнаты.",
+                      "Бөлме ережелеріне сәйкес иесіне қажетті деректерді беруге келісемін.",
+                      "I consent to sharing the required room data with the owner according to the room rules.",
+                    )}
                   </span>
                 </label>
                 {joinError && (
@@ -354,7 +404,7 @@ export function RoomDetailPage() {
                   }
                   onClick={() => setJoinStep(1)}
                 >
-                  Continue
+                  {tx(language, "Продолжить", "Жалғастыру", "Continue")}
                 </Button>
               </div>
             )}
@@ -363,15 +413,15 @@ export function RoomDetailPage() {
               <div className="flex flex-col gap-4">
                 <Card className="flex flex-col gap-2">
                   <div className="flex justify-between text-[13px]">
-                    <span style={{ color: "var(--eco-text-secondary)" }}>Room</span>
+                    <span style={{ color: "var(--eco-text-secondary)" }}>{tx(language, "Комната", "Бөлме", "Room")}</span>
                     <span style={{ color: "var(--eco-text)" }}>{room.title}</span>
                   </div>
                   <div className="flex justify-between text-[13px]">
-                    <span style={{ color: "var(--eco-text-secondary)" }}>Provider</span>
+                    <span style={{ color: "var(--eco-text-secondary)" }}>{tx(language, "Провайдер", "Провайдер", "Provider")}</span>
                     <span style={{ color: "var(--eco-text)" }}>{room.providerName}</span>
                   </div>
                   <div className="border-t pt-2 flex justify-between text-[14px]" style={{ borderColor: "var(--eco-border)" }}>
-                    <span style={{ color: "var(--eco-text)" }}>Join cost</span>
+                    <span style={{ color: "var(--eco-text)" }}>{tx(language, "Стоимость вступления", "Қосылу құны", "Join cost")}</span>
                     <span style={{ color: "var(--eco-primary)" }}>{formatMoney(totalDue)}</span>
                   </div>
                 </Card>
@@ -381,7 +431,7 @@ export function RoomDetailPage() {
                   </p>
                 )}
                 <Button variant="primary" className="w-full" onClick={handleJoin} loading={submitting}>
-                  Submit request
+                  {tx(language, "Отправить заявку", "Өтінімді жіберу", "Submit request")}
                 </Button>
               </div>
             )}
@@ -391,15 +441,26 @@ export function RoomDetailPage() {
             <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "var(--eco-success-100)" }}>
               <Check size={20} style={{ color: "var(--eco-positive)" }} />
             </div>
-            <div className="text-[15px]" style={{ color: "var(--eco-text)" }}>Application Submitted</div>
+            <div className="text-[15px]" style={{ color: "var(--eco-text)" }}>
+              {tx(language, "Заявка отправлена", "Өтінім жіберілді", "Application Submitted")}
+            </div>
             <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-              Your membership is now <Badge variant="info">APPLIED</Badge>. Next, complete payment to reserve your seat.
+              {tx(language, "Ваше членство сейчас", "Сіздің мүшелігіңіз қазір", "Your membership is now")}{" "}
+              <Badge variant="info">APPLIED</Badge>.{" "}
+              {tx(
+                language,
+                "Завершите оплату, чтобы закрепить место.",
+                "Орын сақтау үшін төлемді аяқтаңыз.",
+                "Next, complete payment to reserve your seat.",
+              )}
             </div>
             <div className="flex gap-2 mt-2">
               <Button variant="primary" onClick={() => navigate(`/rooms/member/${room.id}`)}>
-                Continue to payment
+                {tx(language, "К оплате", "Төлемге өту", "Continue to payment")}
               </Button>
-              <Button variant="secondary" onClick={() => setJoinOpen(false)}>Close</Button>
+              <Button variant="secondary" onClick={() => setJoinOpen(false)}>
+                {tx(language, "Закрыть", "Жабу", "Close")}
+              </Button>
             </div>
           </div>
         )}

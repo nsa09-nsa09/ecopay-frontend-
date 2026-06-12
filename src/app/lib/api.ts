@@ -656,6 +656,7 @@ export interface AdminUserDto {
   tickets: number | null;
   disputes: number | null;
   createdAt: string | null;
+  ownerVerified?: boolean | null;
 }
 
 export interface AdminDecisionRequest {
@@ -688,6 +689,47 @@ export function unbanUserRequest(userId: number, reason: string, accessToken: st
   return requestJson<AdminUserDto>(`/admin/users/${userId}/unban`, {
     method: "POST",
     body: JSON.stringify({ reason }),
+  }, accessToken);
+}
+
+export interface CreateAdminUserRequest {
+  email: string;
+  displayName: string;
+  password: string;
+  role: "USER" | "SUPPORT" | "ADMIN";
+  phone?: string;
+}
+
+export function createAdminUserRequest(payload: CreateAdminUserRequest, accessToken: string) {
+  return requestJson<AdminUserDto>("/admin/users", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+export function getAdminUserRequest(userId: number, accessToken: string) {
+  return requestJson<AdminUserDto>(`/admin/users/${userId}`, {}, accessToken);
+}
+
+export function updateAdminUserRoleRequest(
+  userId: number,
+  payload: { role: "USER" | "SUPPORT" | "ADMIN"; reason: string },
+  accessToken: string,
+) {
+  return requestJson<AdminUserDto>(`/admin/users/${userId}/role`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+export function updateAdminUserOwnerVerifiedRequest(
+  userId: number,
+  payload: { verified: boolean; reason?: string },
+  accessToken: string,
+) {
+  return requestJson<AdminUserDto>(`/admin/users/${userId}/owner-verified`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   }, accessToken);
 }
 
@@ -783,6 +825,29 @@ export function escalateStaffTicketRequest(ticketId: number, accessToken: string
   );
 }
 
+export function getStaffAssignedSupportTicketsRequest(
+  accessToken: string,
+  params: Record<string, string | number | undefined> = {},
+) {
+  return requestJson<PageResponse<SupportTicketResponse>>(
+    `/staff/support-tickets/assigned${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function postStaffSupportTicketMessageRequest(
+  ticketId: number,
+  message: string,
+  accessToken: string,
+) {
+  return requestJson<SupportTicketResponse>(
+    `/staff/support-tickets/${ticketId}/messages`,
+    { method: "POST", body: JSON.stringify({ message }) },
+    accessToken,
+  );
+}
+
 // ---- Disputes ----
 
 export interface DisputeResponse {
@@ -833,6 +898,72 @@ export function decideDisputeRequest(
 ) {
   return requestJson<DisputeResponse>(
     `/admin/disputes/${disputeId}/decision`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export interface OwnerViolationSanctionRequest {
+  createRefund: boolean;
+  paymentTransactionId?: number;
+  refundAmount?: number;
+  reason: string;
+}
+
+export function applyOwnerViolationSanctionRequest(
+  disputeId: number,
+  payload: OwnerViolationSanctionRequest,
+  accessToken: string,
+) {
+  return requestJson<DisputeResponse>(
+    `/admin/disputes/${disputeId}/sanctions/owner-violation`,
+    { method: "POST", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+// ---- Refunds ----
+
+export interface RefundTransactionResponse {
+  id: number;
+  disputeId: number | null;
+  paymentTransactionId: number | null;
+  providerRefundId: string | null;
+  amount: number | string;
+  currency: string | null;
+  status: string;
+  reason: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export function getRefundsByDisputeRequest(disputeId: number, accessToken: string) {
+  return requestJson<RefundTransactionResponse[]>(
+    `/admin/refunds/by-dispute/${disputeId}`,
+    {},
+    accessToken,
+  );
+}
+
+export function markRefundSuccessRequest(
+  refundId: number,
+  payload: { providerRefundId?: string },
+  accessToken: string,
+) {
+  return requestJson<RefundTransactionResponse>(
+    `/admin/refunds/${refundId}/success`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function markRefundFailRequest(
+  refundId: number,
+  payload: { providerRefundId?: string },
+  accessToken: string,
+) {
+  return requestJson<RefundTransactionResponse>(
+    `/admin/refunds/${refundId}/fail`,
     { method: "PATCH", body: JSON.stringify(payload) },
     accessToken,
   );

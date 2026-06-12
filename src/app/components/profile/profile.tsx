@@ -3,10 +3,15 @@ import { Link } from "react-router";
 import { Card, Badge, Button, Input } from "../ds-primitives";
 import { Shield, UserRound, Mail, Star, Phone, CheckCircle2 } from "lucide-react";
 import { useAuth } from "../auth/auth-provider";
+import { useI18n, type Language } from "../i18n-provider";
 import { ApiError, requestPhoneCodeRequest, resendVerificationEmailRequest, verifyPhoneRequest } from "../../lib/api";
+
+const tx = (l: Language, ru: string, kz: string, en: string) =>
+  l === "ru" ? ru : l === "kz" ? kz : en;
 
 export function ProfilePage() {
   const { user, isAuthenticated, isReady, updateProfile } = useAuth();
+  const { language } = useI18n();
   const [displayName, setDisplayName] = useState("");
   const [avatar, setAvatar] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -22,7 +27,7 @@ export function ProfilePage() {
   if (!isReady) {
     return (
       <div className="max-w-[1200px] mx-auto px-6 py-8">
-        <Card>Loading profile...</Card>
+        <Card>{tx(language, "Загрузка профиля...", "Профиль жүктелуде...", "Loading profile...")}</Card>
       </div>
     );
   }
@@ -31,12 +36,14 @@ export function ProfilePage() {
     return (
       <div className="max-w-[1200px] mx-auto px-6 py-8">
         <Card className="flex flex-col gap-4 items-start">
-          <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>Profile</h1>
+          <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>
+            {tx(language, "Профиль", "Профиль", "Profile")}
+          </h1>
           <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-            Sign in to manage your EcoPay account.
+            {tx(language, "Войдите, чтобы управлять аккаунтом EcoPay.", "EcoPay тіркелгісін басқару үшін кіріңіз.", "Sign in to manage your EcoPay account.")}
           </p>
           <Link to="/login" style={{ textDecoration: "none" }}>
-            <Button>Sign in</Button>
+            <Button>{tx(language, "Войти", "Кіру", "Sign in")}</Button>
           </Link>
         </Card>
       </div>
@@ -61,13 +68,13 @@ export function ProfilePage() {
         displayName,
         avatar: avatar.trim() || null,
       });
-      setMessage("Profile updated.");
+      setMessage(tx(language, "Профиль обновлён.", "Профиль жаңартылды.", "Profile updated."));
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
         setFieldErrors(err.errors);
       } else {
-        setError("Unable to update the profile right now.");
+        setError(tx(language, "Не удалось обновить профиль.", "Профильді жаңарту мүмкін болмады.", "Unable to update the profile right now."));
       }
     } finally {
       setSaving(false);
@@ -76,7 +83,9 @@ export function ProfilePage() {
 
   return (
     <div className="max-w-[1200px] mx-auto px-6 py-8">
-      <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>Profile</h1>
+      <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>
+        {tx(language, "Профиль", "Профиль", "Profile")}
+      </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
         <div className="flex flex-col gap-4">
@@ -95,21 +104,28 @@ export function ProfilePage() {
             <div className="flex items-center gap-1" style={{ color: "var(--eco-warning)" }}>
               <Star size={16} fill="currentColor" />
               <span className="text-[16px]">{user.reputation ?? 0}</span>
-              <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>reputation</span>
+              <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                {tx(language, "репутация", "репутация", "reputation")}
+              </span>
             </div>
           </Card>
 
           <Card className="flex flex-col gap-3">
             <div className="flex items-center justify-between text-[13px]">
-              <span style={{ color: "var(--eco-text-secondary)" }}>Role</span>
+              <span style={{ color: "var(--eco-text-secondary)" }}>{tx(language, "Роль", "Рөл", "Role")}</span>
               <Badge>{user.role}</Badge>
             </div>
             <div className="flex items-center justify-between text-[13px]">
-              <span style={{ color: "var(--eco-text-secondary)" }}>Status</span>
+              <span style={{ color: "var(--eco-text-secondary)" }}>{tx(language, "Статус", "Мәртебесі", "Status")}</span>
               <Badge variant={user.status === "ACTIVE" ? "success" : "default"}>{user.status}</Badge>
             </div>
             <div className="flex items-center gap-1.5 px-1 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-              <Shield size={13} /> Password resets are sent through the local MailDev inbox in Docker.
+              <Shield size={13} /> {tx(
+                language,
+                "Сбросы пароля приходят в локальный MailDev в Docker.",
+                "Құпия сөзді қалпына келтіру хаттары Docker ішіндегі MailDev-ке келеді.",
+                "Password resets are sent through the local MailDev inbox in Docker.",
+              )}
             </div>
           </Card>
         </div>
@@ -117,19 +133,21 @@ export function ProfilePage() {
         <div className="flex flex-col gap-4">
           <Card>
             <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-              <h3 className="text-[16px]" style={{ color: "var(--eco-text)" }}>Account Details</h3>
+              <h3 className="text-[16px]" style={{ color: "var(--eco-text)" }}>
+                {tx(language, "Данные аккаунта", "Тіркелгі деректері", "Account Details")}
+              </h3>
               <Input
-                label="Display name"
+                label={tx(language, "Отображаемое имя", "Көрсетілетін ат", "Display name")}
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
                 error={fieldErrors.displayName}
               />
               <Input
-                label="Avatar URL"
+                label={tx(language, "URL аватара", "Аватар URL", "Avatar URL")}
                 value={avatar}
                 onChange={(event) => setAvatar(event.target.value)}
                 error={fieldErrors.avatar}
-                hint="Optional public image URL"
+                hint={tx(language, "Опционально — публичный URL картинки", "Міндетті емес — суреттің ашық URL", "Optional public image URL")}
               />
               {error && (
                 <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>
@@ -141,7 +159,9 @@ export function ProfilePage() {
                   {message}
                 </p>
               )}
-              <Button type="submit" loading={saving}>Save changes</Button>
+              <Button type="submit" loading={saving}>
+                {tx(language, "Сохранить изменения", "Өзгерістерді сақтау", "Save changes")}
+              </Button>
             </form>
           </Card>
 
@@ -152,7 +172,7 @@ export function ProfilePage() {
           <Card className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="rounded-lg p-4" style={{ background: "var(--eco-surface)" }}>
               <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                <UserRound size={14} /> Display name
+                <UserRound size={14} /> {tx(language, "Отображаемое имя", "Көрсетілетін ат", "Display name")}
               </div>
               <div className="mt-2 text-[15px]" style={{ color: "var(--eco-text)" }}>{user.displayName}</div>
             </div>
@@ -164,7 +184,7 @@ export function ProfilePage() {
             </div>
             <div className="rounded-lg p-4" style={{ background: "var(--eco-surface)" }}>
               <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                <Star size={14} /> Reputation
+                <Star size={14} /> {tx(language, "Репутация", "Репутация", "Reputation")}
               </div>
               <div className="mt-2 text-[15px]" style={{ color: "var(--eco-text)" }}>{user.reputation ?? 0}</div>
             </div>
@@ -175,12 +195,9 @@ export function ProfilePage() {
   );
 }
 
-/**
- * Lets an already-registered user verify (or change + verify) their phone number.
- * Backend flow: POST /auth/phone/request-code → SMS code → POST /auth/phone/verify.
- */
 function PhoneVerificationCard() {
   const { user, authorizedRequest, refreshUser } = useAuth();
+  const { language } = useI18n();
 
   const [phone, setPhone] = useState(user?.phone ?? "+7");
   const [code, setCode] = useState("");
@@ -196,7 +213,6 @@ function PhoneVerificationCard() {
   }, [user?.phone]);
 
   const verified = Boolean(user?.phoneVerified);
-  // A verified user editing their number must re-verify the new one.
   const phoneChanged = verified && phone !== (user?.phone ?? "");
 
   const handleRequestCode = async () => {
@@ -208,13 +224,18 @@ function PhoneVerificationCard() {
     try {
       await authorizedRequest((token) => requestPhoneCodeRequest(phone, token));
       setCodeSent(true);
-      setMessage("We sent a 6-digit code to your phone. Enter it below.");
+      setMessage(tx(
+        language,
+        "Мы отправили 6-значный код на ваш телефон. Введите его ниже.",
+        "Біз 6 таңбалы кодты телефоныңызға жібердік. Оны төменде енгізіңіз.",
+        "We sent a 6-digit code to your phone. Enter it below.",
+      ));
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
         setFieldErrors(err.errors);
       } else {
-        setError("Unable to send a code right now.");
+        setError(tx(language, "Не удалось отправить код.", "Кодты жіберу мүмкін болмады.", "Unable to send a code right now."));
       }
     } finally {
       setSending(false);
@@ -233,13 +254,13 @@ function PhoneVerificationCard() {
       await refreshUser();
       setCode("");
       setCodeSent(false);
-      setMessage("Phone number verified.");
+      setMessage(tx(language, "Номер телефона подтверждён.", "Телефон нөмірі расталды.", "Phone number verified."));
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
         setFieldErrors(err.errors);
       } else {
-        setError("Unable to verify the code right now.");
+        setError(tx(language, "Не удалось проверить код.", "Кодты тексеру мүмкін болмады.", "Unable to verify the code right now."));
       }
     } finally {
       setVerifying(false);
@@ -250,52 +271,56 @@ function PhoneVerificationCard() {
     <Card className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h3 className="flex items-center gap-2 text-[16px]" style={{ color: "var(--eco-text)" }}>
-          <Phone size={16} /> Phone number
+          <Phone size={16} /> {tx(language, "Номер телефона", "Телефон нөмірі", "Phone number")}
         </h3>
         {verified && !phoneChanged ? (
-          <Badge variant="success">Verified</Badge>
+          <Badge variant="success">{tx(language, "Подтверждён", "Расталған", "Verified")}</Badge>
         ) : (
-          <Badge>Not verified</Badge>
+          <Badge>{tx(language, "Не подтверждён", "Расталмаған", "Not verified")}</Badge>
         )}
       </div>
 
       {verified && !phoneChanged && (
         <p className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-positive)" }}>
-          <CheckCircle2 size={14} /> {user?.phone} is verified.
+          <CheckCircle2 size={14} /> {user?.phone} {tx(language, "подтверждён.", "расталған.", "is verified.")}
         </p>
       )}
 
       <Input
-        label="Phone"
+        label={tx(language, "Телефон", "Телефон", "Phone")}
         value={phone}
         onChange={(event) => {
           setPhone(event.target.value);
           setCodeSent(false);
         }}
         error={fieldErrors.phone}
-        hint="Format: +7XXXXXXXXXX"
+        hint={tx(language, "Формат: +7XXXXXXXXXX", "Формат: +7XXXXXXXXXX", "Format: +7XXXXXXXXXX")}
         placeholder="+77001234567"
       />
 
       {!codeSent ? (
         <Button onClick={handleRequestCode} loading={sending} disabled={verified && !phoneChanged}>
-          {phoneChanged ? "Send code to new number" : "Send verification code"}
+          {phoneChanged
+            ? tx(language, "Отправить код на новый номер", "Жаңа нөмірге код жіберу", "Send code to new number")
+            : tx(language, "Отправить код подтверждения", "Растау кодын жіберу", "Send verification code")}
         </Button>
       ) : (
         <form className="flex flex-col gap-3" onSubmit={handleVerify}>
           <Input
-            label="Verification code"
+            label={tx(language, "Код подтверждения", "Растау коды", "Verification code")}
             value={code}
             onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
             error={fieldErrors.code}
-            hint="6-digit code from the SMS"
+            hint={tx(language, "6 цифр из SMS", "SMS-тен 6 цифр", "6-digit code from the SMS")}
             inputMode="numeric"
             placeholder="123456"
           />
           <div className="flex gap-2">
-            <Button type="submit" loading={verifying}>Verify</Button>
+            <Button type="submit" loading={verifying}>
+              {tx(language, "Подтвердить", "Растау", "Verify")}
+            </Button>
             <Button type="button" variant="ghost" onClick={handleRequestCode} loading={sending}>
-              Resend code
+              {tx(language, "Отправить код ещё раз", "Кодты қайта жіберу", "Resend code")}
             </Button>
           </div>
         </form>
@@ -312,6 +337,7 @@ function PhoneVerificationCard() {
 }
 
 function EmailVerificationCard({ email }: { email: string }) {
+  const { language } = useI18n();
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -322,9 +348,16 @@ function EmailVerificationCard({ email }: { email: string }) {
     setError(null);
     try {
       await resendVerificationEmailRequest(email);
-      setMessage("If unverified, a new verification email has been sent.");
+      setMessage(tx(
+        language,
+        "Если адрес не подтверждён, новое письмо отправлено.",
+        "Егер email расталмаған болса, жаңа хат жіберілді.",
+        "If unverified, a new verification email has been sent.",
+      ));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Unable to resend verification email.");
+      setError(err instanceof ApiError
+        ? err.message
+        : tx(language, "Не удалось отправить письмо повторно.", "Хатты қайта жіберу мүмкін болмады.", "Unable to resend verification email."));
     } finally {
       setSending(false);
     }
@@ -333,13 +366,19 @@ function EmailVerificationCard({ email }: { email: string }) {
   return (
     <Card className="flex flex-col gap-3">
       <h3 className="flex items-center gap-2 text-[16px]" style={{ color: "var(--eco-text)" }}>
-        <Mail size={16} /> Email verification
+        <Mail size={16} /> {tx(language, "Подтверждение email", "Email растау", "Email verification")}
       </h3>
       <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-        Didn't get the verification email for <strong>{email}</strong>? Resend it.
+        {language === "ru" ? (
+          <>Не пришло письмо на <strong>{email}</strong>? Отправьте заново.</>
+        ) : language === "kz" ? (
+          <>Хат <strong>{email}</strong> мекенжайына келмеді ме? Қайта жіберіңіз.</>
+        ) : (
+          <>Didn't get the verification email for <strong>{email}</strong>? Resend it.</>
+        )}
       </p>
       <Button variant="secondary" loading={sending} onClick={handleResend}>
-        Resend verification email
+        {tx(language, "Отправить письмо ещё раз", "Хатты қайта жіберу", "Resend verification email")}
       </Button>
       {message && <p className="text-[12px]" style={{ color: "var(--eco-positive)" }}>{message}</p>}
       {error && <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{error}</p>}

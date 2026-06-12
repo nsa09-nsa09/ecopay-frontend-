@@ -42,7 +42,6 @@ const translations: Translations = {
   
   // ===== Auth Pages =====
   createAccount: { ru: "Создать аккаунт", kz: "Тіркелгі жасау", en: "Create Account" },
-  joinEcoPay: { ru: "Присоединяйтесь к EcoPay для совместного использования тарифов", kz: "EcoPay-ке қосылыңыз және тарифтерді бөлісіңіз", en: "Join EcoPay to share telecom plans" },
   displayName: { ru: "Отображаемое имя", kz: "Көрсетілетін ат", en: "Display Name" },
   email: { ru: "Эл. почта", kz: "Электрондық пошта", en: "Email" },
   password: { ru: "Пароль", kz: "Құпия сөз", en: "Password" },
@@ -85,7 +84,6 @@ const translations: Translations = {
   music: { ru: "Музыка", kz: "Музыка", en: "Music" },
   aiTools: { ru: "AI инструменты", kz: "AI құралдар", en: "AI Tools" },
   premiumApps: { ru: "Премиум приложения", kz: "Премиум қолданбалар", en: "Premium Apps" },
-  viewAll: { ru: "Смотреть все", kz: "Барлығын көру", en: "View All" },
   
   // ===== Operator Detail Page =====
   familyPlansFor: { ru: "Семейные тарифы {{operator}}", kz: "{{operator}} отбасылық тарифтері", en: "{{operator}} Family Plans" },
@@ -152,8 +150,7 @@ const translations: Translations = {
   reject: { ru: "Отклонить", kz: "Қабылдамау", en: "Reject" },
   remove: { ru: "Удалить", kz: "Жою", en: "Remove" },
   sendReminder: { ru: "Напомнить", kz: "Еске салу", en: "Send Reminder" },
-  viewProfile: { ru: "Профиль", kz: "Профиль", en: "View Profile" },
-  
+
   // ===== Support/Tickets =====
   tickets: { ru: "Заявки", kz: "Өтінімдер", en: "Tickets" },
   myTickets: { ru: "Мои заявки", kz: "Менің өтінімдерім", en: "My Tickets" },
@@ -189,7 +186,6 @@ const translations: Translations = {
   payNow: { ru: "Оплатить", kz: "Төлеу", en: "Pay Now" },
   paymentConfirmation: { ru: "Подтверждение оплаты", kz: "Төлем растамасы", en: "Payment Confirmation" },
   paymentSuccessful: { ru: "Оплата успешна", kz: "Төлем сәтті", en: "Payment Successful" },
-  paymentFailed: { ru: "Ошибка оплаты", kz: "Төлем қатесі", en: "Payment Failed" },
   paymentPending: { ru: "Ожидание оплаты", kz: "Төлемді күту", en: "Payment Pending" },
   transactionId: { ru: "ID транзакции", kz: "Транзакция ID", en: "Transaction ID" },
   amount: { ru: "Сумма", kz: "Сома", en: "Amount" },
@@ -289,14 +285,12 @@ const translations: Translations = {
   
   // ===== Time & Dates =====
   today: { ru: "Сегодня", kz: "Бүгін", en: "Today" },
-  yesterday: { ru: "Вчера", kz: "Кеше", en: "Yesterday" },
   tomorrow: { ru: "Завтра", kz: "Ертең", en: "Tomorrow" },
   thisWeek: { ru: "На этой неделе", kz: "Осы аптада", en: "This Week" },
   thisMonth: { ru: "В этом месяце", kz: "Осы айда", en: "This Month" },
   thisYear: { ru: "В этом году", kz: "Биыл", en: "This Year" },
   
   // ===== Validation Messages =====
-  fieldRequired: { ru: "Это поле обязательно", kz: "Бұл өріс міндетті", en: "This field is required" },
   invalidEmail: { ru: "Неверный email", kz: "Дұрыс емес email", en: "Invalid email" },
   passwordTooShort: { ru: "Пароль слишком короткий", kz: "Құпия сөз тым қысқа", en: "Password too short" },
   passwordsDoNotMatch: { ru: "Пароли не совпадают", kz: "Құпия сөздер сәйкес келмейді", en: "Passwords do not match" },
@@ -327,7 +321,6 @@ const translations: Translations = {
   reviewLocked: { ru: "Вы можете оставить отзыв только после того, как вы поделились комнатой и период завершён.", kz: "Пікір қалдыру үшін бөлмені бөлісіп, кезең аяқталуы керек.", en: "You can review only after you shared a room and the period is completed." },
   reviewEligibilityTitle: { ru: "Кто может оставлять отзывы", kz: "Кім пікір қалдыра алады", en: "Who Can Leave Reviews" },
   reviewEligibilityDesc: { ru: "Только участники из одной комнаты могут оставлять отзывы.", kz: "Тек бір бөлмедегі қатысушылар пікір қалдыра алады.", en: "Only participants from the same room can review." },
-  selectRoom: { ru: "Выберите комнату", kz: "Бөлмені таңдаңыз", en: "Select Room" },
   selectCompletedRoom: { ru: "Выберите завершённую комнату", kz: "Аяқталған бөлмені таңдаңыз", en: "Select a completed room" },
   yourRating: { ru: "Ваша оценка", kz: "Сіздің бағаңыз", en: "Your Rating" },
   reviewText: { ru: "Текст отзыва", kz: "Пікір мәтіні", en: "Review Text" },
@@ -628,8 +621,6 @@ const translations: Translations = {
   moduleSupport: { ru: "Поддержка", kz: "Қолдау", en: "Support" },
   moduleAdmin: { ru: "Админ", kz: "Әкімші", en: "Admin" },
   stateError: { ru: "Ошибка", kz: "Қате", en: "Error" },
-  stateEmpty: { ru: "Пусто", kz: "Бос", en: "Empty" },
-  stateLoading: { ru: "Загрузка", kz: "Жүктелу", en: "Loading" },
   stateInfo: { ru: "Информация", kz: "Ақпарат", en: "Info" },
   recommendedCta: { ru: "Рекомендуемый CTA", kz: "Ұсынылған CTA", en: "Recommended CTA" },
   authLoginError: { ru: "Неверный номер телефона или пароль", kz: "Телефон нөмірі немесе құпия сөз қате", en: "Incorrect phone number or password" },

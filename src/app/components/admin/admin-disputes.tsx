@@ -4,10 +4,15 @@ import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import {
+  applyOwnerViolationSanctionRequest,
   assignDisputeToMeRequest,
   decideDisputeRequest,
   getAdminDisputesRequest,
+  getRefundsByDisputeRequest,
+  markRefundFailRequest,
+  markRefundSuccessRequest,
   type DisputeResponse,
+  type RefundTransactionResponse,
 } from "../../lib/api";
 import {
   RefreshCw,
@@ -16,6 +21,10 @@ import {
   Shield,
   UserPlus,
   Scale,
+  AlertTriangle,
+  Banknote,
+  Check,
+  X,
 } from "lucide-react";
 import { FlashBanner, formatAdminApiError, useFlash, REASON_MIN_LENGTH } from "./admin-action-ui";
 
@@ -29,8 +38,10 @@ const statusVar: Record<string, "warning" | "info" | "success" | "danger" | "def
 };
 
 export function AdminDisputesPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { authorizedRequest, user } = useAuth();
+  const tx = (ru: string, kz: string, en: string) =>
+    language === "ru" ? ru : language === "kz" ? kz : en;
 
   const [items, setItems] = useState<DisputeResponse[]>([]);
   const [page, setPage] = useState(0);
@@ -280,9 +291,15 @@ export function AdminDisputesPage() {
                       <Button variant="primary" size="sm" onClick={() => setDecisionModalOpen(true)}>
                         <Scale size={13} /> {t("decision")}
                       </Button>
+                      <OwnerViolationButton
+                        dispute={selected}
+                        onApplied={(updated) => { applyUpdate(updated); showFlash("success", t("actionCompletedAndLogged")); }}
+                      />
                     </div>
                   )}
                 </Card>
+
+                <DisputeRefundsPanel disputeId={selected.id} />
               </div>
             )}
           </div>
@@ -334,5 +351,244 @@ export function AdminDisputesPage() {
         </Modal>
       </div>
     </AdminLayout>
+  );
+}
+
+function OwnerViolationButton({
+  dispute,
+  onApplied,
+}: {
+  dispute: DisputeResponse;
+  onApplied: (updated: DisputeResponse) => void;
+}) {
+  const { t, language } = useI18n();
+  const { authorizedRequest } = useAuth();
+  const tx = (ru: string, kz: string, en: string) =>
+    language === "ru" ? ru : language === "kz" ? kz : en;
+
+  const [open, setOpen] = useState(false);
+  const [createRefund, setCreateRefund] = useState(true);
+  const [paymentTxId, setPaymentTxId] = useState("");
+  const [refundAmount, setRefundAmount] = useState("");
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setReason(""); setError(null); setPaymentTxId(""); setRefundAmount("");
+      setCreateRefund(true);
+    }
+  }, [open]);
+
+  const tooShort = reason.trim().length < REASON_MIN_LENGTH;
+
+  const submit = async () => {
+    if (tooShort) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const updated = await authorizedRequest((token) =>
+        applyOwnerViolationSanctionRequest(dispute.id, {
+          createRefund,
+          paymentTransactionId: paymentTxId.trim() ? Number(paymentTxId.trim()) : undefined,
+          refundAmount: refundAmount.trim() ? Number(refundAmount.trim()) : undefined,
+          reason: reason.trim(),
+        }, token),
+      );
+      onApplied(updated);
+      setOpen(false);
+    } catch (err) {
+      setError(formatAdminApiError(err, t));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      <Button variant="destructive" size="sm" onClick={() => setOpen(true)}>
+        <AlertTriangle size={13} /> {tx("Санкции владельцу", "Иесіне санкция", "Owner violation")}
+      </Button>
+
+      <Modal open={open} onClose={() => setOpen(false)} title={tx("Санкции: нарушение владельца", "Санкция: иесінің бұзушылығы", "Sanction: owner violation")}>
+        <div className="flex flex-col gap-4">
+          <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+            {tx(
+              "Зафиксировать нарушение со стороны владельца по этому спору. Опционально — инициировать возврат участнику.",
+              "Осы дау бойынша иесінің бұзушылығын тіркеу. Қаласаңыз — қатысушыға қайтаруды бастау.",
+              "Record an owner violation on this dispute. Optionally start a refund to the member.",
+            )}
+          </div>
+
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input type="checkbox" className="mt-0.5" checked={createRefund} onChange={(e) => setCreateRefund(e.target.checked)} />
+            <span className="text-[13px]" style={{ color: "var(--eco-text)" }}>
+              {tx("Создать возврат", "Қайтаруды құру", "Create a refund")}
+            </span>
+          </label>
+
+          {createRefund && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[12px]" style={{ color: "var(--eco-text)" }}>
+                  {tx("ID транзакции (опц.)", "Транзакция ID (міндетті емес)", "Tx ID (optional)")}
+                </label>
+                <input
+                  value={paymentTxId}
+                  onChange={(e) => setPaymentTxId(e.target.value.replace(/\D/g, ""))}
+                  inputMode="numeric"
+                  className="px-2 py-1.5 rounded-lg outline-none text-[13px]"
+                  style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[12px]" style={{ color: "var(--eco-text)" }}>
+                  {tx("Сумма (опц.)", "Сома (міндетті емес)", "Amount (optional)")}
+                </label>
+                <input
+                  value={refundAmount}
+                  onChange={(e) => setRefundAmount(e.target.value)}
+                  inputMode="decimal"
+                  className="px-2 py-1.5 rounded-lg outline-none text-[13px]"
+                  style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[13px]" style={{ color: "var(--eco-text)" }}>
+              {t("reason")} <span style={{ color: "var(--eco-negative)" }}>*</span>
+            </label>
+            <textarea
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={t("mandatoryAuditLogged")}
+              className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
+              style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
+            />
+            <span className="text-[11px]" style={{ color: tooShort ? "var(--eco-text-tertiary)" : "var(--eco-positive)" }}>
+              {t("reasonMinLength", { n: REASON_MIN_LENGTH })}
+            </span>
+          </div>
+
+          {error && (
+            <div className="text-[13px]" role="alert" style={{ color: "var(--eco-negative)" }}>{error}</div>
+          )}
+
+          <Button variant="destructive" disabled={tooShort} loading={submitting} onClick={() => void submit()}>
+            {tx("Применить санкции", "Санкцияны қолдану", "Apply sanction")}
+          </Button>
+        </div>
+      </Modal>
+    </>
+  );
+}
+
+function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
+  const { t, language } = useI18n();
+  const { authorizedRequest } = useAuth();
+  const tx = (ru: string, kz: string, en: string) =>
+    language === "ru" ? ru : language === "kz" ? kz : en;
+
+  const [refunds, setRefunds] = useState<RefundTransactionResponse[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<number | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const list = await authorizedRequest((token) => getRefundsByDisputeRequest(disputeId, token));
+      setRefunds(list);
+    } catch (err) {
+      setError(formatAdminApiError(err, t));
+    } finally {
+      setLoading(false);
+    }
+  }, [authorizedRequest, disputeId, t]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const apply = (updated: RefundTransactionResponse) => {
+    setRefunds((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+  };
+
+  const handleSuccess = async (id: number) => {
+    const providerRefundId = window.prompt(tx("Provider refund ID (опц.)", "Provider refund ID (міндетті емес)", "Provider refund ID (optional)")) ?? undefined;
+    setBusyId(id);
+    try {
+      const updated = await authorizedRequest((token) => markRefundSuccessRequest(id, { providerRefundId: providerRefundId || undefined }, token));
+      apply(updated);
+    } catch (err) {
+      setError(formatAdminApiError(err, t));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleFail = async (id: number) => {
+    const providerRefundId = window.prompt(tx("Provider refund ID (опц.)", "Provider refund ID (міндетті емес)", "Provider refund ID (optional)")) ?? undefined;
+    setBusyId(id);
+    try {
+      const updated = await authorizedRequest((token) => markRefundFailRequest(id, { providerRefundId: providerRefundId || undefined }, token));
+      apply(updated);
+    } catch (err) {
+      setError(formatAdminApiError(err, t));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <div className="text-[14px] flex items-center gap-2" style={{ color: "var(--eco-text)" }}>
+          <Banknote size={14} /> {tx("Возвраты по спору", "Дау бойынша қайтарулар", "Refunds for dispute")}
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => void load()} disabled={loading}>
+          <RefreshCw size={12} /> {t("retry")}
+        </Button>
+      </div>
+
+      {error && (
+        <div className="text-[13px]" style={{ color: "var(--eco-negative)" }}>{error}</div>
+      )}
+
+      {!loading && refunds.length === 0 && !error && (
+        <div className="text-[13px] text-center py-3" style={{ color: "var(--eco-text-tertiary)" }}>
+          {tx("Возвратов нет.", "Қайтарулар жоқ.", "No refunds yet.")}
+        </div>
+      )}
+
+      {refunds.map((r) => (
+        <div key={r.id} className="p-3 rounded-lg flex flex-col gap-2" style={{ background: "var(--eco-surface)" }}>
+          <div className="flex items-center justify-between">
+            <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>R-{r.id}</span>
+            <Badge variant={r.status === "SUCCESS" ? "success" : r.status === "FAILED" ? "danger" : "warning"}>{r.status}</Badge>
+          </div>
+          <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>
+            {r.amount} {r.currency ?? ""}{" "}
+            {r.paymentTransactionId ? <span style={{ color: "var(--eco-text-tertiary)" }}>· tx #{r.paymentTransactionId}</span> : null}
+          </div>
+          {r.reason && (
+            <div className="text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>{r.reason}</div>
+          )}
+          {r.status === "PENDING" && (
+            <div className="flex gap-2">
+              <Button variant="primary" size="sm" loading={busyId === r.id} onClick={() => void handleSuccess(r.id)}>
+                <Check size={13} /> {tx("Отметить успешным", "Сәтті деп белгілеу", "Mark success")}
+              </Button>
+              <Button variant="destructive" size="sm" loading={busyId === r.id} onClick={() => void handleFail(r.id)}>
+                <X size={13} /> {tx("Отметить неудачным", "Сәтсіз деп белгілеу", "Mark failed")}
+              </Button>
+            </div>
+          )}
+        </div>
+      ))}
+    </Card>
   );
 }
