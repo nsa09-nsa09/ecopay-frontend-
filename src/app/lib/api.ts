@@ -114,7 +114,7 @@ interface ErrorPayload {
   errors?: Record<string, string>;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "/api/v1").replace(/\/$/, "");
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api/v1").replace(/\/$/, "");
 
 export class ApiError extends Error {
   status: number;
