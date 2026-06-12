@@ -234,15 +234,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
 
-      const refreshed = await refreshRequest(session.refreshToken);
-      const nextSession = {
-        accessToken: refreshed.accessToken,
-        refreshToken: refreshed.refreshToken,
-        user: refreshed.user ?? session.user,
-      };
+      try {
+        const refreshed = await refreshRequest(session.refreshToken);
+        const nextSession = {
+          accessToken: refreshed.accessToken,
+          refreshToken: refreshed.refreshToken,
+          user: refreshed.user ?? session.user,
+        };
 
-      commitSession(nextSession);
-      return operation(nextSession.accessToken);
+        commitSession(nextSession);
+        return operation(nextSession.accessToken);
+      } catch (refreshError) {
+        commitSession(null);
+        throw refreshError;
+      }
     }
   };
 
