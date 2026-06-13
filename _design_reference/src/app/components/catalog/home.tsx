@@ -231,10 +231,6 @@ export function HomePage() {
       <section className="px-6 pt-12 pb-10" style={{ background: "var(--eco-surface)" }}>
         <div className="max-w-[1200px] mx-auto grid lg:grid-cols-[1fr_420px] gap-10 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[12px] mb-5" style={{ background: "var(--eco-brand-50)", color: "var(--eco-primary)" }}>
-              <ShieldCheck size={14} />
-              {tx(lang, "Защищённое совместное использование подписок", "Қорғалған ортақ жазылымдар", "Protected subscription sharing")}
-            </div>
             <h1 className="text-[34px] sm:text-[44px] leading-tight tracking-normal" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
               {tx(lang, "Платите меньше за семейные подписки", "Отбасылық жазылымдарға аз төлеңіз", "Pay less for family subscriptions")}
             </h1>

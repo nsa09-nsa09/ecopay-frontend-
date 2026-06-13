@@ -210,6 +210,17 @@ export function AdminLoginPage() {
           </div>
         </div>
 
+        <div className="w-full max-w-md mb-4">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="inline-flex items-center gap-2 text-[13px] cursor-pointer self-start"
+            style={{ color: 'var(--eco-primary)', background: 'transparent', border: 'none' }}
+          >
+            ← Вернуться на страницу
+          </button>
+        </div>
+
         {stage === "credentials" && (
           <form
             onSubmit={handleCredentialsSubmit}

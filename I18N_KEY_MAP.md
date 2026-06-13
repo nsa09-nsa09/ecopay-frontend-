@@ -51,7 +51,7 @@ function MyComponent() {
 - `createTicket` - Создать заявку / Өтінім жасау / Create Ticket
 - `ticketStatus` - Статус заявки / Өтінім мәртебесі / Ticket Status
 - `developedBy` - Разработано Apex Digital / Apex Digital әзірлеген / Developed by Apex Digital
-- `copyright` - © 2026 EcoSplit · Алматы, Казахстан / © 2026 EcoSplit · Алматы, Қазақстан / © 2026 EcoSplit · Almaty, Kazakhstan
+- `copyright` - © 2026 EcoPay · Астана, Казахстан / © 2026 EcoPay · Астана, Қазақстан / © 2026 EcoPay · Astana, Kazakhstan
 
 ### Authentication
 - `createAccount` - Создать аккаунт / Тіркелгі жасау / Create Account
