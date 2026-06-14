@@ -1,23 +1,28 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
-import { Card, Badge, Button, Input } from "../ds-primitives";
-import { Shield, UserRound, Mail, Star, Phone, CheckCircle2 } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { Card, Badge, Button, Input, Modal } from "../ds-primitives";
+import { Shield, UserRound, Mail, Star, Phone, CheckCircle2, Copy, Trash2, Search as SearchIcon } from "lucide-react";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n, type Language } from "../i18n-provider";
-import { ApiError, requestPhoneCodeRequest, resendVerificationEmailRequest, verifyPhoneRequest } from "../../lib/api";
+import { ApiError, deleteMyAccount, requestPhoneCodeRequest, resendVerificationEmailRequest, verifyPhoneRequest } from "../../lib/api";
+import { MyServiceReviewCard } from "./my-service-review";
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === "ru" ? ru : l === "kz" ? kz : en;
 
 export function ProfilePage() {
-  const { user, isAuthenticated, isReady, updateProfile } = useAuth();
-  const { language } = useI18n();
+  const { user, isAuthenticated, isReady, updateProfile, authorizedRequest, logout } = useAuth();
+  const { language, t } = useI18n();
+  const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("");
   const [avatar, setAvatar] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     setDisplayName(user?.displayName ?? "");
@@ -168,6 +173,54 @@ export function ProfilePage() {
           <PhoneVerificationCard />
 
           <EmailVerificationCard email={user.email} />
+
+          {user.publicId && <PublicLinkCard publicId={user.publicId} />}
+
+          <FindUserCard />
+
+          <MyServiceReviewCard />
+
+          <Card className="flex flex-col gap-3">
+            <h3 className="flex items-center gap-2 text-[16px]" style={{ color: "var(--eco-text)" }}>
+              <Trash2 size={16} /> {t("deleteAccount")}
+            </h3>
+            <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{t("deleteAccountWarning")}</p>
+            <Button variant="destructive" size="sm" className="self-start" onClick={() => setDeleteOpen(true)}>
+              {t("deleteAccount")}
+            </Button>
+          </Card>
+
+          <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title={t("deleteAccountTitle")}>
+            <div className="flex flex-col gap-4">
+              <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{t("deleteAccountWarning")}</p>
+              {deleteError && <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{deleteError}</p>}
+              <div className="flex gap-2">
+                <Button variant="ghost" className="flex-1" onClick={() => setDeleteOpen(false)}>
+                  {tx(language, "Отмена", "Бас тарту", "Cancel")}
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  loading={deleting}
+                  onClick={async () => {
+                    setDeleting(true);
+                    setDeleteError(null);
+                    try {
+                      await authorizedRequest((token) => deleteMyAccount(token));
+                      try { await logout(); } catch { /* ignore */ }
+                      navigate("/", { replace: true });
+                    } catch (err) {
+                      setDeleteError(err instanceof ApiError ? err.message : t("deleteAccountFailed"));
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                >
+                  {t("deleteAccountConfirm")}
+                </Button>
+              </div>
+            </div>
+          </Modal>
 
           <Card className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="rounded-lg p-4" style={{ background: "var(--eco-surface)" }}>
@@ -332,6 +385,89 @@ function PhoneVerificationCard() {
       {message && (
         <p className="text-[12px]" style={{ color: "var(--eco-positive)" }}>{message}</p>
       )}
+    </Card>
+  );
+}
+
+function PublicLinkCard({ publicId }: { publicId: string }) {
+  const { t } = useI18n();
+  const [copied, setCopied] = useState(false);
+  const url = typeof window !== "undefined" ? `${window.location.origin}/u/${publicId}` : `/u/${publicId}`;
+
+  const handleCopy = async () => {
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const input = document.createElement("input");
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        document.body.removeChild(input);
+      }
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard blocked — user can still copy manually */
+    }
+  };
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <h3 className="flex items-center gap-2 text-[16px]" style={{ color: "var(--eco-text)" }}>
+        <UserRound size={16} /> {t("publicProfileLink")}
+      </h3>
+      <div className="flex gap-2">
+        <input
+          readOnly
+          value={url}
+          className="flex-1 px-3 py-2 rounded-lg outline-none text-[13px]"
+          style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)", fontFamily: "monospace" }}
+          onClick={(e) => (e.target as HTMLInputElement).select()}
+        />
+        <Button variant="secondary" size="sm" onClick={() => void handleCopy()}>
+          <Copy size={13} /> {copied ? t("publicProfileCopied") : t("publicProfileCopy")}
+        </Button>
+      </div>
+      <Link to={`/u/${publicId}`} className="text-[12px]" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
+        {t("publicProfile")} →
+      </Link>
+    </Card>
+  );
+}
+
+function FindUserCard() {
+  const { t, language } = useI18n();
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const submit = () => {
+    const raw = query.trim();
+    if (!raw) return;
+    let hash = raw;
+    const match = raw.match(/\/u\/([^/?#\s]+)/);
+    if (match) hash = match[1];
+    navigate(`/u/${encodeURIComponent(hash)}`);
+  };
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <h3 className="flex items-center gap-2 text-[16px]" style={{ color: "var(--eco-text)" }}>
+        <SearchIcon size={16} /> {t("publicProfileSearchTitle")}
+      </h3>
+      <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{t("publicProfileSearchHint")}</p>
+      <div className="flex gap-2">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+          placeholder={tx(language, "ссылка или хэш", "сілтеме немесе хэш", "link or hash")}
+          className="flex-1 px-3 py-2 rounded-lg outline-none text-[13px]"
+          style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
+        />
+        <Button variant="primary" size="sm" onClick={submit}>{t("publicProfileSearchGo")}</Button>
+      </div>
     </Card>
   );
 }
