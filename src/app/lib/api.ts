@@ -1698,3 +1698,42 @@ export function adminDeleteServiceReview(id: number, accessToken: string) {
     accessToken,
   );
 }
+
+// ───────────────────────────────────────────────────────────────
+// Site content — "About Us" page
+// ───────────────────────────────────────────────────────────────
+
+export interface SiteAboutContent {
+  companyName: string;
+  title: string;
+  mission: string | null;
+  description: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  updatedAt: string | null;
+}
+
+export interface UpdateSiteAboutPayload {
+  companyName: string;
+  title: string;
+  mission?: string | null;
+  description?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+}
+
+export function getSiteAboutRequest() {
+  return requestJson<SiteAboutContent>("/site/about");
+}
+
+export function adminGetSiteAbout(accessToken: string) {
+  return requestJson<SiteAboutContent>("/admin/site/about", {}, accessToken);
+}
+
+export function adminUpdateSiteAbout(payload: UpdateSiteAboutPayload, accessToken: string) {
+  return requestJson<SiteAboutContent>(
+    "/admin/site/about",
+    { method: "PUT", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}

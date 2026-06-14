@@ -36,9 +36,9 @@ export function HowItWorksPage() {
   return (
     <div>
       {/* Hero */}
-      <div className="py-16 px-6" style={{ background: "var(--eco-surface)" }}>
+      <div className="py-12 sm:py-16 px-4 sm:px-6" style={{ background: "var(--eco-surface)" }}>
         <div className="max-w-[900px] mx-auto text-center">
-          <h1 className="text-[32px] sm:text-[40px] tracking-tight mb-4" style={{ color: "var(--eco-text)" }}>
+          <h1 className="text-[26px] sm:text-[40px] tracking-tight mb-4" style={{ color: "var(--eco-text)" }}>
             How EcoPay Works
           </h1>
           <p className="text-[16px] max-w-[600px] mx-auto" style={{ color: "var(--eco-text-secondary)" }}>
@@ -49,7 +49,7 @@ export function HowItWorksPage() {
       <WaveDivider flip />
 
       {/* Steps */}
-      <div className="max-w-[900px] mx-auto px-6 py-12">
+      <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-12">
         <div className="space-y-12">
           {steps.map((step, idx) => {
             const Icon = step.icon;
@@ -148,9 +148,9 @@ export function HowItWorksPage() {
 
       {/* Bottom CTA */}
       <WaveDivider />
-      <div className="py-16 px-6" style={{ background: "var(--eco-surface)" }}>
+      <div className="py-12 sm:py-16 px-4 sm:px-6" style={{ background: "var(--eco-surface)" }}>
         <div className="max-w-[600px] mx-auto text-center">
-          <h2 className="text-[28px] mb-3" style={{ color: "var(--eco-text)" }}>
+          <h2 className="text-[24px] sm:text-[28px] mb-3" style={{ color: "var(--eco-text)" }}>
             Ready to Start Saving?
           </h2>
           <p className="text-[14px] mb-6" style={{ color: "var(--eco-text-secondary)" }}>

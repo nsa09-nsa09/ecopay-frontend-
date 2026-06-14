@@ -45,11 +45,11 @@ export function PrivacyPage() {
   return (
     <div>
       {/* Hero */}
-      <div className="py-16 px-6" style={{ background: "var(--eco-surface)" }}>
+      <div className="py-12 sm:py-16 px-4 sm:px-6" style={{ background: "var(--eco-surface)" }}>
         <div className="max-w-[800px] mx-auto">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
             <Shield size={32} style={{ color: "var(--eco-primary)" }} />
-            <h1 className="text-[32px] sm:text-[40px] tracking-tight" style={{ color: "var(--eco-text)" }}>
+            <h1 className="text-[26px] sm:text-[40px] tracking-tight" style={{ color: "var(--eco-text)" }}>
               Privacy Policy
             </h1>
           </div>
@@ -65,7 +65,7 @@ export function PrivacyPage() {
       <WaveDivider flip />
 
       {/* Privacy Principles */}
-      <div className="max-w-[900px] mx-auto px-6 py-12">
+      <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-12">
         <h2 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>Our Privacy Principles</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           {principles.map((principle) => {

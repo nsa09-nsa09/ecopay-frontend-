@@ -221,7 +221,7 @@ export function CreateRoomPage() {
 
   if (published) {
     return (
-      <div className="max-w-lg mx-auto px-6 py-16 text-center">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-12 sm:py-16 text-center">
         <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: "var(--eco-success-100)" }}>
           <Check size={24} style={{ color: "var(--eco-positive)" }} />
         </div>
@@ -236,12 +236,12 @@ export function CreateRoomPage() {
             `Your room "${published.title}" is now visible in the catalog. Members can apply to join.`,
           )}
         </p>
-        <div className="flex gap-3 justify-center">
-          <Link to={`/rooms/owner/${published.id}`} style={{ textDecoration: "none" }}>
-            <Button variant="secondary">{tx(language, "Управлять комнатой", "Бөлмені басқару", "Manage Room")}</Button>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link to={`/rooms/owner/${published.id}`} className="w-full sm:w-auto" style={{ textDecoration: "none" }}>
+            <Button variant="secondary" className="w-full sm:w-auto">{tx(language, "Управлять комнатой", "Бөлмені басқару", "Manage Room")}</Button>
           </Link>
-          <Link to={`/room/${published.id}`} style={{ textDecoration: "none" }}>
-            <Button variant="primary">{tx(language, "Открыть в каталоге", "Каталогтан көру", "View in Catalog")}</Button>
+          <Link to={`/room/${published.id}`} className="w-full sm:w-auto" style={{ textDecoration: "none" }}>
+            <Button variant="primary" className="w-full sm:w-auto">{tx(language, "Открыть в каталоге", "Каталогтан көру", "View in Catalog")}</Button>
           </Link>
         </div>
       </div>
@@ -249,12 +249,12 @@ export function CreateRoomPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
       <Link to="/rooms" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
         <ArrowLeft size={14} /> {tx(language, "Мои комнаты", "Менің бөлмелерім", "My Rooms")}
       </Link>
 
-      <h1 className="text-[26px] mb-6" style={{ color: "var(--eco-text)" }}>
+      <h1 className="text-[22px] sm:text-[26px] mb-6" style={{ color: "var(--eco-text)" }}>
         {tx(language, "Создать комнату", "Бөлме жасау", "Create Room")}
       </h1>
 
@@ -281,9 +281,9 @@ export function CreateRoomPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex flex-wrap items-center gap-2 mb-6">
         <div
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px]"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] sm:text-[13px]"
           style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)", border: "1px solid var(--eco-border)" }}
         >
           <Shield size={13} style={{ color: "var(--eco-primary)" }} />

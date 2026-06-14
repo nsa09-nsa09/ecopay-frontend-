@@ -132,7 +132,7 @@ export function MyRoomsPage() {
 
   if (isReady && !isAuthenticated) {
     return (
-      <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
         <EmptyState title={t("signInToSeeRooms")} description={t("signInToSeeRoomsDesc")} />
         <div className="flex justify-center mt-4">
           <Link to="/login?redirect=/rooms" style={{ textDecoration: "none" }}>
@@ -144,14 +144,14 @@ export function MyRoomsPage() {
   }
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6 py-8">
+    <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-[26px]" style={{ color: "var(--eco-text)" }}>
+        <h1 className="text-[22px] sm:text-[26px]" style={{ color: "var(--eco-text)" }}>
           {t("myRooms")}
         </h1>
 
-        <Link to="/rooms/create" style={{ textDecoration: "none" }}>
-          <Button variant="primary" size="sm">
+        <Link to="/rooms/create" className="w-full sm:w-auto" style={{ textDecoration: "none" }}>
+          <Button variant="primary" size="sm" className="w-full sm:w-auto">
             <Plus size={14} /> {t("createRoom")}
           </Button>
         </Link>

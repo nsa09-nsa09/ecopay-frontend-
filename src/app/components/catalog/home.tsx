@@ -270,14 +270,14 @@ export function HomePage() {
 
   return (
     <div>
-      <section className="px-6 pt-12 pb-10" style={{ background: "var(--eco-surface)" }}>
+      <section className="px-4 sm:px-6 pt-10 sm:pt-12 pb-10" style={{ background: "var(--eco-surface)" }}>
         <div className="max-w-[1200px] mx-auto grid lg:grid-cols-[1fr_420px] gap-10 items-center">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[12px] mb-5" style={{ background: "var(--eco-brand-50)", color: "var(--eco-primary)" }}>
               <ShieldCheck size={14} />
               {tx(lang, "Защищённое совместное использование подписок", "Қорғалған ортақ жазылымдар", "Protected subscription sharing")}
             </div>
-            <h1 className="text-[34px] sm:text-[44px] leading-tight tracking-normal" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
+            <h1 className="text-[28px] sm:text-[36px] lg:text-[44px] leading-tight tracking-normal" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
               {tx(lang, "Платите меньше за семейные подписки", "Отбасылық жазылымдарға аз төлеңіз", "Pay less for family subscriptions")}
             </h1>
             <p className="text-[15px] mt-4 max-w-2xl" style={{ color: "var(--eco-text-secondary)" }}>
@@ -361,17 +361,17 @@ export function HomePage() {
 
       <WaveDivider flip />
 
-      <section id="marketplace" className="max-w-[1200px] mx-auto px-6 py-12">
+      <section id="marketplace" className="max-w-[1200px] mx-auto px-4 sm:px-6 py-10 sm:py-12">
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-6">
           <div>
-            <h2 className="text-[24px]" style={{ color: "var(--eco-text)" }}>
+            <h2 className="text-[22px] sm:text-[24px]" style={{ color: "var(--eco-text)" }}>
               {tx(lang, "Маркетплейс семейных подписок", "Отбасылық жазылымдар маркетплейсі", "Family subscription marketplace")}
             </h2>
             <p className="text-[13px] mt-1" style={{ color: "var(--eco-text-secondary)" }}>
               {tx(lang, "Выбирайте свободное место, проверяйте владельца, цену и условия доступа.", "Бос орынды таңдап, иесін, бағасын және қолжетімділік шарттарын тексеріңіз.", "Choose an open seat, check the owner, price, and access terms.")}
             </p>
           </div>
-          <div className="flex items-center gap-2 w-full lg:w-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
             <div className="relative flex-1 lg:w-72">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--eco-text-tertiary)" }} />
               <input
@@ -382,7 +382,7 @@ export function HomePage() {
                 style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
               />
             </div>
-            <div className="w-48">
+            <div className="w-full sm:w-48">
               <Select
                 aria-label={t("sortByLabel")}
                 value={sort}
@@ -439,13 +439,13 @@ export function HomePage() {
         )}
       </section>
 
-      <section style={{ background: "var(--eco-surface)" }} className="px-6 py-12">
+      <section style={{ background: "var(--eco-surface)" }} className="px-4 sm:px-6 py-10 sm:py-12">
         <div className="max-w-[1200px] mx-auto">
           <div className="text-center mb-8">
             <div className="text-[12px] mb-2" style={{ color: "var(--eco-primary)" }}>
               {tx(lang, "4 простых шага", "4 қарапайым қадам", "4 simple steps")}
             </div>
-            <h2 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{tx(lang, "Как это работает", "Бұл қалай жұмыс істейді", "How it works")}</h2>
+            <h2 className="text-[22px] sm:text-[24px]" style={{ color: "var(--eco-text)" }}>{tx(lang, "Как это работает", "Бұл қалай жұмыс істейді", "How it works")}</h2>
           </div>
           <div className="grid lg:grid-cols-2 gap-4">
             <StepRail title={tx(lang, "Если вы владелец подписки", "Егер жазылым иесі болсаңыз", "If you own a subscription")} steps={localizedOwnerSteps} />
@@ -454,10 +454,10 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="max-w-[1200px] mx-auto px-6 py-12">
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 py-10 sm:py-12">
         <div className="grid lg:grid-cols-[0.8fr_1.2fr] gap-8 items-start">
           <div>
-            <h2 className="text-[24px]" style={{ color: "var(--eco-text)" }}>
+            <h2 className="text-[22px] sm:text-[24px]" style={{ color: "var(--eco-text)" }}>
               {tx(lang, "Больше безопасности, чем обычный чат", "Қарапайым чаттан қауіпсіз", "Safer than a casual chat")}
             </h2>
             <p className="text-[14px] mt-3" style={{ color: "var(--eco-text-secondary)" }}>
@@ -502,9 +502,9 @@ export function HomePage() {
       </section>
 
       {featuredReviews.length > 0 && (
-        <section style={{ background: "var(--eco-surface)" }} className="px-6 py-12 overflow-hidden">
+        <section style={{ background: "var(--eco-surface)" }} className="px-4 sm:px-6 py-10 sm:py-12 overflow-hidden">
           <div className="max-w-[1200px] mx-auto mb-6 text-center">
-            <h2 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("serviceReviewsTitle")}</h2>
+            <h2 className="text-[22px] sm:text-[24px]" style={{ color: "var(--eco-text)" }}>{t("serviceReviewsTitle")}</h2>
           </div>
           <div className="ecopay-reviews-marquee" aria-label={t("serviceReviewsTitle")}>
             <div className="ecopay-reviews-track">
@@ -535,8 +535,8 @@ export function HomePage() {
         </section>
       )}
 
-      <section className="max-w-[900px] mx-auto px-6 py-12">
-        <h2 className="text-[24px] text-center mb-6" style={{ color: "var(--eco-text)" }}>{tx(lang, "Частые вопросы", "Жиі сұрақтар", "FAQ")}</h2>
+      <section className="max-w-[900px] mx-auto px-4 sm:px-6 py-10 sm:py-12">
+        <h2 className="text-[22px] sm:text-[24px] text-center mb-6" style={{ color: "var(--eco-text)" }}>{tx(lang, "Частые вопросы", "Жиі сұрақтар", "FAQ")}</h2>
         <div className="flex flex-col gap-3">
           {faqs.map((faq, index) => (
             <button
@@ -558,18 +558,18 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="px-6 pb-14">
-        <div className="max-w-[1200px] mx-auto rounded-xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-5" style={{ background: "var(--eco-primary)", color: "var(--eco-text-on-primary)" }}>
+      <section className="px-4 sm:px-6 pb-14">
+        <div className="max-w-[1200px] mx-auto rounded-xl p-5 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-5" style={{ background: "var(--eco-primary)", color: "var(--eco-text-on-primary)" }}>
           <div>
-            <div className="text-[24px]" style={{ fontWeight: 700 }}>
+            <div className="text-[20px] sm:text-[24px]" style={{ fontWeight: 700 }}>
               {tx(lang, "Готовы экономить с EcoPay?", "EcoPay арқылы үнемдеуге дайынсыз ба?", "Ready to save with EcoPay?")}
             </div>
             <div className="text-[13px] mt-1" style={{ opacity: 0.8 }}>
               {tx(lang, "Создайте аккаунт и соберите первую комнату за несколько минут.", "Аккаунт жасап, алғашқы бөлмені бірнеше минутта жинаңыз.", "Create an account and set up your first room in minutes.")}
             </div>
           </div>
-          <Link to="/register" style={{ textDecoration: "none" }}>
-            <Button variant="secondary" size="lg">
+          <Link to="/register" className="w-full md:w-auto" style={{ textDecoration: "none" }}>
+            <Button variant="secondary" size="lg" className="w-full md:w-auto">
               {tx(lang, "Начать", "Бастау", "Get started")} <ArrowRight size={17} />
             </Button>
           </Link>

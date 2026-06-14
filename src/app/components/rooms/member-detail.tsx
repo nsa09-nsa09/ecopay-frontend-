@@ -126,7 +126,7 @@ export function MemberDetailPage() {
 
   if (error || !room || !membership) {
     return (
-      <div className="max-w-[800px] mx-auto px-6 py-8">
+      <div className="max-w-[800px] mx-auto px-4 sm:px-6 py-8">
         <Link to="/rooms" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
           <ArrowLeft size={14} /> {tx(language, "Мои комнаты", "Менің бөлмелерім", "My Rooms")}
         </Link>
@@ -165,14 +165,14 @@ export function MemberDetailPage() {
   ];
 
   return (
-    <div className="max-w-[800px] mx-auto px-6 py-8">
+    <div className="max-w-[800px] mx-auto px-4 sm:px-6 py-8">
       <Link to="/rooms" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
         <ArrowLeft size={14} /> {tx(language, "Мои комнаты", "Менің бөлмелерім", "My Rooms")}
       </Link>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
-        <div>
-          <h1 className="text-[26px] mb-1" style={{ color: "var(--eco-text)" }}>{room.title}</h1>
+        <div className="min-w-0">
+          <h1 className="text-[22px] sm:text-[26px] mb-1 break-words" style={{ color: "var(--eco-text)" }}>{room.title}</h1>
           <div className="text-[14px]" style={{ color: "var(--eco-text-secondary)" }}>
             {room.providerName}{room.connectionType ? ` · ${room.connectionType}` : ""}
           </div>

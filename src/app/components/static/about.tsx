@@ -1,17 +1,37 @@
+import { useEffect, useState } from "react";
 import { WaveDivider } from "../ds-primitives";
 import { Mail, Phone, MapPin, Shield, Users, Zap } from "lucide-react";
 import { useI18n } from "../i18n-provider";
+import { getSiteAboutRequest, type SiteAboutContent } from "../../lib/api";
 
 export function AboutPage() {
   const { t } = useI18n();
+  const [content, setContent] = useState<SiteAboutContent | null>(null);
+
+  // Pull editable copy from the admin-managed endpoint; if it fails for any
+  // reason we silently fall back to the static i18n strings so the page never
+  // looks broken.
+  useEffect(() => {
+    let cancelled = false;
+    getSiteAboutRequest()
+      .then((data) => { if (!cancelled) setContent(data); })
+      .catch(() => { /* fall back to i18n defaults */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const heroTitle = content?.title?.trim() || t("aboutEcoPay");
+  const missionText = content?.mission?.trim() || t("missionText");
+  const descriptionText = content?.description?.trim() || t("howWeHelpText");
+  const contactEmail = content?.contactEmail?.trim() || t("contactEmail");
+  const contactPhone = content?.contactPhone?.trim() || t("contactPhoneNumber");
 
   return (
     <div>
       {/* Hero */}
-      <div className="py-16 px-6" style={{ background: "var(--eco-surface)" }}>
+      <div className="py-12 sm:py-16 px-4 sm:px-6" style={{ background: "var(--eco-surface)" }}>
         <div className="max-w-[800px] mx-auto">
-          <h1 className="text-[32px] sm:text-[40px] tracking-tight mb-4" style={{ color: "var(--eco-text)" }}>
-            {t("aboutEcoPay")}
+          <h1 className="text-[26px] sm:text-[40px] tracking-tight mb-4" style={{ color: "var(--eco-text)" }}>
+            {heroTitle}
           </h1>
           <p className="text-[16px]" style={{ color: "var(--eco-text-secondary)" }}>
             {t("aboutSubtitle")}
@@ -21,7 +41,7 @@ export function AboutPage() {
       <WaveDivider flip />
 
       {/* Content */}
-      <div className="max-w-[800px] mx-auto px-6 py-12">
+      <div className="max-w-[800px] mx-auto px-4 sm:px-6 py-12">
         {/* Mission */}
         <section className="mb-12">
           <div className="flex items-start gap-4 mb-4">
@@ -30,8 +50,8 @@ export function AboutPage() {
             </div>
             <div>
               <h2 className="text-[20px] mb-2" style={{ color: "var(--eco-text)" }}>{t("ourMission")}</h2>
-              <p className="text-[14px] leading-relaxed" style={{ color: "var(--eco-text-secondary)" }}>
-                {t("missionText")}
+              <p className="text-[14px] leading-relaxed whitespace-pre-line" style={{ color: "var(--eco-text-secondary)" }}>
+                {missionText}
               </p>
             </div>
           </div>
@@ -74,8 +94,8 @@ export function AboutPage() {
             </div>
             <div>
               <h2 className="text-[20px] mb-2" style={{ color: "var(--eco-text)" }}>{t("howWeHelpTitle")}</h2>
-              <p className="text-[14px] leading-relaxed" style={{ color: "var(--eco-text-secondary)" }}>
-                {t("howWeHelpText")}
+              <p className="text-[14px] leading-relaxed whitespace-pre-line" style={{ color: "var(--eco-text-secondary)" }}>
+                {descriptionText}
               </p>
             </div>
           </div>
@@ -91,7 +111,7 @@ export function AboutPage() {
             <div className="flex items-start gap-3">
               <Phone size={18} className="mt-0.5 shrink-0" style={{ color: "var(--eco-primary)" }} />
               <div>
-                <p className="text-[14px] mb-1" style={{ color: "var(--eco-text)" }}>{t("contactPhoneNumber")}</p>
+                <p className="text-[14px] mb-1" style={{ color: "var(--eco-text)" }}>{contactPhone}</p>
                 <p className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
                   {t("contactPhoneNote")}
                 </p>
@@ -101,7 +121,7 @@ export function AboutPage() {
             <div className="flex items-start gap-3">
               <Mail size={18} className="mt-0.5 shrink-0" style={{ color: "var(--eco-primary)" }} />
               <div>
-                <p className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("contactEmail")}</p>
+                <p className="text-[14px]" style={{ color: "var(--eco-text)" }}>{contactEmail}</p>
               </div>
             </div>
 

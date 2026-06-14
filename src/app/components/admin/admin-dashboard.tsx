@@ -135,7 +135,7 @@ export function AdminDashboardPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("dashboard")}</h1>
           <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw size={13} /> {t("retry")}
@@ -143,7 +143,7 @@ export function AdminDashboardPage() {
         </div>
 
         {loading && !kpis && (
-          <div className="grid grid-cols-5 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
             {Array.from({ length: 5 }).map((_, i) => (
               <Card key={i} className="flex flex-col gap-3">
                 <div className="w-8 h-8 rounded-lg" style={{ background: "var(--eco-surface)" }} />
@@ -168,7 +168,7 @@ export function AdminDashboardPage() {
 
         {kpis && (
           <>
-            <div className="grid grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
               {renderKpiCards().map((k) => {
                 const Icon = k.icon;
                 return (
@@ -207,7 +207,7 @@ export function AdminDashboardPage() {
               })}
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
               {[
                 { key: "totalRoomsLabel", value: formatCount(kpis.totalRooms), icon: Home },
                 { key: "totalUsersLabel", value: formatCount(kpis.totalUsers), icon: Users },
@@ -226,7 +226,7 @@ export function AdminDashboardPage() {
               })}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
               <Card className="flex flex-col gap-2">
                 <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("rooms")}</div>
                 <div className="grid grid-cols-2 gap-2 text-[13px]">
@@ -262,8 +262,8 @@ export function AdminDashboardPage() {
             <Card className="flex flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardChartTitle")}</div>
-                <div className="flex items-center gap-2">
-                  <div className="w-36">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="w-32 sm:w-36">
                     <Select
                       aria-label={t("dashboardGranularity")}
                       value={granularity}
@@ -274,7 +274,7 @@ export function AdminDashboardPage() {
                       ]}
                     />
                   </div>
-                  <div className="w-36">
+                  <div className="w-32 sm:w-36">
                     <Select
                       aria-label={t("dashboardRange")}
                       value={rangeKey}

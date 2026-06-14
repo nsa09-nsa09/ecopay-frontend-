@@ -110,7 +110,7 @@ function TicketListView({
     <>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-[26px] mb-1" style={{ color: "var(--eco-text)" }}>
+          <h1 className="text-[22px] sm:text-[26px] mb-1" style={{ color: "var(--eco-text)" }}>
             {tx(language, "Центр поддержки", "Қолдау орталығы", "Support Center")}
           </h1>
           <p className="text-[14px]" style={{ color: "var(--eco-text-secondary)" }}>
@@ -122,7 +122,7 @@ function TicketListView({
             )}
           </p>
         </div>
-        <Button variant="primary" size="md" onClick={onCreate}>
+        <Button variant="primary" size="md" onClick={onCreate} className="w-full sm:w-auto">
           <Plus size={15} /> {tx(language, "Создать заявку", "Өтінім жасау", "Create Ticket")}
         </Button>
       </div>
@@ -321,7 +321,7 @@ function CreateTicketView({ onBack, onCreated }: { onBack: () => void; onCreated
         <ArrowLeft size={14} /> {tx(language, "К списку заявок", "Өтінімдерге оралу", "Back to Tickets")}
       </button>
 
-      <h2 className="text-[22px]" style={{ color: "var(--eco-text)" }}>
+      <h2 className="text-[20px] sm:text-[22px]" style={{ color: "var(--eco-text)" }}>
         {tx(language, "Создать заявку в поддержку", "Қолдау өтінімін жасау", "Create Support Ticket")}
       </h2>
 
@@ -555,7 +555,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
           </span>
         </div>
 
-        <div className="flex items-center gap-0 mt-1">
+        <div className="flex items-center gap-0 mt-1 overflow-x-auto pb-1">
           {(["OPEN", "IN_PROGRESS", "CLOSED"] as const).map((s, i, arr) => {
             const order: Record<string, number> = { OPEN: 0, IN_PROGRESS: 1, CLOSED: 2 };
             const isActive = order[s] <= order[ticket.status];
@@ -796,7 +796,7 @@ export function SupportPage() {
   };
 
   return (
-    <div className="max-w-[900px] mx-auto px-6 py-8">
+    <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-8">
       {view === "list" && (
         <TicketListView
           tickets={tickets}
@@ -823,7 +823,7 @@ export function SupportPage() {
 export function NewTicketPage() {
   const navigate = useNavigate();
   return (
-    <div className="max-w-[900px] mx-auto px-6 py-8">
+    <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-8">
       <CreateTicketView
         onBack={() => navigate("/support")}
         onCreated={(id) => navigate(`/support?ticket=${id}`)}

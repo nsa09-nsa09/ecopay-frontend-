@@ -19,11 +19,11 @@ export function TermsPage() {
   return (
     <div>
       {/* Hero */}
-      <div className="py-16 px-6" style={{ background: "var(--eco-surface)" }}>
+      <div className="py-12 sm:py-16 px-4 sm:px-6" style={{ background: "var(--eco-surface)" }}>
         <div className="max-w-[800px] mx-auto">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
             <FileText size={32} style={{ color: "var(--eco-primary)" }} />
-            <h1 className="text-[32px] sm:text-[40px] tracking-tight" style={{ color: "var(--eco-text)" }}>
+            <h1 className="text-[26px] sm:text-[40px] tracking-tight" style={{ color: "var(--eco-text)" }}>
               Terms of Service
             </h1>
           </div>
@@ -36,7 +36,7 @@ export function TermsPage() {
       <WaveDivider flip />
 
       {/* Content */}
-      <div className="max-w-[800px] mx-auto px-6 py-12">
+      <div className="max-w-[800px] mx-auto px-4 sm:px-6 py-12">
         <div className="mb-8 p-4 rounded-lg" style={{ background: "var(--eco-surface)" }}>
           <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
             <strong style={{ color: "var(--eco-text)" }}>Notice:</strong> This is a simplified MVP version of our Terms of Service. The complete legal document will be finalized before launch with input from legal counsel.

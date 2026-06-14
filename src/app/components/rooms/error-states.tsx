@@ -6,7 +6,7 @@ import { useI18n } from "../i18n-provider";
 export function RoomFullPage() {
   const { t } = useI18n();
   return (
-    <div className="max-w-lg mx-auto px-6 py-16 text-center">
+    <div className="max-w-lg mx-auto px-4 sm:px-6 py-12 sm:py-16 text-center">
       <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: "var(--eco-warning-100)" }}>
         <Users size={24} style={{ color: "var(--eco-warning)" }} />
       </div>
@@ -42,7 +42,7 @@ export function RoomFullPage() {
 export function PaymentFailedPage() {
   const { t } = useI18n();
   return (
-    <div className="max-w-lg mx-auto px-6 py-16 text-center">
+    <div className="max-w-lg mx-auto px-4 sm:px-6 py-12 sm:py-16 text-center">
       <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: "var(--eco-danger-100)" }}>
         <AlertTriangle size={24} style={{ color: "var(--eco-negative)" }} />
       </div>
@@ -84,7 +84,7 @@ export function PaymentFailedPage() {
 export function RoomBlockedPage() {
   const { t } = useI18n();
   return (
-    <div className="max-w-lg mx-auto px-6 py-16 text-center">
+    <div className="max-w-lg mx-auto px-4 sm:px-6 py-12 sm:py-16 text-center">
       <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: "var(--eco-danger-100)" }}>
         <ShieldX size={24} style={{ color: "var(--eco-negative)" }} />
       </div>

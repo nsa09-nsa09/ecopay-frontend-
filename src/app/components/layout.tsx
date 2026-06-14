@@ -53,8 +53,8 @@ export function AppLayout() {
         className="sticky top-0 z-40 border-b"
         style={{ background: "var(--eco-bg)", borderColor: "var(--eco-border)" }}
       >
-        <div className="w-full px-6 sm:px-8 flex items-center justify-between gap-6 h-16">
-          <div className="flex items-center gap-8 min-w-0">
+        <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 sm:gap-6 h-16">
+          <div className="flex items-center gap-4 lg:gap-8 min-w-0">
             <BrandLogo to="/" size="md" className="shrink-0" />
             <div className="hidden md:flex items-center gap-1">
               {navItems.map((item) => (
@@ -74,7 +74,7 @@ export function AppLayout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <div className="hidden md:flex items-center relative">
               <Search size={15} className="absolute left-2.5" style={{ color: "var(--eco-text-tertiary)" }} />
               <input
@@ -170,7 +170,7 @@ export function AppLayout() {
         </div>
 
         {mobileMenu && (
-          <div className="md:hidden border-t px-6 py-4 flex flex-col gap-3" style={{ borderColor: "var(--eco-border)" }}>
+          <div className="md:hidden border-t px-4 sm:px-6 py-4 flex flex-col gap-3" style={{ borderColor: "var(--eco-border)" }}>
             <div className="pb-3 border-b" style={{ borderColor: "var(--eco-border)" }}>
               <div className="text-[12px] mb-2" style={{ color: "var(--eco-text-tertiary)" }}>{t("language")}</div>
               <div className="flex gap-2">
@@ -238,7 +238,7 @@ export function AppLayout() {
       </main>
 
       <WaveDivider />
-      <footer style={{ background: "var(--eco-surface)" }} className="py-12 px-6">
+      <footer style={{ background: "var(--eco-surface)" }} className="py-10 sm:py-12 px-4 sm:px-6">
         <div className="max-w-[1200px] mx-auto">
           <div className="mb-8">
             <BrandLogo to="/" size="sm" />

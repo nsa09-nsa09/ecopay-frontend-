@@ -181,7 +181,7 @@ export function AdminModerationPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
           <div>
             <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("moderationQueue")}</h1>
             <p className="text-[13px] mt-1" style={{ color: "var(--eco-text-tertiary)" }}>
@@ -224,18 +224,19 @@ export function AdminModerationPage() {
             </div>
           </Card>
         ) : (
-          <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-12 gap-3 px-5 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-              <div className="col-span-1">ID</div>
-              <div className="col-span-3">{t("colEntity")}</div>
-              <div className="col-span-2">{t("reasonCode")}</div>
-              <div className="col-span-1">{t("colScore")}</div>
-              <div className="col-span-2">{t("assignedTo")}</div>
-              <div className="col-span-1">{t("colSubmitted")}</div>
-              <div className="col-span-2">{t("colActions")}</div>
-            </div>
+          <div className="overflow-x-auto">
+            <div className="min-w-[900px] flex flex-col gap-3">
+              <div className="grid grid-cols-12 gap-3 px-5 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                <div className="col-span-1">ID</div>
+                <div className="col-span-3">{t("colEntity")}</div>
+                <div className="col-span-2">{t("reasonCode")}</div>
+                <div className="col-span-1">{t("colScore")}</div>
+                <div className="col-span-2">{t("assignedTo")}</div>
+                <div className="col-span-1">{t("colSubmitted")}</div>
+                <div className="col-span-2">{t("colActions")}</div>
+              </div>
 
-            {activeQueue.map((item) => {
+              {activeQueue.map((item) => {
               const score = riskNumeric(item.riskScore);
               const isMine = item.assignedAdminId != null && user?.id != null && item.assignedAdminId === user.id;
               const canBlock = item.roomId != null;
@@ -319,6 +320,7 @@ export function AdminModerationPage() {
                 </Card>
               );
             })}
+            </div>
           </div>
         )}
 

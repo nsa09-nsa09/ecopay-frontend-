@@ -182,7 +182,7 @@ export function PublicUserProfilePage() {
 
   if (loading) {
     return (
-      <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
         <Skeleton width={200} height={28} />
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
           <div className="flex flex-col gap-6">
@@ -201,7 +201,7 @@ export function PublicUserProfilePage() {
 
   if (error || !reputation) {
     return (
-      <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
         <Card>
           <div className="flex items-center gap-2 text-[14px]" style={{ color: "var(--eco-negative)" }}>
             <AlertCircle size={15} /> {error ?? "User not found."}
@@ -215,9 +215,9 @@ export function PublicUserProfilePage() {
   const avg = reputation.averageRating ?? 0;
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6 py-8">
+    <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-[28px]" style={{ color: "var(--eco-text)" }}>{t("publicProfile")}</h1>
+        <h1 className="text-[22px] sm:text-[28px]" style={{ color: "var(--eco-text)" }}>{t("publicProfile")}</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
@@ -229,7 +229,7 @@ export function PublicUserProfilePage() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <h2 className="text-[22px]" style={{ color: "var(--eco-text)" }}>{reputation.displayName}</h2>
+                <h2 className="text-[20px] sm:text-[22px] break-words" style={{ color: "var(--eco-text)" }}>{reputation.displayName}</h2>
                 <div className="text-[13px] mt-1" style={{ color: "var(--eco-text-tertiary)" }}>
                   {profile?.publicId ? <span style={{ fontFamily: "monospace" }}>{profile.publicId}</span> : <>User #{reputation.userId}</>}
                 </div>

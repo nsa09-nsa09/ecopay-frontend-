@@ -264,7 +264,7 @@ export function AdminTicketsPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("ticketsSupportView")}</h1>
           <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw size={13} /> {t("retry")}
@@ -379,9 +379,9 @@ export function AdminTicketsPage() {
             ) : detail ? (
               <div className="flex flex-col gap-4">
                 <Card className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-[16px]" style={{ color: "var(--eco-text)" }}>{detail.subject}</div>
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <div className="text-[16px] break-words" style={{ color: "var(--eco-text)" }}>{detail.subject}</div>
                       {assignedAdminLabel && (
                         <div className="text-[12px] mt-1" style={{ color: "var(--eco-text-secondary)" }}>
                           {t("assignedTo")}: {assignedAdminLabel}

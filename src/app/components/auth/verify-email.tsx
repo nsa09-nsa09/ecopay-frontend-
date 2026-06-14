@@ -40,7 +40,7 @@ export function VerifyEmailPage() {
   }, [token, language]);
 
   return (
-    <div className="max-w-[520px] mx-auto px-6 py-16">
+    <div className="max-w-[520px] mx-auto px-4 sm:px-6 py-12 sm:py-16">
       <Card className="flex flex-col items-center text-center gap-4 py-10">
         {state.kind === "loading" && (
           <>

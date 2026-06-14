@@ -29,7 +29,7 @@ export function ProfilePage() {
 
   if (!isReady) {
     return (
-      <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
         <Card>{tx(language, "Загрузка профиля...", "Профиль жүктелуде...", "Loading profile...")}</Card>
       </div>
     );
@@ -37,7 +37,7 @@ export function ProfilePage() {
 
   if (!isAuthenticated || !user) {
     return (
-      <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
         <Card className="flex flex-col gap-4 items-start">
           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>
             {tx(language, "Профиль", "Профиль", "Profile")}
@@ -84,8 +84,8 @@ export function ProfilePage() {
   };
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6 py-8">
-      <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>
+    <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
+      <h1 className="text-[22px] sm:text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>
         {tx(language, "Профиль", "Профиль", "Profile")}
       </h1>
 
@@ -521,15 +521,15 @@ function PublicLinkCard({ publicId }: { publicId: string }) {
       <h3 className="flex items-center gap-2 text-[16px]" style={{ color: "var(--eco-text)" }}>
         <UserRound size={16} /> {t("publicProfileLink")}
       </h3>
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           readOnly
           value={url}
-          className="flex-1 px-3 py-2 rounded-lg outline-none text-[13px]"
+          className="flex-1 min-w-0 px-3 py-2 rounded-lg outline-none text-[13px]"
           style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)", fontFamily: "monospace" }}
           onClick={(e) => (e.target as HTMLInputElement).select()}
         />
-        <Button variant="secondary" size="sm" onClick={() => void handleCopy()}>
+        <Button variant="secondary" size="sm" className="shrink-0" onClick={() => void handleCopy()}>
           <Copy size={13} /> {copied ? t("publicProfileCopied") : t("publicProfileCopy")}
         </Button>
       </div>
@@ -560,16 +560,16 @@ function FindUserCard() {
         <SearchIcon size={16} /> {t("publicProfileSearchTitle")}
       </h3>
       <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{t("publicProfileSearchHint")}</p>
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
           placeholder={tx(language, "ссылка или хэш", "сілтеме немесе хэш", "link or hash")}
-          className="flex-1 px-3 py-2 rounded-lg outline-none text-[13px]"
+          className="flex-1 min-w-0 px-3 py-2 rounded-lg outline-none text-[13px]"
           style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
         />
-        <Button variant="primary" size="sm" onClick={submit}>{t("publicProfileSearchGo")}</Button>
+        <Button variant="primary" size="sm" className="shrink-0" onClick={submit}>{t("publicProfileSearchGo")}</Button>
       </div>
     </Card>
   );
