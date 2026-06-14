@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Card, Button, Badge, Modal, Select } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
+import { Client } from "@stomp/stompjs";
 import {
   assignStaffTicketToMeRequest,
+  buildSupportWebSocketUrl,
   escalateStaffTicketRequest,
   getStaffSupportQueueRequest,
   getStaffSupportTicketRequest,
+  postStaffSupportTicketMessageRequest,
   updateStaffTicketStatusRequest,
   type SupportTicketResponse,
 } from "../../lib/api";
@@ -20,6 +23,7 @@ import {
   ChevronRight,
   Shield,
   UserPlus,
+  Send,
 } from "lucide-react";
 
 const PAGE_SIZE = 20;
@@ -31,7 +35,7 @@ const statusVariant: Record<string, "warning" | "info" | "success"> = {
 };
 
 export function AdminTicketsPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { authorizedRequest } = useAuth();
 
   const [items, setItems] = useState<SupportTicketResponse[]>([]);
@@ -51,6 +55,14 @@ export function AdminTicketsPage() {
   const [assignSubmitting, setAssignSubmitting] = useState(false);
   const [escalateModalOpen, setEscalateModalOpen] = useState(false);
   const [escalateSubmitting, setEscalateSubmitting] = useState(false);
+
+  const [replyText, setReplyText] = useState("");
+  const [replySending, setReplySending] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const stompClientRef = useRef<Client | null>(null);
+
+  const tx = (ru: string, kz: string, en: string) =>
+    language === "ru" ? ru : language === "kz" ? kz : en;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -96,6 +108,75 @@ export function AdminTicketsPage() {
     }
     void loadDetail(selectedId);
   }, [selectedId, loadDetail]);
+
+  // Auto-scroll chat when messages change
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [detail?.messages]);
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    let cancelled = false;
+    let client: Client | null = null;
+    const applyRealtimeUpdate = (updatedTicket: SupportTicketResponse) => {
+      setItems((prev) => {
+        if (updatedTicket.status === "CLOSED") {
+          return prev.filter((it) => it.id !== updatedTicket.id);
+        }
+
+        if (prev.some((it) => it.id === updatedTicket.id)) {
+          return prev.map((it) => (
+            it.id === updatedTicket.id ? { ...it, ...updatedTicket, messages: it.messages } : it
+          ));
+        }
+        return [updatedTicket, ...prev].slice(0, PAGE_SIZE);
+      });
+
+      if (selectedId === updatedTicket.id) {
+        setDetail(updatedTicket);
+        setStatusValue(updatedTicket.status);
+      }
+    };
+
+    void authorizedRequest(async (token) => {
+      if (cancelled) return null;
+
+      client = new Client({
+        webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl(token)),
+        reconnectDelay: 5000,
+        onConnect: () => {
+          client?.subscribe("/topic/staff/support-queue", (message) => {
+            applyRealtimeUpdate(JSON.parse(message.body) as SupportTicketResponse);
+          });
+
+          if (selectedId != null) {
+            client?.subscribe(`/topic/support-tickets/${selectedId}`, (message) => {
+              applyRealtimeUpdate(JSON.parse(message.body) as SupportTicketResponse);
+            });
+          }
+        },
+        onStompError: (frame) => {
+          console.error("Admin support WebSocket error:", frame);
+        },
+        onWebSocketError: (event) => {
+          console.error("Admin support WebSocket connection error:", event);
+        },
+      });
+
+      client.activate();
+      stompClientRef.current = client;
+      return null;
+    }).catch((err) => {
+      console.error("Unable to start admin support WebSocket:", err);
+    });
+
+    return () => {
+      cancelled = true;
+      void client?.deactivate();
+    };
+  }, [authorizedRequest, selectedId]);
 
   const summaryById = useMemo(
     () => new Map(items.map((t) => [t.id, t] as const)),
@@ -153,11 +234,32 @@ export function AdminTicketsPage() {
     }
   };
 
+  const handleSendReply = async () => {
+    if (!detail || !replyText.trim()) return;
+    setReplySending(true);
+    setActionError(null);
+    try {
+      const updated = await authorizedRequest((token) =>
+        postStaffSupportTicketMessageRequest(detail.id, replyText.trim(), token),
+      );
+      applyTicketUpdate(updated);
+      setReplyText("");
+    } catch (err) {
+      setActionError(formatAdminApiError(err, t));
+    } finally {
+      setReplySending(false);
+    }
+  };
+
   const statusOptions = [
     { value: "OPEN", label: t("statusOpen") },
     { value: "IN_PROGRESS", label: t("statusInProgress") },
     { value: "CLOSED", label: t("statusClosed") },
   ];
+
+  const assignedAdminLabel = detail?.assignedAdminId == null
+    ? null
+    : (detail.assignedAdminDisplayName?.trim() || `#${detail.assignedAdminId}`);
 
   return (
     <AdminLayout>
@@ -168,7 +270,6 @@ export function AdminTicketsPage() {
             <RefreshCw size={13} /> {t("retry")}
           </Button>
         </div>
-
         {error && !loading && (
           <Card className="flex flex-col gap-2 mb-4">
             <div className="text-[14px]" style={{ color: "var(--eco-negative)" }}>{t("loadFailedTitle")}</div>
@@ -281,6 +382,11 @@ export function AdminTicketsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-[16px]" style={{ color: "var(--eco-text)" }}>{detail.subject}</div>
+                      {assignedAdminLabel && (
+                        <div className="text-[12px] mt-1" style={{ color: "var(--eco-text-secondary)" }}>
+                          {t("assignedTo")}: {assignedAdminLabel}
+                        </div>
+                      )}
                       <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
                         T-{detail.id} · #{detail.userId}
                         {detail.topic ? ` · ${detail.topic}` : ""}
@@ -295,14 +401,16 @@ export function AdminTicketsPage() {
                   )}
 
                   <div className="flex flex-wrap items-end gap-3">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      loading={assignSubmitting}
-                      onClick={() => void handleAssignToMe()}
-                    >
-                      <UserPlus size={13} /> {t("takeTicket")}
-                    </Button>
+                    {detail.assignedAdminId == null && detail.status !== "CLOSED" && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        loading={assignSubmitting}
+                        onClick={() => void handleAssignToMe()}
+                      >
+                        <UserPlus size={13} /> {t("takeTicket")}
+                      </Button>
+                    )}
 
                     <div style={{ minWidth: 180 }}>
                       <Select
@@ -339,24 +447,70 @@ export function AdminTicketsPage() {
                   )}
                 </Card>
 
-                {detail.messages && detail.messages.length > 0 && (
-                  <Card className="flex flex-col gap-3">
-                    <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("recentActivity")}</div>
-                    {detail.messages.map((m) => (
-                      <div key={m.id} className="flex flex-col gap-1">
-                        <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                          {m.senderRole} · {new Date(m.createdAt).toLocaleString()}
-                        </div>
-                        <div
-                          className="px-3 py-2 rounded-lg text-[13px]"
-                          style={{ background: "var(--eco-surface)", color: "var(--eco-text)" }}
-                        >
-                          {m.message}
-                        </div>
-                      </div>
-                    ))}
-                  </Card>
-                )}
+                <Card className="flex flex-col gap-3">
+                  <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("recentActivity")}</div>
+                  {!detail.messages || detail.messages.length === 0 ? (
+                    <div className="text-[13px] text-center py-4" style={{ color: "var(--eco-text-tertiary)" }}>
+                      {tx("Сообщений пока нет.", "Әзірге хабарламалар жоқ.", "No messages yet.")}
+                    </div>
+                  ) : (
+                    <div ref={chatScrollRef} className="flex flex-col gap-3 max-h-[400px] overflow-y-auto">
+                      {detail.messages.map((m) => {
+                        const isStaff = m.senderRole === "SUPPORT" || m.senderRole === "ADMIN";
+                        return (
+                          <div 
+                            key={m.id} 
+                            className={`flex flex-col gap-1 ${isStaff ? "items-end" : "items-start"}`}
+                          >
+                            <div className="text-[11px] flex items-center gap-1.5" style={{ color: "var(--eco-text-tertiary)" }}>
+                              {isStaff && (
+                                <Shield size={10} style={{ color: m.senderRole === "ADMIN" ? "var(--eco-negative)" : "var(--eco-primary)" }} />
+                              )}
+                              <span style={{ color: isStaff ? (m.senderRole === "ADMIN" ? "var(--eco-negative)" : "var(--eco-primary)") : undefined }}>
+                                {m.senderRole}
+                              </span>
+                              <span>·</span>
+                              <span>{new Date(m.createdAt).toLocaleString()}</span>
+                            </div>
+                            <div
+                              className="px-3 py-2 rounded-lg text-[13px] max-w-[80%]"
+                              style={{
+                                background: isStaff ? "var(--eco-brand-50)" : "var(--eco-surface)",
+                                color: "var(--eco-text)",
+                                whiteSpace: "pre-wrap",
+                              }}
+                            >
+                              {m.message}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {detail.status !== "CLOSED" && (
+                    <div className="flex items-end gap-2 pt-3 border-t" style={{ borderColor: "var(--eco-border)" }}>
+                      <textarea
+                        placeholder={tx("Ответ от поддержки/админа...", "Қолдау/әкімші жауабы...", "Reply as staff...")}
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value.slice(0, 5000))}
+                        rows={2}
+                        maxLength={5000}
+                        className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none resize-none"
+                        style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
+                      />
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        loading={replySending}
+                        disabled={!replyText.trim()}
+                        onClick={() => void handleSendReply()}
+                      >
+                        <Send size={13} /> {tx("Отправить", "Жіберу", "Send")}
+                      </Button>
+                    </div>
+                  )}
+                </Card>
               </div>
             ) : null}
             {/* unused placeholder reads to keep TS happy if we later reference summary */}

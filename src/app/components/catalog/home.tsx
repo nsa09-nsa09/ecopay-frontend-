@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import {
   ArrowRight,
@@ -20,32 +20,50 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { Badge, Button, Card, WaveDivider } from "../ds-primitives";
+import { Badge, Button, Card, Select, Skeleton, WaveDivider } from "../ds-primitives";
 import { useI18n } from "../i18n-provider";
-import { formatListingMoney, subscriptionListings } from "../../data/subscriptions";
+import {
+  getServices,
+  getCategories,
+  getFeaturedServiceReviews,
+  type CatalogSort,
+  type CategoryDto,
+  type PublicServiceReviewDto,
+  type ServiceDto,
+} from "../../lib/api";
 
 type L = "ru" | "kz" | "en";
-type Category = "all" | "video" | "music" | "cloud" | "ai" | "design" | "apps";
 
 const tx = (language: L, ru: string, kz: string, en: string) =>
   language === "ru" ? ru : language === "kz" ? kz : en;
 
-const categories: { id: Category; icon: typeof Smartphone; ru: string; kz: string; en: string }[] = [
-  { id: "all", icon: Sparkles, ru: "Все", kz: "Барлығы", en: "All" },
-  { id: "video", icon: Tv, ru: "Видео", kz: "Видео", en: "Video" },
-  { id: "music", icon: Music, ru: "Музыка", kz: "Музыка", en: "Music" },
-  { id: "cloud", icon: Wifi, ru: "Облако", kz: "Бұлт", en: "Cloud" },
-  { id: "ai", icon: Bot, ru: "AI", kz: "AI", en: "AI" },
-  { id: "design", icon: Zap, ru: "Дизайн", kz: "Дизайн", en: "Design" },
-  { id: "apps", icon: Smartphone, ru: "Сервисы", kz: "Сервистер", en: "Apps" },
-];
-
-const services = subscriptionListings;
-
-const logoFallbacks: Record<string, string> = {
-  "ChatGPT": "https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg",
-  "Canva": "https://upload.wikimedia.org/wikipedia/commons/0/08/Canva_icon_2021.svg",
+const fallbackCategoryIcon: LucideIcon = Sparkles;
+const categoryIconMap: Record<string, LucideIcon> = {
+  video: Tv,
+  music: Music,
+  cloud: Wifi,
+  ai: Bot,
+  design: Zap,
+  apps: Smartphone,
+  services: Smartphone,
+  telecom: Smartphone,
 };
+
+function iconForCategory(slug: string | undefined): LucideIcon {
+  if (!slug) return fallbackCategoryIcon;
+  return categoryIconMap[slug.toLowerCase()] ?? fallbackCategoryIcon;
+}
+
+function formatServicePrice(value: number | null | undefined, currency: string | null | undefined): string {
+  if (value == null) return "—";
+  const n = Math.round(Number(value));
+  if (currency === "USD") return `$${n.toLocaleString("en-US")}`;
+  return `₸${n.toLocaleString("ru-RU")}`;
+}
+
+function serviceInitial(name: string): string {
+  return (name?.charAt(0) ?? "?").toUpperCase();
+}
 
 type StepBase = { icon: LucideIcon; ru: string; kz: string; en: string };
 type DisplayStep = StepBase & { title: string };
@@ -64,56 +82,6 @@ const memberSteps: StepBase[] = [
   { icon: Star, ru: "Пользуйтесь дешевле", kz: "Арзанырақ қолданыңыз", en: "Use it for less" },
 ];
 
-const reviews = [
-  {
-    name: "Айдана К.",
-    ru: "Нашла место в YouTube Premium за пару минут. Оплата ушла в hold, а доступ подтвердился прямо в EcoPay.",
-    kz: "YouTube Premium орнын бірнеше минутта таптым. Төлем hold-қа өтті, қолжетімділік EcoPay ішінде расталды.",
-    en: "I found a YouTube Premium seat in minutes. Payment went into hold and access was confirmed in EcoPay.",
-  },
-  {
-    name: "Руслан М.",
-    ru: "Собрал семейную группу для Google One. Больше не нужно вручную напоминать людям про переводы.",
-    kz: "Google One үшін отбасылық топ жинадым. Енді аударым туралы қолмен еске салудың қажеті жоқ.",
-    en: "I set up a Google One family group. No more manually reminding people to transfer money.",
-  },
-  {
-    name: "Dana S.",
-    ru: "Нравится, что деньги 30 дней под защитой. Если доступ пропадёт, спор открывается из кабинета.",
-    kz: "Қаражат 30 күн қорғалғаны ұнайды. Қолжетімділік жоғалса, дауды кабинеттен ашуға болады.",
-    en: "I like that funds are protected for 30 days. If access fails, I can open a dispute from my account.",
-  },
-  {
-    name: "Мария С.",
-    ru: "Подключилась к Netflix Premium дешевле, чем отдельная подписка. Владелец добавил профиль в тот же день.",
-    kz: "Netflix Premium-ға жеке жазылымнан арзан қосылдым. Иесі профильді сол күні қосты.",
-    en: "I joined Netflix Premium for less than a separate subscription. The owner added my profile the same day.",
-  },
-  {
-    name: "Тимур Б.",
-    ru: "Создал группу для Spotify, все оплаты видны в кабинете. Hold помогает участникам доверять сделке.",
-    kz: "Spotify үшін топ жасадым, барлық төлем кабинетте көрінеді. Hold қатысушыларға сенім береді.",
-    en: "I created a Spotify group and can see every payment in the dashboard. Hold helps members trust the deal.",
-  },
-  {
-    name: "Аружан Н.",
-    ru: "Canva для команды стала заметно дешевле. Понравилось, что условия доступа видны до оплаты.",
-    kz: "Canva команда үшін әлдеқайда арзан болды. Қолжетімділік шарттары төлемге дейін көрінетіні ұнады.",
-    en: "Canva for my team became much cheaper. I liked seeing access terms before paying.",
-  },
-  {
-    name: "Санжар А.",
-    ru: "В iCloud+ нашёл свободное место без лишних чатов. Если что-то пойдёт не так, спор рядом с подпиской.",
-    kz: "iCloud+ ішінде бос орынды артық чатсыз таптым. Бірдеңе дұрыс болмаса, дау жазылым жанында.",
-    en: "I found an iCloud+ seat without extra chats. If something goes wrong, dispute is right next to the subscription.",
-  },
-  {
-    name: "Мира Т.",
-    ru: "Google One закрыл все семейные места за пару дней. Выплата после hold выглядит понятно и спокойно.",
-    kz: "Google One отбасылық орындары екі күнде толды. Hold кейінгі төлем түсінікті және ыңғайлы.",
-    en: "Google One filled all family seats in two days. Payout after hold feels clear and calm.",
-  },
-];
 
 const faqs = [
   {
@@ -142,38 +110,45 @@ const faqs = [
   },
 ];
 
-function ServiceCard({ service, language }: { service: (typeof services)[number]; language: L }) {
-  const saving = Math.max(0, Math.round((1 - service.pricePerSeat / service.fullPrice) * 100));
+function CatalogServiceCard({ service, language, t }: { service: ServiceDto; language: L; t: (k: string, p?: Record<string, string | number>) => string }) {
+  const tariffs = service.tariffCount ?? 0;
+  const hasPrice = service.minPricePerMember != null;
   return (
     <Link to="/browse" style={{ textDecoration: "none" }}>
       <Card className="h-full flex flex-col gap-4 hover:shadow-sm transition-shadow cursor-pointer">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: `${service.tone}18`, color: service.tone, fontWeight: 700 }}
+              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-[18px]"
+              style={{ background: "var(--eco-brand-50)", color: "var(--eco-primary)", fontWeight: 700 }}
             >
-              <img
-                src={logoFallbacks[service.service] ?? service.logoUrl}
-                alt={`${service.service} logo`}
-                className="w-7 h-7 object-contain"
-                loading="lazy"
-              />
+              {serviceInitial(service.name)}
             </div>
             <div className="min-w-0">
               <div className="text-[15px] truncate" style={{ color: "var(--eco-text)" }}>{service.name}</div>
               <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                {service.seats - service.filled} {tx(language, "места свободно", "орын бос", "seats left")} · {service.owner}
+                {service.categoryName}
               </div>
             </div>
           </div>
-          <Badge variant="success">-{saving}%</Badge>
+          {tariffs > 0 && (
+            <Badge variant="info">{t("marketplaceTariffsCount", { count: tariffs })}</Badge>
+          )}
         </div>
 
         <div className="mt-auto">
-          <div className="flex items-center justify-start">
-            <span className="ecopay-price-pulse text-[24px]" style={{ color: "var(--eco-primary)", fontWeight: 700 }}>{formatListingMoney(service.pricePerSeat, service.currency)}</span>
-          </div>
+          {hasPrice ? (
+            <div className="flex items-baseline gap-2">
+              <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("marketplaceFromPrice")}</span>
+              <span className="text-[24px]" style={{ color: "var(--eco-primary)", fontWeight: 700 }}>
+                {formatServicePrice(service.minPricePerMember, service.currency)}
+              </span>
+            </div>
+          ) : (
+            <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+              {t("marketplaceNoTariffs")}
+            </span>
+          )}
           <div className="mt-3 flex items-center justify-between text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
             <span>{tx(language, "за участника / месяц", "қатысушыға / ай", "per member / month")}</span>
             <span className="inline-flex items-center gap-1" style={{ color: "var(--eco-primary)" }}>
@@ -183,6 +158,22 @@ function ServiceCard({ service, language }: { service: (typeof services)[number]
         </div>
       </Card>
     </Link>
+  );
+}
+
+function MarketplaceSkeletonCard() {
+  return (
+    <Card className="h-full flex flex-col gap-4">
+      <div className="flex items-center gap-3">
+        <Skeleton width={48} height={48} rounded={12} />
+        <div className="flex-1 flex flex-col gap-2">
+          <Skeleton width="60%" height={14} />
+          <Skeleton width="40%" height={12} />
+        </div>
+      </div>
+      <Skeleton height={32} />
+      <Skeleton width="50%" height={12} />
+    </Card>
   );
 }
 
@@ -208,23 +199,74 @@ function StepRail({ title, steps }: { title: string; steps: DisplayStep[] }) {
 }
 
 export function HomePage() {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const lang = language as L;
-  const [activeCategory, setActiveCategory] = useState<Category>("all");
+  const [activeCategoryId, setActiveCategoryId] = useState<number | "all">("all");
   const [query, setQuery] = useState("");
   const [openFaq, setOpenFaq] = useState(0);
+  const [sort, setSort] = useState<CatalogSort>("name_asc");
+
+  const [categories, setCategories] = useState<CategoryDto[]>([]);
+  const [services, setServices] = useState<ServiceDto[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesError, setServicesError] = useState<string | null>(null);
+
+  const [featuredReviews, setFeaturedReviews] = useState<PublicServiceReviewDto[]>([]);
 
   const localizedOwnerSteps = ownerSteps.map((step) => ({ ...step, title: tx(lang, step.ru, step.kz, step.en) }));
   const localizedMemberSteps = memberSteps.map((step) => ({ ...step, title: tx(lang, step.ru, step.kz, step.en) }));
 
+  useEffect(() => {
+    let cancelled = false;
+    void getCategories()
+      .then((data) => { if (!cancelled) setCategories(data); })
+      .catch(() => { /* silent — UI gracefully degrades to "all" */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setServicesError(null);
+    const handle = window.setTimeout(() => {
+      setServicesLoading(true);
+      void getServices(activeCategoryId === "all" ? undefined : activeCategoryId, sort)
+        .then((data) => {
+          if (!cancelled) setServices(data);
+        })
+        .catch(() => {
+          if (!cancelled) setServicesError(t("marketplaceLoadFailed"));
+        })
+        .finally(() => {
+          if (!cancelled) setServicesLoading(false);
+        });
+    }, 150);
+    return () => { cancelled = true; window.clearTimeout(handle); };
+  }, [activeCategoryId, sort, t]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getFeaturedServiceReviews()
+      .then((data) => { if (!cancelled) setFeaturedReviews(data ?? []); })
+      .catch(() => { /* silent — section hides when empty */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const sortOptions = useMemo(() => [
+    { value: "name_asc", label: t("sortNameAsc") },
+    { value: "name_desc", label: t("sortNameDesc") },
+    { value: "price_asc", label: t("sortPriceAsc") },
+    { value: "price_desc", label: t("sortPriceDesc") },
+    { value: "newest", label: t("sortNewest") },
+  ], [t]);
+
   const filteredServices = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return services.filter((service) => {
-      const categoryMatch = activeCategory === "all" || service.category === activeCategory;
-      const queryMatch = !normalizedQuery || service.name.toLowerCase().includes(normalizedQuery);
-      return categoryMatch && queryMatch;
-    });
-  }, [activeCategory, query]);
+    if (!normalizedQuery) return services;
+    return services.filter((service) =>
+      service.name.toLowerCase().includes(normalizedQuery)
+      || service.categoryName.toLowerCase().includes(normalizedQuery),
+    );
+  }, [services, query]);
 
   return (
     <div>
@@ -329,27 +371,37 @@ export function HomePage() {
               {tx(lang, "Выбирайте свободное место, проверяйте владельца, цену и условия доступа.", "Бос орынды таңдап, иесін, бағасын және қолжетімділік шарттарын тексеріңіз.", "Choose an open seat, check the owner, price, and access terms.")}
             </p>
           </div>
-          <div className="relative w-full lg:w-80">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--eco-text-tertiary)" }} />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={tx(lang, "Поиск: YouTube, Netflix, Canva...", "Іздеу: YouTube, Netflix, Canva...", "Search: YouTube, Netflix, Canva...")}
-              className="w-full pl-9 pr-3 py-2 rounded-lg text-[13px] outline-none"
-              style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
-            />
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+            <div className="relative flex-1 lg:w-72">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--eco-text-tertiary)" }} />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={tx(lang, "Поиск: YouTube, Netflix, Canva...", "Іздеу: YouTube, Netflix, Canva...", "Search: YouTube, Netflix, Canva...")}
+                className="w-full pl-9 pr-3 py-2 rounded-lg text-[13px] outline-none"
+                style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
+              />
+            </div>
+            <div className="w-48">
+              <Select
+                aria-label={t("sortByLabel")}
+                value={sort}
+                onChange={(e) => setSort(e.target.value as CatalogSort)}
+                options={sortOptions}
+              />
+            </div>
           </div>
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4">
-          {categories.map((category) => {
-            const Icon = category.icon;
-            const active = activeCategory === category.id;
+          {[{ id: "all" as const, name: tx(lang, "Все", "Барлығы", "All"), slug: "all" }, ...categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))].map((category) => {
+            const Icon = iconForCategory(category.slug);
+            const active = activeCategoryId === category.id;
             return (
               <button
-                key={category.id}
+                key={`cat-${category.id}`}
                 type="button"
-                onClick={() => setActiveCategory(category.id)}
+                onClick={() => setActiveCategoryId(category.id)}
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] shrink-0 cursor-pointer"
                 style={{
                   background: active ? "var(--eco-primary)" : "var(--eco-surface-raised)",
@@ -358,17 +410,33 @@ export function HomePage() {
                 }}
               >
                 <Icon size={15} />
-                {tx(lang, category.ru, category.kz, category.en)}
+                {category.name}
               </button>
             );
           })}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredServices.map((service) => (
-            <ServiceCard key={service.name} service={service} language={lang} />
-          ))}
-        </div>
+        {servicesError && (
+          <Card className="mb-4">
+            <span className="text-[13px]" style={{ color: "var(--eco-negative)" }}>{servicesError}</span>
+          </Card>
+        )}
+
+        {servicesLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => <MarketplaceSkeletonCard key={i} />)}
+          </div>
+        ) : filteredServices.length === 0 ? (
+          <Card className="text-center py-10 text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+            {t("marketplaceNoServices")}
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredServices.map((service) => (
+              <CatalogServiceCard key={service.id} service={service} language={lang} t={t} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section style={{ background: "var(--eco-surface)" }} className="px-6 py-12">
@@ -433,26 +501,39 @@ export function HomePage() {
         </div>
       </section>
 
-      <section style={{ background: "var(--eco-surface)" }} className="px-6 py-12 overflow-hidden">
-        <div className="max-w-[1200px] mx-auto mb-6 text-center">
-          <h2 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{tx(lang, "Отзывы участников", "Қатысушылар пікірлері", "Member reviews")}</h2>
-        </div>
-        <div className="ecopay-reviews-marquee" aria-label={tx(lang, "Отзывы EcoPay", "EcoPay пікірлері", "EcoPay reviews")}>
-          <div className="ecopay-reviews-track">
-            {[...reviews, ...reviews].map((review, index) => (
-              <Card key={`${review.name}-${index}`} className="ecopay-review-card flex flex-col gap-4">
-                <div className="flex gap-1" aria-label={tx(lang, "5 звёзд", "5 жұлдыз", "5 stars")}>
-                  {Array.from({ length: 5 }).map((_, starIndex) => (
-                    <Star key={starIndex} size={15} fill="var(--eco-warning-500)" style={{ color: "var(--eco-warning-500)" }} />
-                  ))}
-                </div>
-                <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{tx(lang, review.ru, review.kz, review.en)}</p>
-                <div className="text-[13px] mt-auto" style={{ color: "var(--eco-text)" }}>{review.name}</div>
-              </Card>
-            ))}
+      {featuredReviews.length > 0 && (
+        <section style={{ background: "var(--eco-surface)" }} className="px-6 py-12 overflow-hidden">
+          <div className="max-w-[1200px] mx-auto mb-6 text-center">
+            <h2 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("serviceReviewsTitle")}</h2>
           </div>
-        </div>
-      </section>
+          <div className="ecopay-reviews-marquee" aria-label={t("serviceReviewsTitle")}>
+            <div className="ecopay-reviews-track">
+              {[...featuredReviews, ...featuredReviews].map((review, index) => (
+                <Card key={`${review.id}-${index}`} className="ecopay-review-card flex flex-col gap-4">
+                  <div className="flex gap-1" aria-label={`${review.rating}/5`}>
+                    {Array.from({ length: 5 }).map((_, starIndex) => (
+                      <Star
+                        key={starIndex}
+                        size={15}
+                        fill={starIndex < review.rating ? "var(--eco-warning-500)" : "none"}
+                        style={{ color: starIndex < review.rating ? "var(--eco-warning-500)" : "var(--eco-border)" }}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-[13px] whitespace-pre-wrap" style={{ color: "var(--eco-text-secondary)" }}>{review.text}</p>
+                  <Link
+                    to={`/u/${review.authorPublicId}`}
+                    className="text-[13px] mt-auto"
+                    style={{ color: "var(--eco-text)", textDecoration: "none" }}
+                  >
+                    {review.authorDisplayName}
+                  </Link>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="max-w-[900px] mx-auto px-6 py-12">
         <h2 className="text-[24px] text-center mb-6" style={{ color: "var(--eco-text)" }}>{tx(lang, "Частые вопросы", "Жиі сұрақтар", "FAQ")}</h2>

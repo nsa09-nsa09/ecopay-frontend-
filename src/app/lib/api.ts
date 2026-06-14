@@ -10,6 +10,7 @@ export interface User {
   status: string;
   role: UserRole | string;
   reputation: number;
+  publicId?: string | null;
 }
 
 export interface AuthResponse {
@@ -38,7 +39,12 @@ export interface ServiceDto {
   name: string;
   slug: string;
   providerType: string;
+  minPricePerMember?: number | null;
+  currency?: string | null;
+  tariffCount?: number;
 }
+
+export type CatalogSort = "name_asc" | "name_desc" | "price_asc" | "price_desc" | "newest";
 
 export interface TariffPlanDto {
   id: number;
@@ -50,6 +56,7 @@ export interface TariffPlanDto {
   currency: string;
   connectionType: string;
   operatorRules: string;
+  features?: string[] | null;
 }
 
 export interface RoomSummaryDto {
@@ -115,6 +122,17 @@ interface ErrorPayload {
 }
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api/v1").replace(/\/$/, "");
+
+export function buildSupportWebSocketUrl(accessToken: string) {
+  const wsUrl = new URL(
+    "/ws",
+    /^https?:\/\//.test(API_BASE_URL) ? new URL(API_BASE_URL).origin : window.location.origin,
+  );
+
+  wsUrl.protocol = wsUrl.protocol === "https:" ? "wss:" : "ws:";
+  wsUrl.searchParams.set("token", accessToken);
+  return wsUrl.toString();
+}
 
 export class ApiError extends Error {
   status: number;
@@ -246,7 +264,7 @@ export function getCurrentUser(accessToken: string) {
 }
 
 export function updateCurrentUser(
-  payload: { displayName: string; avatar?: string | null },
+  payload: { displayName: string },
   accessToken: string,
 ) {
   return requestJson<User>(
@@ -290,8 +308,24 @@ export function verifyPhoneRequest(phone: string, code: string, accessToken: str
   );
 }
 
-export function getServices(categoryId?: number) {
-  return requestJson<ServiceDto[]>(`/catalog/services${toSearchParams({ categoryId })}`);
+const servicesCache = new Map<string, Promise<ServiceDto[]>>();
+
+export function getServices(categoryId?: number, sort?: CatalogSort) {
+  const key = `${categoryId ?? ""}::${sort ?? ""}`;
+  const cached = servicesCache.get(key);
+  if (cached) return cached;
+  const promise = requestJson<ServiceDto[]>(
+    `/catalog/services${toSearchParams({ categoryId, sort })}`,
+  ).catch((err) => {
+    servicesCache.delete(key);
+    throw err;
+  });
+  servicesCache.set(key, promise);
+  return promise;
+}
+
+export function clearServicesCache() {
+  servicesCache.clear();
 }
 
 export function getService(serviceId: number) {
@@ -656,6 +690,9 @@ export interface AdminUserDto {
   tickets: number | null;
   disputes: number | null;
   createdAt: string | null;
+  ownerVerified?: boolean | null;
+  publicId?: string | null;
+  lastLoginAt?: string | null;
 }
 
 export interface AdminDecisionRequest {
@@ -664,6 +701,33 @@ export interface AdminDecisionRequest {
 
 export function getAdminDashboardKpisRequest(accessToken: string) {
   return requestJson<AdminDashboardKpisDto>("/admin/dashboard/kpis", {}, accessToken);
+}
+
+export type DashboardGranularity = "day" | "month";
+
+export interface DashboardMetricPoint {
+  period: string;
+  registrations: number;
+  logins: number;
+}
+
+export interface DashboardMetricsResponse {
+  granularity: DashboardGranularity;
+  from: string;
+  to: string;
+  points: DashboardMetricPoint[];
+  newUsersLast30Days?: number | null;
+}
+
+export function getAdminDashboardMetrics(
+  accessToken: string,
+  params: { granularity?: DashboardGranularity; from?: string; to?: string } = {},
+) {
+  return requestJson<DashboardMetricsResponse>(
+    `/admin/dashboard/metrics${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
 }
 
 export function getAdminUsersRequest(
@@ -688,6 +752,47 @@ export function unbanUserRequest(userId: number, reason: string, accessToken: st
   return requestJson<AdminUserDto>(`/admin/users/${userId}/unban`, {
     method: "POST",
     body: JSON.stringify({ reason }),
+  }, accessToken);
+}
+
+export interface CreateAdminUserRequest {
+  email: string;
+  displayName: string;
+  password: string;
+  role: "USER" | "SUPPORT" | "ADMIN";
+  phone?: string;
+}
+
+export function createAdminUserRequest(payload: CreateAdminUserRequest, accessToken: string) {
+  return requestJson<AdminUserDto>("/admin/users", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+export function getAdminUserRequest(userId: number, accessToken: string) {
+  return requestJson<AdminUserDto>(`/admin/users/${userId}`, {}, accessToken);
+}
+
+export function updateAdminUserRoleRequest(
+  userId: number,
+  payload: { role: "USER" | "SUPPORT" | "ADMIN"; reason: string },
+  accessToken: string,
+) {
+  return requestJson<AdminUserDto>(`/admin/users/${userId}/role`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+export function updateAdminUserOwnerVerifiedRequest(
+  userId: number,
+  payload: { verified: boolean; reason?: string },
+  accessToken: string,
+) {
+  return requestJson<AdminUserDto>(`/admin/users/${userId}/owner-verified`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   }, accessToken);
 }
 
@@ -730,6 +835,8 @@ export interface SupportTicketResponse {
   status: string;
   priority: string;
   escalatedToDispute: boolean;
+  assignedAdminId: number | null;
+  assignedAdminDisplayName: string | null;
   createdAt: string;
   updatedAt: string;
   closedAt: string | null;
@@ -779,6 +886,29 @@ export function escalateStaffTicketRequest(ticketId: number, accessToken: string
   return requestJson<SupportTicketResponse>(
     `/staff/support-tickets/${ticketId}/escalate`,
     { method: "POST" },
+    accessToken,
+  );
+}
+
+export function getStaffAssignedSupportTicketsRequest(
+  accessToken: string,
+  params: Record<string, string | number | undefined> = {},
+) {
+  return requestJson<PageResponse<SupportTicketResponse>>(
+    `/staff/support-tickets/assigned${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function postStaffSupportTicketMessageRequest(
+  ticketId: number,
+  message: string,
+  accessToken: string,
+) {
+  return requestJson<SupportTicketResponse>(
+    `/staff/support-tickets/${ticketId}/messages`,
+    { method: "POST", body: JSON.stringify({ message }) },
     accessToken,
   );
 }
@@ -833,6 +963,72 @@ export function decideDisputeRequest(
 ) {
   return requestJson<DisputeResponse>(
     `/admin/disputes/${disputeId}/decision`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export interface OwnerViolationSanctionRequest {
+  createRefund: boolean;
+  paymentTransactionId?: number;
+  refundAmount?: number;
+  reason: string;
+}
+
+export function applyOwnerViolationSanctionRequest(
+  disputeId: number,
+  payload: OwnerViolationSanctionRequest,
+  accessToken: string,
+) {
+  return requestJson<DisputeResponse>(
+    `/admin/disputes/${disputeId}/sanctions/owner-violation`,
+    { method: "POST", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+// ---- Refunds ----
+
+export interface RefundTransactionResponse {
+  id: number;
+  disputeId: number | null;
+  paymentTransactionId: number | null;
+  providerRefundId: string | null;
+  amount: number | string;
+  currency: string | null;
+  status: string;
+  reason: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export function getRefundsByDisputeRequest(disputeId: number, accessToken: string) {
+  return requestJson<RefundTransactionResponse[]>(
+    `/admin/refunds/by-dispute/${disputeId}`,
+    {},
+    accessToken,
+  );
+}
+
+export function markRefundSuccessRequest(
+  refundId: number,
+  payload: { providerRefundId?: string },
+  accessToken: string,
+) {
+  return requestJson<RefundTransactionResponse>(
+    `/admin/refunds/${refundId}/success`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function markRefundFailRequest(
+  refundId: number,
+  payload: { providerRefundId?: string },
+  accessToken: string,
+) {
+  return requestJson<RefundTransactionResponse>(
+    `/admin/refunds/${refundId}/fail`,
     { method: "PATCH", body: JSON.stringify(payload) },
     accessToken,
   );
@@ -1148,4 +1344,357 @@ export function resendVerificationEmailRequest(email: string) {
     method: "POST",
     body: JSON.stringify({ email }),
   });
+}
+
+// ============================================================
+// Public user profile by hash + delete account
+// ============================================================
+
+export interface PublicProfileDto {
+  id: number;
+  publicId: string;
+  displayName: string;
+  avatar: string | null;
+  reputation: number;
+  status: string;
+  averageRating: number | null;
+  reviewsCount: number;
+  completedRoomsCount: number;
+  createdAt: string;
+}
+
+export function getPublicProfile(publicId: string) {
+  return requestJson<PublicProfileDto>(`/users/public/${encodeURIComponent(publicId)}`);
+}
+
+export function deleteMyAccount(accessToken: string) {
+  return requestJson<void>("/users/me", { method: "DELETE" }, accessToken);
+}
+
+export function uploadMyAvatar(file: File, accessToken: string) {
+  const form = new FormData();
+  form.append("file", file);
+  return requestJson<User>(
+    "/users/me/avatar",
+    { method: "POST", body: form },
+    accessToken,
+  );
+}
+
+export function deleteMyAvatar(accessToken: string) {
+  return requestJson<User>("/users/me/avatar", { method: "DELETE" }, accessToken);
+}
+
+// ============================================================
+// Admin catalog CRUD (categories / services / tariffs)
+// ============================================================
+
+export interface AdminCategoryDto {
+  id: number;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  sortOrder: number;
+  servicesCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminServiceDto {
+  id: number;
+  categoryId: number;
+  categoryName: string;
+  name: string;
+  slug: string;
+  providerType: string;
+  isActive: boolean;
+  tariffsCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminTariffDto {
+  id: number;
+  serviceId: number;
+  name: string;
+  periodType: string;
+  maxMembers: number;
+  basePriceTotal: number;
+  currency: string;
+  connectionType: string | null;
+  operatorRules: string | null;
+  features?: string[] | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCategoryPayload {
+  name: string;
+  slug?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export interface UpdateCategoryPayload {
+  name?: string;
+  slug?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export interface CreateServicePayload {
+  categoryId: number;
+  name: string;
+  slug?: string;
+  providerType: string;
+  isActive?: boolean;
+}
+
+export interface UpdateServicePayload {
+  categoryId?: number;
+  name?: string;
+  slug?: string;
+  providerType?: string;
+  isActive?: boolean;
+}
+
+export interface CreateTariffPayload {
+  name: string;
+  periodType: string;
+  maxMembers: number;
+  basePriceTotal: number;
+  currency?: string;
+  connectionType?: string | null;
+  operatorRules?: string | null;
+  features?: string[];
+}
+
+export interface UpdateTariffPayload {
+  name?: string;
+  periodType?: string;
+  maxMembers?: number;
+  basePriceTotal?: number;
+  currency?: string;
+  connectionType?: string | null;
+  operatorRules?: string | null;
+  features?: string[];
+  isActive?: boolean;
+}
+
+export function adminGetCategories(accessToken: string) {
+  return requestJson<AdminCategoryDto[]>("/admin/catalog/categories", {}, accessToken);
+}
+
+export function adminCreateCategory(payload: CreateCategoryPayload, accessToken: string) {
+  return requestJson<AdminCategoryDto>(
+    "/admin/catalog/categories",
+    { method: "POST", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminUpdateCategory(id: number, payload: UpdateCategoryPayload, accessToken: string) {
+  return requestJson<AdminCategoryDto>(
+    `/admin/catalog/categories/${id}`,
+    { method: "PUT", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminDeleteCategory(id: number, accessToken: string) {
+  return requestJson<void>(
+    `/admin/catalog/categories/${id}`,
+    { method: "DELETE" },
+    accessToken,
+  );
+}
+
+export function adminGetServices(accessToken: string, categoryId?: number) {
+  return requestJson<AdminServiceDto[]>(
+    `/admin/catalog/services${toSearchParams({ categoryId })}`,
+    {},
+    accessToken,
+  );
+}
+
+export function adminCreateService(payload: CreateServicePayload, accessToken: string) {
+  return requestJson<AdminServiceDto>(
+    "/admin/catalog/services",
+    { method: "POST", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminUpdateService(id: number, payload: UpdateServicePayload, accessToken: string) {
+  return requestJson<AdminServiceDto>(
+    `/admin/catalog/services/${id}`,
+    { method: "PUT", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminDeleteService(id: number, accessToken: string) {
+  return requestJson<void>(
+    `/admin/catalog/services/${id}`,
+    { method: "DELETE" },
+    accessToken,
+  );
+}
+
+export function adminGetTariffs(serviceId: number, accessToken: string) {
+  return requestJson<AdminTariffDto[]>(
+    `/admin/catalog/services/${serviceId}/tariffs`,
+    {},
+    accessToken,
+  );
+}
+
+export function adminCreateTariff(
+  serviceId: number,
+  payload: CreateTariffPayload,
+  accessToken: string,
+) {
+  return requestJson<AdminTariffDto>(
+    `/admin/catalog/services/${serviceId}/tariffs`,
+    { method: "POST", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminUpdateTariff(id: number, payload: UpdateTariffPayload, accessToken: string) {
+  return requestJson<AdminTariffDto>(
+    `/admin/catalog/tariffs/${id}`,
+    { method: "PUT", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminDeleteTariff(id: number, accessToken: string) {
+  return requestJson<void>(
+    `/admin/catalog/tariffs/${id}`,
+    { method: "DELETE" },
+    accessToken,
+  );
+}
+
+// ============================================================
+// Service reviews (subscription service testimonials)
+// ============================================================
+
+export interface PublicServiceReviewDto {
+  id: number;
+  rating: number;
+  text: string;
+  authorDisplayName: string;
+  authorPublicId: string;
+  createdAt: string;
+}
+
+export interface ServiceReviewDto {
+  id: number;
+  authorId: number;
+  authorDisplayName: string;
+  authorPublicId: string;
+  rating: number;
+  text: string;
+  featured: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminServiceReviewDto {
+  id: number;
+  authorId: number;
+  authorPublicId: string;
+  authorDisplayName: string;
+  authorEmail: string;
+  rating: number;
+  text: string;
+  featured: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ServiceReviewPayload {
+  rating: number;
+  text: string;
+}
+
+export function getFeaturedServiceReviews() {
+  return requestJson<PublicServiceReviewDto[]>("/service-reviews/featured");
+}
+
+export function getMyServiceReview(accessToken: string) {
+  return requestJson<ServiceReviewDto | undefined>("/service-reviews/me", {}, accessToken);
+}
+
+export function createServiceReview(payload: ServiceReviewPayload, accessToken: string) {
+  return requestJson<ServiceReviewDto>(
+    "/service-reviews",
+    { method: "POST", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function updateMyServiceReview(payload: ServiceReviewPayload, accessToken: string) {
+  return requestJson<ServiceReviewDto>(
+    "/service-reviews/me",
+    { method: "PUT", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function deleteMyServiceReview(accessToken: string) {
+  return requestJson<void>("/service-reviews/me", { method: "DELETE" }, accessToken);
+}
+
+export function adminGetServiceReviews(
+  accessToken: string,
+  params: { page?: number; size?: number; featured?: boolean } = {},
+) {
+  const query: Record<string, string | number | undefined> = {
+    page: params.page,
+    size: params.size,
+  };
+  if (params.featured !== undefined) {
+    query.featured = params.featured ? "true" : "false";
+  }
+  return requestJson<PagedResponse<AdminServiceReviewDto>>(
+    `/admin/service-reviews${toSearchParams(query)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function adminSetServiceReviewFeatured(
+  id: number,
+  featured: boolean,
+  accessToken: string,
+) {
+  return requestJson<AdminServiceReviewDto>(
+    `/admin/service-reviews/${id}/featured`,
+    { method: "PATCH", body: JSON.stringify({ featured }) },
+    accessToken,
+  );
+}
+
+export function adminUpdateServiceReview(
+  id: number,
+  payload: { rating?: number; text?: string },
+  accessToken: string,
+) {
+  return requestJson<AdminServiceReviewDto>(
+    `/admin/service-reviews/${id}`,
+    { method: "PUT", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminDeleteServiceReview(id: number, accessToken: string) {
+  return requestJson<void>(
+    `/admin/service-reviews/${id}`,
+    { method: "DELETE" },
+    accessToken,
+  );
 }

@@ -12,16 +12,25 @@ import {
   type RoomResponseDto,
 } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
+import { useI18n, type Language } from "../i18n-provider";
+
+const tx = (l: Language, ru: string, kz: string, en: string) =>
+  l === "ru" ? ru : l === "kz" ? kz : en;
 
 const moneyFormatter = new Intl.NumberFormat("ru-RU");
 const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
-const formatDate = (v: string | null | undefined) => (v ? new Date(v).toLocaleDateString() : "TBD");
+const formatDate = (v: string | null | undefined, l: Language) => {
+  if (!v) return tx(l, "—", "—", "TBD");
+  const locale = l === "ru" ? "ru-RU" : l === "kz" ? "kk-KZ" : "en-US";
+  return new Date(v).toLocaleDateString(locale);
+};
 const formatDateTime = (v: string | null | undefined) => (v ? new Date(v).toLocaleString() : null);
 
 const POST_PAYMENT = new Set(["PENDING", "ACTIVE"]);
 
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { language } = useI18n();
   const roomId = Number(id);
   const { authorizedRequest, user } = useAuth();
 
@@ -38,7 +47,7 @@ export function MemberDetailPage() {
 
   useEffect(() => {
     if (!roomId) {
-      setError("Room not found.");
+      setError(tx(language, "Комната не найдена.", "Бөлме табылмады.", "Room not found."));
       setLoading(false);
       return;
     }
@@ -54,9 +63,9 @@ export function MemberDetailPage() {
       .catch((err) => {
         if (cancelled) return;
         if (err instanceof ApiError && err.status === 404) {
-          setError("You are not a member of this room.");
+          setError(tx(language, "Вы не участник этой комнаты.", "Сіз бұл бөлменің қатысушысы емессіз.", "You are not a member of this room."));
         } else {
-          setError("Unable to load this membership right now.");
+          setError(tx(language, "Не удалось загрузить участие.", "Қатысуды жүктеу мүмкін болмады.", "Unable to load this membership right now."));
         }
       })
       .finally(() => {
@@ -66,7 +75,7 @@ export function MemberDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [roomId, authorizedRequest]);
+  }, [roomId, authorizedRequest, language]);
 
   const handleConfirm = async () => {
     setConfirming(true);
@@ -75,7 +84,7 @@ export function MemberDetailPage() {
       const updated = await authorizedRequest((token) => confirmMemberAccessRequest(roomId, token));
       setMembership(updated);
     } catch (err) {
-      setConfirmError(err instanceof ApiError ? err.message : "Unable to confirm access right now.");
+      setConfirmError(err instanceof ApiError ? err.message : tx(language, "Не удалось подтвердить доступ.", "Қатынасты растау мүмкін болмады.", "Unable to confirm access right now."));
     } finally {
       setConfirming(false);
     }
@@ -91,14 +100,9 @@ export function MemberDetailPage() {
       );
 
       if (intent.status === "SUCCESS") {
-        // Mock gateway charges synchronously: the membership has advanced to
-        // PENDING — re-fetch to drive the timeline forward.
         const updated = await authorizedRequest((token) => getMyMembership(roomId, token));
         setMembership(updated);
       } else if (intent.requiresRedirect && intent.paymentUrl) {
-        // Real Freedom Pay flow: remember which intent/room we're paying for so
-        // the redirect-back page can reconcile and route us back, then hand off
-        // to the hosted payment page.
         window.localStorage.setItem(
           "ecopay.pendingPayment",
           JSON.stringify({ intentId: intent.id, roomId }),
@@ -117,16 +121,16 @@ export function MemberDetailPage() {
   };
 
   if (loading) {
-    return <div className="max-w-[800px] mx-auto px-6 py-8"><Card>Loading membership...</Card></div>;
+    return <div className="max-w-[800px] mx-auto px-6 py-8"><Card>{tx(language, "Загрузка участия...", "Қатысу жүктелуде...", "Loading membership...")}</Card></div>;
   }
 
   if (error || !room || !membership) {
     return (
       <div className="max-w-[800px] mx-auto px-6 py-8">
         <Link to="/rooms" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
-          <ArrowLeft size={14} /> My Rooms
+          <ArrowLeft size={14} /> {tx(language, "Мои комнаты", "Менің бөлмелерім", "My Rooms")}
         </Link>
-        <Card><span style={{ color: "var(--eco-negative)" }}>{error ?? "Membership not found."}</span></Card>
+        <Card><span style={{ color: "var(--eco-negative)" }}>{error ?? tx(language, "Участие не найдено.", "Қатысу табылмады.", "Membership not found.")}</span></Card>
       </div>
     );
   }
@@ -139,22 +143,22 @@ export function MemberDetailPage() {
   const canConfirm = membership.status === "PENDING" && ownerGranted && !memberConfirmed;
 
   const timelineSteps = [
-    { label: "Application submitted", time: null as string | null, done: true },
-    { label: "Payment confirmed", time: null, done: paid, active: !paid },
+    { label: tx(language, "Заявка отправлена", "Өтінім жіберілді", "Application submitted"), time: null as string | null, done: true },
+    { label: tx(language, "Оплата подтверждена", "Төлем расталды", "Payment confirmed"), time: null, done: paid, active: !paid },
     {
-      label: "Owner granted access",
+      label: tx(language, "Владелец выдал доступ", "Иесі қатынас берді", "Owner granted access"),
       time: formatDateTime(membership.ownerAccessConfirmedAt),
       done: ownerGranted,
       active: paid && !ownerGranted,
     },
     {
-      label: "You confirmed access",
+      label: tx(language, "Вы подтвердили доступ", "Сіз қатынасты растадыңыз", "You confirmed access"),
       time: formatDateTime(membership.memberConfirmedAt),
       done: memberConfirmed,
       active: canConfirm,
     },
     {
-      label: "Membership active",
+      label: tx(language, "Участие активно", "Қатысу белсенді", "Membership active"),
       time: formatDateTime(membership.activatedAt),
       done: isActive,
     },
@@ -163,10 +167,9 @@ export function MemberDetailPage() {
   return (
     <div className="max-w-[800px] mx-auto px-6 py-8">
       <Link to="/rooms" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
-        <ArrowLeft size={14} /> My Rooms
+        <ArrowLeft size={14} /> {tx(language, "Мои комнаты", "Менің бөлмелерім", "My Rooms")}
       </Link>
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
         <div>
           <h1 className="text-[26px] mb-1" style={{ color: "var(--eco-text)" }}>{room.title}</h1>
@@ -181,9 +184,8 @@ export function MemberDetailPage() {
       </div>
 
       <div className="flex flex-col gap-6">
-        {/* Status Timeline */}
         <Card className="flex flex-col gap-4">
-          <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>Status Timeline</h3>
+          <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>{tx(language, "Хронология", "Хронология", "Status Timeline")}</h3>
           <div className="flex flex-col gap-0">
             {timelineSteps.map((step, i) => (
               <div key={i} className="flex items-start gap-3">
@@ -219,60 +221,80 @@ export function MemberDetailPage() {
           </div>
         </Card>
 
-        {/* Payment panel when APPLIED — pay your share to reserve the seat */}
         {membership.status === "APPLIED" && (
           <Card className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <CreditCard size={16} style={{ color: "var(--eco-primary)" }} />
-              <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>Complete Payment</h3>
+              <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>
+                {tx(language, "Завершите оплату", "Төлемді аяқтаңыз", "Complete Payment")}
+              </h3>
             </div>
             <div className="p-4 rounded-lg" style={{ background: "var(--eco-surface)" }}>
               <div className="flex justify-between text-[14px] mb-1">
-                <span style={{ color: "var(--eco-text-secondary)" }}>Your share</span>
+                <span style={{ color: "var(--eco-text-secondary)" }}>{tx(language, "Ваша доля", "Сіздің үлесіңіз", "Your share")}</span>
                 <span style={{ color: "var(--eco-text)" }}>{formatMoney(room.pricePerMember)}</span>
               </div>
               <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                Pay to reserve your seat. Funds are held until the owner grants access and you confirm it.
+                {tx(
+                  language,
+                  "Оплатите долю, чтобы закрепить место. Средства удерживаются до выдачи и подтверждения доступа.",
+                  "Орынды сақтау үшін үлесіңізді төлеңіз. Қаражат қатынас берілгенше ұсталады.",
+                  "Pay to reserve your seat. Funds are held until the owner grants access and you confirm it.",
+                )}
               </div>
             </div>
             {user && !user.phoneVerified ? (
               <div className="p-3 rounded-lg text-[13px] flex items-start gap-2" style={{ background: "var(--eco-warning-100)", color: "var(--eco-text-secondary)" }}>
                 <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
                 <span>
-                  Verify your phone number before paying.{" "}
-                  <Link to="/profile" style={{ color: "var(--eco-primary)" }}>Go to profile</Link>.
+                  {tx(language, "Подтвердите номер телефона перед оплатой.", "Төлемнен бұрын телефон нөмірін растаңыз.", "Verify your phone number before paying.")}{" "}
+                  <Link to="/profile" style={{ color: "var(--eco-primary)" }}>
+                    {tx(language, "Перейти в профиль", "Профильге өту", "Go to profile")}
+                  </Link>
+                  .
                 </span>
               </div>
             ) : (
               <>
                 {payError && <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{payError}</p>}
                 <Button variant="primary" size="md" loading={paying} onClick={handlePay}>
-                  <CreditCard size={14} /> Pay {formatMoney(room.pricePerMember)}
+                  <CreditCard size={14} /> {tx(language, "Оплатить", "Төлеу", "Pay")} {formatMoney(room.pricePerMember)}
                 </Button>
               </>
             )}
           </Card>
         )}
 
-        {/* Action panel when PENDING */}
         {membership.status === "PENDING" && (
           <Card className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <Clock size={16} style={{ color: "var(--eco-warning)" }} />
               <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>
-                {ownerGranted ? "Confirm Access" : "Waiting for Access"}
+                {ownerGranted
+                  ? tx(language, "Подтвердите доступ", "Қатынасты растаңыз", "Confirm Access")
+                  : tx(language, "Ожидаем выдачу доступа", "Қатынас күтілуде", "Waiting for Access")}
               </h3>
             </div>
             <div className="p-4 rounded-lg" style={{ background: "var(--eco-warning-100)" }}>
               <div className="text-[14px] mb-1" style={{ color: "var(--eco-text)" }}>
                 {ownerGranted
-                  ? "The owner marked your access as granted"
-                  : "Waiting for the owner to grant access"}
+                  ? tx(language, "Владелец отметил, что доступ выдан", "Иесі қатынас берілді деп белгіледі", "The owner marked your access as granted")
+                  : tx(language, "Ожидаем выдачи доступа от владельца", "Иесінен қатынас күтілуде", "Waiting for the owner to grant access")}
               </div>
               <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
                 {ownerGranted
-                  ? "Verify you can use the plan, then confirm below to activate your membership."
-                  : `The room owner will provide access${membership.accessMethod ? ` via ${membership.accessMethod}` : ""}. If it takes too long, you can open a support ticket.`}
+                  ? tx(
+                      language,
+                      "Проверьте, что тариф вам доступен, и подтвердите ниже, чтобы активировать участие.",
+                      "Тарифке кіре алатыныңызды тексеріп, төменде растаңыз — қатысуыңыз белсендіріледі.",
+                      "Verify you can use the plan, then confirm below to activate your membership.",
+                    )
+                  : tx(
+                      language,
+                      `Владелец предоставит доступ${membership.accessMethod ? ` (${membership.accessMethod})` : ""}. Если задерживается — откройте заявку в поддержку.`,
+                      `Иесі қатынас береді${membership.accessMethod ? ` (${membership.accessMethod})` : ""}. Кешігіп жатса — қолдауға өтінім ашыңыз.`,
+                      `The room owner will provide access${membership.accessMethod ? ` via ${membership.accessMethod}` : ""}. If it takes too long, you can open a support ticket.`,
+                    )}
               </div>
             </div>
             {confirmError && <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{confirmError}</p>}
@@ -285,62 +307,76 @@ export function MemberDetailPage() {
                 loading={confirming}
                 onClick={handleConfirm}
               >
-                {memberConfirmed ? "Access Confirmed" : "Confirm Access Received"}
+                {memberConfirmed
+                  ? tx(language, "Доступ подтверждён", "Қатынас расталды", "Access Confirmed")
+                  : tx(language, "Подтвердить получение доступа", "Қатынас алынды деп растау", "Confirm Access Received")}
               </Button>
               <Link to="/support/new" style={{ textDecoration: "none" }}>
                 <Button variant="secondary" size="md" className="w-full sm:w-auto">
-                  <LifeBuoy size={14} /> Create Support Ticket
+                  <LifeBuoy size={14} /> {tx(language, "Создать заявку в поддержку", "Қолдау өтінімін жасау", "Create Support Ticket")}
                 </Button>
               </Link>
             </div>
           </Card>
         )}
 
-        {/* Blocked notice */}
         {(room.status === "BLOCKED" || membership.status === "BLOCKED_BY_ADMIN") && (
           <Card className="flex items-start gap-3">
             <AlertTriangle size={18} className="mt-0.5 shrink-0" style={{ color: "var(--eco-negative)" }} />
             <div>
-              <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>Room Blocked</div>
+              <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>
+                {tx(language, "Комната заблокирована", "Бөлме бұғатталған", "Room Blocked")}
+              </div>
               <div className="text-[13px] mt-1" style={{ color: "var(--eco-text-secondary)" }}>
-                This room has been blocked by an administrator. Active members will receive refund instructions via email. Contact support for more information.
+                {tx(
+                  language,
+                  "Комната заблокирована администратором. Активные участники получат инструкции по возврату на email. Для подробностей обратитесь в поддержку.",
+                  "Бөлме әкімші тарапынан бұғатталған. Белсенді қатысушыларға қайтару нұсқаулары email-ге жіберіледі. Толығырақ — қолдау қызметіне.",
+                  "This room has been blocked by an administrator. Active members will receive refund instructions via email. Contact support for more information.",
+                )}
               </div>
               <Link to="/support/new" className="inline-flex items-center gap-1 text-[13px] mt-2" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
-                <LifeBuoy size={13} /> Contact Support
+                <LifeBuoy size={13} /> {tx(language, "Связаться с поддержкой", "Қолдаумен байланысу", "Contact Support")}
               </Link>
             </div>
           </Card>
         )}
 
-        {/* Privacy / identifier panel (telecom only) */}
         {isTelecom && membership.identifierMasked && (
           <Card className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <Shield size={16} style={{ color: "var(--eco-primary)" }} />
-              <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>Privacy & Identifier</h3>
+              <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>
+                {tx(language, "Приватность и идентификатор", "Құпиялылық және идентификатор", "Privacy & Identifier")}
+              </h3>
             </div>
             <div className="p-4 rounded-lg" style={{ background: "var(--eco-surface)" }}>
               <div className="text-[14px] mb-2" style={{ color: "var(--eco-text)" }}>
-                Your {membership.identifierType?.toLowerCase() ?? "telecom"} identifier
+                {tx(language, "Ваш идентификатор", "Сіздің идентификаторыңыз", "Your identifier")}
+                {membership.identifierType ? ` (${membership.identifierType.toLowerCase()})` : ""}
               </div>
               <div className="text-[18px] tracking-wider mb-3" style={{ color: "var(--eco-text)", fontFamily: "monospace" }}>
                 {membership.identifierMasked}
               </div>
               <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                Visible to the room owner only after successful payment. Your full identifier is encrypted and stored securely.
+                {tx(
+                  language,
+                  "Полный идентификатор виден владельцу только после успешной оплаты. Данные хранятся зашифрованными.",
+                  "Толық идентификатор тек сәтті төлемнен кейін иесіне көрінеді. Деректер шифрланып сақталады.",
+                  "Visible to the room owner only after successful payment. Your full identifier is encrypted and stored securely.",
+                )}
               </div>
             </div>
           </Card>
         )}
 
-        {/* Plan info summary */}
         <Card className="flex flex-col gap-3">
-          <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>Plan Details</h3>
+          <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>{tx(language, "Параметры тарифа", "Тариф параметрлері", "Plan Details")}</h3>
           {[
-            { label: "Your share", value: `${formatMoney(room.pricePerMember)}/${(room.periodType ?? "").toLowerCase()}` },
-            { label: "Start date", value: formatDate(room.startDate) },
-            { label: "Seats", value: `${room.maxMembers}` },
-            ...(isTelecom ? [{ label: "Access method", value: membership.accessMethod ?? room.connectionType ?? "—" }] : []),
+            { label: tx(language, "Ваша доля", "Сіздің үлесіңіз", "Your share"), value: `${formatMoney(room.pricePerMember)}/${(room.periodType ?? "").toLowerCase()}` },
+            { label: tx(language, "Дата старта", "Басталу күні", "Start date"), value: formatDate(room.startDate, language) },
+            { label: tx(language, "Места", "Орындар", "Seats"), value: `${room.maxMembers}` },
+            ...(isTelecom ? [{ label: tx(language, "Способ доступа", "Қатынас әдісі", "Access method"), value: membership.accessMethod ?? room.connectionType ?? "—" }] : []),
           ].map((row) => (
             <div key={row.label} className="flex justify-between text-[14px]">
               <span style={{ color: "var(--eco-text-secondary)" }}>{row.label}</span>
@@ -350,11 +386,10 @@ export function MemberDetailPage() {
         </Card>
       </div>
 
-      {/* Mobile sticky CTA */}
       {canConfirm && (
         <div className="sm:hidden fixed bottom-0 left-0 right-0 p-4 border-t" style={{ background: "var(--eco-bg)", borderColor: "var(--eco-border)" }}>
           <Button variant="primary" size="lg" className="w-full" loading={confirming} onClick={handleConfirm}>
-            Confirm Access Received
+            {tx(language, "Подтвердить получение доступа", "Қатынас алынды деп растау", "Confirm Access Received")}
           </Button>
         </div>
       )}

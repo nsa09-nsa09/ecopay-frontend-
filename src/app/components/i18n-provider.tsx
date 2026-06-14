@@ -38,11 +38,10 @@ const translations: Translations = {
   createTicket: { ru: "Создать заявку", kz: "Өтінім жасау", en: "Create Ticket" },
   ticketStatus: { ru: "Статус заявки", kz: "Өтінім мәртебесі", en: "Ticket Status" },
   developedBy: { ru: "Разработано Apex Digital", kz: "Apex Digital әзірлеген", en: "Developed by Apex Digital" },
-  copyright: { ru: "© 2026 EcoPay · Алматы, Казахстан", kz: "© 2026 EcoPay · Алматы, Қазақстан", en: "© 2026 EcoPay · Almaty, Kazakhstan" },
+  copyright: { ru: "© 2026 EcoPay · Астана, Казахстан", kz: "© 2026 EcoPay · Астана, Қазақстан", en: "© 2026 EcoPay · Astana, Kazakhstan" },
   
   // ===== Auth Pages =====
-  createAccount: { ru: "Создать аккаунт", kz: "Тіркелгі жасау", en: "Create Account" },
-  joinEcoPay: { ru: "Присоединяйтесь к EcoPay для совместного использования тарифов", kz: "EcoPay-ке қосылыңыз және тарифтерді бөлісіңіз", en: "Join EcoPay to share telecom plans" },
+  createAccount: { ru: "Создать аккаунт", kz: "Тіркелгі жасау", en: "Create Account" }, 
   displayName: { ru: "Отображаемое имя", kz: "Көрсетілетін ат", en: "Display Name" },
   email: { ru: "Эл. почта", kz: "Электрондық пошта", en: "Email" },
   password: { ru: "Пароль", kz: "Құпия сөз", en: "Password" },
@@ -85,7 +84,6 @@ const translations: Translations = {
   music: { ru: "Музыка", kz: "Музыка", en: "Music" },
   aiTools: { ru: "AI инструменты", kz: "AI құралдар", en: "AI Tools" },
   premiumApps: { ru: "Премиум приложения", kz: "Премиум қолданбалар", en: "Premium Apps" },
-  viewAll: { ru: "Смотреть все", kz: "Барлығын көру", en: "View All" },
   
   // ===== Operator Detail Page =====
   familyPlansFor: { ru: "Семейные тарифы {{operator}}", kz: "{{operator}} отбасылық тарифтері", en: "{{operator}} Family Plans" },
@@ -152,8 +150,7 @@ const translations: Translations = {
   reject: { ru: "Отклонить", kz: "Қабылдамау", en: "Reject" },
   remove: { ru: "Удалить", kz: "Жою", en: "Remove" },
   sendReminder: { ru: "Напомнить", kz: "Еске салу", en: "Send Reminder" },
-  viewProfile: { ru: "Профиль", kz: "Профиль", en: "View Profile" },
-  
+
   // ===== Support/Tickets =====
   tickets: { ru: "Заявки", kz: "Өтінімдер", en: "Tickets" },
   myTickets: { ru: "Мои заявки", kz: "Менің өтінімдерім", en: "My Tickets" },
@@ -189,7 +186,6 @@ const translations: Translations = {
   payNow: { ru: "Оплатить", kz: "Төлеу", en: "Pay Now" },
   paymentConfirmation: { ru: "Подтверждение оплаты", kz: "Төлем растамасы", en: "Payment Confirmation" },
   paymentSuccessful: { ru: "Оплата успешна", kz: "Төлем сәтті", en: "Payment Successful" },
-  paymentFailed: { ru: "Ошибка оплаты", kz: "Төлем қатесі", en: "Payment Failed" },
   paymentPending: { ru: "Ожидание оплаты", kz: "Төлемді күту", en: "Payment Pending" },
   transactionId: { ru: "ID транзакции", kz: "Транзакция ID", en: "Transaction ID" },
   amount: { ru: "Сумма", kz: "Сома", en: "Amount" },
@@ -250,6 +246,37 @@ const translations: Translations = {
   // ===== Static Pages =====
   aboutEcoPay: { ru: "О EcoPay", kz: "EcoPay туралы", en: "About EcoPay" },
   ourMission: { ru: "Наша миссия", kz: "Біздің миссия", en: "Our Mission" },
+  aboutSubtitle: {
+    ru: "Надёжная платформа Казахстана для совместных тарифов связи",
+    kz: "Қазақстанның сенімді платформасы — бірлескен байланыс тарифтері үшін",
+    en: "Kazakhstan's trusted platform for shared telecom plans",
+  },
+  missionText: {
+    ru: "EcoPay делает семейные тарифы операторов связи доступными для всех в Казахстане. Присоединяйтесь к общей комнате, разделяйте оплату и экономьте до 70% от ежемесячного счёта — без контрактов и лишних хлопот.",
+    kz: "EcoPay Қазақстандағы отбасылық тарифтерді барлығына қолжетімді етеді. Ортақ бөлмеге қосылып, төлемді бөлісіп, ай сайынғы төлемнен 70%-ға дейін үнемдеңіз — келісімшарттар мен қиындықтар жоқ.",
+    en: "EcoPay makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly bill — no contracts, no hassle.",
+  },
+  trustPrivacyTitle: { ru: "Доверие и приватность прежде всего", kz: "Сенімділік және құпиялылық бірінші орында", en: "Trust & Privacy First" },
+  trustPrivacyText: {
+    ru: "Ваша личная информация никогда не передаётся между пользователями. Все транзакции защищены, а общение происходит через нашу службу поддержки — без прямого контакта между пользователями.",
+    kz: "Жеке ақпаратыңыз пайдаланушылар арасында бөлінбейді. Барлық транзакциялар қорғалған, ал барлық байланыс біздің қолдау қызметі арқылы жүреді — пайдаланушылар арасында тікелей контакт жоқ.",
+    en: "Your personal information is never shared between users. All transactions are secure, and all communication happens through our support system — no direct user-to-user contact.",
+  },
+  bulletVerifiedPayments: { ru: "Проверенная обработка платежей", kz: "Тексерілген төлемдерді өңдеу", en: "Verified payment processing" },
+  bulletNoPersonalContact: { ru: "Личные контактные данные не передаются", kz: "Жеке байланыс мәліметтері бөліспейді", en: "No personal contact details shared" },
+  bulletSupportOnly: { ru: "Модель общения через поддержку", kz: "Тек қолдау арқылы байланыс моделі", en: "Support-only communication model" },
+  howWeHelpTitle: { ru: "Как мы помогаем", kz: "Біз қалай көмектесеміз", en: "How We Help" },
+  howWeHelpText: {
+    ru: "Мы соединяем людей, желающих разделить семейные тарифы ведущих операторов Казахстана: Beeline, Activ, Altel, Tele2 и Kcell. Наша платформа обеспечивает обработку платежей, верификацию и поддержку, чтобы вы могли сосредоточиться на экономии.",
+    kz: "Біз Қазақстанның негізгі операторлары — Beeline, Activ, Altel, Tele2 және Kcell — бойынша отбасылық тарифтерді бөлісуді қалайтын адамдарды біріктіреміз. Біздің платформа төлемдерді, тексеруді және қолдауды қамтамасыз етеді, сонда сіз үнемдеуге назар аударасыз.",
+    en: "We connect people who want to share family plans from Kazakhstan's major telecom operators: Beeline, Activ, Altel, Tele2, and Kcell. Our platform handles payments, verification, and support so you can focus on savings.",
+  },
+  contactGetInTouch: { ru: "Связаться с нами", kz: "Бізбен байланысыңыз", en: "Get in Touch" },
+  contactPhoneNote: { ru: "(Деловой контакт, может измениться до запуска)", kz: "(Іскерлік байланыс, іске қосылғанға дейін өзгеруі мүмкін)", en: "(Business contact, subject to change before launch)" },
+  contactPhoneNumber: { ru: "+7 747 226 6885", kz: "+7 747 226 6885", en: "+7 747 226 6885" },
+  contactEmail: { ru: "support@ecopay.kz", kz: "support@ecopay.kz", en: "support@ecopay.kz" },
+  contactLocation: { ru: "Алматы, Казахстан", kz: "Алматы, Қазақстан", en: "Almaty, Kazakhstan" },
+  buildingTrust: { ru: "Создаём доверие с помощью технологий", kz: "Технология арқылы сенімділікті құру", en: "Building trust through technology" },
   howItWorksTitle: { ru: "Как это работает", kz: "Қалай жұмыс істейді", en: "How It Works" },
   termsOfService: { ru: "Условия использования", kz: "Пайдалану шарттары", en: "Terms of Service" },
   privacyPolicy: { ru: "Политика конфиденциальности", kz: "Құпиялылық саясаты", en: "Privacy Policy" },
@@ -289,14 +316,12 @@ const translations: Translations = {
   
   // ===== Time & Dates =====
   today: { ru: "Сегодня", kz: "Бүгін", en: "Today" },
-  yesterday: { ru: "Вчера", kz: "Кеше", en: "Yesterday" },
   tomorrow: { ru: "Завтра", kz: "Ертең", en: "Tomorrow" },
   thisWeek: { ru: "На этой неделе", kz: "Осы аптада", en: "This Week" },
   thisMonth: { ru: "В этом месяце", kz: "Осы айда", en: "This Month" },
   thisYear: { ru: "В этом году", kz: "Биыл", en: "This Year" },
   
   // ===== Validation Messages =====
-  fieldRequired: { ru: "Это поле обязательно", kz: "Бұл өріс міндетті", en: "This field is required" },
   invalidEmail: { ru: "Неверный email", kz: "Дұрыс емес email", en: "Invalid email" },
   passwordTooShort: { ru: "Пароль слишком короткий", kz: "Құпия сөз тым қысқа", en: "Password too short" },
   passwordsDoNotMatch: { ru: "Пароли не совпадают", kz: "Құпия сөздер сәйкес келмейді", en: "Passwords do not match" },
@@ -327,7 +352,6 @@ const translations: Translations = {
   reviewLocked: { ru: "Вы можете оставить отзыв только после того, как вы поделились комнатой и период завершён.", kz: "Пікір қалдыру үшін бөлмені бөлісіп, кезең аяқталуы керек.", en: "You can review only after you shared a room and the period is completed." },
   reviewEligibilityTitle: { ru: "Кто может оставлять отзывы", kz: "Кім пікір қалдыра алады", en: "Who Can Leave Reviews" },
   reviewEligibilityDesc: { ru: "Только участники из одной комнаты могут оставлять отзывы.", kz: "Тек бір бөлмедегі қатысушылар пікір қалдыра алады.", en: "Only participants from the same room can review." },
-  selectRoom: { ru: "Выберите комнату", kz: "Бөлмені таңдаңыз", en: "Select Room" },
   selectCompletedRoom: { ru: "Выберите завершённую комнату", kz: "Аяқталған бөлмені таңдаңыз", en: "Select a completed room" },
   yourRating: { ru: "Ваша оценка", kz: "Сіздің бағаңыз", en: "Your Rating" },
   reviewText: { ru: "Текст отзыва", kz: "Пікір мәтіні", en: "Review Text" },
@@ -628,8 +652,6 @@ const translations: Translations = {
   moduleSupport: { ru: "Поддержка", kz: "Қолдау", en: "Support" },
   moduleAdmin: { ru: "Админ", kz: "Әкімші", en: "Admin" },
   stateError: { ru: "Ошибка", kz: "Қате", en: "Error" },
-  stateEmpty: { ru: "Пусто", kz: "Бос", en: "Empty" },
-  stateLoading: { ru: "Загрузка", kz: "Жүктелу", en: "Loading" },
   stateInfo: { ru: "Информация", kz: "Ақпарат", en: "Info" },
   recommendedCta: { ru: "Рекомендуемый CTA", kz: "Ұсынылған CTA", en: "Recommended CTA" },
   authLoginError: { ru: "Неверный номер телефона или пароль", kz: "Телефон нөмірі немесе құпия сөз қате", en: "Incorrect phone number or password" },
@@ -1330,6 +1352,124 @@ const translations: Translations = {
   adminDecisionPendingReview: { ru: "Решение администратора — на рассмотрении", kz: "Әкімші шешімі — қарастырылуда", en: "Admin decision — pending review" },
   roomBlockedSupportNote: { ru: "Если вы считаете это ошибкой, обратитесь в поддержку. Возвраты активным участникам обрабатываются в течение 5–7 рабочих дней.", kz: "Бұны қате деп санасаңыз, қолдау қызметіне хабарласыңыз. Белсенді қатысушыларға қайтарулар 5–7 жұмыс күні ішінде өңделеді.", en: "If you believe this is an error, please contact our support team. Refunds for active members are processed within 5–7 business days." },
   backToMyRooms: { ru: "Назад к моим комнатам", kz: "Менің бөлмелеріме оралу", en: "Back to My Rooms" },
+
+  // ===== Catalog: sorting & marketplace =====
+  sortByLabel: { ru: "Сортировка", kz: "Сұрыптау", en: "Sort by" },
+  sortNameAsc: { ru: "Название: А→Я", kz: "Атау: А→Я", en: "Name: A→Z" },
+  sortNameDesc: { ru: "Название: Я→А", kz: "Атау: Я→А", en: "Name: Z→A" },
+  sortPriceAsc: { ru: "Цена: по возрастанию", kz: "Бағасы: өсу", en: "Price: low to high" },
+  sortPriceDesc: { ru: "Цена: по убыванию", kz: "Бағасы: кему", en: "Price: high to low" },
+  sortNewest: { ru: "Сначала новые", kz: "Алдымен жаңалары", en: "Newest first" },
+  marketplaceFromPrice: { ru: "от", kz: "бастап", en: "from" },
+  marketplaceNoTariffs: { ru: "Тарифов пока нет", kz: "Әзірге тарифтер жоқ", en: "No tariffs yet" },
+  marketplaceTariffsCount: { ru: "{{count}} тарифов", kz: "{{count}} тариф", en: "{{count}} tariffs" },
+  marketplaceLoadFailed: { ru: "Не удалось загрузить каталог", kz: "Каталог жүктелмеді", en: "Failed to load catalog" },
+  marketplaceNoServices: { ru: "Сервисы не найдены", kz: "Сервистер табылмады", en: "No services found" },
+
+  // ===== Admin: Catalog =====
+  adminCatalog: { ru: "Каталог", kz: "Каталог", en: "Catalog" },
+  catalogCategoriesTab: { ru: "Категории", kz: "Санаттар", en: "Categories" },
+  catalogServicesTab: { ru: "Сервисы", kz: "Сервистер", en: "Services" },
+  catalogTariffsTab: { ru: "Тарифы", kz: "Тарифтер", en: "Tariffs" },
+  catalogCreateCategory: { ru: "Создать категорию", kz: "Санат жасау", en: "Create category" },
+  catalogCreateService: { ru: "Создать сервис", kz: "Сервис жасау", en: "Create service" },
+  catalogCreateTariff: { ru: "Создать тариф", kz: "Тариф жасау", en: "Create tariff" },
+  catalogEdit: { ru: "Изменить", kz: "Өзгерту", en: "Edit" },
+  catalogDelete: { ru: "Удалить", kz: "Жою", en: "Delete" },
+  catalogActive: { ru: "Активно", kz: "Белсенді", en: "Active" },
+  catalogInactive: { ru: "Неактивно", kz: "Белсенді емес", en: "Inactive" },
+  catalogPickCategory: { ru: "Выберите категорию", kz: "Санатты таңдаңыз", en: "Pick a category" },
+  catalogPickService: { ru: "Выберите сервис", kz: "Сервисті таңдаңыз", en: "Pick a service" },
+  catalogConfirmDelete: { ru: "Подтвердите деактивацию", kz: "Өшіруді растаңыз", en: "Confirm deactivation" },
+  catalogFieldName: { ru: "Название", kz: "Атауы", en: "Name" },
+  catalogFieldSlug: { ru: "Slug (автогенерация)", kz: "Slug (автоматты)", en: "Slug (auto)" },
+  catalogFieldSortOrder: { ru: "Порядок сортировки", kz: "Сұрыптау реті", en: "Sort order" },
+  catalogFieldProviderType: { ru: "Тип провайдера", kz: "Провайдер түрі", en: "Provider type" },
+  catalogFieldPeriodType: { ru: "Период", kz: "Кезең", en: "Period type" },
+  catalogFieldMaxMembers: { ru: "Макс. участников", kz: "Макс. қатысушылар", en: "Max members" },
+  catalogFieldBasePrice: { ru: "Цена тарифа", kz: "Тариф бағасы", en: "Base price total" },
+  catalogFieldCurrency: { ru: "Валюта", kz: "Валюта", en: "Currency" },
+  catalogFieldConnectionType: { ru: "Тип подключения", kz: "Қосылым түрі", en: "Connection type" },
+  catalogFieldOperatorRules: { ru: "Правила оператора", kz: "Оператор ережелері", en: "Operator rules" },
+
+  // ===== Service reviews =====
+  serviceReviewsTitle: { ru: "Отзывы участников", kz: "Қатысушылар пікірлері", en: "Member reviews" },
+  serviceReviewMyTitle: { ru: "Мой отзыв о EcoPay", kz: "EcoPay туралы пікірім", en: "My EcoPay review" },
+  serviceReviewLeavePrompt: { ru: "Оставьте отзыв о сервисе", kz: "Сервис туралы пікір қалдырыңыз", en: "Leave a review about the service" },
+  serviceReviewModerationNote: { ru: "Отзыв проходит модерацию перед показом на главной.", kz: "Пікір басты бетке шығу алдында модерациядан өтеді.", en: "Your review is moderated before appearing on the homepage." },
+  serviceReviewSubmit: { ru: "Отправить отзыв", kz: "Пікір жіберу", en: "Submit review" },
+  serviceReviewSave: { ru: "Сохранить изменения", kz: "Өзгерістерді сақтау", en: "Save changes" },
+  serviceReviewDelete: { ru: "Удалить отзыв", kz: "Пікірді жою", en: "Delete review" },
+  serviceReviewEdit: { ru: "Изменить", kz: "Өзгерту", en: "Edit" },
+  serviceReviewTextLabel: { ru: "Текст отзыва", kz: "Пікір мәтіні", en: "Review text" },
+  serviceReviewRatingLabel: { ru: "Оценка", kz: "Баға", en: "Rating" },
+  serviceReviewSignInPrompt: { ru: "Войдите, чтобы оставить отзыв.", kz: "Пікір қалдыру үшін кіріңіз.", en: "Sign in to leave a review." },
+  serviceReviewFeaturedBadge: { ru: "На главной", kz: "Басты бетте", en: "Featured" },
+  serviceReviewExistsError: { ru: "Вы уже оставляли отзыв.", kz: "Сіз бұрын пікір қалдырғансыз.", en: "You have already left a review." },
+  serviceReviewDeleteConfirm: { ru: "Удалить ваш отзыв?", kz: "Пікіріңізді жою керек пе?", en: "Delete your review?" },
+
+  // ===== Admin: Service reviews moderation =====
+  adminServiceReviews: { ru: "Отзывы о сервисе", kz: "Сервис пікірлері", en: "Service reviews" },
+  adminServiceReviewsAll: { ru: "Все", kz: "Барлығы", en: "All" },
+  adminServiceReviewsFeatured: { ru: "На главной", kz: "Басты бетте", en: "Featured" },
+  adminServiceReviewsNotFeatured: { ru: "Не на главной", kz: "Басты бетте емес", en: "Not featured" },
+  adminServiceReviewFeatureToggle: { ru: "Показывать на главной", kz: "Басты бетте көрсету", en: "Show on homepage" },
+  adminServiceReviewOpenAuthor: { ru: "Открыть профиль автора", kz: "Автор профилін ашу", en: "Open author profile" },
+  adminServiceReviewEditTitle: { ru: "Редактировать отзыв", kz: "Пікірді өңдеу", en: "Edit review" },
+  adminServiceReviewDeleteConfirm: { ru: "Удалить отзыв?", kz: "Пікірді жою керек пе?", en: "Delete this review?" },
+
+  // ===== Public profile by hash & account =====
+  publicProfileLink: { ru: "Моя публичная ссылка", kz: "Менің ашық сілтемем", en: "My public link" },
+  publicProfileCopy: { ru: "Скопировать", kz: "Көшіру", en: "Copy" },
+  publicProfileCopied: { ru: "Скопировано", kz: "Көшірілді", en: "Copied" },
+  publicProfileNotFound: { ru: "Профиль не найден", kz: "Профиль табылмады", en: "Profile not found" },
+  publicProfileSearchTitle: { ru: "Найти пользователя", kz: "Пайдаланушыны табу", en: "Find a user" },
+  publicProfileSearchHint: { ru: "Вставьте публичную ссылку или хэш профиля.", kz: "Ашық сілтемені немесе профиль хэшін қойыңыз.", en: "Paste a public link or profile hash." },
+  publicProfileSearchGo: { ru: "Открыть", kz: "Ашу", en: "Open" },
+  deleteAccountTitle: { ru: "Удалить аккаунт навсегда?", kz: "Тіркелгіні мәңгілікке жою керек пе?", en: "Delete account permanently?" },
+  deleteAccountWarning: { ru: "Аккаунт будет деактивирован, личные данные обезличены. Финансовые записи сохранятся для аудита.", kz: "Тіркелгі өшіріліп, дербес деректер анонимдендіріледі. Қаржы жазбалары аудит үшін сақталады.", en: "Your account will be deactivated and personal data anonymised. Financial records will be retained for audit." },
+  deleteAccountConfirm: { ru: "Да, удалить аккаунт", kz: "Иә, тіркелгіні жою", en: "Yes, delete my account" },
+  deleteAccountFailed: { ru: "Не удалось удалить аккаунт.", kz: "Тіркелгіні жою мүмкін болмады.", en: "Could not delete the account." },
+
+  // ===== Avatar upload =====
+  avatarUpload: { ru: "Загрузить аватар", kz: "Аватарды жүктеу", en: "Upload avatar" },
+  avatarDelete: { ru: "Удалить", kz: "Жою", en: "Remove" },
+  avatarHint: { ru: "PNG или JPEG, до 5 МБ", kz: "PNG немесе JPEG, 5 МБ дейін", en: "PNG or JPEG, up to 5 MB" },
+  viewMyPublicProfile: { ru: "Мой публичный профиль", kz: "Менің ашық профилім", en: "My public profile" },
+
+  // ===== Dashboard chart =====
+  dashboardSignups: { ru: "Регистрации", kz: "Тіркелулер", en: "Registrations" },
+  dashboardLogins: { ru: "Входы", kz: "Кірулер", en: "Logins" },
+  dashboardGranularity: { ru: "Гранулярность", kz: "Бөлшектік", en: "Granularity" },
+  dashboardGranularityMonth: { ru: "Месяц", kz: "Ай", en: "Month" },
+  dashboardGranularityDay: { ru: "День", kz: "Күн", en: "Day" },
+  dashboardRange: { ru: "Период", kz: "Кезең", en: "Range" },
+  dashboardRange12m: { ru: "12 месяцев", kz: "12 ай", en: "12 months" },
+  dashboardRange30d: { ru: "30 дней", kz: "30 күн", en: "30 days" },
+  dashboardChartTitle: { ru: "Регистрации и входы", kz: "Тіркелулер және кірулер", en: "Registrations & logins" },
+  dashboardMetricsLoadFailed: { ru: "Не удалось загрузить метрики", kz: "Метрикалар жүктелмеді", en: "Failed to load metrics" },
+  dashboardNewLast30d: { ru: "Новых за 30 дней", kz: "Соңғы 30 күнде жаңа", en: "New in last 30 days" },
+
+  // ===== Admin users — extras =====
+  openPublicProfile: { ru: "Открыть публичный профиль", kz: "Ашық профильді ашу", en: "Open public profile" },
+  lastLoginLabel: { ru: "Последний вход", kz: "Соңғы кіру", en: "Last login" },
+  lastLoginNever: { ru: "нет данных", kz: "деректер жоқ", en: "no data" },
+
+  // ===== Catalog tariff features =====
+  catalogFieldFeatures: { ru: "Плюшки подписки", kz: "Жазылым артықшылықтары", en: "Subscription features" },
+  catalogFeatureAdd: { ru: "Добавить пункт", kz: "Тармақ қосу", en: "Add item" },
+  catalogFeaturePlaceholder: { ru: "Например: 4K, до 4 устройств", kz: "Мысалы: 4K, 4 құрылғыға дейін", en: "e.g. 4K, up to 4 devices" },
+  catalogActiveToggle: { ru: "Активность", kz: "Белсенділік", en: "Active" },
+
+  // ===== Ban event (realtime) =====
+  bannedHeadline: { ru: "Аккаунт заблокирован", kz: "Тіркелгі бұғатталды", en: "Account blocked" },
+  bannedReasonLabel: { ru: "Причина", kz: "Себебі", en: "Reason" },
+  bannedAtLabel: { ru: "Дата блокировки", kz: "Бұғаттау уақыты", en: "Blocked at" },
+  bannedDescription: {
+    ru: "Доступ к аккаунту закрыт администрацией. Если вы считаете это ошибкой, обратитесь в поддержку.",
+    kz: "Әкімшілік тіркелгіге қолжетімділікті жапты. Бұны қате деп санасаңыз, қолдау қызметіне хабарласыңыз.",
+    en: "Administrators have blocked access to this account. Contact support if you believe this is a mistake.",
+  },
 };
 
 interface I18nContextType {

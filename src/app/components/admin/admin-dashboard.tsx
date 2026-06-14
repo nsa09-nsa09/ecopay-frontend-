@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
-import { Card, Button } from "../ds-primitives";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Card, Button, Select, Skeleton } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import {
   getAdminDashboardKpisRequest,
+  getAdminDashboardMetrics,
   type AdminDashboardKpisDto,
+  type DashboardGranularity,
+  type DashboardMetricsResponse,
 } from "../../lib/api";
 import { formatAdminApiError } from "./admin-action-ui";
 import {
@@ -18,6 +21,16 @@ import {
   TrendingUp,
   RefreshCw,
 } from "lucide-react";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 interface KpiCardConfig {
   key: string;
@@ -38,12 +51,22 @@ function formatMoney(value: number | string | null | undefined): string {
   return `₸${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(num)}`;
 }
 
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
 export function AdminDashboardPage() {
   const { t } = useI18n();
   const { authorizedRequest } = useAuth();
   const [kpis, setKpis] = useState<AdminDashboardKpisDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [granularity, setGranularity] = useState<DashboardGranularity>("month");
+  const [rangeKey, setRangeKey] = useState<"12m" | "30d">("12m");
+  const [metrics, setMetrics] = useState<DashboardMetricsResponse | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(true);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,9 +81,45 @@ export function AdminDashboardPage() {
     }
   }, [authorizedRequest, t]);
 
+  const loadMetrics = useCallback(async () => {
+    setMetricsLoading(true);
+    setMetricsError(null);
+    const to = new Date();
+    const from = new Date(to);
+    if (rangeKey === "12m") from.setMonth(from.getMonth() - 12);
+    else from.setDate(from.getDate() - 30);
+    try {
+      const data = await authorizedRequest((token) =>
+        getAdminDashboardMetrics(token, {
+          granularity,
+          from: isoDate(from),
+          to: isoDate(to),
+        }),
+      );
+      setMetrics(data);
+    } catch (err) {
+      setMetricsError(formatAdminApiError(err, t));
+    } finally {
+      setMetricsLoading(false);
+    }
+  }, [authorizedRequest, granularity, rangeKey, t]);
+
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void loadMetrics();
+  }, [loadMetrics]);
+
+  const chartData = useMemo(() => {
+    if (!metrics) return [];
+    return metrics.points.map((p) => ({
+      period: p.period,
+      [t("dashboardSignups")]: p.registrations,
+      [t("dashboardLogins")]: p.logins,
+    }));
+  }, [metrics, t]);
 
   const renderKpiCards = (): KpiCardConfig[] => {
     if (!kpis) return [];
@@ -167,7 +226,7 @@ export function AdminDashboardPage() {
               })}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 mb-8">
               <Card className="flex flex-col gap-2">
                 <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("rooms")}</div>
                 <div className="grid grid-cols-2 gap-2 text-[13px]">
@@ -183,7 +242,7 @@ export function AdminDashboardPage() {
               </Card>
               <Card className="flex flex-col gap-2">
                 <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("users")}</div>
-                <div className="grid grid-cols-2 gap-2 text-[13px]">
+                <div className="grid grid-cols-3 gap-2 text-[13px]">
                   <div>
                     <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("activeUsersLabel")}</div>
                     <div style={{ color: "var(--eco-text)" }}>{formatCount(kpis.activeUsers)}</div>
@@ -192,9 +251,88 @@ export function AdminDashboardPage() {
                     <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("bannedUsersLabel")}</div>
                     <div style={{ color: "var(--eco-text)" }}>{formatCount(kpis.bannedUsers)}</div>
                   </div>
+                  <div>
+                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("dashboardNewLast30d")}</div>
+                    <div style={{ color: "var(--eco-text)" }}>{formatCount(metrics?.newUsersLast30Days ?? null)}</div>
+                  </div>
                 </div>
               </Card>
             </div>
+
+            <Card className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardChartTitle")}</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-36">
+                    <Select
+                      aria-label={t("dashboardGranularity")}
+                      value={granularity}
+                      onChange={(e) => setGranularity(e.target.value as DashboardGranularity)}
+                      options={[
+                        { value: "month", label: t("dashboardGranularityMonth") },
+                        { value: "day", label: t("dashboardGranularityDay") },
+                      ]}
+                    />
+                  </div>
+                  <div className="w-36">
+                    <Select
+                      aria-label={t("dashboardRange")}
+                      value={rangeKey}
+                      onChange={(e) => setRangeKey(e.target.value as "12m" | "30d")}
+                      options={[
+                        { value: "12m", label: t("dashboardRange12m") },
+                        { value: "30d", label: t("dashboardRange30d") },
+                      ]}
+                    />
+                  </div>
+                  <Button variant="secondary" size="sm" onClick={() => void loadMetrics()} disabled={metricsLoading}>
+                    <RefreshCw size={13} /> {t("retry")}
+                  </Button>
+                </div>
+              </div>
+
+              {metricsError && (
+                <div className="text-[13px]" style={{ color: "var(--eco-negative)" }}>{metricsError}</div>
+              )}
+
+              {metricsLoading && !metrics ? (
+                <Skeleton height={260} />
+              ) : (
+                <div style={{ width: "100%", height: 280 }}>
+                  <ResponsiveContainer>
+                    <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                      <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                      <XAxis dataKey="period" tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
+                      <YAxis allowDecimals={false} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "var(--eco-bg)",
+                          border: "1px solid var(--eco-border)",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          color: "var(--eco-text)",
+                        }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 12 }} />
+                      <Line
+                        type="monotone"
+                        dataKey={t("dashboardSignups")}
+                        stroke="var(--eco-primary)"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey={t("dashboardLogins")}
+                        stroke="var(--eco-warning-500)"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </Card>
           </>
         )}
       </div>

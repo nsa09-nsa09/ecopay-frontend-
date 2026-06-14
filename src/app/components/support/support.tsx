@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { Card, Button, Select, Badge, EmptyState, Skeleton, SkeletonCard } from "../ds-primitives";
 import {
   ArrowLeft, Send, AlertCircle, CheckCircle2,
@@ -9,6 +9,7 @@ import {
 import { toast } from "sonner";
 import {
   ApiError,
+  buildSupportWebSocketUrl,
   createSupportTicketRequest,
   getMySupportTicketRequest,
   getMySupportTicketsRequest,
@@ -16,19 +17,11 @@ import {
   type SupportTicketResponse,
 } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
+import { useI18n, type Language } from "../i18n-provider";
+import { Client } from "@stomp/stompjs";
 
-const TOPIC_OPTIONS = [
-  { value: "access", label: "Access not granted" },
-  { value: "payment", label: "Payment issue" },
-  { value: "wrong_plan", label: "Wrong plan" },
-  { value: "refund", label: "Refund request" },
-  { value: "abuse", label: "Abuse report" },
-  { value: "other", label: "Other" },
-];
-
-const TOPIC_LABELS: Record<string, string> = Object.fromEntries(
-  TOPIC_OPTIONS.map((o) => [o.value, o.label]),
-);
+const tx = (l: Language, ru: string, kz: string, en: string) =>
+  l === "ru" ? ru : l === "kz" ? kz : en;
 
 const TOPIC_VARIANT: Record<string, "default" | "success" | "warning" | "danger" | "info"> = {
   access: "warning",
@@ -45,22 +38,43 @@ const STATUS_VARIANT: Record<string, "default" | "success" | "warning" | "danger
   CLOSED: "success",
 };
 
-function relativeTime(iso: string): string {
+function useTopicOptions() {
+  const { language } = useI18n();
+  return useMemo(
+    () => [
+      { value: "access", label: tx(language, "Доступ не предоставлен", "Қатынас берілмеген", "Access not granted") },
+      { value: "payment", label: tx(language, "Проблема с оплатой", "Төлем мәселесі", "Payment issue") },
+      { value: "wrong_plan", label: tx(language, "Не тот тариф", "Қате тариф", "Wrong plan") },
+      { value: "refund", label: tx(language, "Запрос возврата", "Қайтару сұрауы", "Refund request") },
+      { value: "abuse", label: tx(language, "Жалоба", "Шағым", "Abuse report") },
+      { value: "other", label: tx(language, "Другое", "Басқа", "Other") },
+    ],
+    [language],
+  );
+}
+
+function localizeStatus(l: Language, status: string): string {
+  if (status === "OPEN") return tx(l, "Открыта", "Ашық", "Open");
+  if (status === "IN_PROGRESS") return tx(l, "В работе", "Жұмыста", "In Progress");
+  if (status === "CLOSED") return tx(l, "Закрыта", "Жабық", "Closed");
+  return status.replace("_", " ");
+}
+
+function relativeTime(iso: string, l: Language): string {
   const date = new Date(iso);
   const diffMs = Date.now() - date.getTime();
   const m = Math.floor(diffMs / 60_000);
-  if (m < 1) return "Just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1) return tx(l, "Только что", "Жаңа ғана", "Just now");
+  if (m < 60) return tx(l, `${m} мин назад`, `${m} мин бұрын`, `${m}m ago`);
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return tx(l, `${h} ч назад`, `${h} сағ бұрын`, `${h}h ago`);
   const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d ago`;
+  if (d < 7) return tx(l, `${d} д назад`, `${d} к бұрын`, `${d}d ago`);
   const w = Math.floor(d / 7);
-  if (w < 5) return `${w}w ago`;
+  if (w < 5) return tx(l, `${w} нед назад`, `${w} апта бұрын`, `${w}w ago`);
   return date.toLocaleDateString();
 }
 
-// ─── Ticket List ───
 function TicketListView({
   tickets,
   loading,
@@ -76,6 +90,12 @@ function TicketListView({
   onCreate: () => void;
   onRetry: () => void;
 }) {
+  const { language } = useI18n();
+  const TOPIC_OPTIONS = useTopicOptions();
+  const TOPIC_LABELS: Record<string, string> = useMemo(
+    () => Object.fromEntries(TOPIC_OPTIONS.map((o) => [o.value, o.label])),
+    [TOPIC_OPTIONS],
+  );
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [topicFilter, setTopicFilter] = useState("ALL");
   const [showFilters, setShowFilters] = useState(false);
@@ -90,13 +110,20 @@ function TicketListView({
     <>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-[26px] mb-1" style={{ color: "var(--eco-text)" }}>Support Center</h1>
+          <h1 className="text-[26px] mb-1" style={{ color: "var(--eco-text)" }}>
+            {tx(language, "Центр поддержки", "Қолдау орталығы", "Support Center")}
+          </h1>
           <p className="text-[14px]" style={{ color: "var(--eco-text-secondary)" }}>
-            Manage your support tickets and track resolutions
+            {tx(
+              language,
+              "Управляйте обращениями и отслеживайте их статус",
+              "Өтінімдерді басқарыңыз және мәртебесін бақылаңыз",
+              "Manage your support tickets and track resolutions",
+            )}
           </p>
         </div>
         <Button variant="primary" size="md" onClick={onCreate}>
-          <Plus size={15} /> Create Ticket
+          <Plus size={15} /> {tx(language, "Создать заявку", "Өтінім жасау", "Create Ticket")}
         </Button>
       </div>
 
@@ -108,7 +135,7 @@ function TicketListView({
             style={{ color: "var(--eco-text-secondary)", background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
           >
             <Filter size={14} />
-            Filters
+            {tx(language, "Фильтры", "Сүзгілер", "Filters")}
             {(statusFilter !== "ALL" || topicFilter !== "ALL") && (
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--eco-primary)" }} />
             )}
@@ -121,25 +148,25 @@ function TicketListView({
         <Card className="mb-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Select
-              label="Status"
+              label={tx(language, "Статус", "Мәртебе", "Status")}
               options={[
-                { value: "ALL", label: "All statuses" },
-                { value: "OPEN", label: "Open" },
-                { value: "IN_PROGRESS", label: "In Progress" },
-                { value: "CLOSED", label: "Closed" },
+                { value: "ALL", label: tx(language, "Все статусы", "Барлық мәртебелер", "All statuses") },
+                { value: "OPEN", label: tx(language, "Открыта", "Ашық", "Open") },
+                { value: "IN_PROGRESS", label: tx(language, "В работе", "Жұмыста", "In Progress") },
+                { value: "CLOSED", label: tx(language, "Закрыта", "Жабық", "Closed") },
               ]}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             />
             <Select
-              label="Topic"
-              options={[{ value: "ALL", label: "All topics" }, ...TOPIC_OPTIONS]}
+              label={tx(language, "Тема", "Тақырып", "Topic")}
+              options={[{ value: "ALL", label: tx(language, "Все темы", "Барлық тақырыптар", "All topics") }, ...TOPIC_OPTIONS]}
               value={topicFilter}
               onChange={(e) => setTopicFilter(e.target.value)}
             />
             <div className="flex items-end">
               <Button variant="ghost" size="sm" onClick={() => { setStatusFilter("ALL"); setTopicFilter("ALL"); }}>
-                Clear filters
+                {tx(language, "Сбросить фильтры", "Сүзгілерді тазалау", "Clear filters")}
               </Button>
             </div>
           </div>
@@ -153,21 +180,31 @@ function TicketListView({
           <div className="flex items-center gap-2 text-[14px]" style={{ color: "var(--eco-negative)" }}>
             <AlertCircle size={15} /> {error}
           </div>
-          <Button variant="secondary" size="sm" onClick={onRetry}>Try again</Button>
+          <Button variant="secondary" size="sm" onClick={onRetry}>
+            {tx(language, "Попробовать снова", "Қайта көру", "Try again")}
+          </Button>
         </Card>
       ) : tickets.length === 0 ? (
         <NoTicketsEmpty onCreate={onCreate} />
       ) : filtered.length === 0 ? (
-        <EmptyState title="No Tickets Found" description="No tickets match your current filters. Adjust filters or create a new ticket." />
+        <EmptyState
+          title={tx(language, "Заявки не найдены", "Өтінімдер табылмады", "No Tickets Found")}
+          description={tx(
+            language,
+            "Под выбранные фильтры нет заявок. Измените фильтры или создайте новую заявку.",
+            "Таңдалған сүзгілерге өтінімдер сәйкес келмейді. Сүзгілерді өзгертіңіз немесе жаңа өтінім жасаңыз.",
+            "No tickets match your current filters. Adjust filters or create a new ticket.",
+          )}
+        />
       ) : (
         <div className="flex flex-col gap-2">
           <div className="hidden sm:grid sm:grid-cols-12 gap-3 px-5 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
             <div className="col-span-1">ID</div>
-            <div className="col-span-4">Subject</div>
-            <div className="col-span-2">Topic</div>
-            <div className="col-span-2">Status</div>
-            <div className="col-span-2">Room</div>
-            <div className="col-span-1">Updated</div>
+            <div className="col-span-4">{tx(language, "Тема", "Тақырыбы", "Subject")}</div>
+            <div className="col-span-2">{tx(language, "Категория", "Санат", "Topic")}</div>
+            <div className="col-span-2">{tx(language, "Статус", "Мәртебе", "Status")}</div>
+            <div className="col-span-2">{tx(language, "Комната", "Бөлме", "Room")}</div>
+            <div className="col-span-1">{tx(language, "Обновлено", "Жаңартылды", "Updated")}</div>
           </div>
 
           {filtered.map((t) => (
@@ -183,7 +220,7 @@ function TicketListView({
                     <span className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t.subject}</span>
                     {t.escalatedToDispute && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "var(--eco-danger-100)", color: "var(--eco-danger-500)" }}>
-                        Escalated
+                        {tx(language, "Эскалирована", "Эскалацияланды", "Escalated")}
                       </span>
                     )}
                   </div>
@@ -191,13 +228,13 @@ function TicketListView({
                     <Badge variant={TOPIC_VARIANT[t.topic] ?? "default"}>{TOPIC_LABELS[t.topic] ?? t.topic}</Badge>
                   </div>
                   <div className="col-span-2">
-                    <Badge variant={STATUS_VARIANT[t.status] ?? "default"}>{t.status.replace("_", " ")}</Badge>
+                    <Badge variant={STATUS_VARIANT[t.status] ?? "default"}>{localizeStatus(language, t.status)}</Badge>
                   </div>
                   <div className="col-span-2 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-                    {t.roomId ? `Room #${t.roomId}` : "—"}
+                    {t.roomId ? `${tx(language, "Комната", "Бөлме", "Room")} #${t.roomId}` : "—"}
                   </div>
                   <div className="col-span-1 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                    {relativeTime(t.updatedAt)}
+                    {relativeTime(t.updatedAt, language)}
                   </div>
                 </div>
 
@@ -205,19 +242,23 @@ function TicketListView({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>T-{t.id}</span>
-                      <Badge variant={STATUS_VARIANT[t.status] ?? "default"}>{t.status.replace("_", " ")}</Badge>
+                      <Badge variant={STATUS_VARIANT[t.status] ?? "default"}>{localizeStatus(language, t.status)}</Badge>
                       {t.escalatedToDispute && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "var(--eco-danger-100)", color: "var(--eco-danger-500)" }}>
-                          Escalated
+                          {tx(language, "Эскалирована", "Эскалацияланды", "Escalated")}
                         </span>
                       )}
                     </div>
-                    <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{relativeTime(t.updatedAt)}</span>
+                    <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{relativeTime(t.updatedAt, language)}</span>
                   </div>
                   <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t.subject}</div>
                   <div className="flex items-center gap-2">
                     <Badge variant={TOPIC_VARIANT[t.topic] ?? "default"}>{TOPIC_LABELS[t.topic] ?? t.topic}</Badge>
-                    {t.roomId && <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>Room #{t.roomId}</span>}
+                    {t.roomId && (
+                      <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                        {tx(language, "Комната", "Бөлме", "Room")} #{t.roomId}
+                      </span>
+                    )}
                   </div>
                 </div>
               </button>
@@ -229,9 +270,10 @@ function TicketListView({
   );
 }
 
-// ─── Create Ticket ───
 function CreateTicketView({ onBack, onCreated }: { onBack: () => void; onCreated: (ticketId: number) => void }) {
   const { authorizedRequest, isAuthenticated } = useAuth();
+  const { language } = useI18n();
+  const TOPIC_OPTIONS = useTopicOptions();
   const navigate = useNavigate();
 
   const [subject, setSubject] = useState("");
@@ -261,10 +303,12 @@ function CreateTicketView({ onBack, onCreated }: { onBack: () => void; onCreated
           roomId: parsedRoomId && !Number.isNaN(parsedRoomId) ? parsedRoomId : undefined,
         }, token),
       );
-      toast.success(`Ticket T-${ticket.id} created`);
+      toast.success(tx(language, `Заявка T-${ticket.id} создана`, `T-${ticket.id} өтінімі құрылды`, `Ticket T-${ticket.id} created`));
       onCreated(ticket.id);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Unable to create ticket right now.";
+      const msg = err instanceof ApiError
+        ? err.message
+        : tx(language, "Не удалось создать заявку.", "Өтінім жасау мүмкін болмады.", "Unable to create ticket right now.");
       setError(msg);
     } finally {
       setSubmitting(false);
@@ -274,16 +318,20 @@ function CreateTicketView({ onBack, onCreated }: { onBack: () => void; onCreated
   return (
     <div className="flex flex-col gap-4">
       <button onClick={onBack} className="inline-flex items-center gap-1 text-[13px] cursor-pointer self-start" style={{ color: "var(--eco-primary)", background: "transparent", border: "none" }}>
-        <ArrowLeft size={14} /> Back to Tickets
+        <ArrowLeft size={14} /> {tx(language, "К списку заявок", "Өтінімдерге оралу", "Back to Tickets")}
       </button>
 
-      <h2 className="text-[22px]" style={{ color: "var(--eco-text)" }}>Create Support Ticket</h2>
+      <h2 className="text-[22px]" style={{ color: "var(--eco-text)" }}>
+        {tx(language, "Создать заявку в поддержку", "Қолдау өтінімін жасау", "Create Support Ticket")}
+      </h2>
 
       <Card className="flex flex-col gap-5">
         <div className="flex flex-col gap-1.5">
-          <label style={{ color: "var(--eco-text)", fontSize: 14 }}>Subject</label>
+          <label style={{ color: "var(--eco-text)", fontSize: 14 }}>
+            {tx(language, "Тема", "Тақырыбы", "Subject")}
+          </label>
           <input
-            placeholder="Short summary"
+            placeholder={tx(language, "Краткое описание", "Қысқаша сипаттама", "Short summary")}
             value={subject}
             onChange={(e) => setSubject(e.target.value.slice(0, 200))}
             maxLength={200}
@@ -293,16 +341,18 @@ function CreateTicketView({ onBack, onCreated }: { onBack: () => void; onCreated
         </div>
 
         <Select
-          label="Topic"
+          label={tx(language, "Категория", "Санат", "Topic")}
           options={TOPIC_OPTIONS}
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
         />
 
         <div className="flex flex-col gap-1.5">
-          <label style={{ color: "var(--eco-text)", fontSize: 14 }}>Related Room ID (optional)</label>
+          <label style={{ color: "var(--eco-text)", fontSize: 14 }}>
+            {tx(language, "ID связанной комнаты (опционально)", "Байланысты бөлме ID (міндетті емес)", "Related Room ID (optional)")}
+          </label>
           <input
-            placeholder="e.g. 42"
+            placeholder={tx(language, "например, 42", "мысалы, 42", "e.g. 42")}
             value={roomId}
             onChange={(e) => setRoomId(e.target.value.replace(/\D/g, ""))}
             inputMode="numeric"
@@ -312,10 +362,12 @@ function CreateTicketView({ onBack, onCreated }: { onBack: () => void; onCreated
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label style={{ color: "var(--eco-text)", fontSize: 14 }}>Message</label>
+          <label style={{ color: "var(--eco-text)", fontSize: 14 }}>
+            {tx(language, "Сообщение", "Хабарлама", "Message")}
+          </label>
           <textarea
             rows={5}
-            placeholder="Describe your issue in detail..."
+            placeholder={tx(language, "Опишите проблему подробно...", "Мәселені толық сипаттаңыз...", "Describe your issue in detail...")}
             value={message}
             onChange={(e) => setMessage(e.target.value.slice(0, 5000))}
             maxLength={5000}
@@ -328,7 +380,12 @@ function CreateTicketView({ onBack, onCreated }: { onBack: () => void; onCreated
         <div className="flex items-start gap-2 p-3 rounded-lg" style={{ background: "var(--eco-surface)" }}>
           <AlertCircle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-text-tertiary)" }} />
           <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-            Please avoid repeated messages — our support team will respond within 24 hours.
+            {tx(
+              language,
+              "Пожалуйста, не отправляйте дубли — поддержка ответит в течение 24 часов.",
+              "Қайталанған хабарларды жібермеңіз — қолдау 24 сағат ішінде жауап береді.",
+              "Please avoid repeated messages — our support team will respond within 24 hours.",
+            )}
           </div>
         </div>
 
@@ -343,21 +400,28 @@ function CreateTicketView({ onBack, onCreated }: { onBack: () => void; onCreated
           disabled={!subject.trim() || !message.trim()}
           onClick={handleSubmit}
         >
-          Submit Ticket
+          {tx(language, "Отправить заявку", "Өтінімді жіберу", "Submit Ticket")}
         </Button>
       </Card>
     </div>
   );
 }
 
-// ─── Ticket Detail ───
 function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () => void }) {
   const { authorizedRequest, user } = useAuth();
+  const { language } = useI18n();
+  const TOPIC_OPTIONS = useTopicOptions();
+  const TOPIC_LABELS: Record<string, string> = useMemo(
+    () => Object.fromEntries(TOPIC_OPTIONS.map((o) => [o.value, o.label])),
+    [TOPIC_OPTIONS],
+  );
   const [ticket, setTicket] = useState<SupportTicketResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const stompClientRef = useRef<Client | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -367,11 +431,55 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
       .then((data) => { if (!cancelled) setTicket(data); })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof ApiError ? err.message : "Unable to load this ticket right now.");
+        setError(err instanceof ApiError ? err.message : tx(language, "Не удалось загрузить заявку.", "Өтінімді жүктеу мүмкін болмады.", "Unable to load this ticket right now."));
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [ticketId, authorizedRequest]);
+  }, [ticketId, authorizedRequest, language]);
+
+  // Auto-scroll chat when messages change
+  useEffect(() => {
+    if (chatEndRef.current && chatEndRef.current.parentElement) {
+      chatEndRef.current.parentElement.scrollTop = chatEndRef.current.parentElement.scrollHeight;
+    }
+  }, [ticket?.messages]);
+
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    let cancelled = false;
+    let client: Client | null = null;
+
+    void authorizedRequest(async (token) => {
+      if (cancelled) return null;
+
+      client = new Client({
+        webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl(token)),
+        reconnectDelay: 5000,
+        onConnect: () => {
+          client?.subscribe(`/topic/support-tickets/${ticketId}`, (message) => {
+            setTicket(JSON.parse(message.body) as SupportTicketResponse);
+          });
+        },
+        onStompError: (frame) => {
+          console.error("User support WebSocket error:", frame);
+        },
+        onWebSocketError: (event) => {
+          console.error("User support WebSocket connection error:", event);
+        },
+      });
+
+      client.activate();
+      stompClientRef.current = client;
+      return null;
+    }).catch((err) => {
+      console.error("Unable to start user support WebSocket:", err);
+    });
+
+    return () => {
+      cancelled = true;
+      void client?.deactivate();
+    };
+  }, [authorizedRequest, ticketId]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !ticket) return;
@@ -383,7 +491,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
       setTicket(updated);
       setNewMessage("");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to send message");
+      toast.error(err instanceof ApiError ? err.message : tx(language, "Не удалось отправить сообщение", "Хабарламаны жіберу мүмкін болмады", "Failed to send message"));
     } finally {
       setSending(false);
     }
@@ -402,11 +510,11 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
     return (
       <div className="flex flex-col gap-4">
         <button onClick={onBack} className="inline-flex items-center gap-1 text-[13px] cursor-pointer self-start" style={{ color: "var(--eco-primary)", background: "transparent", border: "none" }}>
-          <ArrowLeft size={14} /> Back to Tickets
+          <ArrowLeft size={14} /> {tx(language, "К списку заявок", "Өтінімдерге оралу", "Back to Tickets")}
         </button>
         <Card>
           <div className="flex items-center gap-2 text-[14px]" style={{ color: "var(--eco-negative)" }}>
-            <AlertCircle size={15} /> {error ?? "Ticket not found."}
+            <AlertCircle size={15} /> {error ?? tx(language, "Заявка не найдена.", "Өтінім табылмады.", "Ticket not found.")}
           </div>
         </Card>
       </div>
@@ -423,7 +531,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
         className="inline-flex items-center gap-1 text-[13px] cursor-pointer self-start mb-4"
         style={{ color: "var(--eco-primary)", background: "transparent", border: "none" }}
       >
-        <ArrowLeft size={14} /> Back to Tickets
+        <ArrowLeft size={14} /> {tx(language, "К списку заявок", "Өтінімдерге оралу", "Back to Tickets")}
       </button>
 
       <Card className="flex flex-col gap-3 mb-4">
@@ -436,12 +544,14 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
 
         <div className="flex flex-wrap items-center gap-3">
           <Badge variant={TOPIC_VARIANT[ticket.topic] ?? "default"}>{TOPIC_LABELS[ticket.topic] ?? ticket.topic}</Badge>
-          <Badge variant={STATUS_VARIANT[ticket.status] ?? "default"}>{ticket.status.replace("_", " ")}</Badge>
+          <Badge variant={STATUS_VARIANT[ticket.status] ?? "default"}>{localizeStatus(language, ticket.status)}</Badge>
           {ticket.roomId && (
-            <span className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>Room #{ticket.roomId}</span>
+            <span className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+              {tx(language, "Комната", "Бөлме", "Room")} #{ticket.roomId}
+            </span>
           )}
           <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-            Created {new Date(ticket.createdAt).toLocaleString()}
+            {tx(language, "Создана", "Құрылды", "Created")} {new Date(ticket.createdAt).toLocaleString()}
           </span>
         </div>
 
@@ -459,7 +569,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
                     {isActive && <CheckCircle2 size={11} style={{ color: "var(--eco-text-on-primary)" }} />}
                   </div>
                   <span className="text-[11px]" style={{ color: isActive ? "var(--eco-text)" : "var(--eco-text-tertiary)" }}>
-                    {s.replace("_", " ")}
+                    {localizeStatus(language, s)}
                   </span>
                 </div>
                 {i < arr.length - 1 && (
@@ -475,9 +585,16 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
         <div className="flex items-start gap-3 p-4 rounded-xl mb-4" style={{ background: "var(--eco-danger-100)", border: "1px solid var(--eco-danger-500)" }}>
           <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: "var(--eco-danger-500)" }} />
           <div>
-            <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>Escalated to Dispute Review</div>
+            <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>
+              {tx(language, "Передано в рассмотрение спора", "Дау қарауына берілді", "Escalated to Dispute Review")}
+            </div>
             <div className="text-[13px] mt-0.5" style={{ color: "var(--eco-text-secondary)" }}>
-              This ticket has been escalated to a dispute review. A senior representative will handle your case.
+              {tx(
+                language,
+                "Заявка передана на рассмотрение спора. Старший представитель возьмёт ваш случай в работу.",
+                "Өтінім дау қарауына берілді. Аға өкіл сіздің ісіңізді қарайды.",
+                "This ticket has been escalated to a dispute review. A senior representative will handle your case.",
+              )}
             </div>
           </div>
         </div>
@@ -487,7 +604,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
         <div className="flex flex-col gap-5 mb-4 flex-1 overflow-y-auto" style={{ maxHeight: 480 }}>
           {ticket.messages.length === 0 && (
             <div className="text-[13px] text-center py-8" style={{ color: "var(--eco-text-tertiary)" }}>
-              No messages yet.
+              {tx(language, "Сообщений пока нет.", "Әзірге хабарламалар жоқ.", "No messages yet.")}
             </div>
           )}
           {ticket.messages.map((m) => {
@@ -500,11 +617,13 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
                     <div className="flex items-center gap-1">
                       <Shield size={11} style={{ color: m.senderRole === "ADMIN" ? "var(--eco-negative)" : "var(--eco-primary)" }} />
                       <span style={{ color: m.senderRole === "ADMIN" ? "var(--eco-negative)" : "var(--eco-primary)" }}>
-                        {m.senderRole === "ADMIN" ? "Admin" : "Support"}
+                        {m.senderRole === "ADMIN"
+                          ? tx(language, "Админ", "Әкімші", "Admin")
+                          : tx(language, "Поддержка", "Қолдау", "Support")}
                       </span>
                     </div>
                   ) : (
-                    <span>{isMine ? "You" : "User"}</span>
+                    <span>{isMine ? tx(language, "Вы", "Сіз", "You") : tx(language, "Пользователь", "Пайдаланушы", "User")}</span>
                   )}
                   <span>·</span>
                   <span>{new Date(m.createdAt).toLocaleString()}</span>
@@ -528,12 +647,13 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
               </div>
             );
           })}
+          <div ref={chatEndRef} />
         </div>
 
         {!isClosed ? (
           <div className="flex items-end gap-2 pt-4 border-t" style={{ borderColor: "var(--eco-border)" }}>
             <textarea
-              placeholder="Type your message..."
+              placeholder={tx(language, "Напишите сообщение...", "Хабарлама жазыңыз...", "Type your message...")}
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value.slice(0, 5000))}
               onKeyDown={handleKeyDown}
@@ -547,7 +667,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
               style={{ background: "var(--eco-primary)", border: "none" }}
               onClick={() => void sendMessage()}
               disabled={!newMessage.trim() || sending}
-              aria-label="Send message"
+              aria-label={tx(language, "Отправить сообщение", "Хабарламаны жіберу", "Send message")}
             >
               {sending ? <Loader2 size={15} className="animate-spin" style={{ color: "var(--eco-text-on-primary)" }} /> : <Send size={15} style={{ color: "var(--eco-text-on-primary)" }} />}
             </button>
@@ -555,7 +675,12 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
         ) : (
           <div className="flex items-center gap-2 pt-4 border-t text-[13px]" style={{ borderColor: "var(--eco-border)", color: "var(--eco-text-tertiary)" }}>
             <CheckCircle2 size={14} />
-            This ticket is closed. Create a new ticket if you need further assistance.
+            {tx(
+              language,
+              "Эта заявка закрыта. Если нужна помощь — создайте новую заявку.",
+              "Бұл өтінім жабылды. Көмек қажет болса, жаңа өтінім жасаңыз.",
+              "This ticket is closed. Create a new ticket if you need further assistance.",
+            )}
           </div>
         )}
       </Card>
@@ -604,17 +729,25 @@ function TicketDetailSkeleton() {
 }
 
 function NoTicketsEmpty({ onCreate }: { onCreate: () => void }) {
+  const { language } = useI18n();
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
       <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5" style={{ background: "var(--eco-surface)" }}>
         <MessageSquare size={28} style={{ color: "var(--eco-text-tertiary)" }} />
       </div>
-      <div className="text-[18px] mb-2" style={{ color: "var(--eco-text)" }}>No Support Tickets</div>
+      <div className="text-[18px] mb-2" style={{ color: "var(--eco-text)" }}>
+        {tx(language, "Заявок в поддержку нет", "Қолдау өтінімдері жоқ", "No Support Tickets")}
+      </div>
       <div className="text-[14px] max-w-sm mb-6" style={{ color: "var(--eco-text-secondary)" }}>
-        You haven't created any support tickets yet. If you're experiencing an issue with a room, payment, or access, our team is here to help.
+        {tx(
+          language,
+          "Вы пока не создавали обращений. Если есть проблема с комнатой, оплатой или доступом — поддержка поможет.",
+          "Әзірге өтінім жасамадыңыз. Бөлмемен, төлеммен немесе қатынаспен мәселе болса — қолдау көмектеседі.",
+          "You haven't created any support tickets yet. If you're experiencing an issue with a room, payment, or access, our team is here to help.",
+        )}
       </div>
       <Button variant="primary" onClick={onCreate}>
-        <Plus size={15} /> Create Your First Ticket
+        <Plus size={15} /> {tx(language, "Создать первую заявку", "Алғашқы өтінім жасау", "Create Your First Ticket")}
       </Button>
     </div>
   );
@@ -622,6 +755,7 @@ function NoTicketsEmpty({ onCreate }: { onCreate: () => void }) {
 
 export function SupportPage() {
   const { authorizedRequest, isAuthenticated, isReady } = useAuth();
+  const { language } = useI18n();
   const navigate = useNavigate();
   const [view, setView] = useState<"list" | "create" | "detail">("list");
   const [selectedTicket, setSelectedTicket] = useState<number | null>(null);
@@ -645,11 +779,11 @@ export function SupportPage() {
       .then((data) => { if (!cancelled) setTickets(data); })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof ApiError ? err.message : "Unable to load tickets right now.");
+        setError(err instanceof ApiError ? err.message : tx(language, "Не удалось загрузить заявки.", "Өтінімдерді жүктеу мүмкін болмады.", "Unable to load tickets right now."));
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [authorizedRequest, isAuthenticated, view, reloadCounter.current]);
+  }, [authorizedRequest, isAuthenticated, view, language]);
 
   const retry = () => {
     reloadCounter.current += 1;
@@ -657,7 +791,7 @@ export function SupportPage() {
     setLoading(true);
     authorizedRequest((token) => getMySupportTicketsRequest(token))
       .then((data) => setTickets(data))
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Unable to load tickets right now."))
+      .catch((err) => setError(err instanceof ApiError ? err.message : tx(language, "Не удалось загрузить заявки.", "Өтінімдерді жүктеу мүмкін болмады.", "Unable to load tickets right now.")))
       .finally(() => setLoading(false));
   };
 

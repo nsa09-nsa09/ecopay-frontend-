@@ -28,6 +28,8 @@ import { AdminUsersPage } from "./components/admin/admin-users";
 import { AdminTicketsPage } from "./components/admin/admin-tickets";
 import { AdminDisputesPage } from "./components/admin/admin-disputes";
 import { AdminLogsPage } from "./components/admin/admin-logs";
+import { AdminCatalogPage } from "./components/admin/admin-catalog";
+import { AdminServiceReviewsPage } from "./components/admin/admin-service-reviews";
 import { AdminRoute } from "./components/admin/admin-route";
 import { PaymentRoomDetailsPage, PaymentCheckoutPage, PaymentConfirmationPage, PaymentPendingPage, RefundStatusPage, OwnerPayoutPage } from "./components/payments/payments";
 import { PaymentReturnPage } from "./components/payments/payment-return";
@@ -100,6 +102,7 @@ export const router = createBrowserRouter([
       { path: "payment/refund", Component: RefundStatusPage },
       { path: "payment/payout", Component: OwnerPayoutPage },
       { path: "user/:id", Component: PublicUserProfilePage },
+      { path: "u/:publicId", Component: PublicUserProfilePage },
       { path: "i18n-typography", Component: I18nTypographyFixPage },
       { path: "states-sla", Component: StatesSlaEdgeCasesPage },
       { path: "privacy-audit", Component: PrivacyAuditPatternsPage },
@@ -137,6 +140,8 @@ export const router = createBrowserRouter([
       { path: "disputes", Component: AdminDisputesPage },
       { path: "refunds", Component: AdminDisputesPage },
       { path: "logs", Component: AdminLogsPage },
+      { path: "catalog", Component: AdminCatalogPage },
+      { path: "service-reviews", Component: AdminServiceReviewsPage },
     ],
   },
 ]);

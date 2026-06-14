@@ -5,8 +5,10 @@ import { Card, Button, Skeleton } from "../ds-primitives";
 import { Star, Shield, AlertCircle, Flag, Info } from "lucide-react";
 import {
   ApiError,
+  getPublicProfile,
   getReputationRequest,
   getReputationReviewsRequest,
+  type PublicProfileDto,
   type ReputationDto,
   type ReviewDto,
 } from "../../lib/api";
@@ -82,44 +84,87 @@ function ReputationExplanationPanel({ isOpen, onClose }: { isOpen: boolean; onCl
 
 export function PublicUserProfilePage() {
   const { t } = useI18n();
-  const { id } = useParams<{ id: string }>();
-  const userId = Number(id);
+  const { id, publicId } = useParams<{ id?: string; publicId?: string }>();
 
   const [reviewFilter, setReviewFilter] = useState<"all" | "positive" | "negative" | "recent">("all");
   const [explanationOpen, setExplanationOpen] = useState(false);
 
   const [reputation, setReputation] = useState<ReputationDto | null>(null);
+  const [profile, setProfile] = useState<PublicProfileDto | null>(null);
   const [reviews, setReviews] = useState<ReviewDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!userId || Number.isNaN(userId)) {
-      setError("Invalid user.");
-      setLoading(false);
-      return;
-    }
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setProfile(null);
 
-    Promise.all([
-      getReputationRequest(userId),
-      getReputationReviewsRequest(userId),
-    ])
-      .then(([rep, rev]) => {
-        if (cancelled) return;
+    async function loadByPublicId(hash: string) {
+      const prof = await getPublicProfile(hash);
+      if (cancelled) return;
+      setProfile(prof);
+      const [rep, rev] = await Promise.all([
+        getReputationRequest(prof.id).catch(() => null),
+        getReputationReviewsRequest(prof.id).catch(() => [] as ReviewDto[]),
+      ]);
+      if (cancelled) return;
+      if (rep) {
         setReputation(rep);
-        setReviews(rev);
-      })
-      .catch((err) => {
+      } else {
+        setReputation({
+          userId: prof.id,
+          displayName: prof.displayName,
+          reputation: prof.reputation,
+          averageRating: prof.averageRating,
+          reviewsCount: prof.reviewsCount,
+          completedRoomsCount: prof.completedRoomsCount,
+        });
+      }
+      setReviews(rev);
+    }
+
+    async function loadByNumericId(uid: number) {
+      const [rep, rev] = await Promise.all([
+        getReputationRequest(uid),
+        getReputationReviewsRequest(uid),
+      ]);
+      if (cancelled) return;
+      setReputation(rep);
+      setReviews(rev);
+    }
+
+    const run = async () => {
+      try {
+        if (publicId) {
+          await loadByPublicId(publicId);
+        } else if (id) {
+          const numeric = Number(id);
+          if (!Number.isNaN(numeric)) {
+            await loadByNumericId(numeric);
+          } else {
+            throw new ApiError(400, "Invalid user.");
+          }
+        } else {
+          throw new ApiError(400, "Invalid user.");
+        }
+      } catch (err) {
         if (cancelled) return;
-        setError(err instanceof ApiError ? err.message : "Unable to load this profile right now.");
-      })
-      .finally(() => { if (!cancelled) setLoading(false); });
+        if (err instanceof ApiError && err.status === 404) {
+          setError(t("publicProfileNotFound"));
+        } else {
+          setError(err instanceof ApiError ? err.message : "Unable to load this profile right now.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    void run();
 
     return () => { cancelled = true; };
-  }, [userId]);
+  }, [id, publicId, t]);
 
   const filteredReviews = reviews
     .filter((r) => {
@@ -186,7 +231,7 @@ export function PublicUserProfilePage() {
               <div className="flex-1 min-w-0">
                 <h2 className="text-[22px]" style={{ color: "var(--eco-text)" }}>{reputation.displayName}</h2>
                 <div className="text-[13px] mt-1" style={{ color: "var(--eco-text-tertiary)" }}>
-                  User #{reputation.userId}
+                  {profile?.publicId ? <span style={{ fontFamily: "monospace" }}>{profile.publicId}</span> : <>User #{reputation.userId}</>}
                 </div>
               </div>
             </div>

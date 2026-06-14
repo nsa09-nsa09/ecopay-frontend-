@@ -1,9 +1,36 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Button, Input, Card } from "../ds-primitives";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "./auth-provider";
+import { consumePersistedBanEvent } from "./auth-provider";
+import { Ban } from "lucide-react";
 import { ApiError } from "../../lib/api";
+
+interface BanInfo {
+  reason: string | null;
+  bannedAt: string | null;
+}
+
+function parseBanFromQuery(search: string): BanInfo | null {
+  const params = new URLSearchParams(search);
+  if (params.get("banned") !== "1") return null;
+  return {
+    reason: params.get("reason"),
+    bannedAt: params.get("bannedAt"),
+  };
+}
+
+function parseBanFromApiError(err: ApiError): BanInfo | null {
+  // Backend sends { code: "ACCOUNT_BANNED", message, errors: { reason, bannedAt } } or
+  // a similar shape. We accept either errors.* or a JSON-encoded errors map.
+  const code = (err.errors as Record<string, string>)?.code;
+  const messageHasCode = /ACCOUNT[_ ]BANNED/i.test(err.message);
+  if (code !== "ACCOUNT_BANNED" && !messageHasCode) return null;
+  const reason = err.errors?.reason ?? null;
+  const bannedAt = err.errors?.bannedAt ?? null;
+  return { reason, bannedAt };
+}
 
 export function LoginPage() {
   const { t } = useI18n();
@@ -17,11 +44,25 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [banInfo, setBanInfo] = useState<BanInfo | null>(null);
+
+  useEffect(() => {
+    // Order of precedence: query params (just-arrived realtime redirect),
+    // then sessionStorage (deep-link survival), then nothing.
+    const fromQuery = parseBanFromQuery(location.search);
+    if (fromQuery) {
+      setBanInfo(fromQuery);
+      return;
+    }
+    const persisted = consumePersistedBanEvent();
+    if (persisted) setBanInfo(persisted);
+  }, [location.search]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setFieldErrors({});
+    setBanInfo(null);
     setLoading(true);
 
     try {
@@ -29,8 +70,13 @@ export function LoginPage() {
       navigate(redirectTarget);
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
-        setFieldErrors(err.errors);
+        const ban = parseBanFromApiError(err);
+        if (ban) {
+          setBanInfo(ban);
+        } else {
+          setError(err.message);
+          setFieldErrors(err.errors);
+        }
       } else {
         setError("Unable to sign in right now.");
       }
@@ -48,6 +94,35 @@ export function LoginPage() {
             {t("welcomeBack")}
           </p>
         </div>
+        {banInfo && (
+          <Card className="mb-4 flex flex-col gap-3" >
+            <div className="flex items-center gap-2">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: "var(--eco-danger-100)" }}
+              >
+                <Ban size={15} style={{ color: "var(--eco-danger-500)" }} />
+              </div>
+              <h2 className="text-[16px]" style={{ color: "var(--eco-text)" }}>
+                {t("bannedHeadline")}
+              </h2>
+            </div>
+            <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+              {t("bannedDescription")}
+            </p>
+            {banInfo.reason && (
+              <div className="text-[13px]">
+                <span style={{ color: "var(--eco-text-tertiary)" }}>{t("bannedReasonLabel")}: </span>
+                <span style={{ color: "var(--eco-text)" }}>{banInfo.reason}</span>
+              </div>
+            )}
+            {banInfo.bannedAt && (
+              <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                {t("bannedAtLabel")}: {new Date(banInfo.bannedAt).toLocaleString()}
+              </div>
+            )}
+          </Card>
+        )}
         <Card>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <Input

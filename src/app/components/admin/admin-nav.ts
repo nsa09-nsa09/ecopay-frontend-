@@ -7,6 +7,8 @@ import {
   Scale,
   Undo2,
   FileText,
+  Layers,
+  Star,
 } from "lucide-react";
 import type { UserRole } from "../../lib/api";
 
@@ -44,6 +46,8 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
   { labelKey: "moderationQueue", path: "/admin/moderation", icon: ShieldCheck, roles: ["ADMIN"], badgeKpi: "pendingModeration" },
   { labelKey: "rooms", path: "/admin/rooms", icon: Home, roles: ["ADMIN"] },
   { labelKey: "users", path: "/admin/users", icon: Users, roles: ["ADMIN"] },
+  { labelKey: "adminCatalog", path: "/admin/catalog", icon: Layers, roles: ["ADMIN"] },
+  { labelKey: "adminServiceReviews", path: "/admin/service-reviews", icon: Star, roles: ["ADMIN"] },
   { labelKey: "tickets", path: "/admin/tickets", icon: MessageSquare, roles: ["ADMIN", "SUPPORT"] },
   { labelKey: "disputes", path: "/admin/disputes", icon: Scale, roles: ["ADMIN"], badgeKpi: "openDisputes" },
   { labelKey: "refunds", path: "/admin/refunds", icon: Undo2, roles: ["ADMIN"] },

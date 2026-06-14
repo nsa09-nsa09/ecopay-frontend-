@@ -183,7 +183,22 @@ export function OperatorPage() {
                   <tbody>
                     {plans.map((plan) => (
                       <tr key={plan.id} style={{ borderBottom: "1px solid var(--eco-border)" }}>
-                        <td className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-text)" }}>{plan.name}</td>
+                        <td className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-text)" }}>
+                          <div>{plan.name}</div>
+                          {plan.features && plan.features.length > 0 && (
+                            <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                              {plan.features.map((f, i) => (
+                                <li
+                                  key={`${plan.id}-f-${i}`}
+                                  className="text-[11px] px-2 py-0.5 rounded-full"
+                                  style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)" }}
+                                >
+                                  {f}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{plan.maxMembers}</td>
                         <td className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-text)" }}>{formatMoney(plan.basePriceTotal)}</td>
                         <td className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-primary)" }}>

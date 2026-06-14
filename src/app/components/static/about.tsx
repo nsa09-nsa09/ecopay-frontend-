@@ -1,17 +1,20 @@
 import { WaveDivider } from "../ds-primitives";
 import { Mail, Phone, MapPin, Shield, Users, Zap } from "lucide-react";
+import { useI18n } from "../i18n-provider";
 
 export function AboutPage() {
+  const { t } = useI18n();
+
   return (
     <div>
       {/* Hero */}
       <div className="py-16 px-6" style={{ background: "var(--eco-surface)" }}>
         <div className="max-w-[800px] mx-auto">
           <h1 className="text-[32px] sm:text-[40px] tracking-tight mb-4" style={{ color: "var(--eco-text)" }}>
-            About EcoPay
+            {t("aboutEcoPay")}
           </h1>
           <p className="text-[16px]" style={{ color: "var(--eco-text-secondary)" }}>
-            Kazakhstan's trusted platform for shared telecom plans
+            {t("aboutSubtitle")}
           </p>
         </div>
       </div>
@@ -26,9 +29,9 @@ export function AboutPage() {
               <Zap size={20} style={{ color: "var(--eco-primary)" }} />
             </div>
             <div>
-              <h2 className="text-[20px] mb-2" style={{ color: "var(--eco-text)" }}>Our Mission</h2>
+              <h2 className="text-[20px] mb-2" style={{ color: "var(--eco-text)" }}>{t("ourMission")}</h2>
               <p className="text-[14px] leading-relaxed" style={{ color: "var(--eco-text-secondary)" }}>
-                EcoPay makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly bill—no contracts, no hassle.
+                {t("missionText")}
               </p>
             </div>
           </div>
@@ -41,22 +44,22 @@ export function AboutPage() {
               <Shield size={20} style={{ color: "var(--eco-primary)" }} />
             </div>
             <div>
-              <h2 className="text-[20px] mb-2" style={{ color: "var(--eco-text)" }}>Trust & Privacy First</h2>
+              <h2 className="text-[20px] mb-2" style={{ color: "var(--eco-text)" }}>{t("trustPrivacyTitle")}</h2>
               <p className="text-[14px] leading-relaxed mb-3" style={{ color: "var(--eco-text-secondary)" }}>
-                Your personal information is never shared between users. All transactions are secure, and all communication happens through our support system—no direct user-to-user contact.
+                {t("trustPrivacyText")}
               </p>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
                   <span className="shrink-0">•</span>
-                  <span>Verified payment processing</span>
+                  <span>{t("bulletVerifiedPayments")}</span>
                 </li>
                 <li className="flex items-start gap-2 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
                   <span className="shrink-0">•</span>
-                  <span>No personal contact details shared</span>
+                  <span>{t("bulletNoPersonalContact")}</span>
                 </li>
                 <li className="flex items-start gap-2 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
                   <span className="shrink-0">•</span>
-                  <span>Support-only communication model</span>
+                  <span>{t("bulletSupportOnly")}</span>
                 </li>
               </ul>
             </div>
@@ -70,9 +73,9 @@ export function AboutPage() {
               <Users size={20} style={{ color: "var(--eco-primary)" }} />
             </div>
             <div>
-              <h2 className="text-[20px] mb-2" style={{ color: "var(--eco-text)" }}>How We Help</h2>
+              <h2 className="text-[20px] mb-2" style={{ color: "var(--eco-text)" }}>{t("howWeHelpTitle")}</h2>
               <p className="text-[14px] leading-relaxed" style={{ color: "var(--eco-text-secondary)" }}>
-                We connect people who want to share family plans from Kazakhstan's major telecom operators: Beeline, Activ, Altel, Tele2, and Kcell. Our platform handles payments, verification, and support so you can focus on savings.
+                {t("howWeHelpText")}
               </p>
             </div>
           </div>
@@ -83,14 +86,14 @@ export function AboutPage() {
 
         {/* Contact Section */}
         <section>
-          <h2 className="text-[20px] mb-6" style={{ color: "var(--eco-text)" }}>Get in Touch</h2>
+          <h2 className="text-[20px] mb-6" style={{ color: "var(--eco-text)" }}>{t("contactGetInTouch")}</h2>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <Phone size={18} className="mt-0.5 shrink-0" style={{ color: "var(--eco-primary)" }} />
               <div>
-                <p className="text-[14px] mb-1" style={{ color: "var(--eco-text)" }}>+7 747 226 6885</p>
+                <p className="text-[14px] mb-1" style={{ color: "var(--eco-text)" }}>{t("contactPhoneNumber")}</p>
                 <p className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                  (Business contact, subject to change before launch)
+                  {t("contactPhoneNote")}
                 </p>
               </div>
             </div>
@@ -98,14 +101,14 @@ export function AboutPage() {
             <div className="flex items-start gap-3">
               <Mail size={18} className="mt-0.5 shrink-0" style={{ color: "var(--eco-primary)" }} />
               <div>
-                <p className="text-[14px]" style={{ color: "var(--eco-text)" }}>support@ecopay.kz</p>
+                <p className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("contactEmail")}</p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
               <MapPin size={18} className="mt-0.5 shrink-0" style={{ color: "var(--eco-primary)" }} />
               <div>
-                <p className="text-[14px]" style={{ color: "var(--eco-text)" }}>Almaty, Kazakhstan</p>
+                <p className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("contactLocation")}</p>
               </div>
             </div>
           </div>
@@ -113,9 +116,9 @@ export function AboutPage() {
           {/* Developer Credit */}
           <div className="mt-8 p-4 rounded-lg" style={{ background: "var(--eco-surface)" }}>
             <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-              <strong style={{ color: "var(--eco-text)" }}>Developed by Apex Digital</strong>
+              <strong style={{ color: "var(--eco-text)" }}>{t("developedBy")}</strong>
               <br />
-              Building trust through technology
+              {t("buildingTrust")}
             </p>
           </div>
         </section>

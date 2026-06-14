@@ -53,15 +53,15 @@ export function AppLayout() {
         className="sticky top-0 z-40 border-b"
         style={{ background: "var(--eco-bg)", borderColor: "var(--eco-border)" }}
       >
-        <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between h-14">
-          <div className="flex items-center gap-6">
+        <div className="w-full px-6 sm:px-8 flex items-center justify-between gap-6 h-16">
+          <div className="flex items-center gap-8 min-w-0">
             <BrandLogo to="/" size="md" className="shrink-0" />
             <div className="hidden md:flex items-center gap-1">
               {navItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
-                  className="px-3 py-1.5 rounded-lg text-[13px] transition-colors"
+                  className="px-3.5 py-1.5 rounded-lg text-[14px] whitespace-nowrap transition-colors"
                   style={{
                     color: location.pathname === item.path ? "var(--eco-primary)" : "var(--eco-text-secondary)",
                     background: location.pathname === item.path ? "var(--eco-brand-50)" : "transparent",
@@ -74,12 +74,12 @@ export function AppLayout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <div className="hidden md:flex items-center relative">
               <Search size={15} className="absolute left-2.5" style={{ color: "var(--eco-text-tertiary)" }} />
               <input
                 placeholder={t("searchPlans")}
-                className="pl-8 pr-3 py-1.5 rounded-lg text-[13px] outline-none w-48"
+                className="pl-8 pr-3 py-1.5 rounded-lg text-[13px] outline-none w-56"
                 style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
               />
             </div>
