@@ -113,11 +113,11 @@ export function AdminDashboardPage() {
   }, [loadMetrics]);
 
   const chartData = useMemo(() => {
-    if (!metrics) return [];
-    return metrics.points.map((p) => ({
+    if (!metrics || !Array.isArray(metrics.series)) return [];
+    return metrics.series.map((p) => ({
       period: p.period,
       [t("dashboardSignups")]: p.registrations,
-      [t("dashboardLogins")]: p.logins,
+      [t("dashboardLogins")]: p.loginsTotal,
     }));
   }, [metrics, t]);
 

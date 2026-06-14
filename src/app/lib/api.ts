@@ -708,14 +708,15 @@ export type DashboardGranularity = "day" | "month";
 export interface DashboardMetricPoint {
   period: string;
   registrations: number;
-  logins: number;
+  loginsTotal: number;
+  uniqueLogins: number;
 }
 
 export interface DashboardMetricsResponse {
   granularity: DashboardGranularity;
   from: string;
   to: string;
-  points: DashboardMetricPoint[];
+  series: DashboardMetricPoint[];
   newUsersLast30Days?: number | null;
 }
 
