@@ -1434,7 +1434,7 @@ const translations: Translations = {
   // ===== Avatar upload =====
   avatarUpload: { ru: "Загрузить аватар", kz: "Аватарды жүктеу", en: "Upload avatar" },
   avatarDelete: { ru: "Удалить", kz: "Жою", en: "Remove" },
-  avatarHint: { ru: "PNG, JPEG или WEBP, до 2 МБ", kz: "PNG, JPEG немесе WEBP, 2 МБ дейін", en: "PNG, JPEG or WEBP, up to 2 MB" },
+  avatarHint: { ru: "PNG или JPEG, до 5 МБ", kz: "PNG немесе JPEG, 5 МБ дейін", en: "PNG or JPEG, up to 5 MB" },
   viewMyPublicProfile: { ru: "Мой публичный профиль", kz: "Менің ашық профилім", en: "My public profile" },
 
   // ===== Dashboard chart =====

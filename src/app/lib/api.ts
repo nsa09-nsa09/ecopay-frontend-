@@ -264,7 +264,7 @@ export function getCurrentUser(accessToken: string) {
 }
 
 export function updateCurrentUser(
-  payload: { displayName: string; avatar?: string | null },
+  payload: { displayName: string },
   accessToken: string,
 ) {
   return requestJson<User>(

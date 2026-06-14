@@ -15,7 +15,6 @@ export function ProfilePage() {
   const { language, t } = useI18n();
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("");
-  const [avatar, setAvatar] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -26,7 +25,6 @@ export function ProfilePage() {
 
   useEffect(() => {
     setDisplayName(user?.displayName ?? "");
-    setAvatar(user?.avatar ?? "");
   }, [user]);
 
   if (!isReady) {
@@ -71,7 +69,6 @@ export function ProfilePage() {
     try {
       await updateProfile({
         displayName,
-        avatar: avatar.trim() || null,
       });
       setMessage(tx(language, "Профиль обновлён.", "Профиль жаңартылды.", "Profile updated."));
     } catch (err) {
@@ -145,13 +142,6 @@ export function ProfilePage() {
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
                 error={fieldErrors.displayName}
-              />
-              <Input
-                label={tx(language, "URL аватара", "Аватар URL", "Avatar URL")}
-                value={avatar}
-                onChange={(event) => setAvatar(event.target.value)}
-                error={fieldErrors.avatar}
-                hint={tx(language, "Опционально — публичный URL картинки", "Міндетті емес — суреттің ашық URL", "Optional public image URL")}
               />
               {error && (
                 <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>
@@ -388,8 +378,10 @@ function PhoneVerificationCard() {
   );
 }
 
-const ACCEPTED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+// Must mirror the backend allowlist/limit (AvatarStorageService + AvatarUploadProperties):
+// PNG/JPEG only, 5 MB. WEBP is not accepted server-side.
+const ACCEPTED_AVATAR_TYPES = ["image/png", "image/jpeg"];
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
 function AvatarUploader() {
   const { user, refreshUser, authorizedRequest } = useAuth();
@@ -413,11 +405,11 @@ function AvatarUploader() {
     setError(null);
 
     if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
-      setError(tx(language, "Поддерживаются PNG, JPEG и WEBP.", "PNG, JPEG және WEBP қолдау көрсетіледі.", "PNG, JPEG and WEBP are supported."));
+      setError(tx(language, "Поддерживаются PNG и JPEG.", "PNG және JPEG қолдау көрсетіледі.", "PNG and JPEG are supported."));
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setError(tx(language, "Файл слишком большой (максимум 2 МБ).", "Файл тым үлкен (максимум 2 МБ).", "File is too large (max 2 MB)."));
+      setError(tx(language, "Файл слишком большой (максимум 5 МБ).", "Файл тым үлкен (максимум 5 МБ).", "File is too large (max 5 MB)."));
       return;
     }
 
