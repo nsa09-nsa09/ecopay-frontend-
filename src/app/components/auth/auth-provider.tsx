@@ -1,6 +1,8 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { Client } from "@stomp/stompjs";
 import {
   ApiError,
+  buildSupportWebSocketUrl,
   type User,
   type TwoFactorChallenge,
   type AuthResponse,
@@ -18,6 +20,40 @@ import {
   updateCurrentUser,
   verifyStaffTwoFactorRequest,
 } from "../../lib/api";
+
+interface BanEvent {
+  type: "BANNED";
+  reason?: string;
+  bannedAt?: string;
+}
+
+const BAN_EVENT_STORAGE_KEY = "ecosplit.banEvent";
+
+export interface PersistedBanEvent {
+  reason: string | null;
+  bannedAt: string | null;
+}
+
+export function consumePersistedBanEvent(): PersistedBanEvent | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(BAN_EVENT_STORAGE_KEY);
+    if (!raw) return null;
+    window.sessionStorage.removeItem(BAN_EVENT_STORAGE_KEY);
+    return JSON.parse(raw) as PersistedBanEvent;
+  } catch {
+    return null;
+  }
+}
+
+function persistBanEvent(reason: string | null, bannedAt: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(BAN_EVENT_STORAGE_KEY, JSON.stringify({ reason, bannedAt }));
+  } catch {
+    /* sessionStorage may be unavailable — ban screen will fall back to generic copy */
+  }
+}
 
 interface SessionState {
   accessToken: string;
@@ -84,11 +120,72 @@ function persistSession(session: SessionState | null) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionState | null>(() => loadStoredSession());
   const [isReady, setIsReady] = useState(false);
+  const banClientRef = useRef<Client | null>(null);
 
   const commitSession = (nextSession: SessionState | null) => {
     setSession(nextSession);
     persistSession(nextSession);
   };
+
+  // Realtime ban listener — when a user is banned by an admin, the backend
+  // publishes a STOMP message at /topic/users/{id}/account. We tear down the
+  // session immediately and bounce to /login with the reason so the same
+  // event in the login page can render it.
+  useEffect(() => {
+    // Tear down any previous subscription if session changes.
+    const tearDown = () => {
+      const client = banClientRef.current;
+      banClientRef.current = null;
+      if (client) {
+        try { void client.deactivate(); } catch { /* ignore */ }
+      }
+    };
+
+    const userId = session?.user?.id;
+    const accessToken = session?.accessToken;
+    if (!userId || !accessToken) {
+      tearDown();
+      return;
+    }
+
+    let active = true;
+    const client = new Client({
+      webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl(accessToken)),
+      reconnectDelay: 5000,
+      onConnect: () => {
+        if (!active) return;
+        client.subscribe(`/topic/users/${userId}/account`, (message) => {
+          try {
+            const event = JSON.parse(message.body) as BanEvent;
+            if (event?.type !== "BANNED") return;
+            persistBanEvent(event.reason ?? null, event.bannedAt ?? null);
+            // Drop session locally — best-effort server logout follows.
+            commitSession(null);
+            tearDown();
+            const params = new URLSearchParams();
+            params.set("banned", "1");
+            if (event.reason) params.set("reason", event.reason);
+            if (event.bannedAt) params.set("bannedAt", event.bannedAt);
+            if (typeof window !== "undefined") {
+              window.location.replace(`/login?${params.toString()}`);
+            }
+          } catch {
+            /* malformed event — ignore */
+          }
+        });
+      },
+      onStompError: () => { /* swallow — ban listener is best-effort */ },
+      onWebSocketError: () => { /* swallow */ },
+    });
+
+    banClientRef.current = client;
+    client.activate();
+
+    return () => {
+      active = false;
+      tearDown();
+    };
+  }, [session?.user?.id, session?.accessToken]);
 
   useEffect(() => {
     let isCancelled = false;

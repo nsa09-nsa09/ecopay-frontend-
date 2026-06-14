@@ -56,6 +56,7 @@ export interface TariffPlanDto {
   currency: string;
   connectionType: string;
   operatorRules: string;
+  features?: string[] | null;
 }
 
 export interface RoomSummaryDto {
@@ -690,6 +691,8 @@ export interface AdminUserDto {
   disputes: number | null;
   createdAt: string | null;
   ownerVerified?: boolean | null;
+  publicId?: string | null;
+  lastLoginAt?: string | null;
 }
 
 export interface AdminDecisionRequest {
@@ -698,6 +701,33 @@ export interface AdminDecisionRequest {
 
 export function getAdminDashboardKpisRequest(accessToken: string) {
   return requestJson<AdminDashboardKpisDto>("/admin/dashboard/kpis", {}, accessToken);
+}
+
+export type DashboardGranularity = "day" | "month";
+
+export interface DashboardMetricPoint {
+  period: string;
+  registrations: number;
+  logins: number;
+}
+
+export interface DashboardMetricsResponse {
+  granularity: DashboardGranularity;
+  from: string;
+  to: string;
+  points: DashboardMetricPoint[];
+  newUsersLast30Days?: number | null;
+}
+
+export function getAdminDashboardMetrics(
+  accessToken: string,
+  params: { granularity?: DashboardGranularity; from?: string; to?: string } = {},
+) {
+  return requestJson<DashboardMetricsResponse>(
+    `/admin/dashboard/metrics${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
 }
 
 export function getAdminUsersRequest(
@@ -1341,6 +1371,20 @@ export function deleteMyAccount(accessToken: string) {
   return requestJson<void>("/users/me", { method: "DELETE" }, accessToken);
 }
 
+export function uploadMyAvatar(file: File, accessToken: string) {
+  const form = new FormData();
+  form.append("file", file);
+  return requestJson<User>(
+    "/users/me/avatar",
+    { method: "POST", body: form },
+    accessToken,
+  );
+}
+
+export function deleteMyAvatar(accessToken: string) {
+  return requestJson<User>("/users/me/avatar", { method: "DELETE" }, accessToken);
+}
+
 // ============================================================
 // Admin catalog CRUD (categories / services / tariffs)
 // ============================================================
@@ -1379,6 +1423,7 @@ export interface AdminTariffDto {
   currency: string;
   connectionType: string | null;
   operatorRules: string | null;
+  features?: string[] | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -1422,6 +1467,7 @@ export interface CreateTariffPayload {
   currency?: string;
   connectionType?: string | null;
   operatorRules?: string | null;
+  features?: string[];
 }
 
 export interface UpdateTariffPayload {
@@ -1432,6 +1478,7 @@ export interface UpdateTariffPayload {
   currency?: string;
   connectionType?: string | null;
   operatorRules?: string | null;
+  features?: string[];
   isActive?: boolean;
 }
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
 import { Card, Button, Badge, Input, Modal, Select } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n, type Language } from "../i18n-provider";
@@ -30,6 +31,8 @@ import {
   RotateCcw,
   Eye,
   EyeOff,
+  ExternalLink,
+  Clock,
   Loader2,
 } from "lucide-react";
 import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from "./admin-action-ui";
@@ -414,6 +417,27 @@ export function AdminUsersPage() {
                       </span>
                     </div>
                   )}
+
+                  <div
+                    className="flex items-center gap-2 text-[12px] pt-3 border-t"
+                    style={{ borderColor: "var(--eco-border)", color: "var(--eco-text-tertiary)" }}
+                  >
+                    <Clock size={12} />
+                    <span>{t("lastLoginLabel")}:</span>
+                    <span style={{ color: "var(--eco-text-secondary)" }}>
+                      {selected.lastLoginAt ? new Date(selected.lastLoginAt).toLocaleString() : t("lastLoginNever")}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {selected.publicId && (
+                      <Link to={`/u/${selected.publicId}`} style={{ textDecoration: "none" }}>
+                        <Button variant="secondary" size="sm">
+                          <ExternalLink size={13} /> {t("openPublicProfile")}
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
 
                   <div className="flex flex-wrap gap-2">
                     <Button variant="secondary" size="sm" onClick={() => openRoleModal(selected)}>

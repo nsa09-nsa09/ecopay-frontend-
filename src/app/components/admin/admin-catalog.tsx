@@ -12,7 +12,7 @@ import {
   Tabs,
 } from "../ds-primitives";
 import { FlashBanner, formatAdminApiError, useFlash } from "./admin-action-ui";
-import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import {
   adminCreateCategory,
   adminCreateService,
@@ -700,6 +700,7 @@ function TariffFormModal({
   const [currency, setCurrency] = useState("KZT");
   const [connectionType, setConnectionType] = useState("");
   const [operatorRules, setOperatorRules] = useState("");
+  const [features, setFeatures] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -713,9 +714,16 @@ function TariffFormModal({
     setCurrency(existing?.currency ?? "KZT");
     setConnectionType(existing?.connectionType ?? "");
     setOperatorRules(existing?.operatorRules ?? "");
+    setFeatures(existing?.features ?? []);
     setIsActive(existing?.isActive ?? true);
     setError(null);
   }, [open, existing]);
+
+  const updateFeature = (index: number, value: string) => {
+    setFeatures((prev) => prev.map((f, i) => (i === index ? value : f)));
+  };
+  const addFeature = () => setFeatures((prev) => [...prev, ""]);
+  const removeFeature = (index: number) => setFeatures((prev) => prev.filter((_, i) => i !== index));
 
   const submit = async () => {
     const members = Number(maxMembers);
@@ -725,6 +733,7 @@ function TariffFormModal({
     if (price <= 0) { setError("base_price_total > 0"); return; }
     setSubmitting(true);
     setError(null);
+    const cleanedFeatures = features.map((f) => f.trim()).filter(Boolean);
     try {
       if (existing) {
         const payload: UpdateTariffPayload = {
@@ -735,6 +744,7 @@ function TariffFormModal({
           currency,
           connectionType: connectionType.trim() || null,
           operatorRules: operatorRules.trim() || null,
+          features: cleanedFeatures,
           isActive,
         };
         await authorizedRequest((token) => adminUpdateTariff(existing.id, payload, token));
@@ -748,6 +758,7 @@ function TariffFormModal({
           currency,
           connectionType: connectionType.trim() || null,
           operatorRules: operatorRules.trim() || null,
+          features: cleanedFeatures,
         };
         await authorizedRequest((token) => adminCreateTariff(serviceId, payload, token));
       }
@@ -784,10 +795,38 @@ function TariffFormModal({
             style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
           />
         </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("catalogFieldFeatures")}</label>
+          <div className="flex flex-col gap-2">
+            {features.map((f, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  value={f}
+                  onChange={(e) => updateFeature(i, e.target.value)}
+                  placeholder={t("catalogFeaturePlaceholder")}
+                  className="flex-1 px-3 py-2 rounded-lg outline-none text-[13px]"
+                  style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeFeature(i)}
+                  className="p-1.5 rounded cursor-pointer"
+                  style={{ background: "transparent", border: "1px solid var(--eco-border)", color: "var(--eco-text-tertiary)" }}
+                  aria-label={t("catalogDelete")}
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ))}
+            <Button variant="ghost" size="sm" onClick={addFeature} className="self-start">
+              <Plus size={13} /> {t("catalogFeatureAdd")}
+            </Button>
+          </div>
+        </div>
         {existing && (
           <label className="flex items-center gap-2 text-[13px]" style={{ color: "var(--eco-text)" }}>
             <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-            {t("catalogActive")}
+            {t("catalogActiveToggle")}
           </label>
         )}
         {error && <div className="text-[13px]" style={{ color: "var(--eco-negative)" }}>{error}</div>}

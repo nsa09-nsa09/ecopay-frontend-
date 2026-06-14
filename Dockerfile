@@ -15,7 +15,15 @@ RUN npm run build
 
 FROM nginx:1.27-alpine
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# nginx official entrypoint runs envsubst on /etc/nginx/templates/*.template
+# at container start, writing the result to /etc/nginx/conf.d/. We whitelist
+# BACKEND_HOST so other "$variable" tokens in the config (Host, remote_addr,
+# proxy_add_x_forwarded_for, scheme, http_upgrade) are NOT substituted at
+# startup — nginx resolves them at request time.
+ENV BACKEND_HOST=backend:8080
+ENV NGINX_ENVSUBST_FILTER='^BACKEND_HOST$'
+
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80

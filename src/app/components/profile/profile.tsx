@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Card, Badge, Button, Input, Modal } from "../ds-primitives";
-import { Shield, UserRound, Mail, Star, Phone, CheckCircle2, Copy, Trash2, Search as SearchIcon } from "lucide-react";
+import { Shield, UserRound, Mail, Star, Phone, CheckCircle2, Copy, Trash2, Upload, Search as SearchIcon } from "lucide-react";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n, type Language } from "../i18n-provider";
-import { ApiError, deleteMyAccount, requestPhoneCodeRequest, resendVerificationEmailRequest, verifyPhoneRequest } from "../../lib/api";
+import { ApiError, deleteMyAccount, deleteMyAvatar, requestPhoneCodeRequest, resendVerificationEmailRequest, uploadMyAvatar, verifyPhoneRequest } from "../../lib/api";
 import { MyServiceReviewCard } from "./my-service-review";
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
@@ -95,13 +95,7 @@ export function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col items-center text-center gap-4">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center text-[20px]" style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)" }}>
-              {user.avatar ? (
-                <img src={user.avatar} alt={user.displayName} className="w-full h-full rounded-full object-cover" />
-              ) : (
-                initials
-              )}
-            </div>
+            <AvatarUploader />
             <div>
               <div className="text-[16px]" style={{ color: "var(--eco-text)" }}>{user.displayName}</div>
               <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{user.email}</div>
@@ -113,6 +107,11 @@ export function ProfilePage() {
                 {tx(language, "репутация", "репутация", "reputation")}
               </span>
             </div>
+            {user.publicId && (
+              <Link to={`/u/${user.publicId}`} className="text-[12px]" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
+                {t("viewMyPublicProfile")}
+              </Link>
+            )}
           </Card>
 
           <Card className="flex flex-col gap-3">
@@ -386,6 +385,118 @@ function PhoneVerificationCard() {
         <p className="text-[12px]" style={{ color: "var(--eco-positive)" }}>{message}</p>
       )}
     </Card>
+  );
+}
+
+const ACCEPTED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
+function AvatarUploader() {
+  const { user, refreshUser, authorizedRequest } = useAuth();
+  const { language, t } = useI18n();
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  if (!user) return null;
+
+  const initials = user.displayName
+    .split(" ")
+    .map((part) => part[0]?.toUpperCase())
+    .join("")
+    .slice(0, 2);
+
+  const displayAvatar = preview ?? user.avatar ?? null;
+
+  const handleFile = async (file: File) => {
+    setError(null);
+
+    if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
+      setError(tx(language, "Поддерживаются PNG, JPEG и WEBP.", "PNG, JPEG және WEBP қолдау көрсетіледі.", "PNG, JPEG and WEBP are supported."));
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setError(tx(language, "Файл слишком большой (максимум 2 МБ).", "Файл тым үлкен (максимум 2 МБ).", "File is too large (max 2 MB)."));
+      return;
+    }
+
+    const localUrl = URL.createObjectURL(file);
+    setPreview(localUrl);
+    setUploading(true);
+    try {
+      await authorizedRequest((token) => uploadMyAvatar(file, token));
+      await refreshUser();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError(t("loadFailedTitle"));
+      }
+    } finally {
+      setUploading(false);
+      URL.revokeObjectURL(localUrl);
+      setPreview(null);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!user.avatar) return;
+    setError(null);
+    setUploading(true);
+    try {
+      await authorizedRequest((token) => deleteMyAvatar(token));
+      await refreshUser();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("loadFailedTitle"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <div
+        className="w-20 h-20 rounded-full flex items-center justify-center text-[22px] overflow-hidden"
+        style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)" }}
+      >
+        {displayAvatar ? (
+          <img src={displayAvatar} alt={user.displayName} className="w-full h-full object-cover" />
+        ) : (
+          initials || "?"
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ACCEPTED_AVATAR_TYPES.join(",")}
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void handleFile(file);
+          }}
+        />
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={uploading}
+          onClick={() => inputRef.current?.click()}
+        >
+          <Upload size={13} /> {t("avatarUpload")}
+        </Button>
+        {user.avatar && !uploading && (
+          <Button variant="ghost" size="sm" onClick={() => void handleDelete()}>
+            <Trash2 size={13} /> {t("avatarDelete")}
+          </Button>
+        )}
+      </div>
+      <span className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
+        {t("avatarHint")}
+      </span>
+      {error && <span className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{error}</span>}
+    </div>
   );
 }
 

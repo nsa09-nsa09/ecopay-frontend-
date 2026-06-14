@@ -1430,6 +1430,46 @@ const translations: Translations = {
   deleteAccountWarning: { ru: "Аккаунт будет деактивирован, личные данные обезличены. Финансовые записи сохранятся для аудита.", kz: "Тіркелгі өшіріліп, дербес деректер анонимдендіріледі. Қаржы жазбалары аудит үшін сақталады.", en: "Your account will be deactivated and personal data anonymised. Financial records will be retained for audit." },
   deleteAccountConfirm: { ru: "Да, удалить аккаунт", kz: "Иә, тіркелгіні жою", en: "Yes, delete my account" },
   deleteAccountFailed: { ru: "Не удалось удалить аккаунт.", kz: "Тіркелгіні жою мүмкін болмады.", en: "Could not delete the account." },
+
+  // ===== Avatar upload =====
+  avatarUpload: { ru: "Загрузить аватар", kz: "Аватарды жүктеу", en: "Upload avatar" },
+  avatarDelete: { ru: "Удалить", kz: "Жою", en: "Remove" },
+  avatarHint: { ru: "PNG, JPEG или WEBP, до 2 МБ", kz: "PNG, JPEG немесе WEBP, 2 МБ дейін", en: "PNG, JPEG or WEBP, up to 2 MB" },
+  viewMyPublicProfile: { ru: "Мой публичный профиль", kz: "Менің ашық профилім", en: "My public profile" },
+
+  // ===== Dashboard chart =====
+  dashboardSignups: { ru: "Регистрации", kz: "Тіркелулер", en: "Registrations" },
+  dashboardLogins: { ru: "Входы", kz: "Кірулер", en: "Logins" },
+  dashboardGranularity: { ru: "Гранулярность", kz: "Бөлшектік", en: "Granularity" },
+  dashboardGranularityMonth: { ru: "Месяц", kz: "Ай", en: "Month" },
+  dashboardGranularityDay: { ru: "День", kz: "Күн", en: "Day" },
+  dashboardRange: { ru: "Период", kz: "Кезең", en: "Range" },
+  dashboardRange12m: { ru: "12 месяцев", kz: "12 ай", en: "12 months" },
+  dashboardRange30d: { ru: "30 дней", kz: "30 күн", en: "30 days" },
+  dashboardChartTitle: { ru: "Регистрации и входы", kz: "Тіркелулер және кірулер", en: "Registrations & logins" },
+  dashboardMetricsLoadFailed: { ru: "Не удалось загрузить метрики", kz: "Метрикалар жүктелмеді", en: "Failed to load metrics" },
+  dashboardNewLast30d: { ru: "Новых за 30 дней", kz: "Соңғы 30 күнде жаңа", en: "New in last 30 days" },
+
+  // ===== Admin users — extras =====
+  openPublicProfile: { ru: "Открыть публичный профиль", kz: "Ашық профильді ашу", en: "Open public profile" },
+  lastLoginLabel: { ru: "Последний вход", kz: "Соңғы кіру", en: "Last login" },
+  lastLoginNever: { ru: "нет данных", kz: "деректер жоқ", en: "no data" },
+
+  // ===== Catalog tariff features =====
+  catalogFieldFeatures: { ru: "Плюшки подписки", kz: "Жазылым артықшылықтары", en: "Subscription features" },
+  catalogFeatureAdd: { ru: "Добавить пункт", kz: "Тармақ қосу", en: "Add item" },
+  catalogFeaturePlaceholder: { ru: "Например: 4K, до 4 устройств", kz: "Мысалы: 4K, 4 құрылғыға дейін", en: "e.g. 4K, up to 4 devices" },
+  catalogActiveToggle: { ru: "Активность", kz: "Белсенділік", en: "Active" },
+
+  // ===== Ban event (realtime) =====
+  bannedHeadline: { ru: "Аккаунт заблокирован", kz: "Тіркелгі бұғатталды", en: "Account blocked" },
+  bannedReasonLabel: { ru: "Причина", kz: "Себебі", en: "Reason" },
+  bannedAtLabel: { ru: "Дата блокировки", kz: "Бұғаттау уақыты", en: "Blocked at" },
+  bannedDescription: {
+    ru: "Доступ к аккаунту закрыт администрацией. Если вы считаете это ошибкой, обратитесь в поддержку.",
+    kz: "Әкімшілік тіркелгіге қолжетімділікті жапты. Бұны қате деп санасаңыз, қолдау қызметіне хабарласыңыз.",
+    en: "Administrators have blocked access to this account. Contact support if you believe this is a mistake.",
+  },
 };
 
 interface I18nContextType {
