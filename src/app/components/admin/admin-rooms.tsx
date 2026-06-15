@@ -86,7 +86,7 @@ export function AdminRoomsPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("rooms")}</h1>
           <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw size={13} /> {t("retry")}
@@ -182,9 +182,9 @@ export function AdminRoomsPage() {
             ) : (
               <div className="flex flex-col gap-4">
                 <Card className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-[18px]" style={{ color: "var(--eco-text)" }}>{selected.title}</div>
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <div className="text-[18px] break-words" style={{ color: "var(--eco-text)" }}>{selected.title}</div>
                       <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
                         R-{selected.id} · {selected.serviceName}
                       </div>
@@ -192,7 +192,7 @@ export function AdminRoomsPage() {
                     <RoomStatusBadge status={selected.status} />
                   </div>
 
-                  <div className="grid grid-cols-4 gap-3 text-[13px]">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[13px]">
                     {[
                       { label: t("seats"), value: `${selected.maxMembers}` },
                       { label: t("startLabel"), value: selected.startDate },

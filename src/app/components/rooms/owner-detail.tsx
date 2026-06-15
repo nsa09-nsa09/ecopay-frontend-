@@ -138,13 +138,13 @@ export function OwnerDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-[1000px] mx-auto px-6 py-8"><Card>{tx(language, "Загрузка комнаты...", "Бөлме жүктелуде...", "Loading room...")}</Card></div>
+      <div className="max-w-[1000px] mx-auto px-4 sm:px-6 py-8"><Card>{tx(language, "Загрузка комнаты...", "Бөлме жүктелуде...", "Loading room...")}</Card></div>
     );
   }
 
   if (error || !room) {
     return (
-      <div className="max-w-[1000px] mx-auto px-6 py-8">
+      <div className="max-w-[1000px] mx-auto px-4 sm:px-6 py-8">
         <Link to="/rooms" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
           <ArrowLeft size={14} /> {tx(language, "Мои комнаты", "Менің бөлмелерім", "My Rooms")}
         </Link>
@@ -160,14 +160,14 @@ export function OwnerDetailPage() {
   const revenue = occupied * Number(room.pricePerMember ?? 0);
 
   return (
-    <div className="max-w-[1000px] mx-auto px-6 py-8">
+    <div className="max-w-[1000px] mx-auto px-4 sm:px-6 py-8">
       <Link to="/rooms" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
         <ArrowLeft size={14} /> {tx(language, "Мои комнаты", "Менің бөлмелерім", "My Rooms")}
       </Link>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
-        <div>
-          <h1 className="text-[26px] mb-1" style={{ color: "var(--eco-text)" }}>{room.title}</h1>
+        <div className="min-w-0">
+          <h1 className="text-[22px] sm:text-[26px] mb-1 break-words" style={{ color: "var(--eco-text)" }}>{room.title}</h1>
           <div className="text-[14px]" style={{ color: "var(--eco-text-secondary)" }}>
             {room.providerName} · {tx(language, "Вид владельца", "Иесі көрінісі", "Owner view")}
           </div>
@@ -196,11 +196,11 @@ export function OwnerDetailPage() {
                   return (
                     <div key={p.id} className="p-4 rounded-lg flex flex-col gap-3" style={{ background: "var(--eco-surface)" }}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-[12px]" style={{ background: "var(--eco-neutral-100)", color: "var(--eco-text-secondary)" }}>
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] shrink-0" style={{ background: "var(--eco-neutral-100)", color: "var(--eco-text-secondary)" }}>
                             {(p.userDisplayName || "?").charAt(0).toUpperCase()}
                           </div>
-                          <span className="text-[14px]" style={{ color: "var(--eco-text)" }}>{p.userDisplayName}</span>
+                          <span className="text-[14px] break-words" style={{ color: "var(--eco-text)" }}>{p.userDisplayName}</span>
                           <MemberStatusBadge status={p.status} />
                           {p.requiresAdminReview && <Badge variant="warning">{tx(language, "Проверка", "Тексеру", "Review")}</Badge>}
                         </div>

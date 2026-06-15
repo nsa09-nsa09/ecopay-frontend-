@@ -108,7 +108,7 @@ export function OperatorPage() {
 
   if (loading) {
     return (
-      <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
         <Card>{t("loadingOperator")}</Card>
       </div>
     );
@@ -116,7 +116,7 @@ export function OperatorPage() {
 
   if (error || !service) {
     return (
-      <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
         <Link to="/" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
           <ArrowLeft size={14} /> {t("catalog")}
         </Link>
@@ -131,20 +131,20 @@ export function OperatorPage() {
   const noPlans = plans.length === 0;
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6 py-8">
+    <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
       <Link to="/" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
         <ArrowLeft size={14} /> {t("catalog")}
       </Link>
 
       <div className="flex items-center gap-4 mb-8">
         <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center text-[18px]"
+          className="w-12 h-12 rounded-xl flex items-center justify-center text-[18px] shrink-0"
           style={{ background: `${getOperatorColor(service)}18`, color: getOperatorColor(service) }}
         >
           {service.name.charAt(0)}
         </div>
-        <div>
-          <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{service.name}</h1>
+        <div className="min-w-0">
+          <h1 className="text-[22px] sm:text-[24px] break-words" style={{ color: "var(--eco-text)" }}>{service.name}</h1>
           <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
             {noPlans ? t("noFamilyGroupPlans") : t("plansOpenRooms", { plans: plans.length, rooms: rooms.length })}
           </p>
@@ -170,7 +170,7 @@ export function OperatorPage() {
           {tab === "plans" && (
             <div className="mt-6">
               <div className="overflow-x-auto rounded-xl border" style={{ borderColor: "var(--eco-border)" }}>
-                <table className="w-full">
+                <table className="w-full min-w-[640px]">
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--eco-border)" }}>
                       {[t("plan"), t("members"), t("colTotalPerPeriod"), t("colPerMember"), t("connection")].map((heading) => (

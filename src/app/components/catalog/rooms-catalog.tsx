@@ -129,12 +129,12 @@ export function RoomsCatalogPage() {
       );
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6 py-8">
+    <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <LayoutGrid size={20} style={{ color: "var(--eco-primary)" }} />
-            <h1 className="text-[26px]" style={{ color: "var(--eco-text)" }}>
+            <h1 className="text-[22px] sm:text-[26px]" style={{ color: "var(--eco-text)" }}>
               {tx(language, "Открытые комнаты", "Ашық бөлмелер", "Open Rooms")}
             </h1>
           </div>
@@ -148,8 +148,8 @@ export function RoomsCatalogPage() {
             {subtitleStats}
           </p>
         </div>
-        <Link to="/rooms/create" style={{ textDecoration: "none" }}>
-          <Button variant="primary" size="sm">
+        <Link to="/rooms/create" className="w-full sm:w-auto" style={{ textDecoration: "none" }}>
+          <Button variant="primary" size="sm" className="w-full sm:w-auto">
             {tx(language, "Создать комнату", "Бөлме жасау", "Create Room")}
           </Button>
         </Link>
@@ -177,7 +177,7 @@ export function RoomsCatalogPage() {
           <Select label={tx(language, "Цена / участник", "Бағасы / қатысушы", "Price / member")} options={PRICE_OPTIONS} value={priceFilter} onChange={(e) => setPriceFilter(e.target.value)} />
           <Select label={tx(language, "Сортировка", "Сұрыптау", "Sort by")} options={SORT_OPTIONS} value={sort} onChange={(e) => setSort(e.target.value)} />
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="inline-flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
             <Filter size={13} /> {tx(language, "Фильтры применяются сразу", "Сүзгілер бірден қолданылады", "Filters apply instantly")}
           </span>

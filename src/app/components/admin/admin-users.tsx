@@ -243,9 +243,9 @@ export function AdminUsersPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("users")}</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}>
               <UserPlus size={13} /> {tx(language, "Добавить пользователя", "Пайдаланушы қосу", "Add user")}
             </Button>
@@ -359,26 +359,26 @@ export function AdminUsersPage() {
             ) : (
               <div className="flex flex-col gap-4">
                 <Card className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-[14px]"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] shrink-0"
                         style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)" }}
                       >
                         {(selected.displayName || "?").charAt(0)}
                       </div>
-                      <div>
-                        <div className="text-[18px] flex items-center gap-2" style={{ color: "var(--eco-text)" }}>
+                      <div className="min-w-0">
+                        <div className="text-[18px] flex items-center gap-2 break-words" style={{ color: "var(--eco-text)" }}>
                           {selected.displayName}
                           {detailLoading && <Loader2 size={12} className="animate-spin" style={{ color: "var(--eco-text-tertiary)" }} />}
                         </div>
-                        <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                        <div className="text-[12px] break-all" style={{ color: "var(--eco-text-tertiary)" }}>
                           U-{selected.id} · {selected.emailMasked ?? selected.email}
                           {selected.createdAt ? ` · ${t("sinceLabel")} ${new Date(selected.createdAt).toLocaleDateString()}` : ""}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {isBanned(selected) && <Badge variant="danger">{t("bannedBadge")}</Badge>}
                       {selected.role && <Badge variant={roleBadgeVariant(selected.role)}>{selected.role}</Badge>}
                       {selected.ownerVerified && (
@@ -389,7 +389,7 @@ export function AdminUsersPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-5 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                     {[
                       { label: t("rating"), value: `${selected.reputation ?? 0}`, icon: Star },
                       { label: t("owned"), value: `${selected.roomsOwned ?? 0}`, icon: Home },
@@ -740,7 +740,7 @@ function CreateUserModal({
 
   return (
     <Modal open={open} onClose={onClose} title={tx(language, "Добавить пользователя", "Пайдаланушы қосу", "Add user")}>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
         <Input
           label="Email"
           type="email"

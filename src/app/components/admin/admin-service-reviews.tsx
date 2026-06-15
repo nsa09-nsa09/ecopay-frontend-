@@ -86,10 +86,10 @@ export function AdminServiceReviewsPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("adminServiceReviews")}</h1>
-          <div className="flex items-center gap-2">
-            <div className="w-52">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="w-full sm:w-52">
               <Select
                 value={filter}
                 onChange={(e) => { setPage(0); setFilter(e.target.value as FeaturedFilter); }}
@@ -124,7 +124,7 @@ export function AdminServiceReviewsPage() {
           <div className="flex flex-col gap-3">
             {items.map((review) => (
               <Card key={review.id} className="flex flex-col gap-3">
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="flex flex-col gap-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Link
@@ -135,7 +135,7 @@ export function AdminServiceReviewsPage() {
                       >
                         {review.authorDisplayName} <ExternalLink size={12} />
                       </Link>
-                      <span className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                      <span className="text-[11px] break-all" style={{ color: "var(--eco-text-tertiary)" }}>
                         U-{review.authorId} · {review.authorEmail}
                       </span>
                       {review.featured && <Badge variant="success">{t("serviceReviewFeaturedBadge")}</Badge>}
@@ -147,7 +147,7 @@ export function AdminServiceReviewsPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <label className="flex items-center gap-1.5 text-[12px] cursor-pointer" style={{ color: "var(--eco-text-secondary)" }}>
                       <input
                         type="checkbox"
@@ -251,7 +251,7 @@ function EditReviewModal({
 
   return (
     <Modal open={open} onClose={onClose} title={t("adminServiceReviewEditTitle")}>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
         <div className="flex items-center gap-3">
           <span className="text-[13px]" style={{ color: "var(--eco-text)" }}>{t("serviceReviewRatingLabel")}:</span>
           <StarRating rating={rating} interactive onChange={setRating} size={18} />

@@ -1418,6 +1418,22 @@ const translations: Translations = {
   adminServiceReviewEditTitle: { ru: "Редактировать отзыв", kz: "Пікірді өңдеу", en: "Edit review" },
   adminServiceReviewDeleteConfirm: { ru: "Удалить отзыв?", kz: "Пікірді жою керек пе?", en: "Delete this review?" },
 
+  // ===== Admin: About / site content =====
+  adminAboutNav: { ru: "О нас", kz: "Біз туралы", en: "About" },
+  adminAboutTitle: { ru: "Страница «О нас»", kz: "«Біз туралы» беті", en: "About page" },
+  adminAboutHint: {
+    ru: "Содержимое отображается на публичной странице /about. Изменения логируются в аудит.",
+    kz: "Мазмұн /about ашық бетте көрсетіледі. Өзгерістер аудитке жазылады.",
+    en: "Content is shown on the public /about page. Changes are written to the audit log.",
+  },
+  adminAboutCompanyName: { ru: "Название компании", kz: "Компания атауы", en: "Company name" },
+  adminAboutPageTitle: { ru: "Заголовок страницы", kz: "Бет тақырыбы", en: "Page title" },
+  adminAboutMission: { ru: "Миссия", kz: "Миссия", en: "Mission" },
+  adminAboutDescription: { ru: "Описание", kz: "Сипаттама", en: "Description" },
+  adminAboutContactEmail: { ru: "Контактный email", kz: "Байланыс email", en: "Contact email" },
+  adminAboutContactPhone: { ru: "Контактный телефон", kz: "Байланыс телефоны", en: "Contact phone" },
+  adminAboutLastUpdated: { ru: "Обновлено", kz: "Жаңартылды", en: "Last updated" },
+
   // ===== Public profile by hash & account =====
   publicProfileLink: { ru: "Моя публичная ссылка", kz: "Менің ашық сілтемем", en: "My public link" },
   publicProfileCopy: { ru: "Скопировать", kz: "Көшіру", en: "Copy" },
@@ -1434,7 +1450,7 @@ const translations: Translations = {
   // ===== Avatar upload =====
   avatarUpload: { ru: "Загрузить аватар", kz: "Аватарды жүктеу", en: "Upload avatar" },
   avatarDelete: { ru: "Удалить", kz: "Жою", en: "Remove" },
-  avatarHint: { ru: "PNG, JPEG или WEBP, до 2 МБ", kz: "PNG, JPEG немесе WEBP, 2 МБ дейін", en: "PNG, JPEG or WEBP, up to 2 MB" },
+  avatarHint: { ru: "PNG или JPEG, до 5 МБ", kz: "PNG немесе JPEG, 5 МБ дейін", en: "PNG or JPEG, up to 5 MB" },
   viewMyPublicProfile: { ru: "Мой публичный профиль", kz: "Менің ашық профилім", en: "My public profile" },
 
   // ===== Dashboard chart =====

@@ -53,7 +53,7 @@ export function AdminCatalogPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1200px]">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("adminCatalog")}</h1>
         </div>
         <Tabs
@@ -121,11 +121,11 @@ function CategoriesSection() {
   return (
     <div className="flex flex-col gap-4">
       <FlashBanner flash={flash} />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <span className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
           {tx(language, "Включая неактивные", "Белсенді еместерді қоса", "Including inactive")}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw size={13} /> {t("retry")}
           </Button>
@@ -145,52 +145,54 @@ function CategoriesSection() {
         <Card><span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("loading")}</span></Card>
       ) : (
         <Card className="p-0 overflow-hidden">
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr style={{ background: "var(--eco-surface)" }}>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>ID</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldName")}</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>Slug</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldSortOrder")}</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogServicesTab")}</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{tx(language, "Статус", "Мәртебесі", "Status")}</th>
-                <th className="text-right px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((c) => (
-                <tr key={c.id} style={{ borderTop: "1px solid var(--eco-border)" }}>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>C-{c.id}</td>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text)" }}>{c.name}</td>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text-secondary)", fontFamily: "monospace" }}>{c.slug}</td>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text-secondary)" }}>{c.sortOrder}</td>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text-secondary)" }}>{c.servicesCount}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={c.isActive ? "success" : "default"}>
-                      {c.isActive ? t("catalogActive") : t("catalogInactive")}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="inline-flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => setEditing(c)}>
-                        <Pencil size={12} /> {t("catalogEdit")}
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setDeleting(c)} disabled={!c.isActive}>
-                        <Trash2 size={12} /> {t("catalogDelete")}
-                      </Button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] text-[13px]">
+              <thead>
+                <tr style={{ background: "var(--eco-surface)" }}>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>ID</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldName")}</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>Slug</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldSortOrder")}</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogServicesTab")}</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{tx(language, "Статус", "Мәртебесі", "Status")}</th>
+                  <th className="text-right px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}></th>
                 </tr>
-              ))}
-              {items.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                    {tx(language, "Категорий пока нет", "Әзірге санаттар жоқ", "No categories yet")}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {items.map((c) => (
+                  <tr key={c.id} style={{ borderTop: "1px solid var(--eco-border)" }}>
+                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>C-{c.id}</td>
+                    <td className="px-4 py-3" style={{ color: "var(--eco-text)" }}>{c.name}</td>
+                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-secondary)", fontFamily: "monospace" }}>{c.slug}</td>
+                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-secondary)" }}>{c.sortOrder}</td>
+                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-secondary)" }}>{c.servicesCount}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <Badge variant={c.isActive ? "success" : "default"}>
+                        {c.isActive ? t("catalogActive") : t("catalogInactive")}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="inline-flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => setEditing(c)}>
+                          <Pencil size={12} /> {t("catalogEdit")}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setDeleting(c)} disabled={!c.isActive}>
+                          <Trash2 size={12} /> {t("catalogDelete")}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {items.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-10 text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                      {tx(language, "Категорий пока нет", "Әзірге санаттар жоқ", "No categories yet")}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
 
@@ -349,15 +351,15 @@ function ServicesSection() {
   return (
     <div className="flex flex-col gap-4">
       <FlashBanner flash={flash} />
-      <div className="flex items-center justify-between gap-3">
-        <div className="w-64">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="w-full sm:w-64">
           <Select
             value={filterCategoryId}
             onChange={(e) => setFilterCategoryId(e.target.value)}
             options={categoryOptions}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw size={13} /> {t("retry")}
           </Button>
@@ -373,49 +375,51 @@ function ServicesSection() {
         <Card><span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("loading")}</span></Card>
       ) : (
         <Card className="p-0 overflow-hidden">
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr style={{ background: "var(--eco-surface)" }}>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>ID</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldName")}</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogCategoriesTab")}</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldProviderType")}</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogTariffsTab")}</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{tx(language, "Статус", "Мәртебесі", "Status")}</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((s) => (
-                <tr key={s.id} style={{ borderTop: "1px solid var(--eco-border)" }}>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>S-{s.id}</td>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text)" }}>
-                    {s.name}
-                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>{s.slug}</div>
-                  </td>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text-secondary)" }}>{s.categoryName}</td>
-                  <td className="px-4 py-3"><Badge variant="info">{s.providerType}</Badge></td>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text-secondary)" }}>{s.tariffsCount}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={s.isActive ? "success" : "default"}>
-                      {s.isActive ? t("catalogActive") : t("catalogInactive")}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="inline-flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => setEditing(s)}><Pencil size={12} /> {t("catalogEdit")}</Button>
-                      <Button variant="ghost" size="sm" onClick={() => setDeleting(s)} disabled={!s.isActive}><Trash2 size={12} /> {t("catalogDelete")}</Button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[860px] text-[13px]">
+              <thead>
+                <tr style={{ background: "var(--eco-surface)" }}>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>ID</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldName")}</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogCategoriesTab")}</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldProviderType")}</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogTariffsTab")}</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{tx(language, "Статус", "Мәртебесі", "Status")}</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
-              ))}
-              {items.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                  {tx(language, "Сервисов пока нет", "Әзірге сервистер жоқ", "No services yet")}
-                </td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {items.map((s) => (
+                  <tr key={s.id} style={{ borderTop: "1px solid var(--eco-border)" }}>
+                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>S-{s.id}</td>
+                    <td className="px-4 py-3" style={{ color: "var(--eco-text)" }}>
+                      {s.name}
+                      <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>{s.slug}</div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-secondary)" }}>{s.categoryName}</td>
+                    <td className="px-4 py-3 whitespace-nowrap"><Badge variant="info">{s.providerType}</Badge></td>
+                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-secondary)" }}>{s.tariffsCount}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <Badge variant={s.isActive ? "success" : "default"}>
+                        {s.isActive ? t("catalogActive") : t("catalogInactive")}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="inline-flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => setEditing(s)}><Pencil size={12} /> {t("catalogEdit")}</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setDeleting(s)} disabled={!s.isActive}><Trash2 size={12} /> {t("catalogDelete")}</Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {items.length === 0 && (
+                  <tr><td colSpan={7} className="px-4 py-10 text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                    {tx(language, "Сервисов пока нет", "Әзірге сервистер жоқ", "No services yet")}
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
 
@@ -591,8 +595,8 @@ function TariffsSection() {
   return (
     <div className="flex flex-col gap-4">
       <FlashBanner flash={flash} />
-      <div className="flex items-center justify-between gap-3">
-        <div className="w-72">
+      <div className="flex items-end justify-between gap-3 flex-wrap">
+        <div className="w-full sm:w-72">
           <Select
             label={t("catalogPickService")}
             value={serviceId}
@@ -600,7 +604,7 @@ function TariffsSection() {
             options={services.map((s) => ({ value: String(s.id), label: `${s.name} — ${s.categoryName}` }))}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading || !serviceId}>
             <RefreshCw size={13} /> {t("retry")}
           </Button>
@@ -616,48 +620,50 @@ function TariffsSection() {
         <Card><span className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("loading")}</span></Card>
       ) : (
         <Card className="p-0 overflow-hidden">
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr style={{ background: "var(--eco-surface)" }}>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>ID</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldName")}</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldPeriodType")}</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldMaxMembers")}</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldBasePrice")}</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldCurrency")}</th>
-                <th className="text-left px-4 py-3" style={{ color: "var(--eco-text-tertiary)" }}>{tx(language, "Статус", "Мәртебесі", "Status")}</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((tariff) => (
-                <tr key={tariff.id} style={{ borderTop: "1px solid var(--eco-border)" }}>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>T-{tariff.id}</td>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text)" }}>{tariff.name}</td>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text-secondary)" }}>{tariff.periodType}</td>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text-secondary)" }}>{tariff.maxMembers}</td>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text-secondary)" }}>{Number(tariff.basePriceTotal).toLocaleString()}</td>
-                  <td className="px-4 py-3" style={{ color: "var(--eco-text-secondary)" }}>{tariff.currency}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={tariff.isActive ? "success" : "default"}>
-                      {tariff.isActive ? t("catalogActive") : t("catalogInactive")}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="inline-flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => setEditing(tariff)}><Pencil size={12} /> {t("catalogEdit")}</Button>
-                      <Button variant="ghost" size="sm" onClick={() => setDeleting(tariff)} disabled={!tariff.isActive}><Trash2 size={12} /> {t("catalogDelete")}</Button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] text-[13px]">
+              <thead>
+                <tr style={{ background: "var(--eco-surface)" }}>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>ID</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldName")}</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldPeriodType")}</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldMaxMembers")}</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldBasePrice")}</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldCurrency")}</th>
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)" }}>{tx(language, "Статус", "Мәртебесі", "Status")}</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
-              ))}
-              {items.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-10 text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                  {tx(language, "Тарифов пока нет", "Әзірге тарифтер жоқ", "No tariffs yet")}
-                </td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {items.map((tariff) => (
+                  <tr key={tariff.id} style={{ borderTop: "1px solid var(--eco-border)" }}>
+                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>T-{tariff.id}</td>
+                    <td className="px-4 py-3" style={{ color: "var(--eco-text)" }}>{tariff.name}</td>
+                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-secondary)" }}>{tariff.periodType}</td>
+                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-secondary)" }}>{tariff.maxMembers}</td>
+                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-secondary)" }}>{Number(tariff.basePriceTotal).toLocaleString()}</td>
+                    <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--eco-text-secondary)" }}>{tariff.currency}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <Badge variant={tariff.isActive ? "success" : "default"}>
+                        {tariff.isActive ? t("catalogActive") : t("catalogInactive")}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="inline-flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => setEditing(tariff)}><Pencil size={12} /> {t("catalogEdit")}</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setDeleting(tariff)} disabled={!tariff.isActive}><Trash2 size={12} /> {t("catalogDelete")}</Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {items.length === 0 && (
+                  <tr><td colSpan={8} className="px-4 py-10 text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                    {tx(language, "Тарифов пока нет", "Әзірге тарифтер жоқ", "No tariffs yet")}
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
 

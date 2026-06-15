@@ -134,7 +134,7 @@ type TabItem = string | { id: string; label: string };
 
 export function Tabs({ tabs, active, onChange }: { tabs: TabItem[]; active: string; onChange: (t: string) => void }) {
   return (
-    <div className="flex gap-0 border-b" style={{ borderColor: "var(--eco-border)" }}>
+    <div className="flex gap-0 border-b overflow-x-auto" style={{ borderColor: "var(--eco-border)" }}>
       {tabs.map((tab) => {
         const id = typeof tab === "string" ? tab : tab.id;
         const label = typeof tab === "string" ? tab : tab.label;
@@ -143,7 +143,7 @@ export function Tabs({ tabs, active, onChange }: { tabs: TabItem[]; active: stri
         <button
           key={id}
           onClick={() => onChange(id)}
-          className="px-4 py-2.5 text-[14px] transition-colors cursor-pointer"
+          className="px-4 py-2.5 text-[14px] whitespace-nowrap transition-colors cursor-pointer shrink-0"
           style={{
             color: active === id ? "var(--eco-primary)" : "var(--eco-text-secondary)",
             borderBottom: active === id ? "2px solid var(--eco-primary)" : "2px solid transparent",
@@ -483,9 +483,9 @@ export function Drawer({ open, onClose, title, children }: { open: boolean; onCl
 // ─── Stepper ───
 export function Stepper({ steps, current }: { steps: string[]; current: number }) {
   return (
-    <div className="flex items-center gap-0">
+    <div className="flex items-center gap-0 overflow-x-auto pb-1 -mx-1 px-1">
       {steps.map((s, i) => (
-        <div key={s} className="flex items-center">
+        <div key={s} className="flex items-center shrink-0">
           <div className="flex items-center gap-2">
             <div
               className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] shrink-0"
@@ -497,15 +497,21 @@ export function Stepper({ steps, current }: { steps: string[]; current: number }
               {i < current ? <Check size={14} /> : i + 1}
             </div>
             <span
-              className="text-[13px] whitespace-nowrap"
+              className="hidden sm:inline text-[13px] whitespace-nowrap"
               style={{ color: i <= current ? "var(--eco-text)" : "var(--eco-text-tertiary)" }}
             >
               {s}
             </span>
+            <span
+              className="sm:hidden text-[12px] whitespace-nowrap"
+              style={{ color: i === current ? "var(--eco-text)" : "var(--eco-text-tertiary)" }}
+            >
+              {i === current ? s : ""}
+            </span>
           </div>
           {i < steps.length - 1 && (
             <div
-              className="w-8 h-px mx-2"
+              className="w-6 sm:w-8 h-px mx-2 shrink-0"
               style={{ background: i < current ? "var(--eco-primary)" : "var(--eco-neutral-200)" }}
             />
           )}

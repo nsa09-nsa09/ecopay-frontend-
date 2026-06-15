@@ -130,7 +130,7 @@ export function AdminDisputesPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("disputesPageTitle")}</h1>
           <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw size={13} /> {t("retry")}
@@ -228,9 +228,9 @@ export function AdminDisputesPage() {
             ) : (
               <div className="flex flex-col gap-4">
                 <Card className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-[18px]" style={{ color: "var(--eco-text)" }}>
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <div className="text-[18px] break-words" style={{ color: "var(--eco-text)" }}>
                         D-{selected.id}
                         {selected.roomId ? ` · ${t("rooms")} #${selected.roomId}` : ""}
                       </div>
@@ -242,7 +242,7 @@ export function AdminDisputesPage() {
                     <Badge variant={statusVar[selected.status] ?? "default"}>{selected.status}</Badge>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-[13px]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
                     <div className="p-3 rounded-lg" style={{ background: "var(--eco-surface)" }}>
                       <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("claimant")}</div>
                       <div style={{ color: "var(--eco-text)" }}>#{selected.openedByUserId ?? "—"}</div>
@@ -412,7 +412,7 @@ function OwnerViolationButton({
       </Button>
 
       <Modal open={open} onClose={() => setOpen(false)} title={tx("Санкции: нарушение владельца", "Санкция: иесінің бұзушылығы", "Sanction: owner violation")}>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
           <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
             {tx(
               "Зафиксировать нарушение со стороны владельца по этому спору. Опционально — инициировать возврат участнику.",

@@ -110,12 +110,12 @@ export function AdminLogsPage() {
   return (
     <AdminLayout>
       <div className="max-w-[1100px]">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
           <div>
             <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("adminLogs")}</h1>
             <p className="text-[13px] mt-1" style={{ color: "var(--eco-text-tertiary)" }}>{t("auditTrailSubtitle")}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
               <Shield size={13} /> {t("immutableAuditLog")}
             </div>
@@ -205,86 +205,90 @@ export function AdminLogsPage() {
         )}
 
         {tab === "admin-actions" && (
-          <>
-            <div className="grid grid-cols-12 gap-3 px-5 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-              <div className="col-span-3">{t("colTimestamp")}</div>
-              <div className="col-span-2">{t("colActor")}</div>
-              <div className="col-span-2">{t("colType")}</div>
-              <div className="col-span-2">{t("colEntity")}</div>
-              <div className="col-span-3">{t("colReason")}</div>
+          <div className="overflow-x-auto">
+            <div className="min-w-[860px]">
+              <div className="grid grid-cols-12 gap-3 px-5 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                <div className="col-span-3">{t("colTimestamp")}</div>
+                <div className="col-span-2">{t("colActor")}</div>
+                <div className="col-span-2">{t("colType")}</div>
+                <div className="col-span-2">{t("colEntity")}</div>
+                <div className="col-span-3">{t("colReason")}</div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {loading && adminLogs.length === 0 && (
+                  <Card className="text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("loading")}</Card>
+                )}
+                {!loading && adminLogs.length === 0 && (
+                  <Card className="text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("emptyAdminLogs")}</Card>
+                )}
+                {adminLogs.map((log) => (
+                  <Card key={log.id}>
+                    <div className="grid grid-cols-12 gap-3 items-center">
+                      <div className="col-span-3 text-[12px] whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>
+                        {new Date(log.createdAt).toLocaleString()}
+                      </div>
+                      <div className="col-span-2 text-[12px] whitespace-nowrap" style={{ color: "var(--eco-text-secondary)" }}>
+                        #{log.adminUserId}
+                      </div>
+                      <div className="col-span-2">
+                        <Badge variant="info">{log.actionType}</Badge>
+                      </div>
+                      <div className="col-span-2 text-[12px] whitespace-nowrap" style={{ color: "var(--eco-text)" }}>
+                        {log.entityType} #{log.entityId}
+                      </div>
+                      <div className="col-span-3 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                        {log.reason ?? "—"}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              {loading && adminLogs.length === 0 && (
-                <Card className="text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("loading")}</Card>
-              )}
-              {!loading && adminLogs.length === 0 && (
-                <Card className="text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("emptyAdminLogs")}</Card>
-              )}
-              {adminLogs.map((log) => (
-                <Card key={log.id}>
-                  <div className="grid grid-cols-12 gap-3 items-center">
-                    <div className="col-span-3 text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>
-                      {new Date(log.createdAt).toLocaleString()}
-                    </div>
-                    <div className="col-span-2 text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
-                      #{log.adminUserId}
-                    </div>
-                    <div className="col-span-2">
-                      <Badge variant="info">{log.actionType}</Badge>
-                    </div>
-                    <div className="col-span-2 text-[12px]" style={{ color: "var(--eco-text)" }}>
-                      {log.entityType} #{log.entityId}
-                    </div>
-                    <div className="col-span-3 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                      {log.reason ?? "—"}
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </>
+          </div>
         )}
 
         {tab === "room-events" && (
-          <>
-            <div className="grid grid-cols-12 gap-3 px-5 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-              <div className="col-span-3">{t("colTimestamp")}</div>
-              <div className="col-span-2">{t("colActor")}</div>
-              <div className="col-span-2">{t("colType")}</div>
-              <div className="col-span-2">{t("rooms")}</div>
-              <div className="col-span-3">{t("colReason")}</div>
+          <div className="overflow-x-auto">
+            <div className="min-w-[860px]">
+              <div className="grid grid-cols-12 gap-3 px-5 py-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                <div className="col-span-3">{t("colTimestamp")}</div>
+                <div className="col-span-2">{t("colActor")}</div>
+                <div className="col-span-2">{t("colType")}</div>
+                <div className="col-span-2">{t("rooms")}</div>
+                <div className="col-span-3">{t("colReason")}</div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {loading && roomLogs.length === 0 && (
+                  <Card className="text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("loading")}</Card>
+                )}
+                {!loading && roomLogs.length === 0 && (
+                  <Card className="text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("emptyRoomEvents")}</Card>
+                )}
+                {roomLogs.map((log) => (
+                  <Card key={log.id}>
+                    <div className="grid grid-cols-12 gap-3 items-center">
+                      <div className="col-span-3 text-[12px] whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>
+                        {new Date(log.createdAt).toLocaleString()}
+                      </div>
+                      <div className="col-span-2 text-[12px] whitespace-nowrap" style={{ color: "var(--eco-text-secondary)" }}>
+                        {log.actorRole ?? "—"}
+                        {log.actorUserId ? ` #${log.actorUserId}` : ""}
+                      </div>
+                      <div className="col-span-2">
+                        <Badge variant="info">{log.eventType}</Badge>
+                      </div>
+                      <div className="col-span-2 text-[12px] whitespace-nowrap" style={{ color: "var(--eco-text)" }}>
+                        R-{log.roomId}
+                      </div>
+                      <div className="col-span-3 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                        {log.eventId}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              {loading && roomLogs.length === 0 && (
-                <Card className="text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("loading")}</Card>
-              )}
-              {!loading && roomLogs.length === 0 && (
-                <Card className="text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("emptyRoomEvents")}</Card>
-              )}
-              {roomLogs.map((log) => (
-                <Card key={log.id}>
-                  <div className="grid grid-cols-12 gap-3 items-center">
-                    <div className="col-span-3 text-[12px]" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>
-                      {new Date(log.createdAt).toLocaleString()}
-                    </div>
-                    <div className="col-span-2 text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
-                      {log.actorRole ?? "—"}
-                      {log.actorUserId ? ` #${log.actorUserId}` : ""}
-                    </div>
-                    <div className="col-span-2">
-                      <Badge variant="info">{log.eventType}</Badge>
-                    </div>
-                    <div className="col-span-2 text-[12px]" style={{ color: "var(--eco-text)" }}>
-                      R-{log.roomId}
-                    </div>
-                    <div className="col-span-3 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                      {log.eventId}
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </>
+          </div>
         )}
 
         {totalPages > 1 && (

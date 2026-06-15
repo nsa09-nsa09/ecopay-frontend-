@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import {
-  Search, User, ChevronDown, LogOut, Bell,
+  Search, User, ChevronDown, LogOut, Bell, Menu, X,
 } from "lucide-react";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
@@ -15,6 +15,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const { user, logout, authorizedRequest } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [kpis, setKpis] = useState<AdminDashboardKpisDto | null>(null);
 
   const role = user?.role;
@@ -44,6 +45,12 @@ export function AdminLayout({ children }: { children: ReactNode }) {
     };
   }, [role, authorizedRequest]);
 
+  // Auto-close mobile drawer on route change so navigating from the drawer
+  // doesn't leave it hovering over the new page.
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
   const handleSignOut = async () => {
     try {
       await logout();
@@ -58,14 +65,36 @@ export function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen" style={{ background: "var(--eco-bg)" }}>
-      {/* Sidebar */}
+      {/* Mobile drawer backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden
+        />
+      )}
+
+      {/* Sidebar — fixed/drawer on mobile, sticky column on lg+ */}
       <aside
-        className="w-56 shrink-0 flex flex-col border-r sticky top-0 h-screen"
+        className={`fixed lg:sticky inset-y-0 left-0 z-50 lg:z-auto w-64 lg:w-56 shrink-0 flex flex-col border-r h-screen lg:top-0 transform transition-transform duration-200 lg:transform-none ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
         style={{ background: "var(--eco-surface-raised)", borderColor: "var(--eco-border)" }}
       >
-        {/* Logo */}
-        <div className="px-4 py-4 border-b" style={{ borderColor: "var(--eco-border)" }}>
+        {/* Logo + mobile close */}
+        <div
+          className="px-4 py-4 border-b flex items-center justify-between gap-2"
+          style={{ borderColor: "var(--eco-border)" }}
+        >
           <BrandLogo to={landingPath} size="sm" sublabel={t("adminPortal")} />
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-1.5 rounded-lg cursor-pointer"
+            style={{ background: "transparent", border: "none", color: "var(--eco-text-secondary)" }}
+            aria-label="Close menu"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Nav */}
@@ -78,6 +107,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={() => setSidebarOpen(false)}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-colors"
                 style={{
                   color: active ? "var(--eco-primary)" : "var(--eco-text-secondary)",
@@ -110,30 +140,51 @@ export function AdminLayout({ children }: { children: ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
         <header
-          className="sticky top-0 z-30 flex items-center justify-between px-6 py-3 border-b"
+          className="sticky top-0 z-30 flex items-center justify-between gap-2 px-4 lg:px-6 py-3 border-b"
           style={{ background: "var(--eco-bg)", borderColor: "var(--eco-border)" }}
         >
-          {/* Search — placeholder only for now. The per-section search lives on
-              each list page (e.g. AdminUsers). Disabled to avoid the impression
-              that this control routes globally. */}
-          <div className="relative flex items-center" title={t("adminSearchPlaceholder")}>
-            <Search size={15} className="absolute left-2.5" style={{ color: "var(--eco-text-tertiary)" }} />
-            <input
-              placeholder={t("adminSearchPlaceholder")}
-              className="pl-8 pr-3 py-1.5 rounded-lg text-[13px] outline-none w-72"
-              style={{
-                background: "var(--eco-surface)",
-                border: "1px solid var(--eco-border)",
-                color: "var(--eco-text-tertiary)",
-                cursor: "not-allowed",
-                opacity: 0.6,
-              }}
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {/* Hamburger — mobile/tablet only */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg cursor-pointer shrink-0"
+              style={{ background: "var(--eco-surface)", border: "none", color: "var(--eco-text-secondary)" }}
+              aria-label="Open menu"
+            >
+              <Menu size={18} />
+            </button>
+
+            {/* Search — icon-only on mobile, full input on md+. Disabled placeholder
+                for now; per-section search lives on each list page. */}
+            <button
+              className="md:hidden p-2 rounded-lg shrink-0"
+              style={{ background: "var(--eco-surface)", border: "none", color: "var(--eco-text-tertiary)", cursor: "not-allowed", opacity: 0.6 }}
               disabled
               aria-disabled
-            />
+              aria-label={t("adminSearchPlaceholder")}
+              title={t("adminSearchPlaceholder")}
+            >
+              <Search size={16} />
+            </button>
+            <div className="relative hidden md:flex items-center min-w-0" title={t("adminSearchPlaceholder")}>
+              <Search size={15} className="absolute left-2.5" style={{ color: "var(--eco-text-tertiary)" }} />
+              <input
+                placeholder={t("adminSearchPlaceholder")}
+                className="pl-8 pr-3 py-1.5 rounded-lg text-[13px] outline-none w-56 lg:w-72"
+                style={{
+                  background: "var(--eco-surface)",
+                  border: "1px solid var(--eco-border)",
+                  color: "var(--eco-text-tertiary)",
+                  cursor: "not-allowed",
+                  opacity: 0.6,
+                }}
+                disabled
+                aria-disabled
+              />
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 lg:gap-3 shrink-0">
             {/* Notifications: no fake red dot — surfaced only via real data later */}
             <button
               className="relative p-2 rounded-lg cursor-pointer"
@@ -148,13 +199,13 @@ export function AdminLayout({ children }: { children: ReactNode }) {
             <div className="relative">
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer"
+                className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg cursor-pointer"
                 style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
               >
-                <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "var(--eco-primary)" }}>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--eco-primary)" }}>
                   <User size={12} style={{ color: "var(--eco-text-on-primary)" }} />
                 </div>
-                <span className="text-[13px]" style={{ color: "var(--eco-text)" }}>
+                <span className="hidden sm:inline text-[13px] truncate max-w-[140px]" style={{ color: "var(--eco-text)" }}>
                   {user?.displayName ?? t("adminRoleLabel")}
                 </span>
                 <ChevronDown size={13} style={{ color: "var(--eco-text-tertiary)" }} />
@@ -190,7 +241,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 lg:p-6">
           {children}
         </main>
       </div>

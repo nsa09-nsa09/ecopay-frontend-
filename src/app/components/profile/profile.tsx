@@ -15,7 +15,6 @@ export function ProfilePage() {
   const { language, t } = useI18n();
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("");
-  const [avatar, setAvatar] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -26,12 +25,11 @@ export function ProfilePage() {
 
   useEffect(() => {
     setDisplayName(user?.displayName ?? "");
-    setAvatar(user?.avatar ?? "");
   }, [user]);
 
   if (!isReady) {
     return (
-      <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
         <Card>{tx(language, "Загрузка профиля...", "Профиль жүктелуде...", "Loading profile...")}</Card>
       </div>
     );
@@ -39,7 +37,7 @@ export function ProfilePage() {
 
   if (!isAuthenticated || !user) {
     return (
-      <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
         <Card className="flex flex-col gap-4 items-start">
           <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>
             {tx(language, "Профиль", "Профиль", "Profile")}
@@ -71,7 +69,6 @@ export function ProfilePage() {
     try {
       await updateProfile({
         displayName,
-        avatar: avatar.trim() || null,
       });
       setMessage(tx(language, "Профиль обновлён.", "Профиль жаңартылды.", "Profile updated."));
     } catch (err) {
@@ -87,8 +84,8 @@ export function ProfilePage() {
   };
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6 py-8">
-      <h1 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>
+    <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
+      <h1 className="text-[22px] sm:text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>
         {tx(language, "Профиль", "Профиль", "Profile")}
       </h1>
 
@@ -145,13 +142,6 @@ export function ProfilePage() {
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
                 error={fieldErrors.displayName}
-              />
-              <Input
-                label={tx(language, "URL аватара", "Аватар URL", "Avatar URL")}
-                value={avatar}
-                onChange={(event) => setAvatar(event.target.value)}
-                error={fieldErrors.avatar}
-                hint={tx(language, "Опционально — публичный URL картинки", "Міндетті емес — суреттің ашық URL", "Optional public image URL")}
               />
               {error && (
                 <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>
@@ -388,8 +378,10 @@ function PhoneVerificationCard() {
   );
 }
 
-const ACCEPTED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+// Must mirror the backend allowlist/limit (AvatarStorageService + AvatarUploadProperties):
+// PNG/JPEG only, 5 MB. WEBP is not accepted server-side.
+const ACCEPTED_AVATAR_TYPES = ["image/png", "image/jpeg"];
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
 function AvatarUploader() {
   const { user, refreshUser, authorizedRequest } = useAuth();
@@ -413,11 +405,11 @@ function AvatarUploader() {
     setError(null);
 
     if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
-      setError(tx(language, "Поддерживаются PNG, JPEG и WEBP.", "PNG, JPEG және WEBP қолдау көрсетіледі.", "PNG, JPEG and WEBP are supported."));
+      setError(tx(language, "Поддерживаются PNG и JPEG.", "PNG және JPEG қолдау көрсетіледі.", "PNG and JPEG are supported."));
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setError(tx(language, "Файл слишком большой (максимум 2 МБ).", "Файл тым үлкен (максимум 2 МБ).", "File is too large (max 2 MB)."));
+      setError(tx(language, "Файл слишком большой (максимум 5 МБ).", "Файл тым үлкен (максимум 5 МБ).", "File is too large (max 5 MB)."));
       return;
     }
 
@@ -529,15 +521,15 @@ function PublicLinkCard({ publicId }: { publicId: string }) {
       <h3 className="flex items-center gap-2 text-[16px]" style={{ color: "var(--eco-text)" }}>
         <UserRound size={16} /> {t("publicProfileLink")}
       </h3>
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           readOnly
           value={url}
-          className="flex-1 px-3 py-2 rounded-lg outline-none text-[13px]"
+          className="flex-1 min-w-0 px-3 py-2 rounded-lg outline-none text-[13px]"
           style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)", fontFamily: "monospace" }}
           onClick={(e) => (e.target as HTMLInputElement).select()}
         />
-        <Button variant="secondary" size="sm" onClick={() => void handleCopy()}>
+        <Button variant="secondary" size="sm" className="shrink-0" onClick={() => void handleCopy()}>
           <Copy size={13} /> {copied ? t("publicProfileCopied") : t("publicProfileCopy")}
         </Button>
       </div>
@@ -568,16 +560,16 @@ function FindUserCard() {
         <SearchIcon size={16} /> {t("publicProfileSearchTitle")}
       </h3>
       <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{t("publicProfileSearchHint")}</p>
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
           placeholder={tx(language, "ссылка или хэш", "сілтеме немесе хэш", "link or hash")}
-          className="flex-1 px-3 py-2 rounded-lg outline-none text-[13px]"
+          className="flex-1 min-w-0 px-3 py-2 rounded-lg outline-none text-[13px]"
           style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
         />
-        <Button variant="primary" size="sm" onClick={submit}>{t("publicProfileSearchGo")}</Button>
+        <Button variant="primary" size="sm" className="shrink-0" onClick={submit}>{t("publicProfileSearchGo")}</Button>
       </div>
     </Card>
   );

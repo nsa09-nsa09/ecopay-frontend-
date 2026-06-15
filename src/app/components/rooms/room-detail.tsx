@@ -85,7 +85,7 @@ export function RoomDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
         <Card>{tx(language, "Загрузка деталей комнаты...", "Бөлме деректері жүктелуде...", "Loading room details...")}</Card>
       </div>
     );
@@ -93,7 +93,7 @@ export function RoomDetailPage() {
 
   if (loadError || !room) {
     return (
-      <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
         <Card>{loadError ?? tx(language, "Комната не найдена.", "Бөлме табылмады.", "Room not found.")}</Card>
       </div>
     );
@@ -162,7 +162,7 @@ export function RoomDetailPage() {
   };
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6 py-8">
+    <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
       <Link
         to={room.serviceId ? `/operator/${room.serviceId}` : "/"}
         className="inline-flex items-center gap-1 text-[13px] mb-6"
@@ -174,8 +174,8 @@ export function RoomDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-6">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{room.title}</h1>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+              <h1 className="text-[22px] sm:text-[24px] break-words" style={{ color: "var(--eco-text)" }}>{room.title}</h1>
               <RoomStatusBadge status={room.status} />
             </div>
             <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>

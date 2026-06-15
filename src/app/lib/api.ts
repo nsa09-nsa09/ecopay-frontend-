@@ -264,7 +264,7 @@ export function getCurrentUser(accessToken: string) {
 }
 
 export function updateCurrentUser(
-  payload: { displayName: string; avatar?: string | null },
+  payload: { displayName: string },
   accessToken: string,
 ) {
   return requestJson<User>(
@@ -708,14 +708,15 @@ export type DashboardGranularity = "day" | "month";
 export interface DashboardMetricPoint {
   period: string;
   registrations: number;
-  logins: number;
+  loginsTotal: number;
+  uniqueLogins: number;
 }
 
 export interface DashboardMetricsResponse {
   granularity: DashboardGranularity;
   from: string;
   to: string;
-  points: DashboardMetricPoint[];
+  series: DashboardMetricPoint[];
   newUsersLast30Days?: number | null;
 }
 
@@ -1695,6 +1696,45 @@ export function adminDeleteServiceReview(id: number, accessToken: string) {
   return requestJson<void>(
     `/admin/service-reviews/${id}`,
     { method: "DELETE" },
+    accessToken,
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
+// Site content — "About Us" page
+// ───────────────────────────────────────────────────────────────
+
+export interface SiteAboutContent {
+  companyName: string;
+  title: string;
+  mission: string | null;
+  description: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  updatedAt: string | null;
+}
+
+export interface UpdateSiteAboutPayload {
+  companyName: string;
+  title: string;
+  mission?: string | null;
+  description?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+}
+
+export function getSiteAboutRequest() {
+  return requestJson<SiteAboutContent>("/site/about");
+}
+
+export function adminGetSiteAbout(accessToken: string) {
+  return requestJson<SiteAboutContent>("/admin/site/about", {}, accessToken);
+}
+
+export function adminUpdateSiteAbout(payload: UpdateSiteAboutPayload, accessToken: string) {
+  return requestJson<SiteAboutContent>(
+    "/admin/site/about",
+    { method: "PUT", body: JSON.stringify(payload) },
     accessToken,
   );
 }
