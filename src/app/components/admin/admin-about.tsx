@@ -1,43 +1,103 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "./admin-layout";
-import { useI18n } from "../i18n-provider";
+import { useI18n, type Language } from "../i18n-provider";
 import { formatDateTime } from "../../lib/datetime";
 import { useAuth } from "../auth/auth-provider";
-import { Button, Card, Input } from "../ds-primitives";
+import { Button, Card, Input, Tabs } from "../ds-primitives";
 import { FlashBanner, formatAdminApiError, useFlash } from "./admin-action-ui";
 import { RefreshCw, Save } from "lucide-react";
 import {
   adminGetSiteAbout,
   adminUpdateSiteAbout,
   type SiteAboutContent,
+  type UpdateSiteAboutPayload,
 } from "../../lib/api";
 
-type FormState = {
+// Length budgets shown to admins and enforced softly via maxLength on the
+// inputs. Mirror the rough ranges used by the public page so very long
+// pasted text doesn't blow up the layout.
+const TITLE_MAX = 120;
+const MISSION_MAX = 600;
+const DESCRIPTION_MAX = 2000;
+
+// Editable languages (matches i18n).
+const ABOUT_LANGS: readonly Language[] = ["kz", "ru", "en"] as const;
+type AboutLang = (typeof ABOUT_LANGS)[number];
+
+type LangFields = { title: string; mission: string; description: string };
+type LangBag = Record<AboutLang, LangFields>;
+
+interface FormState {
   companyName: string;
-  title: string;
-  mission: string;
-  description: string;
   contactEmail: string;
   contactPhone: string;
+  langs: LangBag;
+}
+
+const EMPTY_LANGS: LangBag = {
+  kz: { title: "", mission: "", description: "" },
+  ru: { title: "", mission: "", description: "" },
+  en: { title: "", mission: "", description: "" },
 };
 
 const EMPTY: FormState = {
   companyName: "",
-  title: "",
-  mission: "",
-  description: "",
   contactEmail: "",
   contactPhone: "",
+  langs: EMPTY_LANGS,
 };
 
 function toForm(content: SiteAboutContent): FormState {
+  // Backend keeps the legacy single-language fields populated for backward
+  // compatibility. We treat them as the seed for the Russian tab when the
+  // per-language *_ru variant is empty.
+  const ru: LangFields = {
+    title: content.title_ru?.trim() || content.title || "",
+    mission: content.mission_ru?.trim() || content.mission || "",
+    description: content.description_ru?.trim() || content.description || "",
+  };
   return {
     companyName: content.companyName ?? "",
-    title: content.title ?? "",
-    mission: content.mission ?? "",
-    description: content.description ?? "",
     contactEmail: content.contactEmail ?? "",
     contactPhone: content.contactPhone ?? "",
+    langs: {
+      kz: {
+        title: content.title_kz ?? "",
+        mission: content.mission_kz ?? "",
+        description: content.description_kz ?? "",
+      },
+      ru,
+      en: {
+        title: content.title_en ?? "",
+        mission: content.mission_en ?? "",
+        description: content.description_en ?? "",
+      },
+    },
+  };
+}
+
+function buildPayload(form: FormState): UpdateSiteAboutPayload {
+  const ruTitle = form.langs.ru.title.trim();
+  const ruMission = form.langs.ru.mission.trim();
+  const ruDescription = form.langs.ru.description.trim();
+  return {
+    companyName: form.companyName.trim(),
+    // Keep legacy fields populated with the Russian variant so older
+    // clients that only read `title`/`mission`/`description` still work.
+    title: ruTitle,
+    mission: ruMission || null,
+    description: ruDescription || null,
+    title_ru: ruTitle || null,
+    mission_ru: ruMission || null,
+    description_ru: ruDescription || null,
+    title_kz: form.langs.kz.title.trim() || null,
+    mission_kz: form.langs.kz.mission.trim() || null,
+    description_kz: form.langs.kz.description.trim() || null,
+    title_en: form.langs.en.title.trim() || null,
+    mission_en: form.langs.en.mission.trim() || null,
+    description_en: form.langs.en.description.trim() || null,
+    contactEmail: form.contactEmail.trim() || null,
+    contactPhone: form.contactPhone.trim() || null,
   };
 }
 
@@ -50,6 +110,7 @@ export function AdminAboutPage() {
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const { flash, show } = useFlash();
+  const [activeLang, setActiveLang] = useState<AboutLang>("ru");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,14 +132,7 @@ export function AdminAboutPage() {
     setSaving(true);
     try {
       const updated = await authorizedRequest((token) =>
-        adminUpdateSiteAbout({
-          companyName: form.companyName.trim(),
-          title: form.title.trim(),
-          mission: form.mission.trim() || null,
-          description: form.description.trim() || null,
-          contactEmail: form.contactEmail.trim() || null,
-          contactPhone: form.contactPhone.trim() || null,
-        }, token),
+        adminUpdateSiteAbout(buildPayload(form), token),
       );
       setForm(toForm(updated));
       setUpdatedAt(updated.updatedAt);
@@ -90,10 +144,35 @@ export function AdminAboutPage() {
     }
   };
 
-  const set = (key: keyof FormState) => (value: string) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
+  const setCompanyName = (value: string) => setForm((prev) => ({ ...prev, companyName: value }));
+  const setContactEmail = (value: string) => setForm((prev) => ({ ...prev, contactEmail: value }));
+  const setContactPhone = (value: string) => setForm((prev) => ({ ...prev, contactPhone: value }));
 
-  const canSave = form.companyName.trim().length > 0 && form.title.trim().length > 0 && !saving;
+  const setLangField = (lang: AboutLang, field: keyof LangFields, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      langs: {
+        ...prev.langs,
+        [lang]: { ...prev.langs[lang], [field]: value },
+      },
+    }));
+  };
+
+  const langTabs = useMemo(
+    () => [
+      { id: "kz", label: t("adminAboutLangKz") },
+      { id: "ru", label: t("adminAboutLangRu") },
+      { id: "en", label: t("adminAboutLangEn") },
+    ],
+    [t],
+  );
+
+  const canSave =
+    form.companyName.trim().length > 0 &&
+    form.langs.ru.title.trim().length > 0 &&
+    !saving;
+
+  const currentFields = form.langs[activeLang];
 
   return (
     <AdminLayout>
@@ -125,18 +204,29 @@ export function AdminAboutPage() {
               </p>
 
               <FormRow label={t("adminAboutCompanyName")}>
-                <Input value={form.companyName} onChange={(e) => set("companyName")(e.target.value)} />
+                <Input value={form.companyName} onChange={(e) => setCompanyName(e.target.value)} />
               </FormRow>
 
+              <div className="flex flex-col gap-2">
+                <Tabs tabs={langTabs} active={activeLang} onChange={(id) => setActiveLang(id as AboutLang)} />
+                <p className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("adminAboutLangHint")}</p>
+              </div>
+
               <FormRow label={t("adminAboutPageTitle")}>
-                <Input value={form.title} onChange={(e) => set("title")(e.target.value)} />
+                <Input
+                  value={currentFields.title}
+                  onChange={(e) => setLangField(activeLang, "title", e.target.value.slice(0, TITLE_MAX))}
+                  maxLength={TITLE_MAX}
+                  hint={`${currentFields.title.length} / ${TITLE_MAX}`}
+                />
               </FormRow>
 
               <FormRow label={t("adminAboutMission")}>
                 <textarea
-                  value={form.mission}
-                  onChange={(e) => set("mission")(e.target.value)}
+                  value={currentFields.mission}
+                  onChange={(e) => setLangField(activeLang, "mission", e.target.value.slice(0, MISSION_MAX))}
                   rows={4}
+                  maxLength={MISSION_MAX}
                   className="w-full px-3 py-2 rounded-lg text-[14px]"
                   style={{
                     background: "var(--eco-bg)",
@@ -145,13 +235,17 @@ export function AdminAboutPage() {
                     resize: "vertical",
                   }}
                 />
+                <span className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                  {currentFields.mission.length} / {MISSION_MAX}
+                </span>
               </FormRow>
 
               <FormRow label={t("adminAboutDescription")}>
                 <textarea
-                  value={form.description}
-                  onChange={(e) => set("description")(e.target.value)}
+                  value={currentFields.description}
+                  onChange={(e) => setLangField(activeLang, "description", e.target.value.slice(0, DESCRIPTION_MAX))}
                   rows={6}
+                  maxLength={DESCRIPTION_MAX}
                   className="w-full px-3 py-2 rounded-lg text-[14px]"
                   style={{
                     background: "var(--eco-bg)",
@@ -160,13 +254,16 @@ export function AdminAboutPage() {
                     resize: "vertical",
                   }}
                 />
+                <span className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                  {currentFields.description.length} / {DESCRIPTION_MAX}
+                </span>
               </FormRow>
 
               <FormRow label={t("adminAboutContactEmail")}>
                 <Input
                   type="email"
                   value={form.contactEmail}
-                  onChange={(e) => set("contactEmail")(e.target.value)}
+                  onChange={(e) => setContactEmail(e.target.value)}
                   placeholder="support@ecopay.kz"
                 />
               </FormRow>
@@ -174,12 +271,12 @@ export function AdminAboutPage() {
               <FormRow label={t("adminAboutContactPhone")}>
                 <Input
                   value={form.contactPhone}
-                  onChange={(e) => set("contactPhone")(e.target.value)}
+                  onChange={(e) => setContactPhone(e.target.value)}
                   placeholder="+7 ..."
                 />
               </FormRow>
 
-              <div className="flex items-center justify-between gap-3 pt-2 flex-wrap">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2">
                 <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
                   {updatedAt
                     ? `${t("adminAboutLastUpdated")}: ${formatDateTime(updatedAt, language)}`

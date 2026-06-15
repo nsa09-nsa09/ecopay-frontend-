@@ -20,6 +20,7 @@ import {
   updateCurrentUser,
   verifyStaffTwoFactorRequest,
 } from "../../lib/api";
+import { clearAdminDashboardCache } from "../../lib/admin-dashboard-cache";
 
 interface BanEvent {
   type: "BANNED";
@@ -308,6 +309,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } finally {
       commitSession(null);
+      // Drop staff-only caches on sign-out so a fresh login (possibly as a
+      // different user) starts with no stale data leaking through.
+      clearAdminDashboardCache();
     }
   };
 

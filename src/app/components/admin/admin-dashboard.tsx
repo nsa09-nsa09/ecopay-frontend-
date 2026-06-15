@@ -1,24 +1,25 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { Card, Button, Select, Skeleton } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import {
-  getAdminCategoryDistributionRequest,
-  getAdminCurrencyDistributionRequest,
-  getAdminDashboardKpisRequest,
-  getAdminDashboardMetrics,
-  getAdminOperatorDistributionRequest,
-  getAdminPopularServicesRequest,
-  getAdminRoomStatusDistributionRequest,
-  type AdminDashboardKpisDto,
   type DashboardGranularity,
-  type DashboardMetricsResponse,
   type NamedCountDto,
   type OperatorDistributionDto,
   type PopularServiceDto,
 } from "../../lib/api";
-import { formatAdminApiError } from "./admin-action-ui";
+import {
+  fetchCategoryDistribution,
+  fetchCurrencyDistribution,
+  fetchKpis,
+  fetchMetrics,
+  fetchOperatorDistribution,
+  fetchPopularServices,
+  fetchRoomStatusDistribution,
+  getMetricsEntry,
+  useAdminDashboardCache,
+} from "../../lib/admin-dashboard-cache";
 import {
   ShieldCheck,
   Scale,
@@ -37,6 +38,12 @@ import {
   PlusCircle,
   Percent,
   MessageSquare,
+  Inbox,
+  Globe,
+  PieChart as PieIcon,
+  BarChart3,
+  Layers,
+  AlertCircle,
 } from "lucide-react";
 import {
   Bar,
@@ -87,107 +94,70 @@ function formatDecimal(value: number | string | null | undefined): string {
   return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(num);
 }
 
-function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
 
 export function AdminDashboardPage() {
   const { t } = useI18n();
   const { authorizedRequest } = useAuth();
-  const [kpis, setKpis] = useState<AdminDashboardKpisDto | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  // Read all data from the shared admin-dashboard cache. The cache is
+  // (pre)populated by <AdminRoute/> at admin-shell mount, so when the user
+  // opens this page the panels usually render straight from the cache.
+  const cache = useAdminDashboardCache();
+  const kpisEntry = cache.kpis;
+  const kpis = kpisEntry.data;
+  const loading = kpisEntry.loading && !kpisEntry.data;
+  const error = kpisEntry.error;
 
   const [granularity, setGranularity] = useState<DashboardGranularity>("month");
   const [rangeKey, setRangeKey] = useState<"12m" | "30d">("12m");
-  const [metrics, setMetrics] = useState<DashboardMetricsResponse | null>(null);
-  const [metricsLoading, setMetricsLoading] = useState(true);
-  const [metricsError, setMetricsError] = useState<string | null>(null);
+  const metricsEntry = getMetricsEntry(granularity, rangeKey);
+  // Subscribe to the cache so metrics re-render when fetch resolves.
+  // The hook above is enough — we just read from the snapshot, but
+  // `getMetricsEntry` reads from the module state directly; bridge via
+  // `cache.metrics` to ensure subscription covers this key too.
+  const metricsKey = `${granularity}|${rangeKey}`;
+  const metricsLive = cache.metrics[metricsKey] ?? metricsEntry;
+  const metrics = metricsLive.data;
+  const metricsLoading = metricsLive.loading && !metricsLive.data;
+  const metricsError = metricsLive.error;
 
-  // Audience & demand distributions: loaded once on mount in parallel.
-  // Failures don't block the rest of the dashboard; the affected card
-  // surfaces the error in place.
-  const [popularServices, setPopularServices] = useState<PopularServiceDto[] | null>(null);
-  const [operatorDistribution, setOperatorDistribution] = useState<OperatorDistributionDto[] | null>(null);
-  const [currencyDistribution, setCurrencyDistribution] = useState<NamedCountDto[] | null>(null);
-  const [categoryDistribution, setCategoryDistribution] = useState<NamedCountDto[] | null>(null);
-  const [roomStatusDistribution, setRoomStatusDistribution] = useState<NamedCountDto[] | null>(null);
-  const [distributionsLoading, setDistributionsLoading] = useState(true);
-  const [distributionsError, setDistributionsError] = useState<string | null>(null);
+  const popularEntry = cache.popularServices;
+  const operatorEntry = cache.operatorDistribution;
+  const currencyEntry = cache.currencyDistribution;
+  const categoryEntry = cache.categoryDistribution;
+  const roomStatusEntry = cache.roomStatusDistribution;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await authorizedRequest((token) => getAdminDashboardKpisRequest(token));
-      setKpis(data);
-    } catch (err) {
-      setError(formatAdminApiError(err, t));
-    } finally {
-      setLoading(false);
-    }
-  }, [authorizedRequest, t]);
+  const popularServices: PopularServiceDto[] | null = popularEntry.data;
+  const operatorDistribution: OperatorDistributionDto[] | null = operatorEntry.data;
+  const currencyDistribution: NamedCountDto[] | null = currencyEntry.data;
+  const categoryDistribution: NamedCountDto[] | null = categoryEntry.data;
+  const roomStatusDistribution: NamedCountDto[] | null = roomStatusEntry.data;
 
-  const loadMetrics = useCallback(async () => {
-    setMetricsLoading(true);
-    setMetricsError(null);
-    const to = new Date();
-    const from = new Date(to);
-    if (rangeKey === "12m") from.setMonth(from.getMonth() - 12);
-    else from.setDate(from.getDate() - 30);
-    try {
-      const data = await authorizedRequest((token) =>
-        getAdminDashboardMetrics(token, {
-          granularity,
-          from: isoDate(from),
-          to: isoDate(to),
-        }),
-      );
-      setMetrics(data);
-    } catch (err) {
-      setMetricsError(formatAdminApiError(err, t));
-    } finally {
-      setMetricsLoading(false);
-    }
-  }, [authorizedRequest, granularity, rangeKey, t]);
+  const load = useCallback(() => {
+    void fetchKpis(authorizedRequest, true);
+  }, [authorizedRequest]);
 
-  const loadDistributions = useCallback(async () => {
-    setDistributionsLoading(true);
-    setDistributionsError(null);
-    try {
-      const [popular, operators, currencies, categories, statuses] = await authorizedRequest(
-        async (token) =>
-          Promise.all([
-            getAdminPopularServicesRequest(token, 10),
-            getAdminOperatorDistributionRequest(token),
-            getAdminCurrencyDistributionRequest(token),
-            getAdminCategoryDistributionRequest(token),
-            getAdminRoomStatusDistributionRequest(token),
-          ]),
-      );
-      setPopularServices(popular);
-      setOperatorDistribution(operators);
-      setCurrencyDistribution(currencies);
-      setCategoryDistribution(categories);
-      setRoomStatusDistribution(statuses);
-    } catch (err) {
-      setDistributionsError(formatAdminApiError(err, t));
-    } finally {
-      setDistributionsLoading(false);
-    }
-  }, [authorizedRequest, t]);
+  const loadMetrics = useCallback(() => {
+    void fetchMetrics(authorizedRequest, granularity, rangeKey, true);
+  }, [authorizedRequest, granularity, rangeKey]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void fetchKpis(authorizedRequest);
+  }, [authorizedRequest]);
 
   useEffect(() => {
-    void loadMetrics();
-  }, [loadMetrics]);
+    void fetchMetrics(authorizedRequest, granularity, rangeKey);
+  }, [authorizedRequest, granularity, rangeKey]);
 
   useEffect(() => {
-    void loadDistributions();
-  }, [loadDistributions]);
+    // Per-card distribution loads (allSettled-style): each runs and fails
+    // independently, no single rejection blanks the others.
+    void fetchPopularServices(authorizedRequest);
+    void fetchOperatorDistribution(authorizedRequest);
+    void fetchCurrencyDistribution(authorizedRequest);
+    void fetchCategoryDistribution(authorizedRequest);
+    void fetchRoomStatusDistribution(authorizedRequest);
+  }, [authorizedRequest]);
 
   const chartData = useMemo(() => {
     if (!metrics || !Array.isArray(metrics.series)) return [];
@@ -614,138 +584,167 @@ export function AdminDashboardPage() {
               </Card>
             </div>
 
-            <div className="mt-8 mb-3 flex items-center justify-between gap-2 flex-wrap">
-              <h2 className="text-[18px]" style={{ color: "var(--eco-text)" }}>{t("dashboardSectionAudience")}</h2>
-              <Button variant="secondary" size="sm" onClick={() => void loadDistributions()} disabled={distributionsLoading}>
-                <RefreshCw size={13} /> {t("retry")}
+            <div className="mt-10 mb-4 flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <h2 className="text-[18px]" style={{ color: "var(--eco-text)" }}>{t("dashboardSectionAudience")}</h2>
+                <p className="text-[12px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{t("dashboardSectionAudienceHint")}</p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  void fetchPopularServices(authorizedRequest, true);
+                  void fetchOperatorDistribution(authorizedRequest, true);
+                  void fetchCurrencyDistribution(authorizedRequest, true);
+                  void fetchCategoryDistribution(authorizedRequest, true);
+                  void fetchRoomStatusDistribution(authorizedRequest, true);
+                }}
+              >
+                <RefreshCw size={13} /> {t("refresh")}
               </Button>
             </div>
 
-            {distributionsError && (
-              <Card className="mb-4">
-                <span className="text-[13px]" style={{ color: "var(--eco-negative)" }}>{distributionsError}</span>
-              </Card>
-            )}
-
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              <Card className="flex flex-col gap-3 xl:col-span-2">
-                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardPopularServicesTitle")}</div>
-                {distributionsLoading && !popularServices ? (
-                  <Skeleton height={260} />
-                ) : popularServicesData.length === 0 ? (
-                  <EmptyChart label={t("dashboardEmptyChart")} />
-                ) : (
-                  <div style={{ width: "100%", height: Math.max(220, popularServicesData.length * 36 + 60) }}>
-                    <ResponsiveContainer>
-                      <BarChart data={popularServicesData} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
-                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
-                        <XAxis type="number" allowDecimals={false} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
-                        <YAxis type="category" dataKey="name" width={140} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
-                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-                        <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Bar dataKey={t("dashboardMetricRooms")} fill="var(--eco-primary)" />
-                        <Bar dataKey={t("dashboardMetricActiveMembers")} fill="var(--eco-warning-500)" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </Card>
+              <ChartShell
+                icon={BarChart3}
+                title={t("dashboardPopularServicesTitle")}
+                loading={popularEntry.loading && !popularServices}
+                error={popularEntry.error}
+                empty={popularServicesData.length === 0}
+                emptyLabel={t("dashboardEmptyChart")}
+                onRetry={() => void fetchPopularServices(authorizedRequest, true)}
+                placeholderShape="bars"
+                className="xl:col-span-2"
+                height={Math.max(220, popularServicesData.length * 36 + 60)}
+              >
+                <ResponsiveContainer>
+                  <BarChart data={popularServicesData} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} tick={CHART_TICK_STYLE} tickFormatter={formatCount} />
+                    <YAxis type="category" dataKey="name" width={150} tick={CHART_TICK_STYLE} />
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar dataKey={t("dashboardMetricRooms")} fill={CHART_PALETTE[0]} radius={[0, 4, 4, 0]} />
+                    <Bar dataKey={t("dashboardMetricActiveMembers")} fill={CHART_PALETTE[1]} radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartShell>
 
-              <Card className="flex flex-col gap-3">
-                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardOperatorDistributionTitle")}</div>
-                {distributionsLoading && !operatorDistribution ? (
-                  <Skeleton height={240} />
-                ) : operatorChartData.length === 0 ? (
-                  <EmptyChart label={t("dashboardEmptyChart")} />
-                ) : (
-                  <div style={{ width: "100%", height: 260 }}>
-                    <ResponsiveContainer>
-                      <BarChart data={operatorChartData} margin={{ top: 8, right: 12, left: 0, bottom: 30 }}>
-                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
-                        <XAxis dataKey="name" tick={{ fill: "var(--eco-text-tertiary)", fontSize: 11 }} interval={0} angle={-25} textAnchor="end" />
-                        <YAxis allowDecimals={false} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
-                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-                        <Bar dataKey="value" fill="var(--eco-primary)">
-                          {operatorChartData.map((entry, idx) => (
-                            <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </Card>
+              <ChartShell
+                icon={Globe}
+                title={t("dashboardOperatorDistributionTitle")}
+                loading={operatorEntry.loading && !operatorDistribution}
+                error={operatorEntry.error}
+                empty={operatorChartData.length === 0}
+                emptyLabel={t("dashboardEmptyChart")}
+                onRetry={() => void fetchOperatorDistribution(authorizedRequest, true)}
+                placeholderShape="bars"
+                height={280}
+              >
+                <ResponsiveContainer>
+                  <BarChart data={operatorChartData} margin={{ top: 8, right: 12, left: 0, bottom: 40 }}>
+                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                    <XAxis dataKey="name" tick={{ ...CHART_TICK_STYLE, fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
+                    <YAxis allowDecimals={false} tick={CHART_TICK_STYLE} tickFormatter={formatCount} />
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                      {operatorChartData.map((entry, idx) => (
+                        <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartShell>
 
-              <Card className="flex flex-col gap-3">
-                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardCurrencyDistributionTitle")}</div>
-                {distributionsLoading && !currencyDistribution ? (
-                  <Skeleton height={240} />
-                ) : currencyChartData.length === 0 ? (
-                  <EmptyChart label={t("dashboardEmptyChart")} />
-                ) : (
-                  <div style={{ width: "100%", height: 260 }}>
-                    <ResponsiveContainer>
-                      <PieChart>
-                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-                        <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Pie data={currencyChartData} dataKey="value" nameKey="name" outerRadius={90} label>
-                          {currencyChartData.map((entry, idx) => (
-                            <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
-                          ))}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </Card>
+              <ChartShell
+                icon={PieIcon}
+                title={t("dashboardCurrencyDistributionTitle")}
+                loading={currencyEntry.loading && !currencyDistribution}
+                error={currencyEntry.error}
+                empty={currencyChartData.length === 0}
+                emptyLabel={t("dashboardEmptyChart")}
+                onRetry={() => void fetchCurrencyDistribution(authorizedRequest, true)}
+                placeholderShape="pie"
+                height={280}
+              >
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Pie
+                      data={currencyChartData}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={90}
+                      label={pieLabel}
+                      stroke="var(--eco-bg)"
+                      strokeWidth={2}
+                    >
+                      {currencyChartData.map((entry, idx) => (
+                        <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartShell>
 
-              <Card className="flex flex-col gap-3">
-                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardCategoryDistributionTitle")}</div>
-                {distributionsLoading && !categoryDistribution ? (
-                  <Skeleton height={240} />
-                ) : categoryChartData.length === 0 ? (
-                  <EmptyChart label={t("dashboardEmptyChart")} />
-                ) : (
-                  <div style={{ width: "100%", height: 260 }}>
-                    <ResponsiveContainer>
-                      <BarChart data={categoryChartData} margin={{ top: 8, right: 12, left: 0, bottom: 30 }}>
-                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
-                        <XAxis dataKey="name" tick={{ fill: "var(--eco-text-tertiary)", fontSize: 11 }} interval={0} angle={-25} textAnchor="end" />
-                        <YAxis allowDecimals={false} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
-                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-                        <Bar dataKey="value" fill="var(--eco-primary)">
-                          {categoryChartData.map((entry, idx) => (
-                            <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </Card>
+              <ChartShell
+                icon={Layers}
+                title={t("dashboardCategoryDistributionTitle")}
+                loading={categoryEntry.loading && !categoryDistribution}
+                error={categoryEntry.error}
+                empty={categoryChartData.length === 0}
+                emptyLabel={t("dashboardEmptyChart")}
+                onRetry={() => void fetchCategoryDistribution(authorizedRequest, true)}
+                placeholderShape="bars"
+                height={280}
+              >
+                <ResponsiveContainer>
+                  <BarChart data={categoryChartData} margin={{ top: 8, right: 12, left: 0, bottom: 40 }}>
+                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                    <XAxis dataKey="name" tick={{ ...CHART_TICK_STYLE, fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
+                    <YAxis allowDecimals={false} tick={CHART_TICK_STYLE} tickFormatter={formatCount} />
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                      {categoryChartData.map((entry, idx) => (
+                        <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartShell>
 
-              <Card className="flex flex-col gap-3">
-                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardRoomStatusDistributionTitle")}</div>
-                {distributionsLoading && !roomStatusDistribution ? (
-                  <Skeleton height={240} />
-                ) : roomStatusChartData.length === 0 ? (
-                  <EmptyChart label={t("dashboardEmptyChart")} />
-                ) : (
-                  <div style={{ width: "100%", height: 260 }}>
-                    <ResponsiveContainer>
-                      <PieChart>
-                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-                        <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Pie data={roomStatusChartData} dataKey="value" nameKey="name" outerRadius={90} label>
-                          {roomStatusChartData.map((entry, idx) => (
-                            <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
-                          ))}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </Card>
+              <ChartShell
+                icon={Home}
+                title={t("dashboardRoomStatusDistributionTitle")}
+                loading={roomStatusEntry.loading && !roomStatusDistribution}
+                error={roomStatusEntry.error}
+                empty={roomStatusChartData.length === 0}
+                emptyLabel={t("dashboardEmptyChart")}
+                onRetry={() => void fetchRoomStatusDistribution(authorizedRequest, true)}
+                placeholderShape="pie"
+                height={280}
+              >
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Pie
+                      data={roomStatusChartData}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={90}
+                      label={pieLabel}
+                      stroke="var(--eco-bg)"
+                      strokeWidth={2}
+                    >
+                      {roomStatusChartData.map((entry, idx) => (
+                        <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartShell>
             </div>
           </>
         )}
@@ -760,25 +759,145 @@ const CHART_TOOLTIP_STYLE: CSSProperties = {
   borderRadius: 8,
   fontSize: 12,
   color: "var(--eco-text)",
+  boxShadow: "0 6px 16px rgba(0,0,0,0.06)",
 };
 
+const CHART_TICK_STYLE = { fill: "var(--eco-text-tertiary)", fontSize: 12 } as const;
+
+// Branded palette derived entirely from --eco-* tokens so every chart shares
+// the same visual language as the rest of the admin UI (KPI cards, badges,
+// status colors). No raw hex colors — the theme owns the source of truth.
 const CHART_PALETTE: readonly string[] = [
   "var(--eco-primary)",
+  "var(--eco-brand-600)",
   "var(--eco-warning-500)",
   "var(--eco-positive)",
-  "var(--eco-brand-600)",
   "var(--eco-danger-500)",
-  "var(--eco-text-tertiary)",
   "var(--eco-warning)",
+  "var(--eco-text-tertiary)",
 ] as const;
 
-function EmptyChart({ label }: { label: string }) {
+type PieLabelProps = {
+  name?: string;
+  percent?: number;
+};
+
+function pieLabel(props: unknown): string {
+  const { name, percent } = (props ?? {}) as PieLabelProps;
+  if (!name) return "";
+  const pct = typeof percent === "number" ? Math.round(percent * 100) : 0;
+  return `${name} · ${pct}%`;
+}
+
+/**
+ * Unified shell for a "distribution" chart card. Provides:
+ *  - icon + title header in the same shape as the rest of the dashboard
+ *  - shimmer placeholders that hint at the chart shape during loading
+ *  - per-card error with a retry button (no top-level blanket error)
+ *  - friendly empty state with icon
+ */
+function ChartShell({
+  icon: Icon,
+  title,
+  loading,
+  error,
+  empty,
+  emptyLabel,
+  onRetry,
+  placeholderShape,
+  height,
+  className,
+  children,
+}: {
+  icon: typeof Inbox;
+  title: string;
+  loading: boolean;
+  error: string | null;
+  empty: boolean;
+  emptyLabel: string;
+  onRetry: () => void;
+  placeholderShape: "bars" | "pie";
+  height: number;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <div
-      className="flex items-center justify-center rounded-lg"
-      style={{ height: 220, color: "var(--eco-text-tertiary)", fontSize: 13, background: "var(--eco-surface)" }}
-    >
-      {label}
+    <Card className={`flex flex-col gap-3 ${className ?? ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "var(--eco-brand-50)" }}>
+            <Icon size={14} style={{ color: "var(--eco-brand-600)" }} />
+          </div>
+          <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{title}</div>
+        </div>
+        {error && (
+          <Button variant="ghost" size="sm" onClick={onRetry}>
+            <RefreshCw size={12} />
+          </Button>
+        )}
+      </div>
+      <div style={{ width: "100%", height }}>
+        {loading ? (
+          <ChartPlaceholder shape={placeholderShape} height={height} />
+        ) : error ? (
+          <ChartErrorState message={error} onRetry={onRetry} />
+        ) : empty ? (
+          <ChartEmptyState label={emptyLabel} icon={Icon} />
+        ) : (
+          <div className="w-full h-full animate-eco-fade-in">{children}</div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function ChartPlaceholder({ shape, height }: { shape: "bars" | "pie"; height: number }) {
+  if (shape === "pie") {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div
+          className="rounded-full animate-pulse"
+          style={{ width: Math.min(height - 40, 180), height: Math.min(height - 40, 180), background: "var(--eco-neutral-200)" }}
+        />
+      </div>
+    );
+  }
+  const rows = 5;
+  return (
+    <div className="w-full h-full flex items-end gap-3 px-2 pb-2">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div
+          key={i}
+          className="flex-1 rounded-md animate-pulse"
+          style={{
+            height: `${30 + ((i * 17) % 60)}%`,
+            background: "var(--eco-neutral-200)",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ChartErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg" style={{ background: "var(--eco-surface)" }}>
+      <AlertCircle size={20} style={{ color: "var(--eco-danger-500)" }} />
+      <span className="text-[12px] text-center max-w-[260px]" style={{ color: "var(--eco-text-secondary)" }}>{message}</span>
+      <Button variant="secondary" size="sm" onClick={onRetry}>
+        <RefreshCw size={12} />
+      </Button>
+    </div>
+  );
+}
+
+function ChartEmptyState({ label, icon: Icon }: { label: string; icon: typeof Inbox }) {
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg" style={{ background: "var(--eco-surface)" }}>
+      <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--eco-neutral-100)" }}>
+        <Icon size={16} style={{ color: "var(--eco-text-tertiary)" }} />
+      </div>
+      <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{label}</span>
     </div>
   );
 }

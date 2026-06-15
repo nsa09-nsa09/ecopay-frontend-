@@ -63,6 +63,25 @@ export function FeedbackPage() {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Cooldown after the backend returns 429. We keep the absolute deadline
+  // and a tick counter so the countdown updates every second without
+  // recreating the timer.
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const cooldownLeftSec = cooldownUntil ? Math.max(0, Math.ceil((cooldownUntil - now) / 1000)) : 0;
+  const isCoolingDown = cooldownLeftSec > 0;
+
+  useEffect(() => {
+    if (!cooldownUntil) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [cooldownUntil]);
+
+  useEffect(() => {
+    if (cooldownUntil && Date.now() >= cooldownUntil) {
+      setCooldownUntil(null);
+    }
+  }, [cooldownUntil, now]);
 
   const [list, setList] = useState<FeedbackDto[] | null>(null);
   const [listLoading, setListLoading] = useState(true);
@@ -92,8 +111,14 @@ export function FeedbackPage() {
     void loadList();
   }, [loadList]);
 
+  const RATE_LIMIT_COOLDOWN_SEC = 60;
+
   const submit = async () => {
     setError(null);
+    if (isCoolingDown) {
+      setError(t("feedbackRateLimitedRetryIn", { seconds: cooldownLeftSec }));
+      return;
+    }
     const trimmed = message.trim();
     if (!trimmed) {
       setError(t("feedbackMessageEmpty"));
@@ -122,6 +147,10 @@ export function FeedbackPage() {
       void loadList();
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
+        // Backend already rate-limits us. Block the submit button for a
+        // short cooldown so a frustrated user can't hammer the form and
+        // make the situation worse.
+        setCooldownUntil(Date.now() + RATE_LIMIT_COOLDOWN_SEC * 1000);
         setError(t("feedbackRateLimited"));
       } else if (err instanceof ApiError) {
         setError(err.message || t("feedbackSubmitFailed"));
@@ -207,10 +236,23 @@ export function FeedbackPage() {
           <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{error}</p>
         )}
 
-        <div>
-          <Button variant="primary" onClick={() => void submit()} loading={submitting} disabled={submitting}>
-            <Send size={14} /> {t("feedbackSubmit")}
+        <div className="flex flex-col gap-1">
+          <Button
+            variant="primary"
+            onClick={() => void submit()}
+            loading={submitting}
+            disabled={submitting || isCoolingDown}
+          >
+            <Send size={14} />
+            {isCoolingDown
+              ? t("feedbackRetryInLabel", { seconds: cooldownLeftSec })
+              : t("feedbackSubmit")}
           </Button>
+          {isCoolingDown && (
+            <span className="text-[11px]" style={{ color: "var(--eco-warning-500)" }}>
+              {t("feedbackRateLimitedRetryIn", { seconds: cooldownLeftSec })}
+            </span>
+          )}
         </div>
       </Card>
 

@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n } from "../i18n-provider";
@@ -9,6 +9,7 @@ import {
   isRoleAllowedFor,
   type StaffRole,
 } from "./admin-nav";
+import { prefetchAdminDashboard } from "../../lib/admin-dashboard-cache";
 
 interface AdminRouteProps {
   children?: ReactNode;
@@ -30,9 +31,19 @@ interface AdminRouteProps {
  * guard never disagree.
  */
 export function AdminRoute({ children, allow }: AdminRouteProps) {
-  const { user, isAuthenticated, isReady } = useAuth();
+  const { user, isAuthenticated, isReady, authorizedRequest } = useAuth();
   const location = useLocation();
   const { t } = useI18n();
+
+  // Warm up the dashboard caches the moment we know we have an ADMIN
+  // session. The cache module dedupes in-flight requests and skips
+  // resources that already have data, so this is safe to fire on every
+  // mount of the admin shell. SUPPORT users never hit /admin/dashboard,
+  // so they don't trigger ADMIN-only endpoints (would 403 noise).
+  useEffect(() => {
+    if (!isReady || !isAuthenticated || !user || user.role !== "ADMIN") return;
+    void prefetchAdminDashboard(authorizedRequest);
+  }, [isReady, isAuthenticated, user, authorizedRequest]);
 
   if (!isReady) {
     return (
