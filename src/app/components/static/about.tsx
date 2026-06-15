@@ -1,11 +1,34 @@
 import { useEffect, useState } from "react";
 import { WaveDivider } from "../ds-primitives";
 import { Mail, Phone, MapPin, Shield, Users, Zap } from "lucide-react";
-import { useI18n } from "../i18n-provider";
+import { useI18n, type Language } from "../i18n-provider";
 import { getSiteAboutRequest, type SiteAboutContent } from "../../lib/api";
 
+type LocalizedField = "title" | "mission" | "description";
+
+// Resolve a localized about-page field for the active language. Falls back
+// to Russian (the canonical source of truth in the editor), then to the
+// legacy single-field column kept for backward compatibility with older
+// backend responses.
+function pickLocalized(
+  content: SiteAboutContent | null,
+  field: LocalizedField,
+  language: Language,
+): string | null {
+  if (!content) return null;
+  const langKey = `${field}_${language}` as keyof SiteAboutContent;
+  const fallbackKey = `${field}_ru` as keyof SiteAboutContent;
+  const localized = (content[langKey] as string | null | undefined) ?? null;
+  if (localized && typeof localized === "string" && localized.trim()) return localized;
+  const ruFallback = (content[fallbackKey] as string | null | undefined) ?? null;
+  if (ruFallback && typeof ruFallback === "string" && ruFallback.trim()) return ruFallback;
+  const legacy = content[field];
+  if (typeof legacy === "string" && legacy.trim()) return legacy;
+  return null;
+}
+
 export function AboutPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [content, setContent] = useState<SiteAboutContent | null>(null);
 
   // Pull editable copy from the admin-managed endpoint; if it fails for any
@@ -19,9 +42,9 @@ export function AboutPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const heroTitle = content?.title?.trim() || t("aboutEcoPay");
-  const missionText = content?.mission?.trim() || t("missionText");
-  const descriptionText = content?.description?.trim() || t("howWeHelpText");
+  const heroTitle = pickLocalized(content, "title", language)?.trim() || t("aboutEcoPay");
+  const missionText = pickLocalized(content, "mission", language)?.trim() || t("missionText");
+  const descriptionText = pickLocalized(content, "description", language)?.trim() || t("howWeHelpText");
   const contactEmail = content?.contactEmail?.trim() || t("contactEmail");
   const contactPhone = content?.contactPhone?.trim() || t("contactPhoneNumber");
 

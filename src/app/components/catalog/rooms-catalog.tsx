@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Card, Select, RoomStatusBadge, Pill, EmptyState, Button } from "../ds-primitives";
 import { Users, Calendar, Filter, Search, LayoutGrid } from "lucide-react";
 import { useI18n, type Language } from "../i18n-provider";
+import { formatDate as formatAlmatyDate } from "../../lib/datetime";
 import { getRooms, type RoomSummaryDto } from "../../lib/api";
 
 const moneyFormatter = new Intl.NumberFormat("ru-RU");
@@ -25,8 +26,7 @@ export function RoomsCatalogPage() {
 
   const formatDate = (v: string | undefined) => {
     if (!v) return tx(language, "—", "—", "TBD");
-    const locale = language === "ru" ? "ru-RU" : language === "kz" ? "kk-KZ" : "en-US";
-    return new Date(v).toLocaleDateString(locale);
+    return formatAlmatyDate(v, language);
   };
 
   const TYPE_OPTIONS = [

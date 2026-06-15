@@ -5,17 +5,47 @@ import { ArrowLeft, Lock, Check, Shield } from "lucide-react";
 import {
   ApiError,
   createRoomRequest,
+  getFxRatesRequest,
   getServices,
   getTariffs,
+  type FxRatesResponse,
   type RoomResponseDto,
   type ServiceDto,
+  type SupportedCurrency,
   type TariffPlanDto,
 } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n, type Language } from "../i18n-provider";
+import { formatDateTime } from "../../lib/datetime";
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === "ru" ? ru : l === "kz" ? kz : en;
+
+const SUPPORTED_CURRENCY_CODES: readonly SupportedCurrency[] = [
+  "KZT", "UZS", "KGS", "USD", "EUR", "CNY", "GBP", "RUB",
+] as const;
+
+const CURRENCY_SYMBOLS: Record<SupportedCurrency, string> = {
+  KZT: "₸",
+  USD: "$",
+  EUR: "€",
+  CNY: "¥",
+  GBP: "£",
+  RUB: "₽",
+  UZS: "сум",
+  KGS: "сом",
+};
+
+const CURRENCY_LABEL_KEY: Record<SupportedCurrency, string> = {
+  KZT: "currencyKzt",
+  USD: "currencyUsd",
+  EUR: "currencyEur",
+  CNY: "currencyCny",
+  GBP: "currencyGbp",
+  RUB: "currencyRub",
+  UZS: "currencyUzs",
+  KGS: "currencyKgs",
+};
 
 function defaultStartDate() {
   const d = new Date();
@@ -28,7 +58,7 @@ function defaultStartDate() {
 export function CreateRoomPage() {
   const navigate = useNavigate();
   const { isAuthenticated, isReady, authorizedRequest } = useAuth();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
 
   const stepLabels = [
     tx(language, "Оператор и тариф", "Оператор және тариф", "Operator & Plan"),
@@ -74,11 +104,35 @@ export function CreateRoomPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [published, setPublished] = useState<RoomResponseDto | null>(null);
 
+  // Currency state + FX rates. We default to KZT (base currency). The
+  // selected currency is what the owner enters in the price field; the live
+  // KZT equivalent is shown directly below it so the owner can sanity-check
+  // the conversion before publishing.
+  const [currency, setCurrency] = useState<SupportedCurrency>("KZT");
+  const [fxRates, setFxRates] = useState<FxRatesResponse | null>(null);
+  const [fxError, setFxError] = useState<string | null>(null);
+
   useEffect(() => {
     if (isReady && !isAuthenticated) {
       navigate("/login?redirect=/rooms/create");
     }
   }, [isReady, isAuthenticated, navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getFxRatesRequest()
+      .then((res) => {
+        if (cancelled) return;
+        setFxRates(res);
+        setFxError(null);
+      })
+      .catch(() => {
+        if (!cancelled) setFxError(t("priceFxUnavailable"));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,6 +212,42 @@ export function CreateRoomPage() {
 
   const isTelecom = roomType === "TELECOM";
 
+  // FX rates: 1 unit of `code` = N tenge. For KZT (base) the rate is 1.
+  const rateToKzt = (code: SupportedCurrency): number | null => {
+    if (code === "KZT") return 1;
+    const rate = fxRates?.rates?.[code];
+    return typeof rate === "number" && rate > 0 ? rate : null;
+  };
+
+  const currentRate = rateToKzt(currency);
+
+  const convertToKzt = (amount: number): number | null => {
+    if (currentRate == null) return null;
+    if (!Number.isFinite(amount)) return null;
+    return Math.round(amount * currentRate);
+  };
+
+  const totalNumeric = Number(totalPrice || "0") || 0;
+  const perMemberNumeric = Number(perMemberPrice || "0") || 0;
+  const totalKztEquivalent = convertToKzt(totalNumeric);
+  const perMemberKztEquivalent = convertToKzt(perMemberNumeric);
+
+  const moneyFmt = (n: number) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(n);
+
+  const currencyOptions = SUPPORTED_CURRENCY_CODES.map((code) => ({
+    value: code,
+    label: t(CURRENCY_LABEL_KEY[code]),
+  }));
+
+  const currencySymbol = CURRENCY_SYMBOLS[currency];
+
+  // Show the KZT equivalent hint under price inputs (only for non-KZT).
+  const renderKztHint = (kztValue: number | null): string | undefined => {
+    if (currency === "KZT") return undefined;
+    if (kztValue == null) return t("priceFxUnavailable");
+    return t("priceKztEquivalent", { amount: `₸${moneyFmt(kztValue)}` });
+  };
+
   const handlePublish = async () => {
     setSubmitError(null);
 
@@ -195,7 +285,7 @@ export function CreateRoomPage() {
             maxMembers: seatCount,
             priceTotal: priceModel === "total" ? Number(totalPrice) : null,
             pricePerMember: priceModel === "per_member" ? Number(perMemberPrice) : null,
-            currency: "KZT",
+            currency,
             periodType,
             startDate: startDate.length === 16 ? `${startDate}:00` : startDate,
             providerName: selectedService?.name ?? null,
@@ -364,6 +454,24 @@ export function CreateRoomPage() {
               onChange={(e) => setSeats(e.target.value)}
               hint={tx(language, "Минимум 2, включая вас", "Кемінде 2, өзіңізді қоса", "Minimum 2 members including you")}
             />
+            <div className="flex flex-col gap-1">
+              <Select
+                label={t("currencyLabel")}
+                options={currencyOptions}
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value as SupportedCurrency)}
+              />
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+                {fxRates?.updatedAt && (
+                  <span className="text-[11px] break-words" style={{ color: "var(--eco-text-tertiary)" }}>
+                    {t("priceFxUpdatedAt", { time: formatDateTime(fxRates.updatedAt, language) })}
+                  </span>
+                )}
+                {fxError && (
+                  <span className="text-[11px] break-words" style={{ color: "var(--eco-warning-500)" }}>{fxError}</span>
+                )}
+              </div>
+            </div>
             <Select
               label={tx(language, "Модель цены", "Баға моделі", "Price Model")}
               options={[
@@ -375,20 +483,25 @@ export function CreateRoomPage() {
             />
             {priceModel === "total" ? (
               <Input
-                label={tx(language, "Общая цена (₸)", "Жалпы баға (₸)", "Total Price (₸)")}
+                label={`${tx(language, "Общая цена", "Жалпы баға", "Total Price")} (${currencySymbol})`}
                 type="number"
                 value={totalPrice}
                 onChange={(e) => setTotalPrice(e.target.value)}
-                hint={seatCount > 0
-                  ? tx(language, `≈ ₸${perMemberDerived.toLocaleString()} за участника`, `≈ ₸${perMemberDerived.toLocaleString()} қатысушыға`, `≈ ₸${perMemberDerived.toLocaleString()} per member`)
-                  : undefined}
+                hint={
+                  currency === "KZT"
+                    ? seatCount > 0
+                      ? tx(language, `≈ ₸${perMemberDerived.toLocaleString()} за участника`, `≈ ₸${perMemberDerived.toLocaleString()} қатысушыға`, `≈ ₸${perMemberDerived.toLocaleString()} per member`)
+                      : undefined
+                    : renderKztHint(totalKztEquivalent)
+                }
               />
             ) : (
               <Input
-                label={tx(language, "Цена за участника (₸)", "Қатысушы үшін баға (₸)", "Price per Member (₸)")}
+                label={`${tx(language, "Цена за участника", "Қатысушы үшін баға", "Price per Member")} (${currencySymbol})`}
                 type="number"
                 value={perMemberPrice}
                 onChange={(e) => setPerMemberPrice(e.target.value)}
+                hint={renderKztHint(perMemberKztEquivalent)}
               />
             )}
             <Select
@@ -474,7 +587,15 @@ export function CreateRoomPage() {
               { label: tx(language, "Тариф", "Тариф", "Plan"), value: selectedTariff?.name ?? tx(language, "Свой", "Өзіндік", "Custom") },
               { label: tx(language, "Название", "Атауы", "Title"), value: title || "—" },
               { label: tx(language, "Места", "Орындар", "Seats"), value: String(seatCount) },
-              { label: tx(language, "За участника", "Қатысушы үшін", "Per member"), value: `₸${perMemberDerived.toLocaleString()}/${periodType.toLowerCase()}` },
+              {
+                label: tx(language, "За участника", "Қатысушы үшін", "Per member"),
+                value:
+                  currency === "KZT"
+                    ? `₸${perMemberDerived.toLocaleString()}/${periodType.toLowerCase()}`
+                    : `${currencySymbol}${perMemberDerived.toLocaleString()}/${periodType.toLowerCase()}${
+                        perMemberKztEquivalent != null ? ` (≈ ₸${moneyFmt(perMemberKztEquivalent)})` : ""
+                      }`,
+              },
               { label: tx(language, "Дата старта", "Басталу күні", "Start date"), value: startDate.replace("T", " ") },
               ...(isTelecom
                 ? [{ label: tx(language, "Доступ", "Қатынас", "Access"), value: CONNECTION_OPTIONS.find((o) => o.value === connectionType)?.label ?? connectionType }]

@@ -5,6 +5,7 @@ import { ArrowLeft, Users, Calendar, Shield, AlertTriangle, Check, Star } from "
 import { ApiError, getRoom, getRooms, joinRoomRequest, type RoomResponseDto, type RoomSummaryDto } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n, type Language } from "../i18n-provider";
+import { formatDate as formatAlmatyDate } from "../../lib/datetime";
 import { LeaveReviewModal } from "../reputation/leave-review-modal";
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
@@ -18,8 +19,7 @@ function formatMoney(value: number | null | undefined) {
 
 function formatDate(value: string | undefined, l: Language) {
   if (!value) return tx(l, "—", "—", "TBD");
-  const locale = l === "ru" ? "ru-RU" : l === "kz" ? "kk-KZ" : "en-US";
-  return new Date(value).toLocaleDateString(locale);
+  return formatAlmatyDate(value, l);
 }
 
 export function RoomDetailPage() {

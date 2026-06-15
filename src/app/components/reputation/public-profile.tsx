@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { useI18n } from "../i18n-provider";
+import { formatDate } from "../../lib/datetime";
 import { Card, Button, Skeleton } from "../ds-primitives";
 import { Star, Shield, AlertCircle, Flag, Info } from "lucide-react";
 import {
@@ -83,7 +84,7 @@ function ReputationExplanationPanel({ isOpen, onClose }: { isOpen: boolean; onCl
 }
 
 export function PublicUserProfilePage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { id, publicId } = useParams<{ id?: string; publicId?: string }>();
 
   const [reviewFilter, setReviewFilter] = useState<"all" | "positive" | "negative" | "recent">("all");
@@ -309,7 +310,7 @@ export function PublicUserProfilePage() {
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-[14px]" style={{ color: "var(--eco-text)" }}>{review.authorDisplayName}</span>
                           <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                            {new Date(review.createdAt).toLocaleDateString()}
+                            {formatDate(review.createdAt, language)}
                           </span>
                         </div>
                         <StarRating rating={review.rating} size={14} />

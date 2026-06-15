@@ -13,6 +13,7 @@ import {
 } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n, type Language } from "../i18n-provider";
+import { formatDate as formatAlmatyDate, formatDateTime as formatAlmatyDateTime } from "../../lib/datetime";
 import { LeaveReviewModal } from "../reputation/leave-review-modal";
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
@@ -22,10 +23,9 @@ const moneyFormatter = new Intl.NumberFormat("ru-RU");
 const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
 const formatDate = (v: string | null | undefined, l: Language) => {
   if (!v) return tx(l, "—", "—", "TBD");
-  const locale = l === "ru" ? "ru-RU" : l === "kz" ? "kk-KZ" : "en-US";
-  return new Date(v).toLocaleDateString(locale);
+  return formatAlmatyDate(v, l);
 };
-const formatDateTime = (v: string | null | undefined) => (v ? new Date(v).toLocaleString() : null);
+const formatDateTime = (v: string | null | undefined, l: Language) => (v ? formatAlmatyDateTime(v, l) : null);
 
 // A member occupies a slot / is post-payment once PENDING or ACTIVE.
 const POST_PAYMENT = new Set(["PENDING", "ACTIVE"]);
@@ -253,7 +253,7 @@ export function OwnerDetailPage() {
                       {granted && (
                         <div className="text-[12px] flex items-center gap-1.5" style={{ color: "var(--eco-positive)" }}>
                           <CheckCircle2 size={13} />
-                          {tx(language, "Доступ выдан", "Қатынас берілді", "Access granted")} {formatDateTime(p.ownerAccessConfirmedAt)}
+                          {tx(language, "Доступ выдан", "Қатынас берілді", "Access granted")} {formatDateTime(p.ownerAccessConfirmedAt, language)}
                           {p.accessMethod ? ` · ${p.accessMethod}` : ""}
                         </div>
                       )}

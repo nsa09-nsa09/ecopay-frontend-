@@ -1,11 +1,32 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Card, Badge, Button, Input, Modal } from "../ds-primitives";
-import { Shield, UserRound, Mail, Star, Phone, CheckCircle2, Copy, Trash2, Upload, Search as SearchIcon } from "lucide-react";
+import { Card, Badge, Button, Input, Modal, Skeleton } from "../ds-primitives";
+import { Shield, UserRound, Mail, Star, Phone, CheckCircle2, Copy, Trash2, Upload, Search as SearchIcon, Home, CheckCheck, Wallet, PiggyBank, CalendarClock, MessageSquare, AlertTriangle, RefreshCw, TrendingUp, BarChart3 } from "lucide-react";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n, type Language } from "../i18n-provider";
-import { ApiError, deleteMyAccount, deleteMyAvatar, requestPhoneCodeRequest, resendVerificationEmailRequest, uploadMyAvatar, verifyPhoneRequest } from "../../lib/api";
+import { formatDate, formatDateTime } from "../../lib/datetime";
+import {
+  ApiError,
+  deleteMyAccount,
+  deleteMyAvatar,
+  getMyDashboardRequest,
+  requestPhoneCodeRequest,
+  resendVerificationEmailRequest,
+  uploadMyAvatar,
+  verifyPhoneRequest,
+  type MemberDashboardDto,
+} from "../../lib/api";
 import { MyServiceReviewCard } from "./my-service-review";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === "ru" ? ru : l === "kz" ? kz : en;
@@ -166,6 +187,8 @@ export function ProfilePage() {
           {user.publicId && <PublicLinkCard publicId={user.publicId} />}
 
           <FindUserCard />
+
+          <MemberDashboardCard />
 
           <MyServiceReviewCard />
 
@@ -621,6 +644,226 @@ function EmailVerificationCard({ email }: { email: string }) {
       </Button>
       {message && <p className="text-[12px]" style={{ color: "var(--eco-positive)" }}>{message}</p>}
       {error && <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{error}</p>}
+    </Card>
+  );
+}
+
+function formatKzt(value: number | string | null | undefined): string {
+  if (value == null) return "—";
+  const num = typeof value === "string" ? Number(value) : value;
+  if (Number.isNaN(num)) return String(value);
+  return `₸${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(num)}`;
+}
+
+function formatCount(value: number | null | undefined): string {
+  if (value == null) return "—";
+  return new Intl.NumberFormat("ru-RU").format(value);
+}
+
+interface MemberStat {
+  key: string;
+  value: string;
+  icon: typeof Home;
+  variant: "info" | "success" | "warning" | "danger";
+  hint?: string;
+}
+
+function MemberDashboardCard() {
+  const { t, language } = useI18n();
+  const { authorizedRequest, isAuthenticated } = useAuth();
+  const [data, setData] = useState<MemberDashboardDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    if (!isAuthenticated) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const dto = await authorizedRequest((token) => getMyDashboardRequest(token));
+      setData(dto);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("memberDashboardLoadFailed"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
+  const spendChartData = useMemo(() => {
+    if (!data || !Array.isArray(data.recentEvents)) return [];
+    const points = data.recentEvents
+      .filter((event) => event.amountKzt != null)
+      .map((event) => ({
+        period: formatDate(event.createdAt, language),
+        amount:
+          typeof event.amountKzt === "string"
+            ? Number(event.amountKzt)
+            : Number(event.amountKzt ?? 0),
+      }));
+    // recent events arrive newest-first; reverse so the chart reads left→right.
+    return points.reverse();
+  }, [data, language]);
+
+  const stats: MemberStat[] = data
+    ? [
+        { key: "memberStatActiveRooms", value: formatCount(data.joinedRoomsActive), icon: Home, variant: "info" },
+        { key: "memberStatCompletedRooms", value: formatCount(data.joinedRoomsCompleted), icon: CheckCheck, variant: "success" },
+        { key: "memberStatTotalJoined", value: formatCount(data.totalRoomsJoined), icon: BarChart3, variant: "info" },
+        { key: "memberStatMonthlySpend", value: formatKzt(data.monthlySpendKzt), icon: Wallet, variant: "warning" },
+        { key: "memberStatTotalSpent", value: formatKzt(data.totalSpentKzt), icon: TrendingUp, variant: "info" },
+        { key: "memberStatTotalSaved", value: formatKzt(data.totalSavedKzt), icon: PiggyBank, variant: "success" },
+        {
+          key: "memberStatNextPayment",
+          value: data.nextPaymentDate
+            ? `${formatDate(data.nextPaymentDate, language)} · ${formatKzt(data.nextPaymentAmountKzt)}`
+            : t("memberNoUpcomingPayment"),
+          icon: CalendarClock,
+          variant: "warning",
+        },
+        { key: "memberStatReputation", value: formatCount(typeof data.reputationScore === "string" ? Number(data.reputationScore) : data.reputationScore), icon: Star, variant: "success" },
+        { key: "memberStatReviewsReceived", value: formatCount(data.reviewsReceived), icon: MessageSquare, variant: "info" },
+        { key: "memberStatDisputes", value: formatCount(data.disputesAsMember), icon: AlertTriangle, variant: "danger" },
+      ]
+    : [];
+
+  return (
+    <Card className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h3 className="flex items-center gap-2 text-[16px]" style={{ color: "var(--eco-text)" }}>
+          <BarChart3 size={16} /> {t("memberDashboardTitle")}
+        </h3>
+        <Button variant="ghost" size="sm" onClick={() => void load()} disabled={loading}>
+          <RefreshCw size={13} /> {t("memberDashboardRefresh")}
+        </Button>
+      </div>
+
+      {loading && !data && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} height={70} />
+          ))}
+        </div>
+      )}
+
+      {error && !loading && (
+        <div className="text-[13px]" style={{ color: "var(--eco-negative)" }}>{error}</div>
+      )}
+
+      {data && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {stats.map((s) => {
+              const Icon = s.icon;
+              return (
+                <div key={s.key} className="p-3 rounded-lg flex flex-col gap-2" style={{ background: "var(--eco-surface)" }}>
+                  <div
+                    className="w-7 h-7 rounded-lg flex items-center justify-center"
+                    style={{
+                      background:
+                        s.variant === "warning"
+                          ? "var(--eco-warning-100)"
+                          : s.variant === "danger"
+                          ? "var(--eco-danger-100)"
+                          : s.variant === "success"
+                          ? "var(--eco-success-100)"
+                          : "var(--eco-brand-50)",
+                    }}
+                  >
+                    <Icon
+                      size={13}
+                      style={{
+                        color:
+                          s.variant === "warning"
+                            ? "var(--eco-warning-500)"
+                            : s.variant === "danger"
+                            ? "var(--eco-danger-500)"
+                            : s.variant === "success"
+                            ? "var(--eco-positive)"
+                            : "var(--eco-brand-600)",
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <div className="text-[15px]" style={{ color: "var(--eco-text)" }}>{s.value}</div>
+                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t(s.key)}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {spendChartData.length > 0 && (
+            <div>
+              <div className="text-[13px] mb-2" style={{ color: "var(--eco-text-secondary)" }}>
+                {t("memberSpendChartTitle")}
+              </div>
+              <div style={{ width: "100%", height: 180 }}>
+                <ResponsiveContainer>
+                  <LineChart data={spendChartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                    <XAxis dataKey="period" tick={{ fill: "var(--eco-text-tertiary)", fontSize: 11 }} />
+                    <YAxis tick={{ fill: "var(--eco-text-tertiary)", fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--eco-bg)",
+                        border: "1px solid var(--eco-border)",
+                        borderRadius: 8,
+                        fontSize: 12,
+                        color: "var(--eco-text)",
+                      }}
+                      formatter={(v: number | string) => formatKzt(v)}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="amount"
+                      name={t("memberStatMonthlySpend")}
+                      stroke="var(--eco-primary)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <div className="text-[13px] mb-2" style={{ color: "var(--eco-text-secondary)" }}>
+              {t("memberRecentEvents")}
+            </div>
+            {data.recentEvents.length === 0 ? (
+              <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("memberRecentEventsEmpty")}</div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {data.recentEvents.slice(0, 8).map((event, idx) => (
+                  <div
+                    key={event.id ?? `${event.createdAt}-${idx}`}
+                    className="flex items-start justify-between gap-3 text-[12px] py-2 border-b last:border-b-0"
+                    style={{ borderColor: "var(--eco-border)" }}
+                  >
+                    <div className="min-w-0">
+                      <div style={{ color: "var(--eco-text)" }}>
+                        {event.eventType}
+                        {event.roomTitle ? ` · ${event.roomTitle}` : event.roomId ? ` · #${event.roomId}` : ""}
+                      </div>
+                      <div style={{ color: "var(--eco-text-tertiary)" }}>{formatDateTime(event.createdAt, language)}</div>
+                    </div>
+                    {event.amountKzt != null && (
+                      <div className="shrink-0" style={{ color: "var(--eco-text)" }}>{formatKzt(event.amountKzt)}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </Card>
   );
 }

@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Card, Button, Badge, Input, Modal, Select } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n, type Language } from "../i18n-provider";
+import { formatDate, formatDateTime } from "../../lib/datetime";
 import { useAuth } from "../auth/auth-provider";
 import {
   banUserRequest,
@@ -374,7 +375,7 @@ export function AdminUsersPage() {
                         </div>
                         <div className="text-[12px] break-all" style={{ color: "var(--eco-text-tertiary)" }}>
                           U-{selected.id} · {selected.emailMasked ?? selected.email}
-                          {selected.createdAt ? ` · ${t("sinceLabel")} ${new Date(selected.createdAt).toLocaleDateString()}` : ""}
+                          {selected.createdAt ? ` · ${t("sinceLabel")} ${formatDate(selected.createdAt, language)}` : ""}
                         </div>
                       </div>
                     </div>
@@ -425,7 +426,7 @@ export function AdminUsersPage() {
                     <Clock size={12} />
                     <span>{t("lastLoginLabel")}:</span>
                     <span style={{ color: "var(--eco-text-secondary)" }}>
-                      {selected.lastLoginAt ? new Date(selected.lastLoginAt).toLocaleString() : t("lastLoginNever")}
+                      {selected.lastLoginAt ? formatDateTime(selected.lastLoginAt, language) : t("lastLoginNever")}
                     </span>
                   </div>
 

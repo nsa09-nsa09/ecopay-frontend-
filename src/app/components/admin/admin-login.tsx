@@ -65,7 +65,11 @@ export function AdminLoginPage() {
     if (!challenge?.expiresAt) return null;
     const parsed = new Date(challenge.expiresAt);
     if (Number.isNaN(parsed.getTime())) return null;
-    return parsed.toLocaleTimeString();
+    return new Intl.DateTimeFormat(undefined, {
+      timeZone: "Asia/Almaty",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(parsed);
   }, [challenge]);
 
   const translateApiError = (err: ApiError): string => {
