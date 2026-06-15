@@ -16,6 +16,7 @@ import { OwnerDetailPage } from "./components/rooms/owner-detail";
 import { RoomFullPage, PaymentFailedPage, RoomBlockedPage } from "./components/rooms/error-states";
 import { ProfilePage } from "./components/profile/profile";
 import { SupportPage, NewTicketPage } from "./components/support/support";
+import { FeedbackPage } from "./components/support/feedback";
 import { AboutPage } from "./components/static/about";
 import { TermsPage } from "./components/static/terms";
 import { PrivacyPage } from "./components/static/privacy";
@@ -26,6 +27,7 @@ import { AdminModerationPage } from "./components/admin/admin-moderation";
 import { AdminRoomsPage } from "./components/admin/admin-rooms";
 import { AdminUsersPage } from "./components/admin/admin-users";
 import { AdminTicketsPage } from "./components/admin/admin-tickets";
+import { AdminFeedbackPage } from "./components/admin/admin-feedback";
 import { AdminDisputesPage } from "./components/admin/admin-disputes";
 import { AdminLogsPage } from "./components/admin/admin-logs";
 import { AdminCatalogPage } from "./components/admin/admin-catalog";
@@ -87,6 +89,7 @@ export const router = createBrowserRouter([
       { path: "profile", Component: ProfilePage },
       { path: "support", Component: SupportPage },
       { path: "support/new", Component: NewTicketPage },
+      { path: "feedback", Component: FeedbackPage },
       { path: "about", Component: AboutPage },
       { path: "terms", Component: TermsPage },
       { path: "privacy", Component: PrivacyPage },
@@ -138,6 +141,7 @@ export const router = createBrowserRouter([
       { path: "rooms", Component: AdminRoomsPage },
       { path: "users", Component: AdminUsersPage },
       { path: "tickets", Component: AdminTicketsPage },
+      { path: "feedback", Component: AdminFeedbackPage },
       { path: "disputes", Component: AdminDisputesPage },
       { path: "refunds", Component: AdminDisputesPage },
       { path: "logs", Component: AdminLogsPage },

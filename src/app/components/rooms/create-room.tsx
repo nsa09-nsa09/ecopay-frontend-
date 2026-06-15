@@ -16,6 +16,7 @@ import {
 } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n, type Language } from "../i18n-provider";
+import { formatDateTime } from "../../lib/datetime";
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === "ru" ? ru : l === "kz" ? kz : en;
@@ -460,9 +461,16 @@ export function CreateRoomPage() {
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value as SupportedCurrency)}
               />
-              {fxError && (
-                <span className="text-[11px]" style={{ color: "var(--eco-warning-500)" }}>{fxError}</span>
-              )}
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+                {fxRates?.updatedAt && (
+                  <span className="text-[11px] break-words" style={{ color: "var(--eco-text-tertiary)" }}>
+                    {t("priceFxUpdatedAt", { time: formatDateTime(fxRates.updatedAt, language) })}
+                  </span>
+                )}
+                {fxError && (
+                  <span className="text-[11px] break-words" style={{ color: "var(--eco-warning-500)" }}>{fxError}</span>
+                )}
+              </div>
             </div>
             <Select
               label={tx(language, "Модель цены", "Баға моделі", "Price Model")}

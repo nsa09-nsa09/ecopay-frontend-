@@ -1,14 +1,22 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Card, Button, Select, Skeleton } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import {
+  getAdminCategoryDistributionRequest,
+  getAdminCurrencyDistributionRequest,
   getAdminDashboardKpisRequest,
   getAdminDashboardMetrics,
+  getAdminOperatorDistributionRequest,
+  getAdminPopularServicesRequest,
+  getAdminRoomStatusDistributionRequest,
   type AdminDashboardKpisDto,
   type DashboardGranularity,
   type DashboardMetricsResponse,
+  type NamedCountDto,
+  type OperatorDistributionDto,
+  type PopularServiceDto,
 } from "../../lib/api";
 import { formatAdminApiError } from "./admin-action-ui";
 import {
@@ -31,10 +39,15 @@ import {
   MessageSquare,
 } from "lucide-react";
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
+  Cell,
   Legend,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -91,6 +104,17 @@ export function AdminDashboardPage() {
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [metricsError, setMetricsError] = useState<string | null>(null);
 
+  // Audience & demand distributions: loaded once on mount in parallel.
+  // Failures don't block the rest of the dashboard; the affected card
+  // surfaces the error in place.
+  const [popularServices, setPopularServices] = useState<PopularServiceDto[] | null>(null);
+  const [operatorDistribution, setOperatorDistribution] = useState<OperatorDistributionDto[] | null>(null);
+  const [currencyDistribution, setCurrencyDistribution] = useState<NamedCountDto[] | null>(null);
+  const [categoryDistribution, setCategoryDistribution] = useState<NamedCountDto[] | null>(null);
+  const [roomStatusDistribution, setRoomStatusDistribution] = useState<NamedCountDto[] | null>(null);
+  const [distributionsLoading, setDistributionsLoading] = useState(true);
+  const [distributionsError, setDistributionsError] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -127,6 +151,32 @@ export function AdminDashboardPage() {
     }
   }, [authorizedRequest, granularity, rangeKey, t]);
 
+  const loadDistributions = useCallback(async () => {
+    setDistributionsLoading(true);
+    setDistributionsError(null);
+    try {
+      const [popular, operators, currencies, categories, statuses] = await authorizedRequest(
+        async (token) =>
+          Promise.all([
+            getAdminPopularServicesRequest(token, 10),
+            getAdminOperatorDistributionRequest(token),
+            getAdminCurrencyDistributionRequest(token),
+            getAdminCategoryDistributionRequest(token),
+            getAdminRoomStatusDistributionRequest(token),
+          ]),
+      );
+      setPopularServices(popular);
+      setOperatorDistribution(operators);
+      setCurrencyDistribution(currencies);
+      setCategoryDistribution(categories);
+      setRoomStatusDistribution(statuses);
+    } catch (err) {
+      setDistributionsError(formatAdminApiError(err, t));
+    } finally {
+      setDistributionsLoading(false);
+    }
+  }, [authorizedRequest, t]);
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -134,6 +184,10 @@ export function AdminDashboardPage() {
   useEffect(() => {
     void loadMetrics();
   }, [loadMetrics]);
+
+  useEffect(() => {
+    void loadDistributions();
+  }, [loadDistributions]);
 
   const chartData = useMemo(() => {
     if (!metrics || !Array.isArray(metrics.series)) return [];
@@ -160,6 +214,46 @@ export function AdminDashboardPage() {
       [t("dashboardMetricNewRooms")]: p.newRooms ?? 0,
     }));
   }, [metrics, t]);
+
+  const popularServicesData = useMemo(() => {
+    if (!popularServices) return [];
+    return popularServices.map((s) => ({
+      name: s.serviceName,
+      [t("dashboardMetricRooms")]: s.roomsCount,
+      [t("dashboardMetricActiveMembers")]: s.activeMembersCount,
+    }));
+  }, [popularServices, t]);
+
+  // Operator distribution: keep the top 6, fold the rest into "Other"
+  // so the chart stays readable.
+  const operatorChartData = useMemo(() => {
+    if (!operatorDistribution) return [];
+    const sorted = [...operatorDistribution].sort((a, b) => b.count - a.count);
+    if (sorted.length <= 7) {
+      return sorted.map((o) => ({ name: o.operatorName || o.code, value: o.count }));
+    }
+    const top = sorted.slice(0, 6);
+    const rest = sorted.slice(6).reduce((acc, o) => acc + o.count, 0);
+    return [
+      ...top.map((o) => ({ name: o.operatorName || o.code, value: o.count })),
+      { name: t("dashboardOtherSlice"), value: rest },
+    ];
+  }, [operatorDistribution, t]);
+
+  const currencyChartData = useMemo(() => {
+    if (!currencyDistribution) return [];
+    return currencyDistribution.map((c) => ({ name: c.label, value: c.value }));
+  }, [currencyDistribution]);
+
+  const categoryChartData = useMemo(() => {
+    if (!categoryDistribution) return [];
+    return categoryDistribution.map((c) => ({ name: c.label, value: c.value }));
+  }, [categoryDistribution]);
+
+  const roomStatusChartData = useMemo(() => {
+    if (!roomStatusDistribution) return [];
+    return roomStatusDistribution.map((c) => ({ name: c.label, value: c.value }));
+  }, [roomStatusDistribution]);
 
   const revenueChartData = useMemo(() => {
     if (!metrics || !Array.isArray(metrics.series)) return [];
@@ -519,9 +613,172 @@ export function AdminDashboardPage() {
                 )}
               </Card>
             </div>
+
+            <div className="mt-8 mb-3 flex items-center justify-between gap-2 flex-wrap">
+              <h2 className="text-[18px]" style={{ color: "var(--eco-text)" }}>{t("dashboardSectionAudience")}</h2>
+              <Button variant="secondary" size="sm" onClick={() => void loadDistributions()} disabled={distributionsLoading}>
+                <RefreshCw size={13} /> {t("retry")}
+              </Button>
+            </div>
+
+            {distributionsError && (
+              <Card className="mb-4">
+                <span className="text-[13px]" style={{ color: "var(--eco-negative)" }}>{distributionsError}</span>
+              </Card>
+            )}
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <Card className="flex flex-col gap-3 xl:col-span-2">
+                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardPopularServicesTitle")}</div>
+                {distributionsLoading && !popularServices ? (
+                  <Skeleton height={260} />
+                ) : popularServicesData.length === 0 ? (
+                  <EmptyChart label={t("dashboardEmptyChart")} />
+                ) : (
+                  <div style={{ width: "100%", height: Math.max(220, popularServicesData.length * 36 + 60) }}>
+                    <ResponsiveContainer>
+                      <BarChart data={popularServicesData} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                        <XAxis type="number" allowDecimals={false} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
+                        <YAxis type="category" dataKey="name" width={140} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
+                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                        <Bar dataKey={t("dashboardMetricRooms")} fill="var(--eco-primary)" />
+                        <Bar dataKey={t("dashboardMetricActiveMembers")} fill="var(--eco-warning-500)" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </Card>
+
+              <Card className="flex flex-col gap-3">
+                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardOperatorDistributionTitle")}</div>
+                {distributionsLoading && !operatorDistribution ? (
+                  <Skeleton height={240} />
+                ) : operatorChartData.length === 0 ? (
+                  <EmptyChart label={t("dashboardEmptyChart")} />
+                ) : (
+                  <div style={{ width: "100%", height: 260 }}>
+                    <ResponsiveContainer>
+                      <BarChart data={operatorChartData} margin={{ top: 8, right: 12, left: 0, bottom: 30 }}>
+                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                        <XAxis dataKey="name" tick={{ fill: "var(--eco-text-tertiary)", fontSize: 11 }} interval={0} angle={-25} textAnchor="end" />
+                        <YAxis allowDecimals={false} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
+                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                        <Bar dataKey="value" fill="var(--eco-primary)">
+                          {operatorChartData.map((entry, idx) => (
+                            <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </Card>
+
+              <Card className="flex flex-col gap-3">
+                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardCurrencyDistributionTitle")}</div>
+                {distributionsLoading && !currencyDistribution ? (
+                  <Skeleton height={240} />
+                ) : currencyChartData.length === 0 ? (
+                  <EmptyChart label={t("dashboardEmptyChart")} />
+                ) : (
+                  <div style={{ width: "100%", height: 260 }}>
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                        <Pie data={currencyChartData} dataKey="value" nameKey="name" outerRadius={90} label>
+                          {currencyChartData.map((entry, idx) => (
+                            <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </Card>
+
+              <Card className="flex flex-col gap-3">
+                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardCategoryDistributionTitle")}</div>
+                {distributionsLoading && !categoryDistribution ? (
+                  <Skeleton height={240} />
+                ) : categoryChartData.length === 0 ? (
+                  <EmptyChart label={t("dashboardEmptyChart")} />
+                ) : (
+                  <div style={{ width: "100%", height: 260 }}>
+                    <ResponsiveContainer>
+                      <BarChart data={categoryChartData} margin={{ top: 8, right: 12, left: 0, bottom: 30 }}>
+                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                        <XAxis dataKey="name" tick={{ fill: "var(--eco-text-tertiary)", fontSize: 11 }} interval={0} angle={-25} textAnchor="end" />
+                        <YAxis allowDecimals={false} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
+                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                        <Bar dataKey="value" fill="var(--eco-primary)">
+                          {categoryChartData.map((entry, idx) => (
+                            <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </Card>
+
+              <Card className="flex flex-col gap-3">
+                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardRoomStatusDistributionTitle")}</div>
+                {distributionsLoading && !roomStatusDistribution ? (
+                  <Skeleton height={240} />
+                ) : roomStatusChartData.length === 0 ? (
+                  <EmptyChart label={t("dashboardEmptyChart")} />
+                ) : (
+                  <div style={{ width: "100%", height: 260 }}>
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                        <Pie data={roomStatusChartData} dataKey="value" nameKey="name" outerRadius={90} label>
+                          {roomStatusChartData.map((entry, idx) => (
+                            <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </Card>
+            </div>
           </>
         )}
       </div>
     </AdminLayout>
+  );
+}
+
+const CHART_TOOLTIP_STYLE: CSSProperties = {
+  background: "var(--eco-bg)",
+  border: "1px solid var(--eco-border)",
+  borderRadius: 8,
+  fontSize: 12,
+  color: "var(--eco-text)",
+};
+
+const CHART_PALETTE: readonly string[] = [
+  "var(--eco-primary)",
+  "var(--eco-warning-500)",
+  "var(--eco-positive)",
+  "var(--eco-brand-600)",
+  "var(--eco-danger-500)",
+  "var(--eco-text-tertiary)",
+  "var(--eco-warning)",
+] as const;
+
+function EmptyChart({ label }: { label: string }) {
+  return (
+    <div
+      className="flex items-center justify-center rounded-lg"
+      style={{ height: 220, color: "var(--eco-text-tertiary)", fontSize: 13, background: "var(--eco-surface)" }}
+    >
+      {label}
+    </div>
   );
 }

@@ -278,6 +278,90 @@ export function getMyDashboardRequest(accessToken: string) {
 }
 
 // ============================================================
+// User feedback (complaints / ideas / requests)
+// ============================================================
+
+export type FeedbackType = "COMPLAINT" | "IDEA" | "REQUEST" | string;
+export type FeedbackStatus = "NEW" | "IN_REVIEW" | "RESOLVED" | "DISMISSED" | string;
+
+export interface FeedbackDto {
+  id: number;
+  userId: number | null;
+  userDisplayName?: string | null;
+  userEmail?: string | null;
+  type: FeedbackType;
+  subject: string | null;
+  message: string;
+  status: FeedbackStatus;
+  adminNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateFeedbackPayload {
+  type: FeedbackType;
+  subject?: string | null;
+  message: string;
+}
+
+export interface UpdateFeedbackPayload {
+  status?: FeedbackStatus;
+  adminNote?: string | null;
+}
+
+export function createFeedbackRequest(payload: CreateFeedbackPayload, accessToken: string) {
+  return requestJson<FeedbackDto>(
+    "/feedback",
+    { method: "POST", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function getMyFeedbackRequest(
+  accessToken: string,
+  params: { page?: number; size?: number } = {},
+) {
+  return requestJson<PageResponse<FeedbackDto>>(
+    `/feedback/me${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function adminGetFeedbackRequest(
+  accessToken: string,
+  params: {
+    type?: string;
+    status?: string;
+    q?: string;
+    page?: number;
+    size?: number;
+  } = {},
+) {
+  return requestJson<PageResponse<FeedbackDto>>(
+    `/admin/feedback${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function adminGetFeedbackItemRequest(id: number, accessToken: string) {
+  return requestJson<FeedbackDto>(`/admin/feedback/${id}`, {}, accessToken);
+}
+
+export function adminUpdateFeedbackRequest(
+  id: number,
+  payload: UpdateFeedbackPayload,
+  accessToken: string,
+) {
+  return requestJson<FeedbackDto>(
+    `/admin/feedback/${id}`,
+    { method: "PATCH", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+// ============================================================
 // Anonymous analytics (guest visit tracking)
 // ============================================================
 //
@@ -820,6 +904,66 @@ export function getAdminDashboardMetrics(
 ) {
   return requestJson<DashboardMetricsResponse>(
     `/admin/dashboard/metrics${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+// ---- Admin dashboard: distributions / popular ----
+
+export interface PopularServiceDto {
+  serviceId: number;
+  serviceName: string;
+  roomsCount: number;
+  activeMembersCount: number;
+}
+
+export interface OperatorDistributionDto {
+  code: string;
+  operatorName: string;
+  count: number;
+}
+
+export interface NamedCountDto {
+  label: string;
+  value: number;
+}
+
+export function getAdminPopularServicesRequest(accessToken: string, limit = 10) {
+  return requestJson<PopularServiceDto[]>(
+    `/admin/dashboard/popular-services${toSearchParams({ limit })}`,
+    {},
+    accessToken,
+  );
+}
+
+export function getAdminOperatorDistributionRequest(accessToken: string) {
+  return requestJson<OperatorDistributionDto[]>(
+    "/admin/dashboard/operator-distribution",
+    {},
+    accessToken,
+  );
+}
+
+export function getAdminCurrencyDistributionRequest(accessToken: string) {
+  return requestJson<NamedCountDto[]>(
+    "/admin/dashboard/currency-distribution",
+    {},
+    accessToken,
+  );
+}
+
+export function getAdminCategoryDistributionRequest(accessToken: string) {
+  return requestJson<NamedCountDto[]>(
+    "/admin/dashboard/category-distribution",
+    {},
+    accessToken,
+  );
+}
+
+export function getAdminRoomStatusDistributionRequest(accessToken: string) {
+  return requestJson<NamedCountDto[]>(
+    "/admin/dashboard/room-status-distribution",
     {},
     accessToken,
   );
@@ -1800,9 +1944,21 @@ export function adminDeleteServiceReview(id: number, accessToken: string) {
 
 export interface SiteAboutContent {
   companyName: string;
+  // Legacy single-language fields — backend keeps them populated for
+  // backward compatibility; new clients prefer the *_kz/_ru/_en variants.
   title: string;
   mission: string | null;
   description: string | null;
+  // Per-language variants (added when the About page went multilingual).
+  title_kz?: string | null;
+  title_ru?: string | null;
+  title_en?: string | null;
+  mission_kz?: string | null;
+  mission_ru?: string | null;
+  mission_en?: string | null;
+  description_kz?: string | null;
+  description_ru?: string | null;
+  description_en?: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
   updatedAt: string | null;
@@ -1813,6 +1969,15 @@ export interface UpdateSiteAboutPayload {
   title: string;
   mission?: string | null;
   description?: string | null;
+  title_kz?: string | null;
+  title_ru?: string | null;
+  title_en?: string | null;
+  mission_kz?: string | null;
+  mission_ru?: string | null;
+  mission_en?: string | null;
+  description_kz?: string | null;
+  description_ru?: string | null;
+  description_en?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Card, Button, Select, Badge, EmptyState, Skeleton, SkeletonCard } from "../ds-primitives";
 import {
   ArrowLeft, Send, AlertCircle, CheckCircle2,
@@ -123,9 +123,16 @@ function TicketListView({
             )}
           </p>
         </div>
-        <Button variant="primary" size="md" onClick={onCreate} className="w-full sm:w-auto">
-          <Plus size={15} /> {tx(language, "Создать заявку", "Өтінім жасау", "Create Ticket")}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Link to="/feedback" style={{ textDecoration: "none" }} className="w-full sm:w-auto">
+            <Button variant="secondary" size="md" className="w-full sm:w-auto">
+              <MessageSquare size={15} /> {tx(language, "Обратная связь", "Кері байланыс", "Feedback")}
+            </Button>
+          </Link>
+          <Button variant="primary" size="md" onClick={onCreate} className="w-full sm:w-auto">
+            <Plus size={15} /> {tx(language, "Создать заявку", "Өтінім жасау", "Create Ticket")}
+          </Button>
+        </div>
       </div>
 
       {!loading && !error && tickets.length > 0 && (
