@@ -217,6 +217,83 @@ function toSearchParams(params: Record<string, string | number | undefined>) {
   return query ? `?${query}` : "";
 }
 
+// ============================================================
+// FX rates (multi-currency room creation)
+// ============================================================
+//
+// Backend returns KZT-per-unit rates for each supported foreign currency.
+// `base` is always "KZT". The frontend uses this to live-convert any
+// non-KZT price the room owner enters into a KZT equivalent.
+
+export type SupportedCurrency =
+  | "KZT"
+  | "USD"
+  | "EUR"
+  | "CNY"
+  | "GBP"
+  | "RUB"
+  | "UZS"
+  | "KGS";
+
+export interface FxRatesResponse {
+  base: string;
+  updatedAt: string;
+  rates: Partial<Record<SupportedCurrency, number>> & Record<string, number>;
+}
+
+export function getFxRatesRequest() {
+  return requestJson<FxRatesResponse>("/fx/rates");
+}
+
+// ============================================================
+// Member dashboard (current user's stats)
+// ============================================================
+
+export interface MemberDashboardEventDto {
+  id?: number;
+  eventType: string;
+  roomId?: number | null;
+  roomTitle?: string | null;
+  amountKzt?: number | string | null;
+  createdAt: string;
+}
+
+export interface MemberDashboardDto {
+  joinedRoomsActive: number;
+  joinedRoomsCompleted: number;
+  totalRoomsJoined: number;
+  monthlySpendKzt: number | string;
+  totalSpentKzt: number | string;
+  totalSavedKzt: number | string;
+  nextPaymentDate: string | null;
+  nextPaymentAmountKzt: number | string | null;
+  reputationScore: number | string;
+  reviewsReceived: number;
+  disputesAsMember: number;
+  recentEvents: MemberDashboardEventDto[];
+}
+
+export function getMyDashboardRequest(accessToken: string) {
+  return requestJson<MemberDashboardDto>("/users/me/dashboard", {}, accessToken);
+}
+
+// ============================================================
+// Anonymous analytics (guest visit tracking)
+// ============================================================
+//
+// Lightweight POST that records a page view for traffic analytics. No auth
+// header — the backend cookies the guest and aggregates uniqueness.
+// Failures are ignored on the client (errors are swallowed by the caller),
+// so this must never block rendering.
+
+export function trackVisitRequest(path: string): Promise<void> {
+  return requestJson<void>("/analytics/visit", {
+    method: "POST",
+    body: JSON.stringify({ path }),
+    credentials: "include",
+  });
+}
+
 export function loginRequest(email: string, password: string) {
   return requestJson<AuthResponse>("/auth/login", {
     method: "POST",
@@ -435,7 +512,7 @@ export interface CreateRoomPayload {
   maxMembers: number;
   priceTotal?: number | null;
   pricePerMember?: number | null;
-  currency?: string | null;
+  currency?: SupportedCurrency | string | null;
   periodType: string;
   startDate: string;
   cancellationPolicy?: string | null;
@@ -670,6 +747,18 @@ export interface AdminDashboardKpisDto {
   openDisputes: number;
   pendingModeration: number;
   pendingPayouts: number;
+  // Extended fields delivered by the backend alongside the original KPIs.
+  // All optional so old responses don't break the UI.
+  uniqueVisitorsToday?: number | null;
+  uniqueVisitors30d?: number | null;
+  totalPageViews30d?: number | null;
+  avgMembersPerRoom?: number | string | null;
+  totalActiveSubscriptionsValueKzt?: number | string | null;
+  newRoomsLast30Days?: number | null;
+  conversionVisitorToUser30d?: number | string | null;
+  refundRatePercent?: number | string | null;
+  openTickets?: number | null;
+  avgRoomFillRate?: number | string | null;
 }
 
 export interface AdminUserDto {
@@ -710,6 +799,11 @@ export interface DashboardMetricPoint {
   registrations: number;
   loginsTotal: number;
   uniqueLogins: number;
+  // Extended series fields (optional).
+  uniqueVisitors?: number | null;
+  pageViews?: number | null;
+  newRooms?: number | null;
+  revenue?: number | string | null;
 }
 
 export interface DashboardMetricsResponse {

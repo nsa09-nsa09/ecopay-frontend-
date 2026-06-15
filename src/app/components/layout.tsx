@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { Button, LanguageSwitcher, WaveDivider } from "./ds-primitives";
 import { BrandLogo } from "./brand-logo";
 import { Menu, X, Search } from "lucide-react";
 import { useI18n } from "./i18n-provider";
 import { useAuth } from "./auth/auth-provider";
+import { trackVisitRequest } from "../lib/api";
 
 export function AppLayout() {
   const { language, setLanguage, t } = useI18n();
@@ -13,6 +14,20 @@ export function AppLayout() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
+  const lastTrackedPath = useRef<string | null>(null);
+
+  // Fire-and-forget analytics ping for every route change. The backend
+  // sets a cookie to dedupe unique guests; we just keep the client side
+  // cheap and noiseless. We track per pathname (not search/hash) and skip
+  // duplicates so React StrictMode double-render in dev doesn't spam.
+  useEffect(() => {
+    const path = location.pathname;
+    if (lastTrackedPath.current === path) return;
+    lastTrackedPath.current = path;
+    void trackVisitRequest(path).catch(() => {
+      // Swallow — analytics must never break the UI.
+    });
+  }, [location.pathname]);
 
   const isAuthRoute =
     location.pathname.startsWith("/login") ||

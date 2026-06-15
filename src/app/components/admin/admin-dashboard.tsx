@@ -20,6 +20,15 @@ import {
   Home,
   TrendingUp,
   RefreshCw,
+  Eye,
+  MousePointerClick,
+  UserPlus,
+  Gauge,
+  UsersRound,
+  Wallet,
+  PlusCircle,
+  Percent,
+  MessageSquare,
 } from "lucide-react";
 import {
   CartesianGrid,
@@ -49,6 +58,20 @@ function formatMoney(value: number | string | null | undefined): string {
   const num = typeof value === "string" ? Number(value) : value;
   if (Number.isNaN(num)) return String(value);
   return `₸${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(num)}`;
+}
+
+function formatPercent(value: number | string | null | undefined): string {
+  if (value == null) return "—";
+  const num = typeof value === "string" ? Number(value) : value;
+  if (Number.isNaN(num)) return String(value);
+  return `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(num)}%`;
+}
+
+function formatDecimal(value: number | string | null | undefined): string {
+  if (value == null) return "—";
+  const num = typeof value === "string" ? Number(value) : value;
+  if (Number.isNaN(num)) return String(value);
+  return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(num);
 }
 
 function isoDate(d: Date): string {
@@ -121,6 +144,31 @@ export function AdminDashboardPage() {
     }));
   }, [metrics, t]);
 
+  const trafficChartData = useMemo(() => {
+    if (!metrics || !Array.isArray(metrics.series)) return [];
+    return metrics.series.map((p) => ({
+      period: p.period,
+      [t("dashboardMetricUniqueVisitors")]: p.uniqueVisitors ?? 0,
+      [t("dashboardMetricPageViews")]: p.pageViews ?? 0,
+    }));
+  }, [metrics, t]);
+
+  const newRoomsChartData = useMemo(() => {
+    if (!metrics || !Array.isArray(metrics.series)) return [];
+    return metrics.series.map((p) => ({
+      period: p.period,
+      [t("dashboardMetricNewRooms")]: p.newRooms ?? 0,
+    }));
+  }, [metrics, t]);
+
+  const revenueChartData = useMemo(() => {
+    if (!metrics || !Array.isArray(metrics.series)) return [];
+    return metrics.series.map((p) => ({
+      period: p.period,
+      [t("dashboardMetricRevenue")]: typeof p.revenue === "string" ? Number(p.revenue) : p.revenue ?? 0,
+    }));
+  }, [metrics, t]);
+
   const renderKpiCards = (): KpiCardConfig[] => {
     if (!kpis) return [];
     return [
@@ -130,6 +178,63 @@ export function AdminDashboardPage() {
       { key: "blockedRoomsLabel", value: formatCount(kpis.blockedRooms), icon: Home, variant: "info" },
       { key: "bannedUsersLabel", value: formatCount(kpis.bannedUsers), icon: Ban, variant: "danger" },
     ];
+  };
+
+  const renderExtendedKpiCards = (): KpiCardConfig[] => {
+    if (!kpis) return [];
+    return [
+      { key: "kpiUniqueVisitorsToday", value: formatCount(kpis.uniqueVisitorsToday ?? null), icon: Eye, variant: "info" },
+      { key: "kpiUniqueVisitors30d", value: formatCount(kpis.uniqueVisitors30d ?? null), icon: Users, variant: "info" },
+      { key: "kpiPageViews30d", value: formatCount(kpis.totalPageViews30d ?? null), icon: MousePointerClick, variant: "info" },
+      { key: "kpiConversion30d", value: formatPercent(kpis.conversionVisitorToUser30d ?? null), icon: UserPlus, variant: "success" },
+      { key: "kpiAvgRoomFill", value: formatPercent(kpis.avgRoomFillRate ?? null), icon: Gauge, variant: "info" },
+      { key: "kpiAvgMembersPerRoom", value: formatDecimal(kpis.avgMembersPerRoom ?? null), icon: UsersRound, variant: "info" },
+      { key: "kpiActiveSubsValue", value: formatMoney(kpis.totalActiveSubscriptionsValueKzt ?? null), icon: Wallet, variant: "success" },
+      { key: "kpiNewRooms30d", value: formatCount(kpis.newRoomsLast30Days ?? null), icon: PlusCircle, variant: "success" },
+      { key: "kpiRefundRate", value: formatPercent(kpis.refundRatePercent ?? null), icon: Percent, variant: "warning" },
+      { key: "kpiOpenTickets", value: formatCount(kpis.openTickets ?? null), icon: MessageSquare, variant: "warning" },
+    ];
+  };
+
+  const renderKpiCard = (k: KpiCardConfig) => {
+    const Icon = k.icon;
+    return (
+      <Card key={k.key} className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{
+              background:
+                k.variant === "warning"
+                  ? "var(--eco-warning-100)"
+                  : k.variant === "danger"
+                  ? "var(--eco-danger-100)"
+                  : k.variant === "success"
+                  ? "var(--eco-success-100)"
+                  : "var(--eco-brand-50)",
+            }}
+          >
+            <Icon
+              size={15}
+              style={{
+                color:
+                  k.variant === "warning"
+                    ? "var(--eco-warning-500)"
+                    : k.variant === "danger"
+                    ? "var(--eco-danger-500)"
+                    : k.variant === "success"
+                    ? "var(--eco-positive)"
+                    : "var(--eco-brand-600)",
+              }}
+            />
+          </div>
+        </div>
+        <div>
+          <div className="text-[22px]" style={{ color: "var(--eco-text)" }}>{k.value}</div>
+          <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t(k.key)}</div>
+        </div>
+      </Card>
+    );
   };
 
   return (
@@ -169,42 +274,11 @@ export function AdminDashboardPage() {
         {kpis && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-              {renderKpiCards().map((k) => {
-                const Icon = k.icon;
-                return (
-                  <Card key={k.key} className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center"
-                        style={{
-                          background:
-                            k.variant === "warning"
-                              ? "var(--eco-warning-100)"
-                              : k.variant === "danger"
-                              ? "var(--eco-danger-100)"
-                              : "var(--eco-brand-50)",
-                        }}
-                      >
-                        <Icon
-                          size={15}
-                          style={{
-                            color:
-                              k.variant === "warning"
-                                ? "var(--eco-warning-500)"
-                                : k.variant === "danger"
-                                ? "var(--eco-danger-500)"
-                                : "var(--eco-brand-600)",
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[22px]" style={{ color: "var(--eco-text)" }}>{k.value}</div>
-                      <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t(k.key)}</div>
-                    </div>
-                  </Card>
-                );
-              })}
+              {renderKpiCards().map(renderKpiCard)}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+              {renderExtendedKpiCards().map(renderKpiCard)}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -333,6 +407,118 @@ export function AdminDashboardPage() {
                 </div>
               )}
             </Card>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
+              <Card className="flex flex-col gap-3">
+                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardChartTrafficTitle")}</div>
+                {metricsLoading && !metrics ? (
+                  <Skeleton height={220} />
+                ) : (
+                  <div style={{ width: "100%", height: 240 }}>
+                    <ResponsiveContainer>
+                      <LineChart data={trafficChartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                        <XAxis dataKey="period" tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
+                        <YAxis allowDecimals={false} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
+                        <Tooltip
+                          contentStyle={{
+                            background: "var(--eco-bg)",
+                            border: "1px solid var(--eco-border)",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            color: "var(--eco-text)",
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                        <Line
+                          type="monotone"
+                          dataKey={t("dashboardMetricUniqueVisitors")}
+                          stroke="var(--eco-primary)"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey={t("dashboardMetricPageViews")}
+                          stroke="var(--eco-warning-500)"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </Card>
+
+              <Card className="flex flex-col gap-3">
+                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardChartNewRoomsTitle")}</div>
+                {metricsLoading && !metrics ? (
+                  <Skeleton height={220} />
+                ) : (
+                  <div style={{ width: "100%", height: 240 }}>
+                    <ResponsiveContainer>
+                      <LineChart data={newRoomsChartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                        <XAxis dataKey="period" tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
+                        <YAxis allowDecimals={false} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
+                        <Tooltip
+                          contentStyle={{
+                            background: "var(--eco-bg)",
+                            border: "1px solid var(--eco-border)",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            color: "var(--eco-text)",
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                        <Line
+                          type="monotone"
+                          dataKey={t("dashboardMetricNewRooms")}
+                          stroke="var(--eco-positive)"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </Card>
+
+              <Card className="flex flex-col gap-3 xl:col-span-2">
+                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardChartRevenueTitle")}</div>
+                {metricsLoading && !metrics ? (
+                  <Skeleton height={220} />
+                ) : (
+                  <div style={{ width: "100%", height: 240 }}>
+                    <ResponsiveContainer>
+                      <LineChart data={revenueChartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                        <XAxis dataKey="period" tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
+                        <YAxis tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
+                        <Tooltip
+                          contentStyle={{
+                            background: "var(--eco-bg)",
+                            border: "1px solid var(--eco-border)",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            color: "var(--eco-text)",
+                          }}
+                          formatter={(v: number | string) => formatMoney(v)}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                        <Line
+                          type="monotone"
+                          dataKey={t("dashboardMetricRevenue")}
+                          stroke="var(--eco-brand-600)"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </Card>
+            </div>
           </>
         )}
       </div>

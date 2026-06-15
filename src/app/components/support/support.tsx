@@ -18,6 +18,7 @@ import {
 } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n, type Language } from "../i18n-provider";
+import { formatDate, formatDateTime } from "../../lib/datetime";
 import { Client } from "@stomp/stompjs";
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
@@ -72,7 +73,7 @@ function relativeTime(iso: string, l: Language): string {
   if (d < 7) return tx(l, `${d} д назад`, `${d} к бұрын`, `${d}d ago`);
   const w = Math.floor(d / 7);
   if (w < 5) return tx(l, `${w} нед назад`, `${w} апта бұрын`, `${w}w ago`);
-  return date.toLocaleDateString();
+  return formatDate(date, l);
 }
 
 function TicketListView({
@@ -551,7 +552,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
             </span>
           )}
           <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-            {tx(language, "Создана", "Құрылды", "Created")} {new Date(ticket.createdAt).toLocaleString()}
+            {tx(language, "Создана", "Құрылды", "Created")} {formatDateTime(ticket.createdAt, language)}
           </span>
         </div>
 
@@ -626,7 +627,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
                     <span>{isMine ? tx(language, "Вы", "Сіз", "You") : tx(language, "Пользователь", "Пайдаланушы", "User")}</span>
                   )}
                   <span>·</span>
-                  <span>{new Date(m.createdAt).toLocaleString()}</span>
+                  <span>{formatDateTime(m.createdAt, language)}</span>
                 </div>
                 <div
                   className="max-w-sm sm:max-w-md px-4 py-3 rounded-xl text-[14px]"

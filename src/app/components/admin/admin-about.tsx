@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
+import { formatDateTime } from "../../lib/datetime";
 import { useAuth } from "../auth/auth-provider";
 import { Button, Card, Input } from "../ds-primitives";
 import { FlashBanner, formatAdminApiError, useFlash } from "./admin-action-ui";
@@ -41,7 +42,7 @@ function toForm(content: SiteAboutContent): FormState {
 }
 
 export function AdminAboutPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { authorizedRequest } = useAuth();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [loading, setLoading] = useState(true);
@@ -181,7 +182,7 @@ export function AdminAboutPage() {
               <div className="flex items-center justify-between gap-3 pt-2 flex-wrap">
                 <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
                   {updatedAt
-                    ? `${t("adminAboutLastUpdated")}: ${new Date(updatedAt).toLocaleString()}`
+                    ? `${t("adminAboutLastUpdated")}: ${formatDateTime(updatedAt, language)}`
                     : ""}
                 </span>
                 <Button variant="primary" onClick={() => void handleSave()} disabled={!canSave} loading={saving}>

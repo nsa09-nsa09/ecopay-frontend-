@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, Button, Badge, Modal, Select } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
+import { formatDateTime } from "../../lib/datetime";
 import { useAuth } from "../auth/auth-provider";
 import {
   applyOwnerViolationSanctionRequest,
@@ -189,7 +190,7 @@ export function AdminDisputesPage() {
                     {d.roomId ? `${t("rooms")} #${d.roomId}` : "—"}
                   </div>
                   <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                    {new Date(d.createdAt).toLocaleString()}
+                    {formatDateTime(d.createdAt, language)}
                   </div>
                 </button>
               );
@@ -236,7 +237,7 @@ export function AdminDisputesPage() {
                       </div>
                       <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
                         {selected.ticketId ? `${t("fromTicket", { ticket: selected.ticketId })} · ` : ""}
-                        {t("createdLabel")} {new Date(selected.createdAt).toLocaleString()}
+                        {t("createdLabel")} {formatDateTime(selected.createdAt, language)}
                       </div>
                     </div>
                     <Badge variant={statusVar[selected.status] ?? "default"}>{selected.status}</Badge>

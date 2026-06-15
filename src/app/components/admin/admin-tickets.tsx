@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Card, Button, Badge, Modal, Select } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
+import { formatDateTime } from "../../lib/datetime";
 import { useAuth } from "../auth/auth-provider";
 import { Client } from "@stomp/stompjs";
 import {
@@ -328,7 +329,7 @@ export function AdminTicketsPage() {
                   </div>
                   <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{tk.subject}</div>
                   <div className="text-[11px] mt-1" style={{ color: "var(--eco-text-tertiary)" }}>
-                    #{tk.userId} · {new Date(tk.updatedAt).toLocaleString()}
+                    #{tk.userId} · {formatDateTime(tk.updatedAt, language)}
                   </div>
                 </button>
               );
@@ -470,7 +471,7 @@ export function AdminTicketsPage() {
                                 {m.senderRole}
                               </span>
                               <span>·</span>
-                              <span>{new Date(m.createdAt).toLocaleString()}</span>
+                              <span>{formatDateTime(m.createdAt, language)}</span>
                             </div>
                             <div
                               className="px-3 py-2 rounded-lg text-[13px] max-w-[80%]"

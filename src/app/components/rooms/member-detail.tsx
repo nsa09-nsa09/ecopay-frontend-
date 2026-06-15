@@ -13,6 +13,7 @@ import {
 } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n, type Language } from "../i18n-provider";
+import { formatDate as formatAlmatyDate, formatDateTime as formatAlmatyDateTime } from "../../lib/datetime";
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === "ru" ? ru : l === "kz" ? kz : en;
@@ -21,10 +22,9 @@ const moneyFormatter = new Intl.NumberFormat("ru-RU");
 const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
 const formatDate = (v: string | null | undefined, l: Language) => {
   if (!v) return tx(l, "—", "—", "TBD");
-  const locale = l === "ru" ? "ru-RU" : l === "kz" ? "kk-KZ" : "en-US";
-  return new Date(v).toLocaleDateString(locale);
+  return formatAlmatyDate(v, l);
 };
-const formatDateTime = (v: string | null | undefined) => (v ? new Date(v).toLocaleString() : null);
+const formatDateTime = (v: string | null | undefined, l: Language) => (v ? formatAlmatyDateTime(v, l) : null);
 
 const POST_PAYMENT = new Set(["PENDING", "ACTIVE"]);
 
@@ -147,19 +147,19 @@ export function MemberDetailPage() {
     { label: tx(language, "Оплата подтверждена", "Төлем расталды", "Payment confirmed"), time: null, done: paid, active: !paid },
     {
       label: tx(language, "Владелец выдал доступ", "Иесі қатынас берді", "Owner granted access"),
-      time: formatDateTime(membership.ownerAccessConfirmedAt),
+      time: formatDateTime(membership.ownerAccessConfirmedAt, language),
       done: ownerGranted,
       active: paid && !ownerGranted,
     },
     {
       label: tx(language, "Вы подтвердили доступ", "Сіз қатынасты растадыңыз", "You confirmed access"),
-      time: formatDateTime(membership.memberConfirmedAt),
+      time: formatDateTime(membership.memberConfirmedAt, language),
       done: memberConfirmed,
       active: canConfirm,
     },
     {
       label: tx(language, "Участие активно", "Қатысу белсенді", "Membership active"),
-      time: formatDateTime(membership.activatedAt),
+      time: formatDateTime(membership.activatedAt, language),
       done: isActive,
     },
   ];

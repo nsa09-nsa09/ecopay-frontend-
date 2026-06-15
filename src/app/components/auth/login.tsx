@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Button, Input, Card } from "../ds-primitives";
 import { useI18n } from "../i18n-provider";
+import { formatDateTime } from "../../lib/datetime";
 import { useAuth } from "./auth-provider";
 import { consumePersistedBanEvent } from "./auth-provider";
 import { Ban } from "lucide-react";
@@ -33,7 +34,7 @@ function parseBanFromApiError(err: ApiError): BanInfo | null {
 }
 
 export function LoginPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { login } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -118,7 +119,7 @@ export function LoginPage() {
             )}
             {banInfo.bannedAt && (
               <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                {t("bannedAtLabel")}: {new Date(banInfo.bannedAt).toLocaleString()}
+                {t("bannedAtLabel")}: {formatDateTime(banInfo.bannedAt, language)}
               </div>
             )}
           </Card>

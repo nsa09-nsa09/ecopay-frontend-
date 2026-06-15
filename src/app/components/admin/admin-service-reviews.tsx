@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { AdminLayout } from "./admin-layout";
 import { Badge, Button, Card, Modal, Select } from "../ds-primitives";
 import { useI18n, type Language } from "../i18n-provider";
+import { formatDateTime } from "../../lib/datetime";
 import { useAuth } from "../auth/auth-provider";
 import { FlashBanner, formatAdminApiError, useFlash } from "./admin-action-ui";
 import { StarRating } from "../reputation/public-profile";
@@ -143,7 +144,7 @@ export function AdminServiceReviewsPage() {
                     <div className="flex items-center gap-2">
                       <StarRating rating={review.rating} size={14} />
                       <span className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                        {new Date(review.createdAt).toLocaleString()}
+                        {formatDateTime(review.createdAt, language)}
                       </span>
                     </div>
                   </div>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Card, Badge, Button, Input } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
+import { formatDateTime } from "../../lib/datetime";
 import { useAuth } from "../auth/auth-provider";
 import {
   getAdminActionLogsRequest,
@@ -42,7 +43,7 @@ function toIsoOrUndefined(value: string): string | undefined {
 }
 
 export function AdminLogsPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { authorizedRequest } = useAuth();
 
   const [tab, setTab] = useState<Tab>("admin-actions");
@@ -225,7 +226,7 @@ export function AdminLogsPage() {
                   <Card key={log.id}>
                     <div className="grid grid-cols-12 gap-3 items-center">
                       <div className="col-span-3 text-[12px] whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>
-                        {new Date(log.createdAt).toLocaleString()}
+                        {formatDateTime(log.createdAt, language)}
                       </div>
                       <div className="col-span-2 text-[12px] whitespace-nowrap" style={{ color: "var(--eco-text-secondary)" }}>
                         #{log.adminUserId}
@@ -268,7 +269,7 @@ export function AdminLogsPage() {
                   <Card key={log.id}>
                     <div className="grid grid-cols-12 gap-3 items-center">
                       <div className="col-span-3 text-[12px] whitespace-nowrap" style={{ color: "var(--eco-text-tertiary)", fontFamily: "monospace" }}>
-                        {new Date(log.createdAt).toLocaleString()}
+                        {formatDateTime(log.createdAt, language)}
                       </div>
                       <div className="col-span-2 text-[12px] whitespace-nowrap" style={{ color: "var(--eco-text-secondary)" }}>
                         {log.actorRole ?? "—"}

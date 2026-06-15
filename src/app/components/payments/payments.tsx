@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { toast } from "sonner";
 import { Card, Badge, Button, Skeleton, EmptyState } from "../ds-primitives";
 import { useI18n, type Language } from "../i18n-provider";
+import { formatDateTime } from "../../lib/datetime";
 import {
   CheckCircle2, XCircle, Clock, Shield, ArrowRight, CreditCard,
   Lock, RefreshCw, AlertTriangle, ChevronRight, MessageSquare,
@@ -633,7 +634,7 @@ export function RefundStatusPage() {
                 </div>
                 <div>
                   <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{tx(l, "Создан", "Жасалған", "Created")}</div>
-                  <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{new Date(r.createdAt).toLocaleString()}</div>
+                  <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{formatDateTime(r.createdAt, l)}</div>
                 </div>
                 {r.providerRefundId && (
                   <div>
@@ -945,12 +946,12 @@ export function OwnerPayoutPage() {
                     )}
                     <div>
                       <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{tx(l, "Создана", "Жасалған", "Created")}</div>
-                      <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{new Date(p.createdAt).toLocaleString()}</div>
+                      <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{formatDateTime(p.createdAt, l)}</div>
                     </div>
                     {p.processedAt && (
                       <div>
                         <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{tx(l, "Обработана", "Өңделген", "Processed")}</div>
-                        <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{new Date(p.processedAt).toLocaleString()}</div>
+                        <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{formatDateTime(p.processedAt, l)}</div>
                       </div>
                     )}
                   </div>

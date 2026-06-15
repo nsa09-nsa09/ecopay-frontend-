@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, Button, Badge } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
+import { formatDate } from "../../lib/datetime";
 import { useAuth } from "../auth/auth-provider";
 import {
   assignModerationItemRequest,
@@ -49,7 +50,7 @@ function entityLabelKey(type: string): string {
 }
 
 export function AdminModerationPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { authorizedRequest, user } = useAuth();
 
   const [items, setItems] = useState<ModerationQueueItemDto[]>([]);
@@ -271,7 +272,7 @@ export function AdminModerationPage() {
                         : t("unassigned")}
                     </div>
                     <div className="col-span-1 text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                      {new Date(item.createdAt).toLocaleDateString()}
+                      {formatDate(item.createdAt, language)}
                     </div>
                     <div className="col-span-2 flex gap-1.5 flex-wrap">
                       {!isMine && (

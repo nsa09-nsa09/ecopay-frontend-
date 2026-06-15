@@ -17,7 +17,8 @@ import {
   type RoomSummaryDto,
 } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
-import { useI18n } from "../i18n-provider";
+import { useI18n, type Language } from "../i18n-provider";
+import { formatDate as formatAlmatyDate } from "../../lib/datetime";
 
 const moneyFormatter = new Intl.NumberFormat("ru-RU");
 
@@ -25,15 +26,15 @@ function formatMoney(value: number | null | undefined) {
   return `₸${moneyFormatter.format(Number(value ?? 0))}`;
 }
 
-function formatDate(value: string | undefined) {
-  return value ? new Date(value).toLocaleDateString() : "TBD";
+function formatDate(value: string | undefined, language?: Language) {
+  return value ? formatAlmatyDate(value, language) : "TBD";
 }
 
 const STATUS_VALUES = ["ALL", "OPEN", "IN_VERIFICATION", "ACTIVE", "COMPLETED", "CANCELLED", "BLOCKED"];
 const OPERATOR_VALUES = ["ALL", "Beeline", "Activ", "Altel", "Tele2", "Kcell"];
 
 export function MyRoomsPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { isAuthenticated, isReady, authorizedRequest } = useAuth();
 
   const [tab, setTab] = useState<"joined" | "created">("joined");
@@ -247,7 +248,7 @@ export function MyRoomsPage() {
 
                     <div className="flex flex-wrap items-center gap-4 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
                       <span className="flex items-center gap-1.5">
-                        <Calendar size={13} /> {formatDate(room.startDate)}
+                        <Calendar size={13} /> {formatDate(room.startDate, language)}
                       </span>
 
                       <span className="flex items-center gap-1.5">
@@ -294,7 +295,7 @@ export function MyRoomsPage() {
 
                     <div className="flex flex-wrap items-center gap-4 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
                       <span className="flex items-center gap-1.5">
-                        <Calendar size={13} /> {formatDate(room.startDate)}
+                        <Calendar size={13} /> {formatDate(room.startDate, language)}
                       </span>
 
                       <span className="flex items-center gap-1.5">
