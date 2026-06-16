@@ -8,19 +8,30 @@ export const REASON_MIN_LENGTH = 10;
 
 /**
  * Map a thrown error from an admin API call to a short, user-friendly message.
- * Distinguishes session expiry (401), permission (403), and server errors (500)
- * so admins do not see a generic "unexpected error" for every failure.
+ * Routes everything through ApiError.code (see lib/api.ts) so we never render
+ * raw Spring exception strings ("NoResourceFoundException: ...") or other
+ * server internals to staff users.
  */
 export function formatAdminApiError(
   err: unknown,
   t: (key: string, params?: Record<string, string | number>) => string,
 ): string {
   if (err instanceof ApiError) {
-    if (err.status === 401) return t("sessionExpiredError");
-    if (err.status === 403) return t("noStaffAccessError");
-    if (err.status === 404) return err.message || t("loadFailedTitle");
-    if (err.status === 500) return err.message || t("serverErrorTitle");
-    return err.message || t("loadFailedTitle");
+    switch (err.code) {
+      case "sessionExpired":
+        return t("sessionExpiredError");
+      case "noAccess":
+        return t("noStaffAccessError");
+      case "notAvailable":
+        return t("errSectionUnavailable");
+      case "serverError":
+        return t("serverErrorTitle");
+      case "network":
+        return t("networkError");
+      case "generic":
+      default:
+        return t("loadFailedTitle");
+    }
   }
   return t("loadFailedTitle");
 }

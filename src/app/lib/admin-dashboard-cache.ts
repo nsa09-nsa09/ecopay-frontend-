@@ -1,6 +1,8 @@
 import { useEffect, useSyncExternalStore } from "react";
 import {
+  ApiError,
   getAdminCategoryDistributionRequest,
+  getAdminCountryDistributionRequest,
   getAdminCurrencyDistributionRequest,
   getAdminDashboardKpisRequest,
   getAdminDashboardMetrics,
@@ -14,6 +16,7 @@ import {
   type OperatorDistributionDto,
   type PopularServiceDto,
 } from "./api";
+import type { FriendlyApiErrorCode } from "./locale";
 
 /**
  * Shared admin-dashboard cache.
@@ -30,10 +33,15 @@ import {
 
 export type AuthorizedRequest = <T>(fn: (token: string) => Promise<T>) => Promise<T>;
 
+/**
+ * `error` holds a stable FriendlyApiErrorCode (see lib/locale.ts), not raw
+ * server text. The UI translates it via t() so a failed distribution endpoint
+ * never paints a server exception name into the dashboard.
+ */
 export interface CacheEntry<T> {
   data: T | null;
   loading: boolean;
-  error: string | null;
+  error: FriendlyApiErrorCode | null;
   loadedAt: number | null;
 }
 
@@ -49,6 +57,7 @@ export interface AdminDashboardState {
   currencyDistribution: CacheEntry<NamedCountDto[]>;
   categoryDistribution: CacheEntry<NamedCountDto[]>;
   roomStatusDistribution: CacheEntry<NamedCountDto[]>;
+  countryDistribution: CacheEntry<NamedCountDto[]>;
 }
 
 let state: AdminDashboardState = {
@@ -59,6 +68,7 @@ let state: AdminDashboardState = {
   currencyDistribution: emptyEntry(),
   categoryDistribution: emptyEntry(),
   roomStatusDistribution: emptyEntry(),
+  countryDistribution: emptyEntry(),
 };
 
 const listeners = new Set<() => void>();
@@ -90,15 +100,15 @@ function pickKey<K extends keyof AdminDashboardState>(key: K) {
   return key;
 }
 
-function startLoading<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution">(key: K) {
+function startLoading<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution" | "countryDistribution">(key: K) {
   setState((prev) => ({ ...prev, [pickKey(key)]: { ...prev[key], loading: true, error: null } }));
 }
 
-function setError<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution">(key: K, message: string) {
-  setState((prev) => ({ ...prev, [pickKey(key)]: { ...prev[key], loading: false, error: message } }));
+function setError<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution" | "countryDistribution">(key: K, code: FriendlyApiErrorCode) {
+  setState((prev) => ({ ...prev, [pickKey(key)]: { ...prev[key], loading: false, error: code } }));
 }
 
-function setData<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution", T>(
+function setData<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution" | "countryDistribution", T>(
   key: K,
   data: T,
 ) {
@@ -108,11 +118,9 @@ function setData<K extends "kpis" | "popularServices" | "operatorDistribution" |
   }));
 }
 
-function formatErr(err: unknown): string {
-  if (err && typeof err === "object" && "message" in err && typeof (err as { message?: string }).message === "string") {
-    return (err as { message: string }).message;
-  }
-  return "Network error";
+function toErrorCode(err: unknown): FriendlyApiErrorCode {
+  if (err instanceof ApiError) return err.code;
+  return "network";
 }
 
 // In-flight promise map prevents racing duplicate fetches from concurrent
@@ -135,7 +143,7 @@ export function fetchKpis(authorizedRequest: AuthorizedRequest, force = false): 
       const data = await authorizedRequest((token) => getAdminDashboardKpisRequest(token));
       setData("kpis", data);
     } catch (err) {
-      setError("kpis", formatErr(err));
+      setError("kpis", toErrorCode(err));
       throw err;
     }
   });
@@ -149,7 +157,7 @@ export function fetchPopularServices(authorizedRequest: AuthorizedRequest, force
       const data = await authorizedRequest((token) => getAdminPopularServicesRequest(token, 10));
       setData("popularServices", data);
     } catch (err) {
-      setError("popularServices", formatErr(err));
+      setError("popularServices", toErrorCode(err));
       throw err;
     }
   });
@@ -163,7 +171,7 @@ export function fetchOperatorDistribution(authorizedRequest: AuthorizedRequest, 
       const data = await authorizedRequest((token) => getAdminOperatorDistributionRequest(token));
       setData("operatorDistribution", data);
     } catch (err) {
-      setError("operatorDistribution", formatErr(err));
+      setError("operatorDistribution", toErrorCode(err));
       throw err;
     }
   });
@@ -177,7 +185,7 @@ export function fetchCurrencyDistribution(authorizedRequest: AuthorizedRequest, 
       const data = await authorizedRequest((token) => getAdminCurrencyDistributionRequest(token));
       setData("currencyDistribution", data);
     } catch (err) {
-      setError("currencyDistribution", formatErr(err));
+      setError("currencyDistribution", toErrorCode(err));
       throw err;
     }
   });
@@ -191,7 +199,7 @@ export function fetchCategoryDistribution(authorizedRequest: AuthorizedRequest, 
       const data = await authorizedRequest((token) => getAdminCategoryDistributionRequest(token));
       setData("categoryDistribution", data);
     } catch (err) {
-      setError("categoryDistribution", formatErr(err));
+      setError("categoryDistribution", toErrorCode(err));
       throw err;
     }
   });
@@ -205,7 +213,21 @@ export function fetchRoomStatusDistribution(authorizedRequest: AuthorizedRequest
       const data = await authorizedRequest((token) => getAdminRoomStatusDistributionRequest(token));
       setData("roomStatusDistribution", data);
     } catch (err) {
-      setError("roomStatusDistribution", formatErr(err));
+      setError("roomStatusDistribution", toErrorCode(err));
+      throw err;
+    }
+  });
+}
+
+export function fetchCountryDistribution(authorizedRequest: AuthorizedRequest, force = false): Promise<void> {
+  if (!force && state.countryDistribution.data) return Promise.resolve();
+  startLoading("countryDistribution");
+  return dedupe("countryDistribution", async () => {
+    try {
+      const data = await authorizedRequest((token) => getAdminCountryDistributionRequest(token));
+      setData("countryDistribution", data);
+    } catch (err) {
+      setError("countryDistribution", toErrorCode(err));
       throw err;
     }
   });
@@ -272,7 +294,7 @@ export function fetchMetrics(
         ...prev,
         metrics: {
           ...prev.metrics,
-          [key]: { ...(prev.metrics[key] ?? emptyEntry<DashboardMetricsResponse>()), loading: false, error: formatErr(err) },
+          [key]: { ...(prev.metrics[key] ?? emptyEntry<DashboardMetricsResponse>()), loading: false, error: toErrorCode(err) },
         },
       }));
       throw err;
@@ -306,6 +328,7 @@ export function prefetchAdminDashboard(
     fetchCurrencyDistribution(authorizedRequest, force),
     fetchCategoryDistribution(authorizedRequest, force),
     fetchRoomStatusDistribution(authorizedRequest, force),
+    fetchCountryDistribution(authorizedRequest, force),
   ]);
 }
 
@@ -319,6 +342,7 @@ export function clearAdminDashboardCache() {
     currencyDistribution: emptyEntry(),
     categoryDistribution: emptyEntry(),
     roomStatusDistribution: emptyEntry(),
+    countryDistribution: emptyEntry(),
   };
   inflight.clear();
   notify();

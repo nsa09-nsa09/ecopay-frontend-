@@ -134,15 +134,82 @@ export function buildSupportWebSocketUrl(accessToken: string) {
   return wsUrl.toString();
 }
 
+import { getFriendlyApiMessage, type FriendlyApiErrorCode } from "./locale";
+
+/**
+ * Heuristic: detect server-side internals that must never leak to end users
+ * (Java exception class names, raw stack-trace hints, Spring's "no static
+ * resource" 404 page, etc).
+ */
+function looksLikeServerInternalsMessage(raw: string | undefined | null): boolean {
+  if (!raw) return false;
+  const s = raw.trim();
+  if (!s) return false;
+  // Spring's NoResourceFoundException leaks the request path.
+  if (/no static resource/i.test(s)) return true;
+  // Anything that mentions a Java exception class.
+  if (/exception\b/i.test(s)) return true;
+  // Common "stack trace" or fully-qualified Java class hints.
+  if (/(\b[a-z][a-z0-9_]*\.){2,}[A-Z][A-Za-z0-9_]*/.test(s)) return true;
+  // Generic "Request failed with status N" produced when the body had no JSON.
+  if (/^request failed with status \d+/i.test(s)) return true;
+  return false;
+}
+
+function classifyApiErrorCode(
+  status: number,
+  rawMessage: string | undefined | null,
+): FriendlyApiErrorCode {
+  if (status === 0) return "network";
+  if (status === 401) return "sessionExpired";
+  if (status === 403) return "noAccess";
+  if (status === 404) return "notAvailable";
+  if (rawMessage && /no static resource/i.test(rawMessage)) return "notAvailable";
+  if (status >= 500) return "serverError";
+  return "generic";
+}
+
+/**
+ * Returns a UI-safe message: the server's friendly `payload.message` when it
+ * is clearly a curated string, otherwise our own localized fallback. Raw
+ * server internals (exception classes, "no static resource", stack-trace
+ * hints) are never returned.
+ */
+function buildFriendlyApiMessage(
+  status: number,
+  rawMessage: string | undefined | null,
+  code: FriendlyApiErrorCode,
+): string {
+  if (rawMessage && !looksLikeServerInternalsMessage(rawMessage) && rawMessage.length <= 240) {
+    return rawMessage;
+  }
+  return getFriendlyApiMessage(code);
+}
+
 export class ApiError extends Error {
   status: number;
   errors: Record<string, string>;
+  /**
+   * Stable, locale-agnostic code derived from the HTTP status / message
+   * shape. UI code can switch on this to render an appropriate retry block.
+   */
+  code: FriendlyApiErrorCode;
+  /**
+   * Raw server-provided message. Kept for logging only — DO NOT render this
+   * directly to end users; use `message` (already sanitized + localized) or
+   * `getFriendlyApiMessage(error.code)` instead.
+   */
+  serverMessage: string | null;
 
-  constructor(status: number, message: string, errors: Record<string, string> = {}) {
-    super(message);
+  constructor(status: number, rawMessage: string, errors: Record<string, string> = {}) {
+    const code = classifyApiErrorCode(status, rawMessage);
+    const friendly = buildFriendlyApiMessage(status, rawMessage, code);
+    super(friendly);
     this.name = "ApiError";
     this.status = status;
     this.errors = errors;
+    this.code = code;
+    this.serverMessage = rawMessage ?? null;
   }
 }
 
@@ -181,20 +248,40 @@ async function requestJson<T>(path: string, init: RequestInit = {}, accessToken?
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
-  const response = await fetch(buildUrl(path), {
-    ...init,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(path), {
+      ...init,
+      headers,
+    });
+  } catch (err) {
+    // Network failure (DNS, offline, CORS preflight reject). Surface a
+    // friendly localized ApiError so catch-blocks across the UI render a
+    // user-safe message rather than "TypeError: Failed to fetch".
+    if (typeof console !== "undefined" && console.warn) {
+      console.warn(`[api] ${init.method ?? "GET"} ${path} network error:`, err);
+    }
+    throw new ApiError(0, err instanceof Error ? err.message : "Network error");
+  }
 
   const body = await parseResponseBody(response);
 
   if (!response.ok) {
     const payload = typeof body === "object" && body !== null ? (body as ErrorPayload) : {};
-    const message =
+    const rawMessage =
       payload.message ??
       (typeof body === "string" && body.trim() ? body : `Request failed with status ${response.status}`);
 
-    throw new ApiError(response.status, message, payload.errors ?? {});
+    // Log the raw server detail to console for engineers; the thrown ApiError
+    // exposes a sanitized + localized `.message` to the UI.
+    if (typeof console !== "undefined" && console.warn) {
+      console.warn(
+        `[api] ${init.method ?? "GET"} ${path} failed with ${response.status}:`,
+        rawMessage,
+      );
+    }
+
+    throw new ApiError(response.status, rawMessage, payload.errors ?? {});
   }
 
   if (response.status === 204 || body == null) {
@@ -965,6 +1052,58 @@ export function getAdminRoomStatusDistributionRequest(accessToken: string) {
   return requestJson<NamedCountDto[]>(
     "/admin/dashboard/room-status-distribution",
     {},
+    accessToken,
+  );
+}
+
+export function getAdminCountryDistributionRequest(accessToken: string) {
+  return requestJson<NamedCountDto[]>(
+    "/admin/dashboard/country-distribution",
+    {},
+    accessToken,
+  );
+}
+
+// ---- Global admin search (top bar) ----
+
+export interface AdminSearchRoomDto {
+  id: number;
+  title: string;
+  status: string | null;
+  serviceName: string | null;
+  ownerDisplayName: string | null;
+}
+
+export interface AdminSearchUserDto {
+  id: number;
+  displayName: string;
+  email: string | null;
+  role: string | null;
+  status: string | null;
+}
+
+export interface AdminSearchFeedbackDto {
+  id: number;
+  subject: string | null;
+  message: string;
+  type: string | null;
+  status: string | null;
+}
+
+export interface AdminSearchResponse {
+  rooms: AdminSearchRoomDto[];
+  users: AdminSearchUserDto[];
+  feedback: AdminSearchFeedbackDto[];
+}
+
+export function adminGlobalSearchRequest(
+  query: string,
+  accessToken: string,
+  init?: { signal?: AbortSignal },
+) {
+  return requestJson<AdminSearchResponse>(
+    `/admin/search${toSearchParams({ q: query })}`,
+    { signal: init?.signal },
     accessToken,
   );
 }

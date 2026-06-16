@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { setCurrentLanguage } from "../lib/locale";
 
 export type Language = "ru" | "kz" | "en";
 
@@ -1126,6 +1127,8 @@ const translations: Translations = {
   loadFailedTitle: { ru: "Не удалось загрузить данные", kz: "Деректерді жүктеу мүмкін болмады", en: "Couldn't load data" },
   sessionExpiredError: { ru: "Сессия истекла. Войдите снова.", kz: "Сессия аяқталды. Қайта кіріңіз.", en: "Your session has expired. Please sign in again." },
   serverErrorTitle: { ru: "Ошибка сервера. Попробуйте позже.", kz: "Сервер қатесі. Кейінірек қайталап көріңіз.", en: "Server error. Please try again later." },
+  errSectionUnavailable: { ru: "Раздел временно недоступен.", kz: "Бөлім уақытша қолжетімсіз.", en: "This section is temporarily unavailable." },
+  errLoadCardFailed: { ru: "Не удалось загрузить карточку.", kz: "Картаны жүктеу мүмкін болмады.", en: "Couldn't load this card." },
   banReasonHint: { ru: "Бан и разбан удерживают аудит/платёжную историю. Удаление пользователя не используется.", kz: "Бан мен бан алу аудит/төлем тарихын сақтайды. Пайдаланушыны өшіру жоқ.", en: "Ban / unban preserves audit and payment history. Hard delete is not used." },
   noData: { ru: "Нет данных", kz: "Деректер жоқ", en: "No data" },
   searchUsersPlaceholder: { ru: "Поиск пользователей…", kz: "Пайдаланушыларды іздеу…", en: "Search users…" },
@@ -1625,6 +1628,18 @@ const translations: Translations = {
   dashboardMetricActiveMembers: { ru: "Активные участники", kz: "Белсенді қатысушылар", en: "Active members" },
   dashboardEmptyChart: { ru: "Нет данных", kz: "Деректер жоқ", en: "No data" },
   dashboardOtherSlice: { ru: "Другое", kz: "Басқа", en: "Other" },
+  dashboardCountryDistributionTitle: { ru: "Распределение по странам", kz: "Елдер бойынша бөлу", en: "Country distribution" },
+  kpiSectionOperations: { ru: "Операции", kz: "Операциялар", en: "Operations" },
+  kpiSectionFinance: { ru: "Финансы", kz: "Қаржы", en: "Finance" },
+  kpiSectionAudience: { ru: "Аудитория", kz: "Аудитория", en: "Audience" },
+  kpiSectionRooms: { ru: "Комнаты", kz: "Бөлмелер", en: "Rooms" },
+  kpiSectionUsers: { ru: "Пользователи", kz: "Пайдаланушылар", en: "Users" },
+  activeRoomsLabel: { ru: "Активные комнаты", kz: "Белсенді бөлмелер", en: "Active rooms" },
+  adminSearchLoading: { ru: "Ищем…", kz: "Іздеу…", en: "Searching…" },
+  adminSearchEmpty: { ru: "Ничего не найдено", kz: "Ештеңе табылмады", en: "No results" },
+  adminSearchGroupRooms: { ru: "Комнаты", kz: "Бөлмелер", en: "Rooms" },
+  adminSearchGroupUsers: { ru: "Пользователи", kz: "Пайдаланушылар", en: "Users" },
+  adminSearchGroupFeedback: { ru: "Обращения", kz: "Өтінімдер", en: "Feedback" },
 
   // ===== Ban event (realtime) =====
   bannedHeadline: { ru: "Аккаунт заблокирован", kz: "Тіркелгі бұғатталды", en: "Account blocked" },
@@ -1677,6 +1692,15 @@ function interpolate(template: string, params?: Record<string, string | number>)
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(getInitialLanguage);
+
+  // Mirror the active language into the module-level locale store so non-React
+  // code (api.ts) can localize friendly fallback messages without dragging in
+  // the i18n context. Sync synchronously each render so any API call triggered
+  // during the same render sees the correct language.
+  setCurrentLanguage(language);
+  useEffect(() => {
+    setCurrentLanguage(language);
+  }, [language]);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);

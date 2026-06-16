@@ -9,8 +9,10 @@ import {
   type OperatorDistributionDto,
   type PopularServiceDto,
 } from "../../lib/api";
+import type { FriendlyApiErrorCode } from "../../lib/locale";
 import {
   fetchCategoryDistribution,
+  fetchCountryDistribution,
   fetchCurrencyDistribution,
   fetchKpis,
   fetchMetrics,
@@ -44,6 +46,7 @@ import {
   BarChart3,
   Layers,
   AlertCircle,
+  MapPin,
 } from "lucide-react";
 import {
   Bar,
@@ -87,11 +90,26 @@ function formatPercent(value: number | string | null | undefined): string {
   return `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(num)}%`;
 }
 
-function formatDecimal(value: number | string | null | undefined): string {
-  if (value == null) return "—";
-  const num = typeof value === "string" ? Number(value) : value;
-  if (Number.isNaN(num)) return String(value);
-  return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(num);
+function translateCacheError(
+  code: FriendlyApiErrorCode | null,
+  t: (key: string) => string,
+): string | null {
+  if (!code) return null;
+  switch (code) {
+    case "notAvailable":
+      return t("errSectionUnavailable");
+    case "noAccess":
+      return t("noStaffAccessError");
+    case "sessionExpired":
+      return t("sessionExpiredError");
+    case "serverError":
+      return t("serverErrorTitle");
+    case "network":
+      return t("networkError");
+    case "generic":
+    default:
+      return t("errLoadCardFailed");
+  }
 }
 
 
@@ -106,7 +124,7 @@ export function AdminDashboardPage() {
   const kpisEntry = cache.kpis;
   const kpis = kpisEntry.data;
   const loading = kpisEntry.loading && !kpisEntry.data;
-  const error = kpisEntry.error;
+  const error = translateCacheError(kpisEntry.error, t);
 
   const [granularity, setGranularity] = useState<DashboardGranularity>("month");
   const [rangeKey, setRangeKey] = useState<"12m" | "30d">("12m");
@@ -119,19 +137,21 @@ export function AdminDashboardPage() {
   const metricsLive = cache.metrics[metricsKey] ?? metricsEntry;
   const metrics = metricsLive.data;
   const metricsLoading = metricsLive.loading && !metricsLive.data;
-  const metricsError = metricsLive.error;
+  const metricsError = translateCacheError(metricsLive.error, t);
 
   const popularEntry = cache.popularServices;
   const operatorEntry = cache.operatorDistribution;
   const currencyEntry = cache.currencyDistribution;
   const categoryEntry = cache.categoryDistribution;
   const roomStatusEntry = cache.roomStatusDistribution;
+  const countryEntry = cache.countryDistribution;
 
   const popularServices: PopularServiceDto[] | null = popularEntry.data;
   const operatorDistribution: OperatorDistributionDto[] | null = operatorEntry.data;
   const currencyDistribution: NamedCountDto[] | null = currencyEntry.data;
   const categoryDistribution: NamedCountDto[] | null = categoryEntry.data;
   const roomStatusDistribution: NamedCountDto[] | null = roomStatusEntry.data;
+  const countryDistribution: NamedCountDto[] | null = countryEntry.data;
 
   const load = useCallback(() => {
     void fetchKpis(authorizedRequest, true);
@@ -157,6 +177,7 @@ export function AdminDashboardPage() {
     void fetchCurrencyDistribution(authorizedRequest);
     void fetchCategoryDistribution(authorizedRequest);
     void fetchRoomStatusDistribution(authorizedRequest);
+    void fetchCountryDistribution(authorizedRequest);
   }, [authorizedRequest]);
 
   const chartData = useMemo(() => {
@@ -194,21 +215,14 @@ export function AdminDashboardPage() {
     }));
   }, [popularServices, t]);
 
-  // Operator distribution: keep the top 6, fold the rest into "Other"
-  // so the chart stays readable.
+  // Backend already returns one row per operator (with its own "Other"
+  // bucket) — we just map the response to chart-ready shape.
   const operatorChartData = useMemo(() => {
     if (!operatorDistribution) return [];
-    const sorted = [...operatorDistribution].sort((a, b) => b.count - a.count);
-    if (sorted.length <= 7) {
-      return sorted.map((o) => ({ name: o.operatorName || o.code, value: o.count }));
-    }
-    const top = sorted.slice(0, 6);
-    const rest = sorted.slice(6).reduce((acc, o) => acc + o.count, 0);
-    return [
-      ...top.map((o) => ({ name: o.operatorName || o.code, value: o.count })),
-      { name: t("dashboardOtherSlice"), value: rest },
-    ];
-  }, [operatorDistribution, t]);
+    return [...operatorDistribution]
+      .sort((a, b) => b.count - a.count)
+      .map((o) => ({ name: o.operatorName || o.code, value: o.count }));
+  }, [operatorDistribution]);
 
   const currencyChartData = useMemo(() => {
     if (!currencyDistribution) return [];
@@ -225,6 +239,13 @@ export function AdminDashboardPage() {
     return roomStatusDistribution.map((c) => ({ name: c.label, value: c.value }));
   }, [roomStatusDistribution]);
 
+  const countryChartData = useMemo(() => {
+    if (!countryDistribution) return [];
+    return [...countryDistribution]
+      .sort((a, b) => b.value - a.value)
+      .map((c) => ({ name: c.label, value: c.value }));
+  }, [countryDistribution]);
+
   const revenueChartData = useMemo(() => {
     if (!metrics || !Array.isArray(metrics.series)) return [];
     return metrics.series.map((p) => ({
@@ -233,32 +254,65 @@ export function AdminDashboardPage() {
     }));
   }, [metrics, t]);
 
-  const renderKpiCards = (): KpiCardConfig[] => {
-    if (!kpis) return [];
-    return [
-      { key: "pendingModerationLabel", value: formatCount(kpis.pendingModeration), icon: ShieldCheck, variant: "warning" },
-      { key: "openDisputes", value: formatCount(kpis.openDisputes), icon: Scale, variant: "danger" },
-      { key: "totalRefundsLabel", value: formatMoney(kpis.totalRefunds), icon: Undo2, variant: "warning" },
-      { key: "blockedRoomsLabel", value: formatCount(kpis.blockedRooms), icon: Home, variant: "info" },
-      { key: "bannedUsersLabel", value: formatCount(kpis.bannedUsers), icon: Ban, variant: "danger" },
-    ];
-  };
+  // KPI cards are organised into named sections with exactly four cards each
+  // so the responsive grid `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4` always
+  // produces balanced rows (4 / 2x2 / 4x1) — no lonely orphans.
+  interface KpiSectionConfig {
+    titleKey: string;
+    cards: KpiCardConfig[];
+  }
 
-  const renderExtendedKpiCards = (): KpiCardConfig[] => {
+  const kpiSections = useMemo<KpiSectionConfig[]>(() => {
     if (!kpis) return [];
+    const newUsers30d = metrics?.newUsersLast30Days ?? null;
     return [
-      { key: "kpiUniqueVisitorsToday", value: formatCount(kpis.uniqueVisitorsToday ?? null), icon: Eye, variant: "info" },
-      { key: "kpiUniqueVisitors30d", value: formatCount(kpis.uniqueVisitors30d ?? null), icon: Users, variant: "info" },
-      { key: "kpiPageViews30d", value: formatCount(kpis.totalPageViews30d ?? null), icon: MousePointerClick, variant: "info" },
-      { key: "kpiConversion30d", value: formatPercent(kpis.conversionVisitorToUser30d ?? null), icon: UserPlus, variant: "success" },
-      { key: "kpiAvgRoomFill", value: formatPercent(kpis.avgRoomFillRate ?? null), icon: Gauge, variant: "info" },
-      { key: "kpiAvgMembersPerRoom", value: formatDecimal(kpis.avgMembersPerRoom ?? null), icon: UsersRound, variant: "info" },
-      { key: "kpiActiveSubsValue", value: formatMoney(kpis.totalActiveSubscriptionsValueKzt ?? null), icon: Wallet, variant: "success" },
-      { key: "kpiNewRooms30d", value: formatCount(kpis.newRoomsLast30Days ?? null), icon: PlusCircle, variant: "success" },
-      { key: "kpiRefundRate", value: formatPercent(kpis.refundRatePercent ?? null), icon: Percent, variant: "warning" },
-      { key: "kpiOpenTickets", value: formatCount(kpis.openTickets ?? null), icon: MessageSquare, variant: "warning" },
+      {
+        titleKey: "kpiSectionOperations",
+        cards: [
+          { key: "pendingModerationLabel", value: formatCount(kpis.pendingModeration), icon: ShieldCheck, variant: "warning" },
+          { key: "openDisputes", value: formatCount(kpis.openDisputes), icon: Scale, variant: "danger" },
+          { key: "kpiOpenTickets", value: formatCount(kpis.openTickets ?? null), icon: MessageSquare, variant: "warning" },
+          { key: "blockedRoomsLabel", value: formatCount(kpis.blockedRooms), icon: Home, variant: "info" },
+        ],
+      },
+      {
+        titleKey: "kpiSectionFinance",
+        cards: [
+          { key: "totalRevenueLabel", value: formatMoney(kpis.totalRevenue), icon: TrendingUp, variant: "success" },
+          { key: "totalRefundsLabel", value: formatMoney(kpis.totalRefunds), icon: Undo2, variant: "warning" },
+          { key: "kpiActiveSubsValue", value: formatMoney(kpis.totalActiveSubscriptionsValueKzt ?? null), icon: Wallet, variant: "success" },
+          { key: "kpiRefundRate", value: formatPercent(kpis.refundRatePercent ?? null), icon: Percent, variant: "warning" },
+        ],
+      },
+      {
+        titleKey: "kpiSectionAudience",
+        cards: [
+          { key: "kpiUniqueVisitorsToday", value: formatCount(kpis.uniqueVisitorsToday ?? null), icon: Eye, variant: "info" },
+          { key: "kpiUniqueVisitors30d", value: formatCount(kpis.uniqueVisitors30d ?? null), icon: Users, variant: "info" },
+          { key: "kpiPageViews30d", value: formatCount(kpis.totalPageViews30d ?? null), icon: MousePointerClick, variant: "info" },
+          { key: "kpiConversion30d", value: formatPercent(kpis.conversionVisitorToUser30d ?? null), icon: UserPlus, variant: "success" },
+        ],
+      },
+      {
+        titleKey: "kpiSectionRooms",
+        cards: [
+          { key: "totalRoomsLabel", value: formatCount(kpis.totalRooms), icon: Home, variant: "info" },
+          { key: "activeRoomsLabel", value: formatCount(kpis.activeRooms), icon: ShieldCheck, variant: "success" },
+          { key: "kpiNewRooms30d", value: formatCount(kpis.newRoomsLast30Days ?? null), icon: PlusCircle, variant: "success" },
+          { key: "kpiAvgRoomFill", value: formatPercent(kpis.avgRoomFillRate ?? null), icon: Gauge, variant: "info" },
+        ],
+      },
+      {
+        titleKey: "kpiSectionUsers",
+        cards: [
+          { key: "totalUsersLabel", value: formatCount(kpis.totalUsers), icon: Users, variant: "info" },
+          { key: "activeUsersLabel", value: formatCount(kpis.activeUsers), icon: UsersRound, variant: "success" },
+          { key: "bannedUsersLabel", value: formatCount(kpis.bannedUsers), icon: Ban, variant: "danger" },
+          { key: "dashboardNewLast30d", value: formatCount(newUsers30d), icon: UserPlus, variant: "info" },
+        ],
+      },
     ];
-  };
+  }, [kpis, metrics]);
 
   const renderKpiCard = (k: KpiCardConfig) => {
     const Icon = k.icon;
@@ -337,65 +391,16 @@ export function AdminDashboardPage() {
 
         {kpis && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-              {renderKpiCards().map(renderKpiCard)}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-              {renderExtendedKpiCards().map(renderKpiCard)}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-              {[
-                { key: "totalRoomsLabel", value: formatCount(kpis.totalRooms), icon: Home },
-                { key: "totalUsersLabel", value: formatCount(kpis.totalUsers), icon: Users },
-                { key: "totalRevenueLabel", value: formatMoney(kpis.totalRevenue), icon: TrendingUp },
-              ].map((s) => {
-                const Icon = s.icon;
-                return (
-                  <Card key={s.key} className="flex items-center gap-3">
-                    <Icon size={18} style={{ color: "var(--eco-text-tertiary)" }} />
-                    <div>
-                      <div className="text-[18px]" style={{ color: "var(--eco-text)" }}>{s.value}</div>
-                      <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t(s.key)}</div>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-              <Card className="flex flex-col gap-2">
-                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("rooms")}</div>
-                <div className="grid grid-cols-2 gap-2 text-[13px]">
-                  <div>
-                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("activeUsersLabel")}</div>
-                    <div style={{ color: "var(--eco-text)" }}>{formatCount(kpis.activeRooms)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("statusOpen")}</div>
-                    <div style={{ color: "var(--eco-text)" }}>{formatCount(kpis.openRooms)}</div>
-                  </div>
+            {kpiSections.map((section, idx) => (
+              <section key={section.titleKey} className={idx === 0 ? "mb-8" : "mb-8"}>
+                <h2 className="text-[14px] uppercase tracking-wide mb-3" style={{ color: "var(--eco-text-tertiary)" }}>
+                  {t(section.titleKey)}
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                  {section.cards.map(renderKpiCard)}
                 </div>
-              </Card>
-              <Card className="flex flex-col gap-2">
-                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("users")}</div>
-                <div className="grid grid-cols-3 gap-2 text-[13px]">
-                  <div>
-                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("activeUsersLabel")}</div>
-                    <div style={{ color: "var(--eco-text)" }}>{formatCount(kpis.activeUsers)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("bannedUsersLabel")}</div>
-                    <div style={{ color: "var(--eco-text)" }}>{formatCount(kpis.bannedUsers)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("dashboardNewLast30d")}</div>
-                    <div style={{ color: "var(--eco-text)" }}>{formatCount(metrics?.newUsersLast30Days ?? null)}</div>
-                  </div>
-                </div>
-              </Card>
-            </div>
+              </section>
+            ))}
 
             <Card className="flex flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -598,6 +603,7 @@ export function AdminDashboardPage() {
                   void fetchCurrencyDistribution(authorizedRequest, true);
                   void fetchCategoryDistribution(authorizedRequest, true);
                   void fetchRoomStatusDistribution(authorizedRequest, true);
+                  void fetchCountryDistribution(authorizedRequest, true);
                 }}
               >
                 <RefreshCw size={13} /> {t("refresh")}
@@ -609,7 +615,7 @@ export function AdminDashboardPage() {
                 icon={BarChart3}
                 title={t("dashboardPopularServicesTitle")}
                 loading={popularEntry.loading && !popularServices}
-                error={popularEntry.error}
+                error={translateCacheError(popularEntry.error, t)}
                 empty={popularServicesData.length === 0}
                 emptyLabel={t("dashboardEmptyChart")}
                 onRetry={() => void fetchPopularServices(authorizedRequest, true)}
@@ -634,7 +640,7 @@ export function AdminDashboardPage() {
                 icon={Globe}
                 title={t("dashboardOperatorDistributionTitle")}
                 loading={operatorEntry.loading && !operatorDistribution}
-                error={operatorEntry.error}
+                error={translateCacheError(operatorEntry.error, t)}
                 empty={operatorChartData.length === 0}
                 emptyLabel={t("dashboardEmptyChart")}
                 onRetry={() => void fetchOperatorDistribution(authorizedRequest, true)}
@@ -647,11 +653,7 @@ export function AdminDashboardPage() {
                     <XAxis dataKey="name" tick={{ ...CHART_TICK_STYLE, fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
                     <YAxis allowDecimals={false} tick={CHART_TICK_STYLE} tickFormatter={formatCount} />
                     <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                      {operatorChartData.map((entry, idx) => (
-                        <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
-                      ))}
-                    </Bar>
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={CHART_PALETTE[0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartShell>
@@ -660,7 +662,7 @@ export function AdminDashboardPage() {
                 icon={PieIcon}
                 title={t("dashboardCurrencyDistributionTitle")}
                 loading={currencyEntry.loading && !currencyDistribution}
-                error={currencyEntry.error}
+                error={translateCacheError(currencyEntry.error, t)}
                 empty={currencyChartData.length === 0}
                 emptyLabel={t("dashboardEmptyChart")}
                 onRetry={() => void fetchCurrencyDistribution(authorizedRequest, true)}
@@ -692,7 +694,7 @@ export function AdminDashboardPage() {
                 icon={Layers}
                 title={t("dashboardCategoryDistributionTitle")}
                 loading={categoryEntry.loading && !categoryDistribution}
-                error={categoryEntry.error}
+                error={translateCacheError(categoryEntry.error, t)}
                 empty={categoryChartData.length === 0}
                 emptyLabel={t("dashboardEmptyChart")}
                 onRetry={() => void fetchCategoryDistribution(authorizedRequest, true)}
@@ -705,11 +707,7 @@ export function AdminDashboardPage() {
                     <XAxis dataKey="name" tick={{ ...CHART_TICK_STYLE, fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
                     <YAxis allowDecimals={false} tick={CHART_TICK_STYLE} tickFormatter={formatCount} />
                     <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                      {categoryChartData.map((entry, idx) => (
-                        <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
-                      ))}
-                    </Bar>
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={CHART_PALETTE[1]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartShell>
@@ -718,7 +716,7 @@ export function AdminDashboardPage() {
                 icon={Home}
                 title={t("dashboardRoomStatusDistributionTitle")}
                 loading={roomStatusEntry.loading && !roomStatusDistribution}
-                error={roomStatusEntry.error}
+                error={translateCacheError(roomStatusEntry.error, t)}
                 empty={roomStatusChartData.length === 0}
                 emptyLabel={t("dashboardEmptyChart")}
                 onRetry={() => void fetchRoomStatusDistribution(authorizedRequest, true)}
@@ -743,6 +741,29 @@ export function AdminDashboardPage() {
                       ))}
                     </Pie>
                   </PieChart>
+                </ResponsiveContainer>
+              </ChartShell>
+
+              <ChartShell
+                icon={MapPin}
+                title={t("dashboardCountryDistributionTitle")}
+                loading={countryEntry.loading && !countryDistribution}
+                error={translateCacheError(countryEntry.error, t)}
+                empty={countryChartData.length === 0}
+                emptyLabel={t("dashboardEmptyChart")}
+                onRetry={() => void fetchCountryDistribution(authorizedRequest, true)}
+                placeholderShape="bars"
+                className="xl:col-span-2"
+                height={Math.max(220, countryChartData.length * 28 + 80)}
+              >
+                <ResponsiveContainer>
+                  <BarChart data={countryChartData} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} tick={CHART_TICK_STYLE} tickFormatter={formatCount} />
+                    <YAxis type="category" dataKey="name" width={150} tick={CHART_TICK_STYLE} />
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
+                    <Bar dataKey="value" radius={[0, 4, 4, 0]} fill={CHART_PALETTE[0]} />
+                  </BarChart>
                 </ResponsiveContainer>
               </ChartShell>
             </div>
