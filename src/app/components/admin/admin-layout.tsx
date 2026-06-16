@@ -1,13 +1,323 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import {
   Search, User, ChevronDown, LogOut, Bell, Menu, X,
+  Home as HomeIcon, Users as UsersIcon, Inbox as InboxIcon,
 } from "lucide-react";
 import { useI18n } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
 import { BrandLogo } from "../brand-logo";
-import { ApiError, getAdminDashboardKpisRequest, type AdminDashboardKpisDto } from "../../lib/api";
+import {
+  adminGlobalSearchRequest,
+  ApiError,
+  getAdminDashboardKpisRequest,
+  type AdminDashboardKpisDto,
+  type AdminSearchResponse,
+} from "../../lib/api";
+import type { FriendlyApiErrorCode } from "../../lib/locale";
 import { ADMIN_NAV_ITEMS, defaultLandingForRole, isRoleAllowedFor } from "./admin-nav";
+
+function translateSearchError(
+  code: FriendlyApiErrorCode | null,
+  t: (key: string) => string,
+): string | null {
+  if (!code) return null;
+  switch (code) {
+    case "noAccess":
+      return t("noStaffAccessError");
+    case "sessionExpired":
+      return t("sessionExpiredError");
+    case "serverError":
+      return t("serverErrorTitle");
+    case "network":
+      return t("networkError");
+    case "notAvailable":
+    case "generic":
+    default:
+      return t("errLoadCardFailed");
+  }
+}
+
+interface AdminGlobalSearchProps {
+  variant: "desktop" | "mobile";
+  onResultPicked?: () => void;
+}
+
+function AdminGlobalSearch({ variant, onResultPicked }: AdminGlobalSearchProps) {
+  const { t } = useI18n();
+  const { authorizedRequest } = useAuth();
+  const navigate = useNavigate();
+
+  const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [results, setResults] = useState<AdminSearchResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [errorCode, setErrorCode] = useState<FriendlyApiErrorCode | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Debounce input → 300ms after typing stops we kick off the search.
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(query.trim()), 300);
+    return () => window.clearTimeout(id);
+  }, [query]);
+
+  // Fire the API request when debounced query is long enough.
+  useEffect(() => {
+    if (debounced.length < 2) {
+      setResults(null);
+      setErrorCode(null);
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setLoading(true);
+    setErrorCode(null);
+    authorizedRequest((token) =>
+      adminGlobalSearchRequest(debounced, token, { signal: controller.signal }),
+    )
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        setResults(data);
+      })
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        if (err instanceof ApiError) setErrorCode(err.code);
+        else setErrorCode("network");
+        setResults(null);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [debounced, authorizedRequest]);
+
+  // Outside click closes the dropdown on desktop. The mobile overlay handles
+  // its own backdrop.
+  useEffect(() => {
+    if (variant !== "desktop") return;
+    if (!open) return;
+    const handle = (event: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [open, variant]);
+
+  // Esc closes the panel from anywhere.
+  useEffect(() => {
+    if (!open) return;
+    const handle = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        inputRef.current?.blur();
+      }
+    };
+    document.addEventListener("keydown", handle);
+    return () => document.removeEventListener("keydown", handle);
+  }, [open]);
+
+  const totalResults = useMemo(() => {
+    if (!results) return 0;
+    return results.rooms.length + results.users.length + results.feedback.length;
+  }, [results]);
+
+  const handlePick = (path: string) => {
+    setOpen(false);
+    setQuery("");
+    setDebounced("");
+    setResults(null);
+    navigate(path);
+    onResultPicked?.();
+  };
+
+  const errorMessage = translateSearchError(errorCode, t);
+  const showPanel = open && debounced.length >= 2;
+  const showEmpty = showPanel && !loading && !errorMessage && results !== null && totalResults === 0;
+
+  const panel = showPanel ? (
+    <div
+      role="listbox"
+      className={
+        variant === "desktop"
+          ? "absolute left-0 right-0 top-full mt-2 z-50 rounded-xl shadow-lg max-h-[60vh] overflow-y-auto"
+          : "rounded-xl max-h-[60vh] overflow-y-auto"
+      }
+      style={{
+        background: "var(--eco-bg)",
+        border: "1px solid var(--eco-border)",
+        boxShadow: variant === "desktop" ? "0 12px 32px rgba(0,0,0,0.10)" : undefined,
+      }}
+    >
+      {loading && (
+        <div className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+          {t("adminSearchLoading")}
+        </div>
+      )}
+      {errorMessage && !loading && (
+        <div className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-negative)" }}>
+          {errorMessage}
+        </div>
+      )}
+      {showEmpty && (
+        <div className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+          {t("adminSearchEmpty")}
+        </div>
+      )}
+      {!loading && !errorMessage && results && results.rooms.length > 0 && (
+        <SearchGroup
+          title={t("adminSearchGroupRooms")}
+          icon={HomeIcon}
+        >
+          {results.rooms.map((r) => (
+            <SearchResultRow
+              key={`room-${r.id}`}
+              primary={r.title || `R-${r.id}`}
+              secondary={[r.serviceName, r.ownerDisplayName, r.status].filter(Boolean).join(" · ") || `R-${r.id}`}
+              onClick={() => handlePick(`/admin/rooms?selected=${r.id}`)}
+            />
+          ))}
+        </SearchGroup>
+      )}
+      {!loading && !errorMessage && results && results.users.length > 0 && (
+        <SearchGroup
+          title={t("adminSearchGroupUsers")}
+          icon={UsersIcon}
+        >
+          {results.users.map((u) => (
+            <SearchResultRow
+              key={`user-${u.id}`}
+              primary={u.displayName || u.email || `U-${u.id}`}
+              secondary={[u.email, u.role, u.status].filter(Boolean).join(" · ") || `U-${u.id}`}
+              onClick={() => handlePick(`/admin/users?selected=${u.id}`)}
+            />
+          ))}
+        </SearchGroup>
+      )}
+      {!loading && !errorMessage && results && results.feedback.length > 0 && (
+        <SearchGroup
+          title={t("adminSearchGroupFeedback")}
+          icon={InboxIcon}
+        >
+          {results.feedback.map((f) => (
+            <SearchResultRow
+              key={`feedback-${f.id}`}
+              primary={f.subject || f.message.slice(0, 60) || `F-${f.id}`}
+              secondary={[f.type, f.status].filter(Boolean).join(" · ") || `F-${f.id}`}
+              onClick={() => handlePick(`/admin/feedback?selected=${f.id}`)}
+            />
+          ))}
+        </SearchGroup>
+      )}
+    </div>
+  ) : null;
+
+  if (variant === "desktop") {
+    return (
+      <div ref={containerRef} className="relative hidden md:flex items-center min-w-0 w-56 lg:w-72">
+        <Search size={15} className="absolute left-2.5 pointer-events-none" style={{ color: "var(--eco-text-tertiary)" }} />
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder={t("adminSearchPlaceholder")}
+          aria-label={t("adminSearchPlaceholder")}
+          className="pl-8 pr-3 py-1.5 rounded-lg text-[13px] outline-none w-full"
+          style={{
+            background: "var(--eco-surface)",
+            border: "1px solid var(--eco-border)",
+            color: "var(--eco-text)",
+          }}
+        />
+        {panel}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="relative">
+        <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--eco-text-tertiary)" }} />
+        <input
+          ref={inputRef}
+          autoFocus
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          placeholder={t("adminSearchPlaceholder")}
+          aria-label={t("adminSearchPlaceholder")}
+          className="pl-8 pr-3 py-2 rounded-lg text-[14px] outline-none w-full"
+          style={{
+            background: "var(--eco-surface)",
+            border: "1px solid var(--eco-border)",
+            color: "var(--eco-text)",
+          }}
+        />
+      </div>
+      {panel}
+    </div>
+  );
+}
+
+function SearchGroup({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: typeof Search;
+  children: ReactNode;
+}) {
+  return (
+    <div className="border-b last:border-b-0" style={{ borderColor: "var(--eco-border)" }}>
+      <div
+        className="flex items-center gap-1.5 px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide"
+        style={{ color: "var(--eco-text-tertiary)" }}
+      >
+        <Icon size={12} /> {title}
+      </div>
+      <div className="flex flex-col">{children}</div>
+    </div>
+  );
+}
+
+function SearchResultRow({
+  primary,
+  secondary,
+  onClick,
+}: {
+  primary: string;
+  secondary: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      role="option"
+      className="text-left px-4 py-2.5 cursor-pointer transition-colors hover:bg-[var(--eco-surface)]"
+      style={{ background: "transparent", border: "none" }}
+    >
+      <div className="text-[13px] truncate" style={{ color: "var(--eco-text)" }}>
+        {primary}
+      </div>
+      <div className="text-[11px] truncate" style={{ color: "var(--eco-text-tertiary)" }}>
+        {secondary}
+      </div>
+    </button>
+  );
+}
 
 export function AdminLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -16,6 +326,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   const { user, logout, authorizedRequest } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [kpis, setKpis] = useState<AdminDashboardKpisDto | null>(null);
 
   const role = user?.role;
@@ -49,6 +360,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   // doesn't leave it hovering over the new page.
   useEffect(() => {
     setSidebarOpen(false);
+    setMobileSearchOpen(false);
   }, [location.pathname]);
 
   const handleSignOut = async () => {
@@ -154,34 +466,18 @@ export function AdminLayout({ children }: { children: ReactNode }) {
               <Menu size={18} />
             </button>
 
-            {/* Search — icon-only on mobile, full input on md+. Disabled placeholder
-                for now; per-section search lives on each list page. */}
+            {/* Search — icon button on mobile (opens overlay), full input on md+. */}
             <button
-              className="md:hidden p-2 rounded-lg shrink-0"
-              style={{ background: "var(--eco-surface)", border: "none", color: "var(--eco-text-tertiary)", cursor: "not-allowed", opacity: 0.6 }}
-              disabled
-              aria-disabled
+              type="button"
+              onClick={() => setMobileSearchOpen(true)}
+              className="md:hidden p-2 rounded-lg shrink-0 cursor-pointer"
+              style={{ background: "var(--eco-surface)", border: "none", color: "var(--eco-text-secondary)" }}
               aria-label={t("adminSearchPlaceholder")}
               title={t("adminSearchPlaceholder")}
             >
               <Search size={16} />
             </button>
-            <div className="relative hidden md:flex items-center min-w-0" title={t("adminSearchPlaceholder")}>
-              <Search size={15} className="absolute left-2.5" style={{ color: "var(--eco-text-tertiary)" }} />
-              <input
-                placeholder={t("adminSearchPlaceholder")}
-                className="pl-8 pr-3 py-1.5 rounded-lg text-[13px] outline-none w-56 lg:w-72"
-                style={{
-                  background: "var(--eco-surface)",
-                  border: "1px solid var(--eco-border)",
-                  color: "var(--eco-text-tertiary)",
-                  cursor: "not-allowed",
-                  opacity: 0.6,
-                }}
-                disabled
-                aria-disabled
-              />
-            </div>
+            <AdminGlobalSearch variant="desktop" />
           </div>
 
           <div className="flex items-center gap-2 lg:gap-3 shrink-0">
@@ -245,6 +541,41 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+
+      {/* Mobile search overlay — full-width sheet anchored to the top so it
+          stays usable inside the on-screen keyboard layout. */}
+      {mobileSearchOpen && (
+        <div
+          className="fixed inset-0 z-[60] md:hidden flex flex-col"
+          style={{ background: "rgba(0,0,0,0.45)" }}
+          onClick={() => setMobileSearchOpen(false)}
+        >
+          <div
+            className="m-3 mt-4 p-3 rounded-2xl shadow-xl"
+            style={{ background: "var(--eco-bg)", border: "1px solid var(--eco-border)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                {t("adminSearchPlaceholder")}
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileSearchOpen(false)}
+                className="p-1 rounded-md cursor-pointer"
+                style={{ background: "transparent", border: "none", color: "var(--eco-text-secondary)" }}
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <AdminGlobalSearch
+              variant="mobile"
+              onResultPicked={() => setMobileSearchOpen(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

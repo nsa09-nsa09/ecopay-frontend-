@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Card, Button, RoomStatusBadge } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
@@ -21,6 +22,7 @@ const PAGE_SIZE = 20;
 export function AdminRoomsPage() {
   const { t } = useI18n();
   const { authorizedRequest } = useAuth();
+  const [searchParams] = useSearchParams();
 
   const [items, setItems] = useState<RoomSummaryDto[]>([]);
   const [page, setPage] = useState(0);
@@ -29,6 +31,15 @@ export function AdminRoomsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  // Honor `?selected=<id>` so the global admin search can deep-link straight
+  // to a room's detail panel.
+  useEffect(() => {
+    const raw = searchParams.get("selected");
+    if (!raw) return;
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) setSelectedId(parsed);
+  }, [searchParams]);
   const [blockModal, setBlockModal] = useState<RoomSummaryDto | null>(null);
   const [blockSubmitting, setBlockSubmitting] = useState(false);
   const [blockError, setBlockError] = useState<string | null>(null);
