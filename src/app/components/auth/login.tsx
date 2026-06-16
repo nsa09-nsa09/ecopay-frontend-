@@ -26,7 +26,9 @@ function parseBanFromApiError(err: ApiError): BanInfo | null {
   // Backend sends { code: "ACCOUNT_BANNED", message, errors: { reason, bannedAt } } or
   // a similar shape. We accept either errors.* or a JSON-encoded errors map.
   const code = (err.errors as Record<string, string>)?.code;
-  const messageHasCode = /ACCOUNT[_ ]BANNED/i.test(err.message);
+  // Use the raw server detail (not the sanitized .message) because the
+  // ACCOUNT_BANNED marker is a backend code string, not user-facing text.
+  const messageHasCode = /ACCOUNT[_ ]BANNED/i.test(err.serverMessage ?? "");
   if (code !== "ACCOUNT_BANNED" && !messageHasCode) return null;
   const reason = err.errors?.reason ?? null;
   const bannedAt = err.errors?.bannedAt ?? null;

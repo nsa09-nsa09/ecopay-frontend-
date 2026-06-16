@@ -9,6 +9,7 @@ import {
   type OperatorDistributionDto,
   type PopularServiceDto,
 } from "../../lib/api";
+import type { FriendlyApiErrorCode } from "../../lib/locale";
 import {
   fetchCategoryDistribution,
   fetchCurrencyDistribution,
@@ -94,6 +95,28 @@ function formatDecimal(value: number | string | null | undefined): string {
   return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(num);
 }
 
+function translateCacheError(
+  code: FriendlyApiErrorCode | null,
+  t: (key: string) => string,
+): string | null {
+  if (!code) return null;
+  switch (code) {
+    case "notAvailable":
+      return t("errSectionUnavailable");
+    case "noAccess":
+      return t("noStaffAccessError");
+    case "sessionExpired":
+      return t("sessionExpiredError");
+    case "serverError":
+      return t("serverErrorTitle");
+    case "network":
+      return t("networkError");
+    case "generic":
+    default:
+      return t("errLoadCardFailed");
+  }
+}
+
 
 export function AdminDashboardPage() {
   const { t } = useI18n();
@@ -106,7 +129,7 @@ export function AdminDashboardPage() {
   const kpisEntry = cache.kpis;
   const kpis = kpisEntry.data;
   const loading = kpisEntry.loading && !kpisEntry.data;
-  const error = kpisEntry.error;
+  const error = translateCacheError(kpisEntry.error, t);
 
   const [granularity, setGranularity] = useState<DashboardGranularity>("month");
   const [rangeKey, setRangeKey] = useState<"12m" | "30d">("12m");
@@ -119,7 +142,7 @@ export function AdminDashboardPage() {
   const metricsLive = cache.metrics[metricsKey] ?? metricsEntry;
   const metrics = metricsLive.data;
   const metricsLoading = metricsLive.loading && !metricsLive.data;
-  const metricsError = metricsLive.error;
+  const metricsError = translateCacheError(metricsLive.error, t);
 
   const popularEntry = cache.popularServices;
   const operatorEntry = cache.operatorDistribution;
@@ -609,7 +632,7 @@ export function AdminDashboardPage() {
                 icon={BarChart3}
                 title={t("dashboardPopularServicesTitle")}
                 loading={popularEntry.loading && !popularServices}
-                error={popularEntry.error}
+                error={translateCacheError(popularEntry.error, t)}
                 empty={popularServicesData.length === 0}
                 emptyLabel={t("dashboardEmptyChart")}
                 onRetry={() => void fetchPopularServices(authorizedRequest, true)}
@@ -634,7 +657,7 @@ export function AdminDashboardPage() {
                 icon={Globe}
                 title={t("dashboardOperatorDistributionTitle")}
                 loading={operatorEntry.loading && !operatorDistribution}
-                error={operatorEntry.error}
+                error={translateCacheError(operatorEntry.error, t)}
                 empty={operatorChartData.length === 0}
                 emptyLabel={t("dashboardEmptyChart")}
                 onRetry={() => void fetchOperatorDistribution(authorizedRequest, true)}
@@ -660,7 +683,7 @@ export function AdminDashboardPage() {
                 icon={PieIcon}
                 title={t("dashboardCurrencyDistributionTitle")}
                 loading={currencyEntry.loading && !currencyDistribution}
-                error={currencyEntry.error}
+                error={translateCacheError(currencyEntry.error, t)}
                 empty={currencyChartData.length === 0}
                 emptyLabel={t("dashboardEmptyChart")}
                 onRetry={() => void fetchCurrencyDistribution(authorizedRequest, true)}
@@ -692,7 +715,7 @@ export function AdminDashboardPage() {
                 icon={Layers}
                 title={t("dashboardCategoryDistributionTitle")}
                 loading={categoryEntry.loading && !categoryDistribution}
-                error={categoryEntry.error}
+                error={translateCacheError(categoryEntry.error, t)}
                 empty={categoryChartData.length === 0}
                 emptyLabel={t("dashboardEmptyChart")}
                 onRetry={() => void fetchCategoryDistribution(authorizedRequest, true)}
@@ -718,7 +741,7 @@ export function AdminDashboardPage() {
                 icon={Home}
                 title={t("dashboardRoomStatusDistributionTitle")}
                 loading={roomStatusEntry.loading && !roomStatusDistribution}
-                error={roomStatusEntry.error}
+                error={translateCacheError(roomStatusEntry.error, t)}
                 empty={roomStatusChartData.length === 0}
                 emptyLabel={t("dashboardEmptyChart")}
                 onRetry={() => void fetchRoomStatusDistribution(authorizedRequest, true)}

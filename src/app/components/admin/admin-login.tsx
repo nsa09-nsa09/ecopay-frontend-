@@ -74,7 +74,7 @@ export function AdminLoginPage() {
 
   const translateApiError = (err: ApiError): string => {
     if (err.status === 401) return t("invalidCredentialsError");
-    if (err.status === 403) return err.message || t("noStaffAccessError");
+    if (err.status === 403) return t("noStaffAccessError");
     if (err.status === 410) return t("challengeExpiredError");
     if (err.status === 422) return t("invalidTwoFactorCodeError");
     if (err.status === 429) return t("tooManyAttemptsError");
