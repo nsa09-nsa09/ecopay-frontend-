@@ -15,6 +15,7 @@ import { useAuth } from "../auth/auth-provider";
 import { useI18n, type Language } from "../i18n-provider";
 import { formatDate as formatAlmatyDate, formatDateTime as formatAlmatyDateTime } from "../../lib/datetime";
 import { LeaveReviewModal } from "../reputation/leave-review-modal";
+import { ReputationLevelBadge } from "../reputation/level-badge";
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === "ru" ? ru : l === "kz" ? kz : en;
@@ -201,6 +202,7 @@ export function OwnerDetailPage() {
                             {(p.userDisplayName || "?").charAt(0).toUpperCase()}
                           </div>
                           <span className="text-[14px] break-words" style={{ color: "var(--eco-text)" }}>{p.userDisplayName}</span>
+                          <ReputationLevelBadge level={p.userReputationLevel} score={p.userReputation} size="sm" />
                           <MemberStatusBadge status={p.status} />
                           {p.requiresAdminReview && <Badge variant="warning">{tx(language, "Проверка", "Тексеру", "Review")}</Badge>}
                         </div>

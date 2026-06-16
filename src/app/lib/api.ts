@@ -10,6 +10,7 @@ export interface User {
   status: string;
   role: UserRole | string;
   reputation: number;
+  reputationLevel?: string | null;
   publicId?: string | null;
 }
 
@@ -71,6 +72,8 @@ export interface RoomSummaryDto {
   startDate: string;
   ownerUserId: number;
   ownerDisplayName: string;
+  ownerReputation?: number | null;
+  ownerReputationLevel?: string | null;
   serviceId: number;
   serviceName: string;
 }
@@ -620,6 +623,8 @@ export interface RoomMemberDto {
   userId: number;
   userDisplayName: string;
   userEmail: string | null;
+  userReputation?: number | null;
+  userReputationLevel?: string | null;
   status: string;
   requiresAdminReview: boolean;
   accessMethod: string | null;
@@ -1521,6 +1526,7 @@ export interface ReputationDto {
   userId: number;
   displayName: string;
   reputation: number;
+  reputationLevel?: string | null;
   averageRating: number | null;
   reviewsCount: number;
   completedRoomsCount: number;
@@ -1682,6 +1688,7 @@ export interface PublicProfileDto {
   displayName: string;
   avatar: string | null;
   reputation: number;
+  reputationLevel?: string | null;
   status: string;
   averageRating: number | null;
   reviewsCount: number;

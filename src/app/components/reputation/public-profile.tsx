@@ -13,6 +13,8 @@ import {
   type ReputationDto,
   type ReviewDto,
 } from "../../lib/api";
+import { reputationProgress } from "../../lib/reputation";
+import { ReputationLevelBadge } from "./level-badge";
 
 function StarRating({ rating, size = 16, interactive = false, onChange }: { rating: number; size?: number; interactive?: boolean; onChange?: (rating: number) => void }) {
   const [hover, setHover] = useState(0);
@@ -231,7 +233,10 @@ export function PublicUserProfilePage() {
 
               <div className="flex-1 min-w-0">
                 <h2 className="text-[20px] sm:text-[22px] break-words" style={{ color: "var(--eco-text)" }}>{reputation.displayName}</h2>
-                <div className="text-[13px] mt-1" style={{ color: "var(--eco-text-tertiary)" }}>
+                <div className="mt-1.5">
+                  <ReputationLevelBadge level={reputation.reputationLevel} score={reputation.reputation} />
+                </div>
+                <div className="text-[13px] mt-1.5" style={{ color: "var(--eco-text-tertiary)" }}>
                   {profile?.publicId ? <span style={{ fontFamily: "monospace" }}>{profile.publicId}</span> : <>User #{reputation.userId}</>}
                 </div>
               </div>
@@ -251,6 +256,25 @@ export function PublicUserProfilePage() {
                 <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("reviews")}</div>
               </div>
             </div>
+
+            {(() => {
+              const prog = reputationProgress(reputation.reputation);
+              return (
+                <div className="mt-6 pt-6 border-t" style={{ borderColor: "var(--eco-border)" }}>
+                  <div className="flex items-center justify-between mb-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                    <span>{t("reputationLevel")}</span>
+                    {prog ? (
+                      <span>{prog.pointsToNext} {t("repPointsToNext")} {t(prog.next.labelKey)}</span>
+                    ) : (
+                      <span>{t("repMaxLevel")}</span>
+                    )}
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--eco-surface)" }}>
+                    <div className="h-full rounded-full" style={{ width: `${Math.round((prog ? prog.progress : 1) * 100)}%`, background: "var(--eco-primary)" }} />
+                  </div>
+                </div>
+              );
+            })()}
 
             {reputation.averageRating != null && (
               <div className="mt-6 pt-6 border-t" style={{ borderColor: "var(--eco-border)" }}>

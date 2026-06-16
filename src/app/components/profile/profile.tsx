@@ -17,6 +17,7 @@ import {
   type MemberDashboardDto,
 } from "../../lib/api";
 import { MyServiceReviewCard } from "./my-service-review";
+import { ReputationLevelBadge } from "../reputation/level-badge";
 import {
   CartesianGrid,
   Legend,
@@ -125,6 +126,7 @@ export function ProfilePage() {
                 {tx(language, "репутация", "репутация", "reputation")}
               </span>
             </div>
+            <ReputationLevelBadge level={user.reputationLevel} score={user.reputation ?? 0} />
             {user.publicId && (
               <Link to={`/u/${user.publicId}`} className="text-[12px]" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
                 {t("viewMyPublicProfile")}

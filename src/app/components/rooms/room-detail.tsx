@@ -7,6 +7,7 @@ import { useAuth } from "../auth/auth-provider";
 import { useI18n, type Language } from "../i18n-provider";
 import { formatDate as formatAlmatyDate } from "../../lib/datetime";
 import { LeaveReviewModal } from "../reputation/leave-review-modal";
+import { ReputationLevelBadge } from "../reputation/level-badge";
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === "ru" ? ru : l === "kz" ? kz : en;
@@ -257,7 +258,10 @@ export function RoomDetailPage() {
                 </span>
               </div>
               <div>
-                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{ownerName}</div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[14px]" style={{ color: "var(--eco-text)" }}>{ownerName}</span>
+                  <ReputationLevelBadge level={summary?.ownerReputationLevel} score={summary?.ownerReputation} size="sm" />
+                </div>
                 <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
                   {tx(language, "Верификация", "Растау", "Verification")}: {room.verificationMode}
                 </div>
