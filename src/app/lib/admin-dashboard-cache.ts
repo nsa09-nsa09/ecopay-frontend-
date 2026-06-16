@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import {
   ApiError,
   getAdminCategoryDistributionRequest,
+  getAdminCountryDistributionRequest,
   getAdminCurrencyDistributionRequest,
   getAdminDashboardKpisRequest,
   getAdminDashboardMetrics,
@@ -56,6 +57,7 @@ export interface AdminDashboardState {
   currencyDistribution: CacheEntry<NamedCountDto[]>;
   categoryDistribution: CacheEntry<NamedCountDto[]>;
   roomStatusDistribution: CacheEntry<NamedCountDto[]>;
+  countryDistribution: CacheEntry<NamedCountDto[]>;
 }
 
 let state: AdminDashboardState = {
@@ -66,6 +68,7 @@ let state: AdminDashboardState = {
   currencyDistribution: emptyEntry(),
   categoryDistribution: emptyEntry(),
   roomStatusDistribution: emptyEntry(),
+  countryDistribution: emptyEntry(),
 };
 
 const listeners = new Set<() => void>();
@@ -97,15 +100,15 @@ function pickKey<K extends keyof AdminDashboardState>(key: K) {
   return key;
 }
 
-function startLoading<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution">(key: K) {
+function startLoading<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution" | "countryDistribution">(key: K) {
   setState((prev) => ({ ...prev, [pickKey(key)]: { ...prev[key], loading: true, error: null } }));
 }
 
-function setError<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution">(key: K, code: FriendlyApiErrorCode) {
+function setError<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution" | "countryDistribution">(key: K, code: FriendlyApiErrorCode) {
   setState((prev) => ({ ...prev, [pickKey(key)]: { ...prev[key], loading: false, error: code } }));
 }
 
-function setData<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution", T>(
+function setData<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution" | "countryDistribution", T>(
   key: K,
   data: T,
 ) {
@@ -216,6 +219,20 @@ export function fetchRoomStatusDistribution(authorizedRequest: AuthorizedRequest
   });
 }
 
+export function fetchCountryDistribution(authorizedRequest: AuthorizedRequest, force = false): Promise<void> {
+  if (!force && state.countryDistribution.data) return Promise.resolve();
+  startLoading("countryDistribution");
+  return dedupe("countryDistribution", async () => {
+    try {
+      const data = await authorizedRequest((token) => getAdminCountryDistributionRequest(token));
+      setData("countryDistribution", data);
+    } catch (err) {
+      setError("countryDistribution", toErrorCode(err));
+      throw err;
+    }
+  });
+}
+
 // ───────── Metrics (parametrised by granularity + range) ─────────
 
 function metricsKey(granularity: DashboardGranularity, rangeKey: "12m" | "30d"): string {
@@ -311,6 +328,7 @@ export function prefetchAdminDashboard(
     fetchCurrencyDistribution(authorizedRequest, force),
     fetchCategoryDistribution(authorizedRequest, force),
     fetchRoomStatusDistribution(authorizedRequest, force),
+    fetchCountryDistribution(authorizedRequest, force),
   ]);
 }
 
@@ -324,6 +342,7 @@ export function clearAdminDashboardCache() {
     currencyDistribution: emptyEntry(),
     categoryDistribution: emptyEntry(),
     roomStatusDistribution: emptyEntry(),
+    countryDistribution: emptyEntry(),
   };
   inflight.clear();
   notify();

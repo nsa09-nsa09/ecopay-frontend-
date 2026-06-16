@@ -1628,6 +1628,18 @@ const translations: Translations = {
   dashboardMetricActiveMembers: { ru: "Активные участники", kz: "Белсенді қатысушылар", en: "Active members" },
   dashboardEmptyChart: { ru: "Нет данных", kz: "Деректер жоқ", en: "No data" },
   dashboardOtherSlice: { ru: "Другое", kz: "Басқа", en: "Other" },
+  dashboardCountryDistributionTitle: { ru: "Распределение по странам", kz: "Елдер бойынша бөлу", en: "Country distribution" },
+  kpiSectionOperations: { ru: "Операции", kz: "Операциялар", en: "Operations" },
+  kpiSectionFinance: { ru: "Финансы", kz: "Қаржы", en: "Finance" },
+  kpiSectionAudience: { ru: "Аудитория", kz: "Аудитория", en: "Audience" },
+  kpiSectionRooms: { ru: "Комнаты", kz: "Бөлмелер", en: "Rooms" },
+  kpiSectionUsers: { ru: "Пользователи", kz: "Пайдаланушылар", en: "Users" },
+  activeRoomsLabel: { ru: "Активные комнаты", kz: "Белсенді бөлмелер", en: "Active rooms" },
+  adminSearchLoading: { ru: "Ищем…", kz: "Іздеу…", en: "Searching…" },
+  adminSearchEmpty: { ru: "Ничего не найдено", kz: "Ештеңе табылмады", en: "No results" },
+  adminSearchGroupRooms: { ru: "Комнаты", kz: "Бөлмелер", en: "Rooms" },
+  adminSearchGroupUsers: { ru: "Пользователи", kz: "Пайдаланушылар", en: "Users" },
+  adminSearchGroupFeedback: { ru: "Обращения", kz: "Өтінімдер", en: "Feedback" },
 
   // ===== Ban event (realtime) =====
   bannedHeadline: { ru: "Аккаунт заблокирован", kz: "Тіркелгі бұғатталды", en: "Account blocked" },

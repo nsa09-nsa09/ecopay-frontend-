@@ -1056,6 +1056,58 @@ export function getAdminRoomStatusDistributionRequest(accessToken: string) {
   );
 }
 
+export function getAdminCountryDistributionRequest(accessToken: string) {
+  return requestJson<NamedCountDto[]>(
+    "/admin/dashboard/country-distribution",
+    {},
+    accessToken,
+  );
+}
+
+// ---- Global admin search (top bar) ----
+
+export interface AdminSearchRoomDto {
+  id: number;
+  title: string;
+  status: string | null;
+  serviceName: string | null;
+  ownerDisplayName: string | null;
+}
+
+export interface AdminSearchUserDto {
+  id: number;
+  displayName: string;
+  email: string | null;
+  role: string | null;
+  status: string | null;
+}
+
+export interface AdminSearchFeedbackDto {
+  id: number;
+  subject: string | null;
+  message: string;
+  type: string | null;
+  status: string | null;
+}
+
+export interface AdminSearchResponse {
+  rooms: AdminSearchRoomDto[];
+  users: AdminSearchUserDto[];
+  feedback: AdminSearchFeedbackDto[];
+}
+
+export function adminGlobalSearchRequest(
+  query: string,
+  accessToken: string,
+  init?: { signal?: AbortSignal },
+) {
+  return requestJson<AdminSearchResponse>(
+    `/admin/search${toSearchParams({ q: query })}`,
+    { signal: init?.signal },
+    accessToken,
+  );
+}
+
 export function getAdminUsersRequest(
   accessToken: string,
   params: Record<string, string | number | undefined> = {},

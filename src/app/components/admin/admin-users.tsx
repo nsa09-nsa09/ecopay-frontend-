@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Card, Button, Badge, Input, Modal, Select } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n, type Language } from "../i18n-provider";
@@ -65,6 +65,7 @@ function generatePassword(length = 14): string {
 export function AdminUsersPage() {
   const { t, language } = useI18n();
   const { authorizedRequest } = useAuth();
+  const [searchParams] = useSearchParams();
 
   const [items, setItems] = useState<AdminUserDto[]>([]);
   const [page, setPage] = useState(0);
@@ -97,6 +98,15 @@ export function AdminUsersPage() {
   const [createOpen, setCreateOpen] = useState(false);
 
   const { flash, show: showFlash } = useFlash();
+
+  // Honor `?selected=<id>` so the global admin search can deep-link straight
+  // to a user's detail panel.
+  useEffect(() => {
+    const raw = searchParams.get("selected");
+    if (!raw) return;
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) setSelectedId(parsed);
+  }, [searchParams]);
 
   const load = useCallback(async () => {
     setLoading(true);

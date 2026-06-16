@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Badge, Button, Card, Input, Select } from "../ds-primitives";
 import { AdminLayout } from "./admin-layout";
 import { useI18n } from "../i18n-provider";
@@ -64,6 +65,7 @@ export function AdminFeedbackPage() {
   const { t, language } = useI18n();
   const { authorizedRequest } = useAuth();
   const { flash, show } = useFlash();
+  const [searchParams] = useSearchParams();
 
   const [items, setItems] = useState<FeedbackDto[]>([]);
   const [page, setPage] = useState(0);
@@ -167,6 +169,15 @@ export function AdminFeedbackPage() {
     }
     void loadDetail(selectedId);
   }, [selectedId, loadDetail]);
+
+  // Honor `?selected=<id>` so the global admin search can deep-link straight
+  // to a feedback item's detail panel.
+  useEffect(() => {
+    const raw = searchParams.get("selected");
+    if (!raw) return;
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) setSelectedId(parsed);
+  }, [searchParams]);
 
   const handleSave = async () => {
     if (!detail) return;
