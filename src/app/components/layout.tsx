@@ -5,6 +5,7 @@ import { BrandLogo } from "./brand-logo";
 import { Menu, X, Search } from "lucide-react";
 import { useI18n } from "./i18n-provider";
 import { useAuth } from "./auth/auth-provider";
+import { NotificationBell } from "./notifications/notification-bell";
 import { trackVisitRequest } from "../lib/api";
 
 export function AppLayout() {
@@ -110,6 +111,10 @@ export function AppLayout() {
             <div className="md:hidden px-2.5 py-1 rounded-md text-[12px] font-medium" style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)" }}>
               {languageLabels[language]}
             </div>
+
+            {isAuthenticated && !isAuthRoute && (
+              <NotificationBell />
+            )}
 
             {isAuthenticated && !isAuthRoute ? (
               <div className="relative hidden md:block">

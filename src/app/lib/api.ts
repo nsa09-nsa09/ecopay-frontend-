@@ -2143,3 +2143,104 @@ export function adminUpdateSiteAbout(payload: UpdateSiteAboutPayload, accessToke
     accessToken,
   );
 }
+
+// ===================== Notifications =====================
+
+export type NotificationType =
+  | "MEMBER_JOINED"
+  | "PAYMENT_SUCCESS"
+  | "PAYMENT_FAILED"
+  | "OWNER_ACCESS_GRANTED"
+  | "MEMBER_CONFIRMED"
+  | "MEMBERSHIP_ACTIVATED"
+  | "MEMBERSHIP_REJECTED"
+  | "CONFIRMATION_DEADLINE_WARNING"
+  | "ROOM_ACTIVE"
+  | "ROOM_COMPLETED"
+  | "ROOM_BLOCKED"
+  | "ROOM_CANCELLED"
+  | "REFUND_ISSUED"
+  | "PAYOUT_SENT"
+  | "DISPUTE_OPENED"
+  | "DISPUTE_RESOLVED"
+  | "TICKET_REPLY"
+  | "ACCOUNT_BANNED"
+  | "ACCOUNT_UNBANNED";
+
+export type NotificationCategory =
+  | "MEMBERSHIP"
+  | "ROOM"
+  | "PAYMENTS"
+  | "DISPUTES"
+  | "SUPPORT"
+  | "ACCOUNT";
+
+export interface NotificationDto {
+  id: number;
+  type: NotificationType | string;
+  title: string;
+  body: string;
+  link?: string | null;
+  metadata?: Record<string, unknown> | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface NotificationPreferenceDto {
+  type: NotificationType | string;
+  category: NotificationCategory | string;
+  inApp: boolean;
+  email: boolean;
+  emailEligible: boolean;
+}
+
+export function getNotificationsRequest(
+  accessToken: string,
+  params: { page?: number; size?: number } = {},
+) {
+  return requestJson<PagedResponse<NotificationDto>>(
+    `/notifications${toSearchParams({ page: params.page, size: params.size })}`,
+    {},
+    accessToken,
+  );
+}
+
+export function getUnreadNotificationCountRequest(accessToken: string) {
+  return requestJson<{ count: number }>("/notifications/unread-count", {}, accessToken);
+}
+
+export function markNotificationReadRequest(id: number, accessToken: string) {
+  return requestJson<void>(`/notifications/${id}/read`, { method: "POST" }, accessToken);
+}
+
+export function markAllNotificationsReadRequest(accessToken: string) {
+  return requestJson<{ updated: number }>(
+    "/notifications/read-all",
+    { method: "POST" },
+    accessToken,
+  );
+}
+
+export function getNotificationPreferencesRequest(accessToken: string) {
+  return requestJson<NotificationPreferenceDto[]>(
+    "/notifications/preferences",
+    {},
+    accessToken,
+  );
+}
+
+export function updateNotificationPreferencesRequest(
+  preferences: Array<{ type: string; inApp: boolean; email: boolean }>,
+  accessToken: string,
+) {
+  return requestJson<NotificationPreferenceDto[]>(
+    "/notifications/preferences",
+    { method: "PUT", body: JSON.stringify({ preferences }) },
+    accessToken,
+  );
+}
+
+/** Personal STOMP topic the backend pushes live notifications to. */
+export function notificationsTopic(userId: number) {
+  return `/topic/users/${userId}/notifications`;
+}
