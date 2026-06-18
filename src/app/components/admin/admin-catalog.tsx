@@ -446,7 +446,9 @@ function ServicesSection() {
 }
 
 const LOGO_MAX_BYTES = 5 * 1024 * 1024;
-const ACCEPTED_LOGO_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+// Must match the backend allowlist (ServiceLogoStorageService): png / jpg / jpeg only.
+// WebP is intentionally excluded — Java ImageIO can't decode it server-side.
+const ACCEPTED_LOGO_TYPES = ["image/png", "image/jpeg", "image/jpg"];
 
 function ServiceFormModal({
   open, existing, categories, onClose, onSaved,
@@ -490,9 +492,14 @@ function ServiceFormModal({
       setPendingLogoPreview(null);
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
+    // Reset only when the modal (re)opens or switches to another service.
+    // `categories` is deliberately NOT a dependency: when the parent reloads
+    // its list after a logo upload it hands us a fresh `categories` array, and
+    // re-running this effect would clobber the just-uploaded `current.logoUrl`
+    // back to the stale `existing`, making the new logo flicker out of preview.
     // pendingLogoPreview is owned here; reset is intentional on every open.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, existing, categories]);
+  }, [open, existing]);
 
   const validateLogo = (file: File): string | null => {
     if (!ACCEPTED_LOGO_TYPES.includes(file.type)) return t("catalogLogoInvalidType");

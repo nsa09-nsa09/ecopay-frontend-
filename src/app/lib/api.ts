@@ -77,6 +77,7 @@ export interface RoomSummaryDto {
   ownerReputationLevel?: string | null;
   serviceId: number;
   serviceName: string;
+  serviceLogoUrl?: string | null;
 }
 
 export interface RoomResponseDto {
@@ -84,6 +85,7 @@ export interface RoomResponseDto {
   ownerUserId: number;
   categoryId: number;
   serviceId: number;
+  serviceLogoUrl?: string | null;
   tariffPlanId: number;
   roomType: string;
   verificationMode: string;
@@ -168,6 +170,7 @@ function classifyApiErrorCode(
   if (status === 401) return "sessionExpired";
   if (status === 403) return "noAccess";
   if (status === 404) return "notAvailable";
+  if (status === 429) return "rateLimited";
   if (rawMessage && /no static resource/i.test(rawMessage)) return "notAvailable";
   if (status >= 500) return "serverError";
   return "generic";

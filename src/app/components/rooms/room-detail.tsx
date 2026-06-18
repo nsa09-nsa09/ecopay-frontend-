@@ -186,14 +186,28 @@ export function RoomDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-              <h1 className="text-[22px] sm:text-[24px] break-words" style={{ color: "var(--eco-text)" }}>{room.title}</h1>
-              <RoomStatusBadge status={room.status} />
+          <div className="flex items-start gap-3">
+            {room.serviceLogoUrl ? (
+              <img
+                src={room.serviceLogoUrl}
+                alt=""
+                width={48}
+                height={48}
+                loading="lazy"
+                decoding="async"
+                className="w-12 h-12 rounded-xl shrink-0"
+                style={{ objectFit: "contain", background: "var(--eco-surface)", padding: 6, border: "1px solid var(--eco-border)" }}
+              />
+            ) : null}
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                <h1 className="text-[22px] sm:text-[24px] break-words" style={{ color: "var(--eco-text)" }}>{room.title}</h1>
+                <RoomStatusBadge status={room.status} />
+              </div>
+              <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+                {room.providerName} · {room.connectionType}
+              </p>
             </div>
-            <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-              {room.providerName} · {room.connectionType}
-            </p>
           </div>
 
           <Card className="flex flex-col gap-4">

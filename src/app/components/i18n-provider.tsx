@@ -1771,19 +1771,19 @@ const translations: Translations = {
   catalogLogoUpload: { ru: "Загрузить логотип", kz: "Логотипті жүктеу", en: "Upload logo" },
   catalogLogoReplace: { ru: "Заменить логотип", kz: "Логотипті ауыстыру", en: "Replace logo" },
   catalogLogoHint: {
-    ru: "PNG/JPG/WebP, до 5 МБ. Будет показан на карточке сервиса в каталоге.",
-    kz: "PNG/JPG/WebP, 5 МБ-қа дейін. Каталогтағы сервис карточкасында көрсетіледі.",
-    en: "PNG/JPG/WebP, up to 5 MB. Shown on the service tile in the catalog.",
+    ru: "PNG/JPG, до 5 МБ. Будет показан на карточке сервиса в каталоге.",
+    kz: "PNG/JPG, 5 МБ-қа дейін. Каталогтағы сервис карточкасында көрсетіледі.",
+    en: "PNG/JPG, up to 5 MB. Shown on the service tile in the catalog.",
   },
   catalogLogoAtCreateHint: {
-    ru: "PNG/JPG/WebP, до 5 МБ. Загрузится сразу после сохранения сервиса.",
-    kz: "PNG/JPG/WebP, 5 МБ-қа дейін. Сервис сақталғаннан кейін бірден жүктеледі.",
-    en: "PNG/JPG/WebP, up to 5 MB. Uploads right after the service is saved.",
+    ru: "PNG/JPG, до 5 МБ. Загрузится сразу после сохранения сервиса.",
+    kz: "PNG/JPG, 5 МБ-қа дейін. Сервис сақталғаннан кейін бірден жүктеледі.",
+    en: "PNG/JPG, up to 5 MB. Uploads right after the service is saved.",
   },
   catalogLogoInvalidType: {
-    ru: "Поддерживаются только PNG, JPG и WebP.",
-    kz: "Тек PNG, JPG және WebP қолдау табады.",
-    en: "Only PNG, JPG and WebP are supported.",
+    ru: "Поддерживаются только PNG и JPG.",
+    kz: "Тек PNG және JPG қолдау табады.",
+    en: "Only PNG and JPG are supported.",
   },
   catalogLogoTooBig: {
     ru: "Файл больше 5 МБ — выберите поменьше.",
