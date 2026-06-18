@@ -26,7 +26,7 @@ function ServiceLogo({ url, name }: { url?: string | null; name: string }) {
         loading="lazy"
         decoding="async"
         className="w-9 h-9 rounded-lg shrink-0"
-        style={{ objectFit: "contain", background: "var(--eco-surface)", padding: 4, border: "1px solid var(--eco-border)" }}
+        style={{ objectFit: "cover", background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
       />
     );
   }

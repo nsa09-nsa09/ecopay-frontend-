@@ -666,9 +666,8 @@ function ServiceFormModal({
                 decoding="async"
                 className="w-16 h-16 rounded-xl shrink-0"
                 style={{
-                  objectFit: "contain",
+                  objectFit: "cover",
                   background: "var(--eco-surface)",
-                  padding: 6,
                   border: "1px solid var(--eco-border)",
                 }}
               />

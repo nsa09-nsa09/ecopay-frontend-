@@ -196,7 +196,7 @@ export function RoomDetailPage() {
                 loading="lazy"
                 decoding="async"
                 className="w-12 h-12 rounded-xl shrink-0"
-                style={{ objectFit: "contain", background: "var(--eco-surface)", padding: 6, border: "1px solid var(--eco-border)" }}
+                style={{ objectFit: "cover", background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
               />
             ) : null}
             <div className="min-w-0">
