@@ -262,11 +262,11 @@ export function AppLayout() {
     .slice(0, 2);
 
   // /rooms is gated by auth — hide the entry for guests so they don't land on
-  // the empty-state screen by accident.
+  // the empty-state screen by accident. /browse is decommissioned; room
+  // discovery now happens via service-match on the catalog tiles.
   const navItems = useMemo(() => {
     const items: { label: string; path: string }[] = [
       { label: t("catalog"), path: "/" },
-      { label: t("browseRooms"), path: "/browse" },
     ];
     if (isAuthenticated) {
       items.push({ label: t("myRooms"), path: "/rooms" });

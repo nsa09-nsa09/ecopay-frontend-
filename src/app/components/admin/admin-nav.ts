@@ -12,6 +12,7 @@ import {
   Info,
   Inbox,
   Newspaper,
+  PlusSquare,
 } from "lucide-react";
 import type { UserRole } from "../../lib/api";
 
@@ -48,6 +49,7 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
   { labelKey: "dashboard", path: "/admin/dashboard", icon: LayoutDashboard, roles: ["ADMIN"] },
   { labelKey: "moderationQueue", path: "/admin/moderation", icon: ShieldCheck, roles: ["ADMIN"], badgeKpi: "pendingModeration" },
   { labelKey: "rooms", path: "/admin/rooms", icon: Home, roles: ["ADMIN"] },
+  { labelKey: "adminCreateRoomNav", path: "/rooms/create", icon: PlusSquare, roles: ["ADMIN"] },
   { labelKey: "users", path: "/admin/users", icon: Users, roles: ["ADMIN"] },
   { labelKey: "adminCatalog", path: "/admin/catalog", icon: Layers, roles: ["ADMIN"] },
   { labelKey: "adminServiceReviews", path: "/admin/service-reviews", icon: Star, roles: ["ADMIN"] },

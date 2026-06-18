@@ -43,6 +43,7 @@ export interface ServiceDto {
   minPricePerMember?: number | null;
   currency?: string | null;
   tariffCount?: number;
+  logoUrl?: string | null;
 }
 
 export type CatalogSort = "name_asc" | "name_desc" | "price_asc" | "price_desc" | "newest";
@@ -475,10 +476,10 @@ export function loginRequest(email: string, password: string) {
   });
 }
 
-export function registerRequest(displayName: string, email: string, password: string, phone: string) {
+export function registerRequest(displayName: string, email: string, password: string) {
   return requestJson<AuthResponse>("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ displayName, email, password, phone }),
+    body: JSON.stringify({ displayName, email, password }),
   });
 }
 
@@ -1794,6 +1795,7 @@ export interface AdminServiceDto {
   providerType: string;
   isActive: boolean;
   tariffsCount: number;
+  logoUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -2152,14 +2154,16 @@ export type NewsStatus = "PUBLISHED" | "DRAFT" | "ARCHIVED";
 
 export interface NewsDto {
   id: number;
-  title_kz?: string | null;
-  title_ru?: string | null;
-  title_en?: string | null;
-  body_kz?: string | null;
-  body_ru?: string | null;
-  body_en?: string | null;
+  titleKz?: string | null;
+  titleRu?: string | null;
+  titleEn?: string | null;
+  bodyKz?: string | null;
+  bodyRu?: string | null;
+  bodyEn?: string | null;
   imageUrl?: string | null;
+  status?: NewsStatus;
   publishedAt?: string | null;
+  sortOrder?: number;
 }
 
 export interface AdminNewsDto extends NewsDto {
@@ -2170,12 +2174,12 @@ export interface AdminNewsDto extends NewsDto {
 }
 
 export interface UpsertNewsPayload {
-  title_kz?: string | null;
-  title_ru?: string | null;
-  title_en?: string | null;
-  body_kz?: string | null;
-  body_ru?: string | null;
-  body_en?: string | null;
+  titleKz?: string | null;
+  titleRu?: string | null;
+  titleEn?: string | null;
+  bodyKz?: string | null;
+  bodyRu?: string | null;
+  bodyEn?: string | null;
   status: NewsStatus;
   sortOrder?: number;
   publishedAt?: string | null;
@@ -2183,16 +2187,18 @@ export interface UpsertNewsPayload {
 
 const newsCache = new Map<string, Promise<NewsDto[]>>();
 
-export function getNews(limit?: number) {
-  const key = String(limit ?? "");
+export function getNews(page = 0, limit = 6) {
+  const key = `${page}::${limit}`;
   const cached = newsCache.get(key);
   if (cached) return cached;
-  const promise = requestJson<NewsDto[]>(
-    `/news${toSearchParams({ limit })}`,
-  ).catch((err) => {
-    newsCache.delete(key);
-    throw err;
-  });
+  const promise = requestJson<PagedResponse<NewsDto>>(
+    `/news${toSearchParams({ page, limit })}`,
+  )
+    .then((res) => res?.items ?? [])
+    .catch((err) => {
+      newsCache.delete(key);
+      throw err;
+    });
   newsCache.set(key, promise);
   return promise;
 }
@@ -2202,7 +2208,15 @@ export function clearNewsCache() {
 }
 
 export function adminListNews(accessToken: string) {
-  return requestJson<AdminNewsDto[]>("/admin/news", {}, accessToken);
+  return requestJson<PagedResponse<AdminNewsDto>>(
+    "/admin/news",
+    {},
+    accessToken,
+  ).then((res) => res?.items ?? []);
+}
+
+export function adminGetNews(id: number, accessToken: string) {
+  return requestJson<AdminNewsDto>(`/admin/news/${id}`, {}, accessToken);
 }
 
 export function adminCreateNews(payload: UpsertNewsPayload, accessToken: string) {
@@ -2240,7 +2254,7 @@ export function adminUploadNewsImage(id: number, file: File, accessToken: string
 }
 
 // ───────────────────────────────────────────────────────────────
-// Public catalog search (typeahead)
+// Public catalog search (typeahead) + match
 // ───────────────────────────────────────────────────────────────
 
 export interface CatalogSearchHit {
@@ -2254,5 +2268,119 @@ export function searchCatalog(q: string, init: RequestInit = {}) {
   return requestJson<CatalogSearchHit[]>(
     `/catalog/search${toSearchParams({ q })}`,
     init,
+  );
+}
+
+export interface ServiceMatchResult {
+  action: "JOIN" | "CREATE";
+  roomId: number | null;
+}
+
+export function matchRoomForService(serviceId: number, accessToken: string) {
+  return requestJson<ServiceMatchResult>(
+    `/catalog/services/${serviceId}/match`,
+    {},
+    accessToken,
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
+// Admin: service logo upload
+// ───────────────────────────────────────────────────────────────
+
+export function adminUploadServiceLogo(serviceId: number, file: File, accessToken: string) {
+  const form = new FormData();
+  form.append("file", file);
+  return requestJson<AdminServiceDto>(
+    `/admin/catalog/services/${serviceId}/logo`,
+    { method: "POST", body: form },
+    accessToken,
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
+// Notifications (in-app bell + STOMP push)
+// ───────────────────────────────────────────────────────────────
+
+export interface NotificationDto {
+  id: number;
+  title: string;
+  body: string;
+  link?: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export function notificationsTopic(userId: number): string {
+  return `/topic/notifications.${userId}`;
+}
+
+export function getNotificationsRequest(
+  accessToken: string,
+  params: { page?: number; size?: number } = {},
+) {
+  return requestJson<PagedResponse<NotificationDto>>(
+    `/notifications${toSearchParams({ page: params.page, size: params.size })}`,
+    {},
+    accessToken,
+  );
+}
+
+export function getUnreadNotificationCountRequest(accessToken: string) {
+  return requestJson<{ count: number }>(
+    "/notifications/unread-count",
+    {},
+    accessToken,
+  );
+}
+
+export function markNotificationReadRequest(id: number, accessToken: string) {
+  return requestJson<void>(
+    `/notifications/${id}/read`,
+    { method: "POST" },
+    accessToken,
+  );
+}
+
+export function markAllNotificationsReadRequest(accessToken: string) {
+  return requestJson<void>(
+    "/notifications/read-all",
+    { method: "POST" },
+    accessToken,
+  );
+}
+
+export type NotificationCategory =
+  | "MEMBERSHIP" | "ROOM" | "PAYMENTS" | "DISPUTES" | "SUPPORT" | "ACCOUNT";
+
+export interface NotificationPreferenceDto {
+  type: string;
+  category: NotificationCategory | string;
+  inApp: boolean;
+  email: boolean;
+}
+
+export interface NotificationPreferenceUpdate {
+  type: string;
+  inApp: boolean;
+  email: boolean;
+}
+
+export function getNotificationPreferencesRequest(accessToken: string) {
+  return requestJson<NotificationPreferenceDto[]>(
+    "/notifications/preferences",
+    {},
+    accessToken,
+  );
+}
+
+export function updateNotificationPreferencesRequest(
+  payload: NotificationPreferenceUpdate[],
+  accessToken: string,
+) {
+  return requestJson<NotificationPreferenceDto[]>(
+    "/notifications/preferences",
+    { method: "PUT", body: JSON.stringify({ items: payload }) },
+    accessToken,
   );
 }

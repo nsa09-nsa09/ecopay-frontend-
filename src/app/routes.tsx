@@ -1,8 +1,7 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import { AppLayout } from "./components/layout";
 import { HomePage } from "./components/catalog/home";
 import { OperatorPage } from "./components/catalog/operator";
-import { RoomsCatalogPage } from "./components/catalog/rooms-catalog";
 import { LoginPage } from "./components/auth/login";
 import { RegisterPage } from "./components/auth/register";
 import { ForgotPasswordPage } from "./components/auth/forgot-password";
@@ -72,7 +71,9 @@ export const router = createBrowserRouter([
     ErrorBoundary: ErrorFallback,
     children: [
       { index: true, Component: HomePage },
-      { path: "browse", Component: RoomsCatalogPage },
+      // /browse is decommissioned — selection now happens via service-match on
+      // the home catalog tiles. Keep the route to avoid 404s on old links.
+      { path: "browse", element: <Navigate to="/" replace /> },
       { path: "operator/:id", Component: OperatorPage },
       { path: "login", Component: LoginPage },
       { path: "register", Component: RegisterPage },

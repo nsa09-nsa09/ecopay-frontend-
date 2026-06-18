@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { ArrowRight, Newspaper } from "lucide-react";
+import { Newspaper } from "lucide-react";
 import { Card, Skeleton } from "../ds-primitives";
 import { getNews, type NewsDto } from "../../lib/api";
 import { formatDate } from "../../lib/datetime";
@@ -14,21 +14,24 @@ interface NewsSectionProps {
 }
 
 function pickLocalized(item: NewsDto, language: L) {
-  const lang = language;
-  const tKey = `title_${lang}` as const;
-  const bKey = `body_${lang}` as const;
-  const title = item[tKey] || item.title_ru || item.title_en || item.title_kz || "";
-  const body = item[bKey] || item.body_ru || item.body_en || item.body_kz || "";
+  const titleKey = language === "kz" ? "titleKz" : language === "en" ? "titleEn" : "titleRu";
+  const bodyKey = language === "kz" ? "bodyKz" : language === "en" ? "bodyEn" : "bodyRu";
+  const title =
+    (item as Record<string, unknown>)[titleKey] as string | null | undefined
+      || item.titleRu || item.titleEn || item.titleKz || "";
+  const body =
+    (item as Record<string, unknown>)[bodyKey] as string | null | undefined
+      || item.bodyRu || item.bodyEn || item.bodyKz || "";
   return { title, body };
 }
 
 function snippet(text: string, maxChars = 160): string {
-  const clean = text.trim().replace(/\s+/g, " ");
+  const clean = (text ?? "").trim().replace(/\s+/g, " ");
   if (clean.length <= maxChars) return clean;
   return `${clean.slice(0, maxChars).trimEnd()}…`;
 }
 
-const NewsCard = memo(function NewsCard({ item, language, t }: { item: NewsDto; language: L; t: (k: string) => string }) {
+const NewsCard = memo(function NewsCard({ item, language }: { item: NewsDto; language: L }) {
   const { title, body } = pickLocalized(item, language);
   return (
     <Card className="flex flex-col gap-3 h-full overflow-hidden">
@@ -46,9 +49,9 @@ const NewsCard = memo(function NewsCard({ item, language, t }: { item: NewsDto; 
       ) : (
         <div
           className="w-full h-[180px] rounded-lg flex items-center justify-center"
-          style={{ background: "var(--eco-brand-50)" }}
+          style={{ background: "var(--eco-surface)" }}
         >
-          <Newspaper size={28} style={{ color: "var(--eco-primary)" }} />
+          <Newspaper size={24} style={{ color: "var(--eco-text-tertiary)" }} />
         </div>
       )}
       <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
@@ -59,9 +62,6 @@ const NewsCard = memo(function NewsCard({ item, language, t }: { item: NewsDto; 
       </div>
       <div className="text-[13px] mt-auto" style={{ color: "var(--eco-text-secondary)" }}>
         {snippet(body)}
-      </div>
-      <div className="text-[12px] inline-flex items-center gap-1" style={{ color: "var(--eco-primary)" }}>
-        {t("newsReadMore")} <ArrowRight size={13} />
       </div>
     </Card>
   );
@@ -88,7 +88,7 @@ export function NewsSection({ language, t, limit = 6 }: NewsSectionProps) {
     let cancelled = false;
     setLoading(true);
     setFailed(false);
-    getNews(limit)
+    getNews(0, limit)
       .then((data) => {
         if (cancelled) return;
         setItems(Array.isArray(data) ? data : []);
@@ -108,8 +108,11 @@ export function NewsSection({ language, t, limit = 6 }: NewsSectionProps) {
 
   const visible = useMemo(() => (items ?? []).slice(0, limit), [items, limit]);
 
+  // Hide the section completely when no news (after a successful fetch).
+  if (!loading && !failed && visible.length === 0) return null;
+
   return (
-    <section style={{ background: "var(--eco-surface)" }} className="px-4 sm:px-6 py-10 sm:py-12">
+    <section className="px-4 sm:px-6 py-10 sm:py-12" style={{ borderTop: "1px solid var(--eco-border)" }}>
       <div className="max-w-[1200px] mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
           <div>
@@ -130,15 +133,10 @@ export function NewsSection({ language, t, limit = 6 }: NewsSectionProps) {
           <Card className="text-center py-10 text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
             {t("newsLoadFailed")}
           </Card>
-        ) : visible.length === 0 ? (
-          <Card className="text-center py-10">
-            <div className="text-[14px] mb-1" style={{ color: "var(--eco-text)" }}>{t("newsEmptyTitle")}</div>
-            <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("newsEmptyDesc")}</div>
-          </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {visible.map((item) => (
-              <NewsCard key={item.id} item={item} language={language} t={t} />
+              <NewsCard key={item.id} item={item} language={language} />
             ))}
           </div>
         )}

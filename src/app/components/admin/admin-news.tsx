@@ -61,9 +61,9 @@ const EMPTY_FORM: FormState = {
 function toForm(item: AdminNewsDto): FormState {
   return {
     langs: {
-      kz: { title: item.title_kz ?? "", body: item.body_kz ?? "" },
-      ru: { title: item.title_ru ?? "", body: item.body_ru ?? "" },
-      en: { title: item.title_en ?? "", body: item.body_en ?? "" },
+      kz: { title: item.titleKz ?? "", body: item.bodyKz ?? "" },
+      ru: { title: item.titleRu ?? "", body: item.bodyRu ?? "" },
+      en: { title: item.titleEn ?? "", body: item.bodyEn ?? "" },
     },
     status: item.status,
     sortOrder: item.sortOrder ?? 0,
@@ -73,26 +73,29 @@ function toForm(item: AdminNewsDto): FormState {
 function buildPayload(form: FormState): UpsertNewsPayload {
   const trim = (v: string) => (v.trim().length > 0 ? v.trim() : null);
   return {
-    title_kz: trim(form.langs.kz.title),
-    title_ru: trim(form.langs.ru.title),
-    title_en: trim(form.langs.en.title),
-    body_kz: trim(form.langs.kz.body),
-    body_ru: trim(form.langs.ru.body),
-    body_en: trim(form.langs.en.body),
+    titleKz: trim(form.langs.kz.title),
+    titleRu: trim(form.langs.ru.title),
+    titleEn: trim(form.langs.en.title),
+    bodyKz: trim(form.langs.kz.body),
+    bodyRu: trim(form.langs.ru.body),
+    bodyEn: trim(form.langs.en.body),
     status: form.status,
     sortOrder: form.sortOrder,
   };
 }
 
 function pickLocalized(
-  item: { title_kz?: string | null; title_ru?: string | null; title_en?: string | null; body_kz?: string | null; body_ru?: string | null; body_en?: string | null },
+  item: { titleKz?: string | null; titleRu?: string | null; titleEn?: string | null; bodyKz?: string | null; bodyRu?: string | null; bodyEn?: string | null },
   language: Language,
 ) {
-  const lang = language as NewsLang;
-  const tKey = `title_${lang}` as const;
-  const bKey = `body_${lang}` as const;
-  const title = item[tKey] || item.title_ru || item.title_en || item.title_kz || "";
-  const body = item[bKey] || item.body_ru || item.body_en || item.body_kz || "";
+  const titleKey = language === "kz" ? "titleKz" : language === "en" ? "titleEn" : "titleRu";
+  const bodyKey = language === "kz" ? "bodyKz" : language === "en" ? "bodyEn" : "bodyRu";
+  const title =
+    (item as Record<string, unknown>)[titleKey] as string | null | undefined
+      || item.titleRu || item.titleEn || item.titleKz || "";
+  const body =
+    (item as Record<string, unknown>)[bodyKey] as string | null | undefined
+      || item.bodyRu || item.bodyEn || item.bodyKz || "";
   return { title, body };
 }
 

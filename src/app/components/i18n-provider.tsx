@@ -1689,6 +1689,9 @@ const translations: Translations = {
   },
   newsLoadFailed: { ru: "Не удалось загрузить новости", kz: "Жаңалықтарды жүктеу мүмкін болмады", en: "Failed to load news" },
 
+  // ===== Admin: Create room shortcut =====
+  adminCreateRoomNav: { ru: "Создать комнату", kz: "Бөлме жасау", en: "Create room" },
+
   // ===== Admin: News =====
   adminNewsNav: { ru: "Новости", kz: "Жаңалықтар", en: "News" },
   adminNewsTitle: { ru: "Новости", kz: "Жаңалықтар", en: "News" },

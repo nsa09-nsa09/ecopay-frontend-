@@ -15,7 +15,6 @@ export function RegisterPage() {
 
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [show, setShow] = useState(false);
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -39,16 +38,10 @@ export function RegisterPage() {
       return;
     }
 
-    const normalizedPhone = phone.replace(/[\s()-]/g, "");
-    if (!/^\+7\d{10}$/.test(normalizedPhone)) {
-      setFieldErrors({ phone: t("fieldInvalidPhone") });
-      return;
-    }
-
     setLoading(true);
 
     try {
-      await register(displayName, email, pw, normalizedPhone);
+      await register(displayName, email, pw);
       navigate(redirectTarget);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -87,14 +80,6 @@ export function RegisterPage() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               error={fieldErrors.email}
-            />
-            <Input
-              label={t("phoneNumber")}
-              type="tel"
-              placeholder="+7 700 123 45 67"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              error={fieldErrors.phone}
             />
             <div className="flex flex-col gap-1.5">
               <label style={{ color: "var(--eco-text)", fontSize: 14 }}>{t("password")}</label>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { Card, Button, Input, Select, Stepper } from "../ds-primitives";
-import { ArrowLeft, Lock, Check, Shield } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Lock, Check, Shield } from "lucide-react";
 import {
   ApiError,
   createRoomRequest,
@@ -55,9 +55,16 @@ function defaultStartDate() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+interface CreateRoomLocationState {
+  serviceId?: number;
+  reason?: "no-free-rooms" | string;
+}
+
 export function CreateRoomPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, isReady, authorizedRequest } = useAuth();
+  const location = useLocation();
+  const navState = (location.state as CreateRoomLocationState | null) ?? null;
+  const { isAuthenticated, isReady, authorizedRequest, user } = useAuth();
   const { language, t } = useI18n();
 
   const stepLabels = [
@@ -140,7 +147,13 @@ export function CreateRoomPage() {
       .then((list) => {
         if (cancelled) return;
         setServices(list);
-        if (list.length > 0) {
+        const preferred =
+          navState?.serviceId != null
+            ? list.find((s) => s.id === navState.serviceId)
+            : undefined;
+        if (preferred) {
+          setServiceId(String(preferred.id));
+        } else if (list.length > 0) {
           setServiceId(String(list[0].id));
         }
       })
@@ -150,6 +163,8 @@ export function CreateRoomPage() {
     return () => {
       cancelled = true;
     };
+    // navState.serviceId is read once at mount; further changes don't reseed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
   const selectedService = useMemo(
@@ -351,6 +366,44 @@ export function CreateRoomPage() {
       {catalogError && (
         <div className="p-4 rounded-lg mb-6 text-[13px]" style={{ background: "var(--eco-danger-100, #fde8e8)", color: "var(--eco-negative)" }}>
           {catalogError}
+        </div>
+      )}
+
+      {navState?.reason === "no-free-rooms" && (
+        <div
+          className="p-3 rounded-lg mb-4 text-[13px] flex items-start gap-2"
+          style={{ background: "var(--eco-brand-50)", color: "var(--eco-text-secondary)", border: "1px solid var(--eco-border)" }}
+        >
+          <Shield size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-primary)" }} />
+          <span>
+            {tx(
+              language,
+              "Сейчас нет свободных комнат по этой подписке — создайте свою.",
+              "Бұл жазылым бойынша бос бөлме әзірге жоқ — өзіңіздікін жасаңыз.",
+              "There are no open rooms for this subscription right now — create your own.",
+            )}
+          </span>
+        </div>
+      )}
+
+      {isAuthenticated && user && !user.phoneVerified && (
+        <div
+          className="p-3 rounded-lg mb-4 text-[13px] flex items-start gap-2"
+          style={{ background: "var(--eco-warning-100)", color: "var(--eco-text-secondary)" }}
+        >
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
+          <span>
+            {tx(
+              language,
+              "Подтвердите номер телефона перед созданием комнаты.",
+              "Бөлме жасамас бұрын телефон нөміріңізді растаңыз.",
+              "Verify your phone number before creating a room.",
+            )}{" "}
+            <Link to="/profile" style={{ color: "var(--eco-primary)" }}>
+              {tx(language, "Перейти в профиль", "Профильге өту", "Go to profile")}
+            </Link>
+            .
+          </span>
         </div>
       )}
 
@@ -612,7 +665,13 @@ export function CreateRoomPage() {
             <div className="border-t pt-3" style={{ borderColor: "var(--eco-border)" }} />
             <div className="flex gap-3">
               <Button variant="ghost" onClick={() => setStep(2)}>{tx(language, "Назад", "Артқа", "Back")}</Button>
-              <Button variant="primary" className="flex-1" loading={submitting} onClick={handlePublish}>
+              <Button
+                variant="primary"
+                className="flex-1"
+                loading={submitting}
+                disabled={!!user && !user.phoneVerified}
+                onClick={handlePublish}
+              >
                 {tx(language, "Опубликовать комнату", "Бөлмені жариялау", "Publish Room")}
               </Button>
             </div>
