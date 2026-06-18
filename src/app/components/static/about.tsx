@@ -1,8 +1,14 @@
-import { useEffect, useState } from "react";
-import { WaveDivider } from "../ds-primitives";
-import { Mail, Phone, MapPin, Shield, Users, Zap } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Card, WaveDivider } from "../ds-primitives";
+import { ChevronLeft, ChevronRight, Mail, Phone, MapPin, Shield, Star, Users, Zap } from "lucide-react";
 import { useI18n, type Language } from "../i18n-provider";
-import { getSiteAboutRequest, type SiteAboutContent } from "../../lib/api";
+import {
+  getFeaturedServiceReviews,
+  getSiteAboutRequest,
+  type PublicServiceReviewDto,
+  type SiteAboutContent,
+} from "../../lib/api";
+import { formatDate } from "../../lib/datetime";
 
 type LocalizedField = "title" | "mission" | "description";
 
@@ -30,6 +36,7 @@ function pickLocalized(
 export function AboutPage() {
   const { t, language } = useI18n();
   const [content, setContent] = useState<SiteAboutContent | null>(null);
+  const [reviews, setReviews] = useState<PublicServiceReviewDto[]>([]);
 
   // Pull editable copy from the admin-managed endpoint; if it fails for any
   // reason we silently fall back to the static i18n strings so the page never
@@ -39,6 +46,16 @@ export function AboutPage() {
     getSiteAboutRequest()
       .then((data) => { if (!cancelled) setContent(data); })
       .catch(() => { /* fall back to i18n defaults */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Fetch member testimonials separately — if the endpoint fails we just hide
+  // the carousel section rather than surfacing an error block.
+  useEffect(() => {
+    let cancelled = false;
+    getFeaturedServiceReviews()
+      .then((data) => { if (!cancelled) setReviews(data ?? []); })
+      .catch(() => { /* section hides when empty */ });
     return () => { cancelled = true; };
   }, []);
 
@@ -124,6 +141,16 @@ export function AboutPage() {
           </div>
         </section>
 
+        {/* Member reviews — hides itself when there are none */}
+        {reviews.length > 0 && (
+          <section className="mb-12">
+            <h2 className="text-[20px] mb-4" style={{ color: "var(--eco-text)" }}>
+              {t("memberReviewsTitle")}
+            </h2>
+            <ReviewsCarousel reviews={reviews} language={language} />
+          </section>
+        )}
+
         {/* Divider */}
         <div className="my-12 border-t" style={{ borderColor: "var(--eco-border)" }} />
 
@@ -166,6 +193,104 @@ export function AboutPage() {
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function ReviewsCarousel({ reviews, language }: { reviews: PublicServiceReviewDto[]; language: Language }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (reviews.length === 0) {
+      setIndex(0);
+      return;
+    }
+    if (index > reviews.length - 1) setIndex(reviews.length - 1);
+  }, [reviews.length, index]);
+
+  const safe = ((index % reviews.length) + reviews.length) % reviews.length;
+  const current = reviews[safe];
+
+  const goPrev = () => setIndex((i) => (i - 1 + reviews.length) % reviews.length);
+  const goNext = () => setIndex((i) => (i + 1) % reviews.length);
+
+  // Lightweight swipe support — no extra deps.
+  const touchStartX = useRef<number | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0]?.clientX ?? null; };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStartX.current;
+    if (start == null) return;
+    const endX = e.changedTouches[0]?.clientX ?? start;
+    const dx = endX - start;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 40) return;
+    if (dx > 0) goPrev();
+    else goNext();
+  };
+
+  if (!current) return null;
+
+  return (
+    <div className="flex flex-col gap-3" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <Card className="flex flex-col gap-3">
+        <div className="flex items-center gap-1" aria-label={`${current.rating}/5`}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Star
+              key={i}
+              size={15}
+              fill={i < current.rating ? "var(--eco-warning-500)" : "none"}
+              style={{ color: i < current.rating ? "var(--eco-warning-500)" : "var(--eco-border)" }}
+            />
+          ))}
+        </div>
+        <p className="text-[14px] whitespace-pre-wrap" style={{ color: "var(--eco-text-secondary)" }}>
+          {current.text}
+        </p>
+        <div className="flex items-center justify-between gap-3 mt-1">
+          <span className="text-[13px]" style={{ color: "var(--eco-text)" }}>{current.authorDisplayName}</span>
+          <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+            {formatDate(current.createdAt, language)}
+          </span>
+        </div>
+      </Card>
+
+      {reviews.length > 1 && (
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={goPrev}
+            aria-label="prev"
+            className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
+            style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
+          >
+            <ChevronLeft size={16} style={{ color: "var(--eco-text-secondary)" }} />
+          </button>
+          <div className="flex items-center gap-1.5">
+            {reviews.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setIndex(i)}
+                aria-label={`${i + 1} / ${reviews.length}`}
+                className="w-2 h-2 rounded-full cursor-pointer"
+                style={{
+                  background: i === safe ? "var(--eco-primary)" : "var(--eco-neutral-200)",
+                  border: "none",
+                }}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={goNext}
+            aria-label="next"
+            className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
+            style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
+          >
+            <ChevronRight size={16} style={{ color: "var(--eco-text-secondary)" }} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

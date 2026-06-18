@@ -121,6 +121,17 @@ export function AdminNewsPage() {
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // File picked in the editor before the post exists — uploaded as the second
+  // step of handleSave for create mode, or right after a save in edit mode.
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+  const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null);
+
+  // Release the object URL when the picked file changes or the editor closes.
+  useEffect(() => {
+    if (!pendingImagePreview) return;
+    return () => { URL.revokeObjectURL(pendingImagePreview); };
+  }, [pendingImagePreview]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -150,11 +161,18 @@ export function AdminNewsPage() {
     [items],
   );
 
+  const resetPendingImage = () => {
+    setPendingImageFile(null);
+    setPendingImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const openCreate = () => {
     setEditing(null);
     setForm(EMPTY_FORM);
     setActiveLang("ru");
     setEditorError(null);
+    resetPendingImage();
     setEditorOpen(true);
   };
 
@@ -163,6 +181,7 @@ export function AdminNewsPage() {
     setForm(toForm(item));
     setActiveLang("ru");
     setEditorError(null);
+    resetPendingImage();
     setEditorOpen(true);
   };
 
@@ -171,16 +190,74 @@ export function AdminNewsPage() {
     setEditorOpen(false);
     setEditing(null);
     setEditorError(null);
+    resetPendingImage();
+  };
+
+  const validateImageFile = (file: File): string | null => {
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) return t("adminNewsImageInvalidType");
+    if (file.size > IMAGE_MAX_BYTES) return t("adminNewsImageTooBig");
+    return null;
+  };
+
+  const handlePickFile = (file: File) => {
+    const error = validateImageFile(file);
+    if (error) {
+      setEditorError(error);
+      return;
+    }
+    setEditorError(null);
+    if (pendingImagePreview) URL.revokeObjectURL(pendingImagePreview);
+    setPendingImageFile(file);
+    setPendingImagePreview(URL.createObjectURL(file));
   };
 
   const handleSave = async () => {
+    // Hard guard against double-submit races: the disabled prop only takes
+    // effect after React re-renders, so a fast double-click can fire two
+    // POST /admin/news in flight before the button greys out. That's the
+    // most common cause of the "duplicate / phantom error" pattern seen on
+    // create — kill it here.
+    if (saving) return;
     setSaving(true);
     setEditorError(null);
     try {
       const payload = buildPayload(form);
-      const saved = editing
-        ? await authorizedRequest((token) => adminUpdateNews(editing.id, payload, token))
+      const editingId = editing?.id;
+      let saved = editingId != null
+        ? await authorizedRequest((token) => adminUpdateNews(editingId, payload, token))
         : await authorizedRequest((token) => adminCreateNews(payload, token));
+
+      // Defensive: some backends respond 201 with an empty body. In that case
+      // `saved` is undefined and splicing it into the list would throw — which
+      // surfaced as a generic "save failed" toast even though the POST itself
+      // returned 2xx. Refetch the list and bail cleanly instead.
+      if (!saved || typeof saved.id !== "number") {
+        await load();
+        clearNewsCache();
+        show("success", t("adminNewsSaveSuccess"));
+        resetPendingImage();
+        setEditorOpen(false);
+        setEditing(null);
+        return;
+      }
+
+      // If a file was picked while the post had no id yet, upload it now.
+      if (pendingImageFile) {
+        try {
+          saved = await authorizedRequest((token) =>
+            adminUploadNewsImage(saved.id, pendingImageFile, token),
+          );
+        } catch (uploadErr) {
+          // The post itself was saved — keep the modal open so the admin can
+          // retry the image upload without re-typing the body.
+          await load();
+          setEditing(saved);
+          setEditorError(formatAdminApiError(uploadErr, t));
+          setSaving(false);
+          return;
+        }
+      }
+
       setItems((prev) => {
         const next = prev.filter((it) => it.id !== saved.id);
         next.push(saved);
@@ -188,6 +265,7 @@ export function AdminNewsPage() {
       });
       setEditing(saved);
       clearNewsCache();
+      resetPendingImage();
       show("success", t("adminNewsSaveSuccess"));
       setEditorOpen(false);
     } catch (err) {
@@ -209,34 +287,6 @@ export function AdminNewsPage() {
     } finally {
       setDeletingId(null);
       setConfirmDelete(null);
-    }
-  };
-
-  const handleUploadImage = async (file: File) => {
-    if (!editing) {
-      setEditorError(t("adminNewsImageRequired"));
-      return;
-    }
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      setEditorError(t("avatarHint"));
-      return;
-    }
-    if (file.size > IMAGE_MAX_BYTES) {
-      setEditorError(t("avatarHint"));
-      return;
-    }
-    setUploadingId(editing.id);
-    try {
-      const updated = await authorizedRequest((token) => adminUploadNewsImage(editing.id, file, token));
-      setItems((prev) => prev.map((it) => (it.id === updated.id ? updated : it)));
-      setEditing(updated);
-      clearNewsCache();
-      show("success", t("adminNewsSaveSuccess"));
-    } catch (err) {
-      setEditorError(formatAdminApiError(err, t));
-    } finally {
-      setUploadingId(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -469,71 +519,83 @@ export function AdminNewsPage() {
             </FormRow>
           </div>
 
-          {/* Image */}
+          {/* Image — works in both create and edit modes. In create mode we
+              hold the file in state and upload it after the post exists. */}
           <FormRow label={t("adminNewsFieldImage")}>
-            {editing ? (
-              <div className="flex items-center gap-3">
-                {editing.imageUrl ? (
-                  <img
-                    src={editing.imageUrl}
-                    alt=""
-                    width={120}
-                    height={80}
-                    loading="lazy"
-                    decoding="async"
-                    className="rounded-lg object-cover shrink-0"
-                    style={{ background: "var(--eco-surface)" }}
-                  />
-                ) : (
-                  <div
-                    className="w-[120px] h-[80px] rounded-lg flex items-center justify-center shrink-0"
-                    style={{ background: "var(--eco-surface)" }}
-                  >
-                    <ImageIcon size={20} style={{ color: "var(--eco-text-tertiary)" }} />
-                  </div>
-                )}
-                <div className="flex flex-col gap-2 flex-1">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept={ACCEPTED_IMAGE_TYPES.join(",")}
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) void handleUploadImage(file);
-                    }}
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      loading={uploadingId === editing.id}
-                      onClick={() => fileInputRef.current?.click()}
+            {(() => {
+              const previewUrl = pendingImagePreview || editing?.imageUrl || null;
+              const hasPersistedImage = Boolean(editing?.imageUrl);
+              const hasAnyPreview = Boolean(previewUrl);
+              const uploadingNow = editing ? uploadingId === editing.id : false;
+              return (
+                <div className="flex items-center gap-3">
+                  {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt=""
+                      width={120}
+                      height={80}
+                      loading="lazy"
+                      decoding="async"
+                      className="rounded-lg object-cover shrink-0"
+                      style={{ background: "var(--eco-surface)" }}
+                    />
+                  ) : (
+                    <div
+                      className="w-[120px] h-[80px] rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: "var(--eco-surface)" }}
                     >
-                      <Upload size={13} />
-                      {editing.imageUrl ? t("adminNewsImageReplace") : t("adminNewsImageUpload")}
-                    </Button>
-                    {editing.imageUrl && (
+                      <ImageIcon size={20} style={{ color: "var(--eco-text-tertiary)" }} />
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2 flex-1">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handlePickFile(file);
+                      }}
+                    />
+                    <div className="flex flex-wrap gap-2">
                       <Button
-                        variant="ghost"
+                        variant="secondary"
                         size="sm"
-                        onClick={() => void handleRemoveImage()}
-                        disabled={uploadingId === editing.id}
+                        loading={uploadingNow}
+                        onClick={() => fileInputRef.current?.click()}
                       >
-                        <X size={13} /> {t("adminNewsImageRemove")}
+                        <Upload size={13} />
+                        {hasAnyPreview ? t("adminNewsImageReplace") : t("adminNewsImageUpload")}
                       </Button>
-                    )}
+                      {pendingImageFile && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={resetPendingImage}
+                        >
+                          <X size={13} /> {t("cancel")}
+                        </Button>
+                      )}
+                      {hasPersistedImage && !pendingImageFile && editing && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => void handleRemoveImage()}
+                          disabled={uploadingNow}
+                        >
+                          <X size={13} /> {t("adminNewsImageRemove")}
+                        </Button>
+                      )}
+                    </div>
+                    <span className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                      {editing ? t("adminNewsImageHint") : t("adminNewsImageAtCreateHint")}
+                    </span>
                   </div>
-                  <span className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                    {t("adminNewsImageHint")}
-                  </span>
                 </div>
-              </div>
-            ) : (
-              <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                {t("adminNewsImageRequired")}
-              </span>
-            )}
+              );
+            })()}
           </FormRow>
 
           {editorError && (

@@ -267,6 +267,7 @@ export function AppLayout() {
   const navItems = useMemo(() => {
     const items: { label: string; path: string }[] = [
       { label: t("catalog"), path: "/" },
+      { label: t("news"), path: "/news" },
     ];
     if (isAuthenticated) {
       items.push({ label: t("myRooms"), path: "/rooms" });

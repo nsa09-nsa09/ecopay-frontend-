@@ -17,6 +17,7 @@ import { ProfilePage } from "./components/profile/profile";
 import { SupportPage, NewTicketPage } from "./components/support/support";
 import { FeedbackPage } from "./components/support/feedback";
 import { AboutPage } from "./components/static/about";
+import { NewsPage } from "./components/static/news";
 import { TermsPage } from "./components/static/terms";
 import { PrivacyPage } from "./components/static/privacy";
 import { HowItWorksPage } from "./components/static/how-it-works";
@@ -93,6 +94,7 @@ export const router = createBrowserRouter([
       { path: "support/new", Component: NewTicketPage },
       { path: "feedback", Component: FeedbackPage },
       { path: "about", Component: AboutPage },
+      { path: "news", Component: NewsPage },
       { path: "terms", Component: TermsPage },
       { path: "privacy", Component: PrivacyPage },
       { path: "how-it-works", Component: HowItWorksPage },

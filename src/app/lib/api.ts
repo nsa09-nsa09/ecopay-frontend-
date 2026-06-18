@@ -596,6 +596,15 @@ export function getRoom(roomId: number) {
   return requestJson<RoomResponseDto>(`/rooms/${roomId}`);
 }
 
+export interface RoomInviteLinkDto {
+  url: string;
+  token: string;
+}
+
+export function getRoomInviteLink(roomId: number, accessToken: string) {
+  return requestJson<RoomInviteLinkDto>(`/rooms/${roomId}/invite-link`, {}, accessToken);
+}
+
 export function joinRoomRequest(
   roomId: number,
   payload: {

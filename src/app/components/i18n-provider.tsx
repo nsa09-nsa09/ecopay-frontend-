@@ -14,6 +14,21 @@ type Translations = {
 const translations: Translations = {
   // ===== Navigation & Header =====
   catalog: { ru: "Каталог", kz: "Каталог", en: "Catalog" },
+  news: { ru: "Новости", kz: "Жаңалықтар", en: "News" },
+  memberReviewsTitle: { ru: "Отзывы участников", kz: "Қатысушылар пікірлері", en: "Member reviews" },
+  inviteOffPlatformTitle: { ru: "Пригласить вне платформы", kz: "Платформадан тыс шақыру", en: "Invite off-platform" },
+  inviteOffPlatformDesc: {
+    ru: "Поделитесь этой ссылкой — открывший её человек войдёт или зарегистрируется и попадёт в комнату.",
+    kz: "Бұл сілтемемен бөлісіңіз — оны ашқан адам кіреді немесе тіркеліп, бөлмеге қосылады.",
+    en: "Share this link — opening it will let someone sign in or register and land directly in your room.",
+  },
+  inviteLinkCopy: { ru: "Скопировать ссылку", kz: "Сілтемені көшіру", en: "Copy link" },
+  inviteLinkCopiedToast: { ru: "Ссылка скопирована", kz: "Сілтеме көшірілді", en: "Link copied" },
+  inviteLinkCopyFailed: {
+    ru: "Не удалось скопировать автоматически — скопируйте вручную.",
+    kz: "Автоматты түрде көшіру мүмкін болмады — қолмен көшіріңіз.",
+    en: "Could not copy automatically — copy it manually.",
+  },
   browseRooms: { ru: "Открытые комнаты", kz: "Ашық бөлмелер", en: "Open Rooms" },
   myRooms: { ru: "Мои комнаты", kz: "Менің бөлмелерім", en: "My Rooms" },
   support: { ru: "Поддержка", kz: "Қолдау", en: "Support" },
@@ -1734,6 +1749,46 @@ const translations: Translations = {
     ru: "Сначала сохраните новость — потом можно загрузить картинку.",
     kz: "Алдымен жаңалықты сақтаңыз — содан кейін суретті жүктеуге болады.",
     en: "Save the post first, then you can upload an image.",
+  },
+  adminNewsImageAtCreateHint: {
+    ru: "PNG/JPG/WebP, до 5 МБ. Картинка загрузится сразу после сохранения.",
+    kz: "PNG/JPG/WebP, 5 МБ-қа дейін. Сурет сақтаудан кейін жүктеледі.",
+    en: "PNG/JPG/WebP, up to 5 MB. The image uploads right after the post is saved.",
+  },
+  adminNewsImageInvalidType: {
+    ru: "Поддерживаются только PNG, JPG и WebP.",
+    kz: "Тек PNG, JPG және WebP қолдау табады.",
+    en: "Only PNG, JPG and WebP are supported.",
+  },
+  adminNewsImageTooBig: {
+    ru: "Файл больше 5 МБ — выберите поменьше.",
+    kz: "Файл 5 МБ-тан үлкен — кішірек таңдаңыз.",
+    en: "File is larger than 5 MB — please pick a smaller one.",
+  },
+
+  // ===== Admin catalog — service logo =====
+  catalogFieldLogo: { ru: "Логотип", kz: "Логотип", en: "Logo" },
+  catalogLogoUpload: { ru: "Загрузить логотип", kz: "Логотипті жүктеу", en: "Upload logo" },
+  catalogLogoReplace: { ru: "Заменить логотип", kz: "Логотипті ауыстыру", en: "Replace logo" },
+  catalogLogoHint: {
+    ru: "PNG/JPG/WebP, до 5 МБ. Будет показан на карточке сервиса в каталоге.",
+    kz: "PNG/JPG/WebP, 5 МБ-қа дейін. Каталогтағы сервис карточкасында көрсетіледі.",
+    en: "PNG/JPG/WebP, up to 5 MB. Shown on the service tile in the catalog.",
+  },
+  catalogLogoAtCreateHint: {
+    ru: "PNG/JPG/WebP, до 5 МБ. Загрузится сразу после сохранения сервиса.",
+    kz: "PNG/JPG/WebP, 5 МБ-қа дейін. Сервис сақталғаннан кейін бірден жүктеледі.",
+    en: "PNG/JPG/WebP, up to 5 MB. Uploads right after the service is saved.",
+  },
+  catalogLogoInvalidType: {
+    ru: "Поддерживаются только PNG, JPG и WebP.",
+    kz: "Тек PNG, JPG және WebP қолдау табады.",
+    en: "Only PNG, JPG and WebP are supported.",
+  },
+  catalogLogoTooBig: {
+    ru: "Файл больше 5 МБ — выберите поменьше.",
+    kz: "Файл 5 МБ-тан үлкен — кішірек таңдаңыз.",
+    en: "File is larger than 5 MB — please pick a smaller one.",
   },
 
   // ===== FAQ extra (8–12 questions) =====

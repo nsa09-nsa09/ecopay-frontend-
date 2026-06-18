@@ -1,4 +1,4 @@
-import { lazy, memo, Suspense, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { ChevronDown, Search } from "lucide-react";
 import { Badge, Button, Card, Select, Skeleton } from "../ds-primitives";
@@ -13,8 +13,6 @@ import {
   type CategoryDto,
   type ServiceDto,
 } from "../../lib/api";
-
-const NewsSection = lazy(() => import("./home-news").then((m) => ({ default: m.NewsSection })));
 
 type L = "ru" | "kz" | "en";
 
@@ -481,11 +479,6 @@ export function HomePage() {
           </div>
         )}
       </section>
-
-      {/* News — lazy chunk, hides itself when empty */}
-      <Suspense fallback={null}>
-        <NewsSection language={lang} t={t} />
-      </Suspense>
 
       {/* FAQ — kept below the fold for context */}
       <section className="max-w-[900px] mx-auto px-4 sm:px-6 py-10 sm:py-12" style={{ borderTop: "1px solid var(--eco-border)" }}>

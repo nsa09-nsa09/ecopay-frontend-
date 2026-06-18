@@ -361,18 +361,6 @@ export function RoomDetailPage() {
 
             {joinStep === 0 && (
               <div className="flex flex-col gap-4">
-                {user && !user.phoneVerified && (
-                  <div className="p-3 rounded-lg text-[12px] flex items-start gap-2" style={{ background: "var(--eco-warning-100)", color: "var(--eco-text-secondary)" }}>
-                    <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
-                    <span>
-                      {tx(language, "Подтвердите номер телефона перед вступлением.", "Қосылмас бұрын телефон нөміріңізді растаңыз.", "Verify your phone number before joining a room.")}{" "}
-                      <Link to="/profile" style={{ color: "var(--eco-primary)" }}>
-                        {tx(language, "Перейти в профиль", "Профильге өту", "Go to profile")}
-                      </Link>
-                      .
-                    </span>
-                  </div>
-                )}
                 {requiresIdentifier && (
                   <>
                     <Select
@@ -415,8 +403,7 @@ export function RoomDetailPage() {
                   className="w-full"
                   disabled={
                     !consent ||
-                    (requiresIdentifier && !identifierValue.trim()) ||
-                    (!!user && !user.phoneVerified)
+                    (requiresIdentifier && !identifierValue.trim())
                   }
                   onClick={() => setJoinStep(1)}
                 >

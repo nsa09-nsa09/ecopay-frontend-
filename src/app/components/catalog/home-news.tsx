@@ -11,6 +11,12 @@ interface NewsSectionProps {
   language: L;
   t: (key: string) => string;
   limit?: number;
+  /**
+   * "home" hides the section when there are no news (default).
+   * "page" keeps it visible and renders an empty state — used by the
+   * dedicated /news page where disappearing isn't OK.
+   */
+  mode?: "home" | "page";
 }
 
 function pickLocalized(item: NewsDto, language: L) {
@@ -79,7 +85,7 @@ function NewsSkeleton() {
   );
 }
 
-export function NewsSection({ language, t, limit = 6 }: NewsSectionProps) {
+export function NewsSection({ language, t, limit = 6, mode = "home" }: NewsSectionProps) {
   const [items, setItems] = useState<NewsDto[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -108,22 +114,29 @@ export function NewsSection({ language, t, limit = 6 }: NewsSectionProps) {
 
   const visible = useMemo(() => (items ?? []).slice(0, limit), [items, limit]);
 
-  // Hide the section completely when no news (after a successful fetch).
-  if (!loading && !failed && visible.length === 0) return null;
+  // On the home page, vanish entirely when there's nothing to show.
+  if (mode === "home" && !loading && !failed && visible.length === 0) return null;
+
+  const isPage = mode === "page";
 
   return (
-    <section className="px-4 sm:px-6 py-10 sm:py-12" style={{ borderTop: "1px solid var(--eco-border)" }}>
+    <section
+      className={isPage ? "px-4 sm:px-6 py-2" : "px-4 sm:px-6 py-10 sm:py-12"}
+      style={isPage ? undefined : { borderTop: "1px solid var(--eco-border)" }}
+    >
       <div className="max-w-[1200px] mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
-          <div>
-            <h2 className="text-[22px] sm:text-[24px]" style={{ color: "var(--eco-text)" }}>
-              {t("newsSectionTitle")}
-            </h2>
-            <p className="text-[13px] mt-1" style={{ color: "var(--eco-text-secondary)" }}>
-              {t("newsSectionSubtitle")}
-            </p>
+        {!isPage && (
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+            <div>
+              <h2 className="text-[22px] sm:text-[24px]" style={{ color: "var(--eco-text)" }}>
+                {t("newsSectionTitle")}
+              </h2>
+              <p className="text-[13px] mt-1" style={{ color: "var(--eco-text-secondary)" }}>
+                {t("newsSectionSubtitle")}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -132,6 +145,11 @@ export function NewsSection({ language, t, limit = 6 }: NewsSectionProps) {
         ) : failed && visible.length === 0 ? (
           <Card className="text-center py-10 text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
             {t("newsLoadFailed")}
+          </Card>
+        ) : visible.length === 0 ? (
+          <Card className="text-center py-12">
+            <div className="text-[15px] mb-1" style={{ color: "var(--eco-text)" }}>{t("newsEmptyTitle")}</div>
+            <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("newsEmptyDesc")}</div>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
