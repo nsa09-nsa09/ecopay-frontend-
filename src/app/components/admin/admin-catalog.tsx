@@ -12,6 +12,7 @@ import {
   Tabs,
 } from "../ds-primitives";
 import { FlashBanner, formatAdminApiError, useFlash } from "./admin-action-ui";
+import { LogoCropModal } from "./logo-crop-modal";
 import { Image as ImageIcon, Pencil, Plus, RefreshCw, Trash2, Upload, X } from "lucide-react";
 import {
   adminCreateCategory,
@@ -476,6 +477,8 @@ function ServiceFormModal({
   const [pendingLogoPreview, setPendingLogoPreview] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Raw file awaiting crop in the LogoCropModal (null = editor closed).
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -487,6 +490,7 @@ function ServiceFormModal({
     setError(null);
     setCurrent(existing);
     setPendingLogoFile(null);
+    setCropFile(null);
     if (pendingLogoPreview) {
       URL.revokeObjectURL(pendingLogoPreview);
       setPendingLogoPreview(null);
@@ -606,6 +610,24 @@ function ServiceFormModal({
     }
   };
 
+  // A file was chosen → validate, then open the crop editor. The framed,
+  // square JPEG it returns is what actually gets uploaded/previewed.
+  const onLogoFilePicked = (file: File) => {
+    const validationError = validateLogo(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError(null);
+    setCropFile(file);
+  };
+
+  const onLogoCropped = (cropped: File) => {
+    setCropFile(null);
+    if (current) void replaceLogoNow(cropped);
+    else pickLogo(cropped);
+  };
+
   const previewUrl = pendingLogoPreview || current?.logoUrl || null;
 
   return (
@@ -666,9 +688,9 @@ function ServiceFormModal({
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
+                  if (fileInputRef.current) fileInputRef.current.value = "";
                   if (!file) return;
-                  if (current) void replaceLogoNow(file);
-                  else pickLogo(file);
+                  onLogoFilePicked(file);
                 }}
               />
               <div className="flex flex-wrap gap-2">
@@ -699,6 +721,13 @@ function ServiceFormModal({
           {t("save")}
         </Button>
       </div>
+
+      <LogoCropModal
+        open={!!cropFile}
+        file={cropFile}
+        onCancel={() => setCropFile(null)}
+        onApply={onLogoCropped}
+      />
     </Modal>
   );
 }
