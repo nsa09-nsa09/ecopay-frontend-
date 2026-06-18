@@ -31,9 +31,21 @@ const formatDateTime = (v: string | null | undefined, l: Language) => (v ? forma
 // A member occupies a slot / is post-payment once PENDING or ACTIVE.
 const POST_PAYMENT = new Set(["PENDING", "ACTIVE"]);
 
+const verificationModeI18nKey: Record<string, string> = {
+  RISK_BASED: "verificationModeRiskBased",
+  AUTO: "verificationModeAuto",
+  ADMIN_REQUIRED: "verificationModeAdminRequired",
+};
+
+function localizeVerificationMode(mode: string | null | undefined, t: (k: string) => string): string {
+  if (!mode) return "—";
+  const key = verificationModeI18nKey[mode];
+  return key ? t(key) : mode;
+}
+
 export function OwnerDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const roomId = Number(id);
   const { authorizedRequest } = useAuth();
 
@@ -314,7 +326,7 @@ export function OwnerDetailPage() {
               style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)", border: "1px solid var(--eco-border)" }}
             >
               <Shield size={13} />
-              {room.verificationMode}
+              {localizeVerificationMode(room.verificationMode, t)}
             </div>
             <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
               {tx(

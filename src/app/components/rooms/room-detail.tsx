@@ -23,9 +23,21 @@ function formatDate(value: string | undefined, l: Language) {
   return formatAlmatyDate(value, l);
 }
 
+const verificationModeI18nKey: Record<string, string> = {
+  RISK_BASED: "verificationModeRiskBased",
+  AUTO: "verificationModeAuto",
+  ADMIN_REQUIRED: "verificationModeAdminRequired",
+};
+
+function localizeVerificationMode(mode: string | null | undefined, t: (k: string) => string): string {
+  if (!mode) return "—";
+  const key = verificationModeI18nKey[mode];
+  return key ? t(key) : mode;
+}
+
 export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const roomId = Number(id);
   const location = useLocation();
   const navigate = useNavigate();
@@ -263,7 +275,7 @@ export function RoomDetailPage() {
                   <ReputationLevelBadge level={summary?.ownerReputationLevel} score={summary?.ownerReputation} size="sm" />
                 </div>
                 <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                  {tx(language, "Верификация", "Растау", "Verification")}: {room.verificationMode}
+                  {tx(language, "Верификация", "Растау", "Verification")}: {localizeVerificationMode(room.verificationMode, t)}
                 </div>
               </div>
             </div>

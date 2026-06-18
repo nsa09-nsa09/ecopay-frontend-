@@ -11,6 +11,7 @@ import {
   Star,
   Info,
   Inbox,
+  Newspaper,
 } from "lucide-react";
 import type { UserRole } from "../../lib/api";
 
@@ -56,6 +57,7 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
   { labelKey: "refunds", path: "/admin/refunds", icon: Undo2, roles: ["ADMIN"] },
   { labelKey: "adminLogs", path: "/admin/logs", icon: FileText, roles: ["ADMIN"] },
   { labelKey: "adminAboutNav", path: "/admin/about", icon: Info, roles: ["ADMIN"] },
+  { labelKey: "adminNewsNav", path: "/admin/news", icon: Newspaper, roles: ["ADMIN"] },
 ];
 
 export function findNavItem(pathname: string): AdminNavItem | undefined {

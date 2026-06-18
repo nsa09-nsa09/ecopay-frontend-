@@ -2143,3 +2143,116 @@ export function adminUpdateSiteAbout(payload: UpdateSiteAboutPayload, accessToke
     accessToken,
   );
 }
+
+// ───────────────────────────────────────────────────────────────
+// News module
+// ───────────────────────────────────────────────────────────────
+
+export type NewsStatus = "PUBLISHED" | "DRAFT" | "ARCHIVED";
+
+export interface NewsDto {
+  id: number;
+  title_kz?: string | null;
+  title_ru?: string | null;
+  title_en?: string | null;
+  body_kz?: string | null;
+  body_ru?: string | null;
+  body_en?: string | null;
+  imageUrl?: string | null;
+  publishedAt?: string | null;
+}
+
+export interface AdminNewsDto extends NewsDto {
+  status: NewsStatus;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertNewsPayload {
+  title_kz?: string | null;
+  title_ru?: string | null;
+  title_en?: string | null;
+  body_kz?: string | null;
+  body_ru?: string | null;
+  body_en?: string | null;
+  status: NewsStatus;
+  sortOrder?: number;
+  publishedAt?: string | null;
+}
+
+const newsCache = new Map<string, Promise<NewsDto[]>>();
+
+export function getNews(limit?: number) {
+  const key = String(limit ?? "");
+  const cached = newsCache.get(key);
+  if (cached) return cached;
+  const promise = requestJson<NewsDto[]>(
+    `/news${toSearchParams({ limit })}`,
+  ).catch((err) => {
+    newsCache.delete(key);
+    throw err;
+  });
+  newsCache.set(key, promise);
+  return promise;
+}
+
+export function clearNewsCache() {
+  newsCache.clear();
+}
+
+export function adminListNews(accessToken: string) {
+  return requestJson<AdminNewsDto[]>("/admin/news", {}, accessToken);
+}
+
+export function adminCreateNews(payload: UpsertNewsPayload, accessToken: string) {
+  return requestJson<AdminNewsDto>(
+    "/admin/news",
+    { method: "POST", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminUpdateNews(id: number, payload: UpsertNewsPayload, accessToken: string) {
+  return requestJson<AdminNewsDto>(
+    `/admin/news/${id}`,
+    { method: "PUT", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminDeleteNews(id: number, accessToken: string) {
+  return requestJson<void>(
+    `/admin/news/${id}`,
+    { method: "DELETE" },
+    accessToken,
+  );
+}
+
+export function adminUploadNewsImage(id: number, file: File, accessToken: string) {
+  const form = new FormData();
+  form.append("file", file);
+  return requestJson<AdminNewsDto>(
+    `/admin/news/${id}/image`,
+    { method: "POST", body: form },
+    accessToken,
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
+// Public catalog search (typeahead)
+// ───────────────────────────────────────────────────────────────
+
+export interface CatalogSearchHit {
+  serviceId: number;
+  name: string;
+  categoryName: string;
+  logoUrl?: string | null;
+}
+
+export function searchCatalog(q: string, init: RequestInit = {}) {
+  return requestJson<CatalogSearchHit[]>(
+    `/catalog/search${toSearchParams({ q })}`,
+    init,
+  );
+}
