@@ -1694,6 +1694,42 @@ export function deletePayoutMethodRequest(methodId: number, accessToken: string)
   }, accessToken);
 }
 
+// --- Payout card binding (connect a card via the FreedomPay hosted page) ---
+
+export interface PayoutCardBindingResponseDto {
+  bindingId: number;
+  paymentUrl: string | null;
+  requiresRedirect: boolean;
+  status: string; // PENDING | FAILED
+  failureMessage: string | null;
+}
+
+export interface PayoutCardBindingConfirmDto {
+  status: string; // SUCCESS | PENDING | FAILED
+  method: PayoutMethodDto | null;
+  message: string | null;
+}
+
+/** Start connecting a payout card. Returns a hosted-page URL to redirect the owner to. */
+export function initPayoutCardBindingRequest(
+  payload: { returnUrl: string },
+  accessToken: string,
+) {
+  return requestJson<PayoutCardBindingResponseDto>("/payouts/methods/binding", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, accessToken);
+}
+
+/** Finalize the binding after the owner returns from the hosted page. */
+export function confirmPayoutCardBindingRequest(bindingId: number, accessToken: string) {
+  return requestJson<PayoutCardBindingConfirmDto>(
+    `/payouts/methods/binding/${bindingId}/confirm`,
+    { method: "POST" },
+    accessToken,
+  );
+}
+
 // ============================================================
 // Refunds (member)
 // ============================================================

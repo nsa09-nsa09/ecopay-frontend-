@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Card, Button, Input, Select, Stepper } from "../ds-primitives";
-import { AlertTriangle, ArrowLeft, Lock, Check, Shield } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Lock, Check, Shield, CreditCard } from "lucide-react";
 import {
   ApiError,
   createRoomRequest,
   getFxRatesRequest,
+  getPayoutMethodsRequest,
   getServices,
   getTariffs,
+  initPayoutCardBindingRequest,
   type FxRatesResponse,
   type RoomResponseDto,
   type ServiceDto,
@@ -98,11 +100,35 @@ export function CreateRoomPage() {
   const [fxRates, setFxRates] = useState<FxRatesResponse | null>(null);
   const [fxError, setFxError] = useState<string | null>(null);
 
+  // Owners are paid out monthly to a connected card, so the backend rejects room
+  // creation without one. null = still checking; false = no active default card yet.
+  const [hasPayoutCard, setHasPayoutCard] = useState<boolean | null>(null);
+  const [connectingCard, setConnectingCard] = useState(false);
+  const [awaitingCard, setAwaitingCard] = useState(false);
+  const [cardError, setCardError] = useState<string | null>(null);
+
   useEffect(() => {
     if (isReady && !isAuthenticated) {
       navigate("/login?redirect=/rooms/create");
     }
   }, [isReady, isAuthenticated, navigate]);
+
+  // Mirror the backend gate (an active default payout method must exist).
+  useEffect(() => {
+    if (!isReady || !isAuthenticated) return;
+    let cancelled = false;
+    authorizedRequest((token) => getPayoutMethodsRequest(token))
+      .then((methods) => {
+        if (cancelled) return;
+        setHasPayoutCard((methods ?? []).some((m) => m.isDefault && m.status === "ACTIVE"));
+      })
+      .catch(() => {
+        if (!cancelled) setHasPayoutCard(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isReady, isAuthenticated, authorizedRequest]);
 
   useEffect(() => {
     let cancelled = false;
@@ -222,9 +248,82 @@ export function CreateRoomPage() {
 
   const currencySymbol = CURRENCY_SYMBOLS[currency] ?? currency;
 
+  // Re-check whether a payout card is now connected (used after the owner finishes in the
+  // FreedomPay tab). Returns true once an active default method exists.
+  const recheckPayoutCard = async (): Promise<boolean> => {
+    try {
+      const methods = await authorizedRequest((token) => getPayoutMethodsRequest(token));
+      const ok = (methods ?? []).some((m) => m.isDefault && m.status === "ACTIVE");
+      if (ok) {
+        setHasPayoutCard(true);
+        setAwaitingCard(false);
+      }
+      return ok;
+    } catch {
+      return false;
+    }
+  };
+
+  // Connect a payout card through the FreedomPay hosted page. We open it in a NEW TAB so this
+  // half-filled room form is preserved, then poll for the card to appear once the owner finishes.
+  const handleConnectCard = async () => {
+    setConnectingCard(true);
+    setCardError(null);
+    // Must open the tab synchronously inside the click to avoid the popup blocker; we set its
+    // URL after the binding is created.
+    const tab = window.open("", "_blank");
+    try {
+      const res = await authorizedRequest((token) =>
+        initPayoutCardBindingRequest(
+          { returnUrl: `${window.location.origin}/payment/card-connected` },
+          token,
+        ),
+      );
+      if (res.paymentUrl) {
+        window.localStorage.setItem("ecopay.pendingCardBinding", String(res.bindingId));
+        if (tab) {
+          tab.location.href = res.paymentUrl;
+          setConnectingCard(false);
+          setAwaitingCard(true);
+          // Auto-poll for ~2 min so the banner clears itself once the card is connected.
+          let attempts = 0;
+          const poll = async () => {
+            attempts += 1;
+            const done = await recheckPayoutCard();
+            if (!done && attempts < 30) setTimeout(() => void poll(), 4000);
+          };
+          setTimeout(() => void poll(), 4000);
+        } else {
+          // Popup blocked — fall back to a same-tab redirect (room draft will be lost).
+          window.location.href = res.paymentUrl;
+        }
+        return;
+      }
+      if (tab) tab.close();
+      setConnectingCard(false);
+      setCardError(
+        res.failureMessage ??
+          tx(language, "Не удалось начать подключение карты. Попробуйте снова.", "Картаны қосуды бастау мүмкін болмады. Қайта көріңіз.", "Couldn't start the card connection. Please try again."),
+      );
+    } catch (err) {
+      if (tab) tab.close();
+      setConnectingCard(false);
+      setCardError(
+        err instanceof ApiError
+          ? err.message
+          : tx(language, "Не удалось подключить карту. Попробуйте снова.", "Картаны қосу мүмкін болмады. Қайта көріңіз.", "Couldn't connect the card. Please try again."),
+      );
+    }
+  };
+
   const handlePublish = async () => {
     setSubmitError(null);
 
+    if (hasPayoutCard === false) {
+      setSubmitError(tx(language, "Подключите карту для выплат перед созданием комнаты.", "Бөлме жасамас бұрын төлем картасын қосыңыз.", "Connect a payout card before creating a room."));
+      setConnectingCard(true);
+      return;
+    }
     if (!serviceId) {
       setSubmitError(tx(language, "Выберите оператора.", "Операторды таңдаңыз.", "Please select a service."));
       setStep(0);
@@ -320,6 +419,62 @@ export function CreateRoomPage() {
       {catalogError && (
         <div className="p-4 rounded-lg mb-6 text-[13px]" style={{ background: "var(--eco-danger-100, #fde8e8)", color: "var(--eco-negative)" }}>
           {catalogError}
+        </div>
+      )}
+
+      {hasPayoutCard === false && (
+        <div className="p-4 rounded-lg mb-6" style={{ background: "var(--eco-warning-100)" }}>
+          <div className="flex items-start gap-3">
+            <CreditCard size={16} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>
+                {tx(language, "Нужна карта для выплат", "Төлем картасы қажет", "Payout card required")}
+              </div>
+              <div className="text-[13px] mt-0.5" style={{ color: "var(--eco-text-secondary)" }}>
+                {tx(
+                  language,
+                  "Платежи участников зачисляются владельцу ежемесячно, поэтому для создания комнаты нужно подключить карту. Деньги удерживаются 30 дней после оплаты, затем переводятся на эту карту.",
+                  "Қатысушылардың төлемдері иесіне ай сайын аударылады, сондықтан бөлме жасау үшін карта қосу қажет. Ақша төлемнен кейін 30 күн ұсталып, сосын осы картаға аударылады.",
+                  "Member payments are paid out to you monthly, so you need a connected card to create a room. Funds are held for 30 days after payment, then sent to this card.",
+                )}
+              </div>
+              {awaitingCard ? (
+                <>
+                  <div className="text-[13px] mt-3" style={{ color: "var(--eco-text)" }}>
+                    {tx(language,
+                      "Завершите ввод карты в новой вкладке, затем нажмите «Проверить». Эта форма сохранена.",
+                      "Жаңа қойындыда картаны енгізуді аяқтап, «Тексеру» түймесін басыңыз. Бұл форма сақталды.",
+                      "Finish entering your card in the new tab, then click “Re-check”. This form is kept.",
+                    )}
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <Button variant="primary" size="sm" onClick={() => void recheckPayoutCard()}>
+                      {tx(language, "Проверить", "Тексеру", "Re-check")}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => void handleConnectCard()}>
+                      {tx(language, "Открыть снова", "Қайта ашу", "Open again")}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Button variant="primary" size="sm" className="mt-3" loading={connectingCard} onClick={() => void handleConnectCard()}>
+                    <CreditCard size={13} /> {tx(language, "Подключить карту через FreedomPay", "FreedomPay арқылы картаны қосу", "Connect card via FreedomPay")}
+                  </Button>
+                  <div className="text-[12px] mt-2" style={{ color: "var(--eco-text-tertiary)" }}>
+                    {tx(language,
+                      "Откроется защищённая страница FreedomPay в новой вкладке. Мы не храним номер карты.",
+                      "Жаңа қойындыда қорғалған FreedomPay беті ашылады. Біз карта нөмірін сақтамаймыз.",
+                      "FreedomPay's secure page opens in a new tab. We never store the card number.",
+                    )}
+                  </div>
+                </>
+              )}
+              {cardError && (
+                <div className="text-[12px] mt-2" style={{ color: "var(--eco-negative)" }}>{cardError}</div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -587,13 +742,18 @@ export function CreateRoomPage() {
               <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{submitError}</p>
             )}
             <div className="border-t pt-3" style={{ borderColor: "var(--eco-border)" }} />
+            {hasPayoutCard === false && (
+              <p className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                {tx(language, "Подключите карту для выплат выше, чтобы опубликовать.", "Жариялау үшін жоғарыда төлем картасын қосыңыз.", "Connect a payout card above to publish.")}
+              </p>
+            )}
             <div className="flex gap-3">
               <Button variant="ghost" onClick={() => setStep(2)}>{tx(language, "Назад", "Артқа", "Back")}</Button>
               <Button
                 variant="primary"
                 className="flex-1"
                 loading={submitting}
-                disabled={!!user && !user.phoneVerified}
+                disabled={hasPayoutCard === false || (!!user && !user.phoneVerified)}
                 onClick={handlePublish}
               >
                 {tx(language, "Опубликовать комнату", "Бөлмені жариялау", "Publish Room")}

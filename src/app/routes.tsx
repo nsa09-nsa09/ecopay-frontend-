@@ -37,6 +37,7 @@ import { AdminNewsPage } from "./components/admin/admin-news";
 import { AdminRoute } from "./components/admin/admin-route";
 import { PaymentRoomDetailsPage, PaymentCheckoutPage, PaymentConfirmationPage, PaymentPendingPage, RefundStatusPage, OwnerPayoutPage } from "./components/payments/payments";
 import { PaymentReturnPage } from "./components/payments/payment-return";
+import { CardConnectedPage } from "./components/payments/card-connected";
 import { PublicUserProfilePage } from "./components/reputation/public-profile";
 import { I18nTypographyFixPage } from "./components/static/i18n-typography-fix";
 import { StatesSlaEdgeCasesPage } from "./components/static/states-sla-edge-cases";
@@ -109,6 +110,8 @@ export const router = createBrowserRouter([
       { path: "payment/pending", Component: PaymentPendingPage },
       { path: "payment/refund", Component: RefundStatusPage },
       { path: "payment/payout", Component: OwnerPayoutPage },
+      // FreedomPay redirect-back target after connecting a payout card.
+      { path: "payment/card-connected", Component: CardConnectedPage },
       { path: "user/:id", Component: PublicUserProfilePage },
       { path: "u/:publicId", Component: PublicUserProfilePage },
       { path: "i18n-typography", Component: I18nTypographyFixPage },
