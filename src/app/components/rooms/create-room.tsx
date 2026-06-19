@@ -16,14 +16,9 @@ import {
 } from "../../lib/api";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n, type Language } from "../i18n-provider";
-import { formatDateTime } from "../../lib/datetime";
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === "ru" ? ru : l === "kz" ? kz : en;
-
-const SUPPORTED_CURRENCY_CODES: readonly SupportedCurrency[] = [
-  "KZT", "UZS", "KGS", "USD", "EUR", "CNY", "GBP", "RUB",
-] as const;
 
 const CURRENCY_SYMBOLS: Record<SupportedCurrency, string> = {
   KZT: "₸",
@@ -34,17 +29,6 @@ const CURRENCY_SYMBOLS: Record<SupportedCurrency, string> = {
   RUB: "₽",
   UZS: "сум",
   KGS: "сом",
-};
-
-const CURRENCY_LABEL_KEY: Record<SupportedCurrency, string> = {
-  KZT: "currencyKzt",
-  USD: "currencyUsd",
-  EUR: "currencyEur",
-  CNY: "currencyCny",
-  GBP: "currencyGbp",
-  RUB: "currencyRub",
-  UZS: "currencyUzs",
-  KGS: "currencyKgs",
 };
 
 function defaultStartDate() {
@@ -87,6 +71,9 @@ export function CreateRoomPage() {
     { value: "OTHER", label: tx(language, "Другое", "Басқа", "Other") },
   ];
 
+  const periodLabel = (p: string | null | undefined) =>
+    PERIOD_OPTIONS.find((o) => o.value === p)?.label ?? (p ?? "").toLowerCase();
+
   const [step, setStep] = useState(0);
 
   const [services, setServices] = useState<ServiceDto[]>([]);
@@ -97,11 +84,6 @@ export function CreateRoomPage() {
   const [tariffPlanId, setTariffPlanId] = useState<string>("");
   const [roomType, setRoomType] = useState("TELECOM");
   const [title, setTitle] = useState("");
-  const [seats, setSeats] = useState("4");
-  const [priceModel, setPriceModel] = useState("total");
-  const [totalPrice, setTotalPrice] = useState("19999");
-  const [perMemberPrice, setPerMemberPrice] = useState("5000");
-  const [periodType, setPeriodType] = useState("MONTHLY");
   const [startDate, setStartDate] = useState(defaultStartDate());
   const [connectionType, setConnectionType] = useState("ESIM");
   const [restrictions, setRestrictions] = useState("");
@@ -111,11 +93,8 @@ export function CreateRoomPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [published, setPublished] = useState<RoomResponseDto | null>(null);
 
-  // Currency state + FX rates. We default to KZT (base currency). The
-  // selected currency is what the owner enters in the price field; the live
-  // KZT equivalent is shown directly below it so the owner can sanity-check
-  // the conversion before publishing.
-  const [currency, setCurrency] = useState<SupportedCurrency>("KZT");
+  // FX rates: the tariff's currency is fixed (admin-set); we still fetch live
+  // rates so non-KZT plans can show their KZT equivalent in the review step.
   const [fxRates, setFxRates] = useState<FxRatesResponse | null>(null);
   const [fxError, setFxError] = useState<string | null>(null);
 
@@ -202,16 +181,10 @@ export function CreateRoomPage() {
     setTariffPlanId(id);
     const tariff = tariffs.find((t) => String(t.id) === id);
     if (tariff) {
-      setSeats(String(tariff.maxMembers));
-      setTotalPrice(String(tariff.basePriceTotal));
-      if (tariff.maxMembers > 0) {
-        setPerMemberPrice(String(Math.round(Number(tariff.basePriceTotal) / tariff.maxMembers)));
-      }
+      // Price, seats, currency and period are owned by the tariff (admin-set) —
+      // we only mirror the plan's connection type and prefill the title here.
       if (tariff.connectionType) {
         setConnectionType(tariff.connectionType);
-      }
-      if (tariff.periodType) {
-        setPeriodType(tariff.periodType);
       }
       if (!title) {
         setTitle(`${selectedService?.name ?? ""} ${tariff.name}`.trim());
@@ -219,11 +192,12 @@ export function CreateRoomPage() {
     }
   };
 
-  const seatCount = Math.max(parseInt(seats || "0", 10) || 0, 0);
-  const perMemberDerived =
-    priceModel === "total" && seatCount > 0
-      ? Math.round((parseInt(totalPrice || "0", 10) || 0) / seatCount)
-      : parseInt(perMemberPrice || "0", 10) || 0;
+  // Pricing fields are derived from the selected tariff — never editable here.
+  const seatCount = selectedTariff?.maxMembers ?? 0;
+  const totalNumeric = Number(selectedTariff?.basePriceTotal ?? 0) || 0;
+  const perMemberDerived = seatCount > 0 ? Math.round(totalNumeric / seatCount) : 0;
+  const periodType = selectedTariff?.periodType ?? "MONTHLY";
+  const currency = (selectedTariff?.currency ?? "KZT") as SupportedCurrency;
 
   const isTelecom = roomType === "TELECOM";
 
@@ -242,26 +216,11 @@ export function CreateRoomPage() {
     return Math.round(amount * currentRate);
   };
 
-  const totalNumeric = Number(totalPrice || "0") || 0;
-  const perMemberNumeric = Number(perMemberPrice || "0") || 0;
-  const totalKztEquivalent = convertToKzt(totalNumeric);
-  const perMemberKztEquivalent = convertToKzt(perMemberNumeric);
+  const perMemberKztEquivalent = convertToKzt(perMemberDerived);
 
   const moneyFmt = (n: number) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(n);
 
-  const currencyOptions = SUPPORTED_CURRENCY_CODES.map((code) => ({
-    value: code,
-    label: t(CURRENCY_LABEL_KEY[code]),
-  }));
-
-  const currencySymbol = CURRENCY_SYMBOLS[currency];
-
-  // Show the KZT equivalent hint under price inputs (only for non-KZT).
-  const renderKztHint = (kztValue: number | null): string | undefined => {
-    if (currency === "KZT") return undefined;
-    if (kztValue == null) return t("priceFxUnavailable");
-    return t("priceKztEquivalent", { amount: `₸${moneyFmt(kztValue)}` });
-  };
+  const currencySymbol = CURRENCY_SYMBOLS[currency] ?? currency;
 
   const handlePublish = async () => {
     setSubmitError(null);
@@ -271,13 +230,13 @@ export function CreateRoomPage() {
       setStep(0);
       return;
     }
-    if (!title.trim()) {
-      setSubmitError(tx(language, "Укажите название комнаты.", "Бөлме атауын көрсетіңіз.", "Please enter a room title."));
-      setStep(1);
+    if (!tariffPlanId) {
+      setSubmitError(tx(language, "Выберите тариф.", "Тарифті таңдаңыз.", "Please select a plan."));
+      setStep(0);
       return;
     }
-    if (seatCount < 2) {
-      setSubmitError(tx(language, "В комнате должно быть минимум 2 места.", "Бөлмеде кемінде 2 орын болуы керек.", "A room needs at least 2 seats."));
+    if (!title.trim()) {
+      setSubmitError(tx(language, "Укажите название комнаты.", "Бөлме атауын көрсетіңіз.", "Please enter a room title."));
       setStep(1);
       return;
     }
@@ -294,14 +253,9 @@ export function CreateRoomPage() {
           {
             categoryId: selectedService?.categoryId ?? null,
             serviceId: Number(serviceId),
-            tariffPlanId: tariffPlanId ? Number(tariffPlanId) : null,
+            tariffPlanId: Number(tariffPlanId),
             roomType,
             title: title.trim(),
-            maxMembers: seatCount,
-            priceTotal: priceModel === "total" ? Number(totalPrice) : null,
-            pricePerMember: priceModel === "per_member" ? Number(perMemberPrice) : null,
-            currency,
-            periodType,
             startDate: startDate.length === 16 ? `${startDate}:00` : startDate,
             providerName: selectedService?.name ?? null,
             tariffNameSnapshot: selectedTariff?.name ?? null,
@@ -462,31 +416,42 @@ export function CreateRoomPage() {
               onChange={(e) => setServiceId(e.target.value)}
             />
             <Select
-              label={tx(language, "Тариф (опционально)", "Тариф (міндетті емес)", "Plan (optional)")}
+              label={tx(language, "Тариф", "Тариф", "Plan")}
               options={[
                 {
                   value: "",
                   label: tariffs.length > 0
-                    ? tx(language, "Без тарифа — своя цена", "Тарифсіз — өз бағаңыз", "No plan — custom pricing")
+                    ? tx(language, "Выберите тариф", "Тарифті таңдаңыз", "Select a plan")
                     : tx(language, "Тарифов нет", "Тарифтер жоқ", "No plans available"),
                 },
                 ...tariffs.map((t) => ({
                   value: String(t.id),
-                  label: `${t.name} — ₸${Number(t.basePriceTotal).toLocaleString()} / ${t.periodType.toLowerCase()}`,
+                  label: `${t.name} — ${CURRENCY_SYMBOLS[(t.currency ?? "KZT") as SupportedCurrency] ?? t.currency}${Number(t.basePriceTotal).toLocaleString()} / ${periodLabel(t.periodType)}`,
                 })),
               ]}
               value={tariffPlanId}
               onChange={(e) => applyTariff(e.target.value)}
             />
-            <div className="text-[12px] p-3 rounded-lg" style={{ background: "var(--eco-brand-50)", color: "var(--eco-text-secondary)" }}>
-              {tx(
-                language,
-                "Подсказка: выбор тарифа подставит число мест и цену из каталога — их можно поправить.",
-                "Кеңес: тариф таңдалса, орын саны мен баға каталогтан толтырылады — оларды өзгертуге болады.",
-                "Tip: Selecting a plan prefills seats and price from the operator's catalog. You can still adjust them.",
-              )}
-            </div>
-            <Button variant="primary" className="w-full" disabled={!serviceId} onClick={() => setStep(1)}>
+            {selectedTariff && (
+              <div className="rounded-lg p-3 flex flex-col gap-2" style={{ background: "var(--eco-brand-50)", border: "1px solid var(--eco-border)" }}>
+                <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
+                  <Lock size={12} style={{ color: "var(--eco-primary)" }} />
+                  {tx(language, "Цена, валюта, период и число мест заданы тарифом", "Баға, валюта, кезең және орын саны тарифпен анықталады", "Price, currency, period and seats are set by the plan")}
+                </div>
+                {[
+                  { label: tx(language, "Число мест", "Орын саны", "Seats"), value: String(selectedTariff.maxMembers) },
+                  { label: tx(language, "Общая цена", "Жалпы баға", "Total price"), value: `${currencySymbol}${moneyFmt(totalNumeric)}` },
+                  { label: tx(language, "За участника", "Қатысушы үшін", "Per member"), value: `${currencySymbol}${moneyFmt(perMemberDerived)}` },
+                  { label: tx(language, "Период", "Кезең", "Period"), value: periodLabel(periodType) },
+                ].map((row) => (
+                  <div key={row.label} className="flex justify-between text-[13px]">
+                    <span style={{ color: "var(--eco-text-secondary)" }}>{row.label}</span>
+                    <span style={{ color: "var(--eco-text)" }}>{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button variant="primary" className="w-full" disabled={!serviceId || !tariffPlanId} onClick={() => setStep(1)}>
               {tx(language, "Продолжить", "Жалғастыру", "Continue")}
             </Button>
           </Card>
@@ -500,69 +465,31 @@ export function CreateRoomPage() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder={tx(language, "напр. Beeline Family 4", "мысалы Beeline Family 4", "e.g. Beeline Family 4")}
             />
-            <Input
-              label={tx(language, "Число мест", "Орын саны", "Number of Seats")}
-              type="number"
-              value={seats}
-              onChange={(e) => setSeats(e.target.value)}
-              hint={tx(language, "Минимум 2, включая вас", "Кемінде 2, өзіңізді қоса", "Minimum 2 members including you")}
-            />
-            <div className="flex flex-col gap-1">
-              <Select
-                label={t("currencyLabel")}
-                options={currencyOptions}
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value as SupportedCurrency)}
-              />
-              <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-                {fxRates?.updatedAt && (
-                  <span className="text-[11px] break-words" style={{ color: "var(--eco-text-tertiary)" }}>
-                    {t("priceFxUpdatedAt", { time: formatDateTime(fxRates.updatedAt, language) })}
-                  </span>
-                )}
-                {fxError && (
-                  <span className="text-[11px] break-words" style={{ color: "var(--eco-warning-500)" }}>{fxError}</span>
-                )}
+            <div className="rounded-lg p-3 flex flex-col gap-2" style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}>
+              <div className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
+                <Lock size={12} style={{ color: "var(--eco-primary)" }} />
+                {tx(language, "Условия тарифа", "Тариф шарттары", "Plan terms")} · {selectedTariff?.name ?? "—"}
               </div>
+              {[
+                { label: tx(language, "Число мест", "Орын саны", "Seats"), value: String(seatCount) },
+                { label: tx(language, "Общая цена", "Жалпы баға", "Total price"), value: `${currencySymbol}${moneyFmt(totalNumeric)}` },
+                {
+                  label: tx(language, "За участника", "Қатысушы үшін", "Per member"),
+                  value:
+                    `${currencySymbol}${moneyFmt(perMemberDerived)}/${periodLabel(periodType)}` +
+                    (currency !== "KZT" && perMemberKztEquivalent != null ? ` (≈ ₸${moneyFmt(perMemberKztEquivalent)})` : ""),
+                },
+                { label: tx(language, "Период", "Кезең", "Period"), value: periodLabel(periodType) },
+              ].map((row) => (
+                <div key={row.label} className="flex justify-between text-[13px]">
+                  <span style={{ color: "var(--eco-text-secondary)" }}>{row.label}</span>
+                  <span style={{ color: "var(--eco-text)" }}>{row.value}</span>
+                </div>
+              ))}
+              {currency !== "KZT" && fxError && (
+                <span className="text-[11px] break-words" style={{ color: "var(--eco-warning-500)" }}>{fxError}</span>
+              )}
             </div>
-            <Select
-              label={tx(language, "Модель цены", "Баға моделі", "Price Model")}
-              options={[
-                { value: "total", label: tx(language, "Общая стоимость (делится поровну)", "Жалпы құн (тең бөлінеді)", "Total plan cost (split equally)") },
-                { value: "per_member", label: tx(language, "Фиксированная цена за участника", "Қатысушы үшін бекітілген баға", "Fixed price per member") },
-              ]}
-              value={priceModel}
-              onChange={(e) => setPriceModel(e.target.value)}
-            />
-            {priceModel === "total" ? (
-              <Input
-                label={`${tx(language, "Общая цена", "Жалпы баға", "Total Price")} (${currencySymbol})`}
-                type="number"
-                value={totalPrice}
-                onChange={(e) => setTotalPrice(e.target.value)}
-                hint={
-                  currency === "KZT"
-                    ? seatCount > 0
-                      ? tx(language, `≈ ₸${perMemberDerived.toLocaleString()} за участника`, `≈ ₸${perMemberDerived.toLocaleString()} қатысушыға`, `≈ ₸${perMemberDerived.toLocaleString()} per member`)
-                      : undefined
-                    : renderKztHint(totalKztEquivalent)
-                }
-              />
-            ) : (
-              <Input
-                label={`${tx(language, "Цена за участника", "Қатысушы үшін баға", "Price per Member")} (${currencySymbol})`}
-                type="number"
-                value={perMemberPrice}
-                onChange={(e) => setPerMemberPrice(e.target.value)}
-                hint={renderKztHint(perMemberKztEquivalent)}
-              />
-            )}
-            <Select
-              label={tx(language, "Период оплаты", "Төлем кезеңі", "Billing Period")}
-              options={PERIOD_OPTIONS}
-              value={periodType}
-              onChange={(e) => setPeriodType(e.target.value)}
-            />
             <Input
               label={tx(language, "Дата старта", "Басталу күні", "Start Date")}
               type="datetime-local"
@@ -643,11 +570,8 @@ export function CreateRoomPage() {
               {
                 label: tx(language, "За участника", "Қатысушы үшін", "Per member"),
                 value:
-                  currency === "KZT"
-                    ? `₸${perMemberDerived.toLocaleString()}/${periodType.toLowerCase()}`
-                    : `${currencySymbol}${perMemberDerived.toLocaleString()}/${periodType.toLowerCase()}${
-                        perMemberKztEquivalent != null ? ` (≈ ₸${moneyFmt(perMemberKztEquivalent)})` : ""
-                      }`,
+                  `${currencySymbol}${moneyFmt(perMemberDerived)}/${periodLabel(periodType)}` +
+                  (currency !== "KZT" && perMemberKztEquivalent != null ? ` (≈ ₸${moneyFmt(perMemberKztEquivalent)})` : ""),
               },
               { label: tx(language, "Дата старта", "Басталу күні", "Start date"), value: startDate.replace("T", " ") },
               ...(isTelecom

@@ -694,15 +694,12 @@ export interface RevealedIdentifierDto {
 export interface CreateRoomPayload {
   categoryId?: number | null;
   serviceId: number;
-  tariffPlanId?: number | null;
+  // Required: seats, price, currency, and billing period are derived from the
+  // admin-managed tariff plan server-side — the owner does not send them.
+  tariffPlanId: number;
   roomType: string;
   title: string;
   description?: string | null;
-  maxMembers: number;
-  priceTotal?: number | null;
-  pricePerMember?: number | null;
-  currency?: SupportedCurrency | string | null;
-  periodType: string;
   startDate: string;
   cancellationPolicy?: string | null;
   providerName?: string | null;
@@ -715,9 +712,7 @@ export interface CreateRoomPayload {
 export interface UpdateRoomPayload {
   title?: string;
   description?: string;
-  maxMembers?: number;
-  priceTotal?: number;
-  pricePerMember?: number;
+  // maxMembers / price / currency / period are tariff-controlled and not editable here.
   cancellationPolicy?: string;
   providerName?: string;
   tariffNameSnapshot?: string;
