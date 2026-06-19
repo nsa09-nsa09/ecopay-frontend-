@@ -33,6 +33,20 @@ const formatDateTime = (v: string | null | undefined, l: Language) => (v ? forma
 // A member occupies a slot / is post-payment once PENDING or ACTIVE.
 const POST_PAYMENT = new Set(["PENDING", "ACTIVE"]);
 
+/** Rebase an invite URL to the current browser origin so that
+ *  a misconfigured backend default (localhost:5173) never leaks
+ *  into copy-pasteable links on production. */
+function rebaseInviteUrl(raw: string): string {
+  try {
+    const parsed = new URL(raw);
+    parsed.protocol = window.location.protocol;
+    parsed.host = window.location.host;
+    return parsed.toString();
+  } catch {
+    return raw; // fallback: return as-is if URL is malformed
+  }
+}
+
 const verificationModeI18nKey: Record<string, string> = {
   RISK_BASED: "verificationModeRiskBased",
   AUTO: "verificationModeAuto",
@@ -170,7 +184,10 @@ export function OwnerDetailPage() {
 
   const isTelecom = room.roomType === "TELECOM";
   const isLocked = room.startDate ? new Date(room.startDate) <= new Date() : false;
-  const occupied = members.filter((m) => POST_PAYMENT.has(m.status)).length;
+  const occupied = Math.min(
+    room.maxMembers,
+    1 + members.filter((m) => POST_PAYMENT.has(m.status)).length,
+  );
   const pendingCount = members.filter((m) => m.status === "PENDING").length;
   const revenue = occupied * Number(room.pricePerMember ?? 0);
 
@@ -513,7 +530,7 @@ function InviteLinkCard({
   const handleCopy = async () => {
     const link = await ensureLink();
     if (!link) return;
-    const ok = await writeToClipboard(link);
+    const ok = await writeToClipboard(rebaseInviteUrl(link));
     if (ok) {
       setCopied(true);
       toast.success(t("inviteLinkCopiedToast"));
@@ -534,7 +551,7 @@ function InviteLinkCard({
         <input
           ref={inputRef}
           readOnly
-          value={url}
+          value={rebaseInviteUrl(url)}
           onClick={(e) => e.currentTarget.select()}
           className="w-full px-3 py-2 rounded-lg text-[12px] outline-none"
           style={{

@@ -243,25 +243,10 @@ export function MemberDetailPage() {
                 )}
               </div>
             </div>
-            {user && !user.phoneVerified ? (
-              <div className="p-3 rounded-lg text-[13px] flex items-start gap-2" style={{ background: "var(--eco-warning-100)", color: "var(--eco-text-secondary)" }}>
-                <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
-                <span>
-                  {tx(language, "Подтвердите номер телефона перед оплатой.", "Төлемнен бұрын телефон нөмірін растаңыз.", "Verify your phone number before paying.")}{" "}
-                  <Link to="/profile" style={{ color: "var(--eco-primary)" }}>
-                    {tx(language, "Перейти в профиль", "Профильге өту", "Go to profile")}
-                  </Link>
-                  .
-                </span>
-              </div>
-            ) : (
-              <>
-                {payError && <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{payError}</p>}
-                <Button variant="primary" size="md" loading={paying} onClick={handlePay}>
-                  <CreditCard size={14} /> {tx(language, "Оплатить", "Төлеу", "Pay")} {formatMoney(room.pricePerMember)}
-                </Button>
-              </>
-            )}
+            {payError && <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{payError}</p>}
+            <Button variant="primary" size="md" loading={paying} onClick={handlePay}>
+              <CreditCard size={14} /> {tx(language, "Оплатить", "Төлеу", "Pay")} {formatMoney(room.pricePerMember)}
+            </Button>
           </Card>
         )}
 

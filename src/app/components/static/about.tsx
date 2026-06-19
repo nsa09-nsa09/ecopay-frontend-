@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, WaveDivider } from "../ds-primitives";
 import { ChevronLeft, ChevronRight, Mail, Phone, MapPin, Shield, Star, Users, Zap } from "lucide-react";
 import { useI18n, type Language } from "../i18n-provider";
@@ -197,8 +197,31 @@ export function AboutPage() {
   );
 }
 
+const REVIEWS_CAROUSEL_CSS = `
+@keyframes ecoReviewSlideInRight {
+  from { transform: translateX(28px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes ecoReviewSlideInLeft {
+  from { transform: translateX(-28px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.eco-review-slide-next {
+  animation: ecoReviewSlideInRight 350ms ease-out;
+  will-change: transform;
+}
+.eco-review-slide-prev {
+  animation: ecoReviewSlideInLeft 350ms ease-out;
+  will-change: transform;
+}
+`;
+
+const REVIEWS_AUTOPLAY_MS = 4500;
+
 function ReviewsCarousel({ reviews, language }: { reviews: PublicServiceReviewDto[]; language: Language }) {
   const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState<"next" | "prev">("next");
+  const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (reviews.length === 0) {
@@ -208,11 +231,41 @@ function ReviewsCarousel({ reviews, language }: { reviews: PublicServiceReviewDt
     if (index > reviews.length - 1) setIndex(reviews.length - 1);
   }, [reviews.length, index]);
 
-  const safe = ((index % reviews.length) + reviews.length) % reviews.length;
+  const safe = reviews.length > 0 ? ((index % reviews.length) + reviews.length) % reviews.length : 0;
   const current = reviews[safe];
 
-  const goPrev = () => setIndex((i) => (i - 1 + reviews.length) % reviews.length);
-  const goNext = () => setIndex((i) => (i + 1) % reviews.length);
+  const resetAutoplay = useCallback(() => {
+    if (intervalRef.current != null) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (reviews.length <= 1) return;
+    intervalRef.current = window.setInterval(() => {
+      setDirection("next");
+      setIndex((i) => (i + 1) % reviews.length);
+    }, REVIEWS_AUTOPLAY_MS);
+  }, [reviews.length]);
+
+  useEffect(() => {
+    resetAutoplay();
+    return () => {
+      if (intervalRef.current != null) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [resetAutoplay]);
+
+  const goPrev = () => {
+    setDirection("prev");
+    setIndex((i) => (i - 1 + reviews.length) % reviews.length);
+    resetAutoplay();
+  };
+  const goNext = () => {
+    setDirection("next");
+    setIndex((i) => (i + 1) % reviews.length);
+    resetAutoplay();
+  };
 
   // Lightweight swipe support — no extra deps.
   const touchStartX = useRef<number | null>(null);
@@ -232,27 +285,33 @@ function ReviewsCarousel({ reviews, language }: { reviews: PublicServiceReviewDt
 
   return (
     <div className="flex flex-col gap-3" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <Card className="flex flex-col gap-3">
-        <div className="flex items-center gap-1" aria-label={`${current.rating}/5`}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star
-              key={i}
-              size={15}
-              fill={i < current.rating ? "var(--eco-warning-500)" : "none"}
-              style={{ color: i < current.rating ? "var(--eco-warning-500)" : "var(--eco-border)" }}
-            />
-          ))}
-        </div>
-        <p className="text-[14px] whitespace-pre-wrap" style={{ color: "var(--eco-text-secondary)" }}>
-          {current.text}
-        </p>
-        <div className="flex items-center justify-between gap-3 mt-1">
-          <span className="text-[13px]" style={{ color: "var(--eco-text)" }}>{current.authorDisplayName}</span>
-          <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-            {formatDate(current.createdAt, language)}
-          </span>
-        </div>
-      </Card>
+      <style>{REVIEWS_CAROUSEL_CSS}</style>
+      <div
+        key={safe}
+        className={direction === "next" ? "eco-review-slide-next" : "eco-review-slide-prev"}
+      >
+        <Card className="flex flex-col gap-3">
+          <div className="flex items-center gap-1" aria-label={`${current.rating}/5`}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star
+                key={i}
+                size={15}
+                fill={i < current.rating ? "var(--eco-warning-500)" : "none"}
+                style={{ color: i < current.rating ? "var(--eco-warning-500)" : "var(--eco-border)" }}
+              />
+            ))}
+          </div>
+          <p className="text-[14px] whitespace-pre-wrap" style={{ color: "var(--eco-text-secondary)" }}>
+            {current.text}
+          </p>
+          <div className="flex items-center justify-between gap-3 mt-1">
+            <span className="text-[13px]" style={{ color: "var(--eco-text)" }}>{current.authorDisplayName}</span>
+            <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+              {formatDate(current.createdAt, language)}
+            </span>
+          </div>
+        </Card>
+      </div>
 
       {reviews.length > 1 && (
         <div className="flex items-center justify-between gap-3">
