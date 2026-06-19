@@ -119,6 +119,7 @@ export function PublicUserProfilePage() {
         setReputation({
           userId: prof.id,
           displayName: prof.displayName,
+          avatar: prof.avatar ?? null,
           reputation: prof.reputation,
           averageRating: prof.averageRating,
           reviewsCount: prof.reviewsCount,
@@ -227,9 +228,20 @@ export function PublicUserProfilePage() {
         <div className="flex flex-col gap-6">
           <Card>
             <div className="flex flex-col sm:flex-row items-start gap-4">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center shrink-0 text-[24px]" style={{ background: "var(--eco-brand-100)", color: "var(--eco-primary)" }}>
-                {initial}
-              </div>
+              {reputation.avatar ? (
+                <img
+                  src={reputation.avatar}
+                  alt={reputation.displayName ?? ""}
+                  className="w-20 h-20 rounded-full object-cover shrink-0"
+                />
+              ) : (
+                <div
+                  className="w-20 h-20 rounded-full flex items-center justify-center shrink-0 text-[24px]"
+                  style={{ background: "var(--eco-brand-100)", color: "var(--eco-primary)" }}
+                >
+                  {initial}
+                </div>
+              )}
 
               <div className="flex-1 min-w-0">
                 <h2 className="text-[20px] sm:text-[22px] break-words" style={{ color: "var(--eco-text)" }}>{reputation.displayName}</h2>

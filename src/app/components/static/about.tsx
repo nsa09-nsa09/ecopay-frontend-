@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, WaveDivider } from "../ds-primitives";
-import { ChevronLeft, ChevronRight, Mail, Phone, MapPin, Shield, Star, Users, Zap } from "lucide-react";
+import { Mail, Phone, MapPin, Shield, Star, Users, Zap } from "lucide-react";
 import { useI18n, type Language } from "../i18n-provider";
 import {
   getFeaturedServiceReviews,
@@ -198,158 +198,96 @@ export function AboutPage() {
 }
 
 const REVIEWS_CAROUSEL_CSS = `
-@keyframes ecoReviewSlideInRight {
-  from { transform: translateX(28px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+@keyframes ecoReviewsMarquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
-@keyframes ecoReviewSlideInLeft {
-  from { transform: translateX(-28px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+.eco-reviews-marquee {
+  display: flex;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 32px, #000 calc(100% - 32px), transparent 100%);
+          mask-image: linear-gradient(to right, transparent 0, #000 32px, #000 calc(100% - 32px), transparent 100%);
 }
-.eco-review-slide-next {
-  animation: ecoReviewSlideInRight 350ms ease-out;
+.eco-reviews-marquee:hover .eco-reviews-marquee-track {
+  animation-play-state: paused;
+}
+.eco-reviews-marquee-track {
+  display: flex;
+  flex-shrink: 0;
+  gap: 16px;
+  width: max-content;
   will-change: transform;
 }
-.eco-review-slide-prev {
-  animation: ecoReviewSlideInLeft 350ms ease-out;
-  will-change: transform;
+@media (prefers-reduced-motion: no-preference) {
+  .eco-reviews-marquee-track--animated {
+    animation: ecoReviewsMarquee linear infinite;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eco-reviews-marquee {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 `;
 
-const REVIEWS_AUTOPLAY_MS = 4500;
+function ReviewCard({ review, language }: { review: PublicServiceReviewDto; language: Language }) {
+  return (
+    <Card className="flex flex-col gap-3 min-w-[300px] max-w-[360px]">
+      <div className="flex items-center gap-1" aria-label={`${review.rating}/5`}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star
+            key={i}
+            size={15}
+            fill={i < review.rating ? "var(--eco-warning-500)" : "none"}
+            style={{ color: i < review.rating ? "var(--eco-warning-500)" : "var(--eco-border)" }}
+          />
+        ))}
+      </div>
+      <p className="text-[14px] whitespace-pre-wrap" style={{ color: "var(--eco-text-secondary)" }}>
+        {review.text}
+      </p>
+      <div className="flex items-center justify-between gap-3 mt-1">
+        <span className="text-[13px]" style={{ color: "var(--eco-text)" }}>{review.authorDisplayName}</span>
+        <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+          {formatDate(review.createdAt, language)}
+        </span>
+      </div>
+    </Card>
+  );
+}
 
 function ReviewsCarousel({ reviews, language }: { reviews: PublicServiceReviewDto[]; language: Language }) {
-  const [index, setIndex] = useState(0);
-  const [direction, setDirection] = useState<"next" | "prev">("next");
-  const intervalRef = useRef<number | null>(null);
+  if (reviews.length === 0) return null;
 
-  useEffect(() => {
-    if (reviews.length === 0) {
-      setIndex(0);
-      return;
-    }
-    if (index > reviews.length - 1) setIndex(reviews.length - 1);
-  }, [reviews.length, index]);
+  if (reviews.length === 1) {
+    return (
+      <div className="flex justify-center">
+        <ReviewCard review={reviews[0]} language={language} />
+      </div>
+    );
+  }
 
-  const safe = reviews.length > 0 ? ((index % reviews.length) + reviews.length) % reviews.length : 0;
-  const current = reviews[safe];
-
-  const resetAutoplay = useCallback(() => {
-    if (intervalRef.current != null) {
-      window.clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    if (reviews.length <= 1) return;
-    intervalRef.current = window.setInterval(() => {
-      setDirection("next");
-      setIndex((i) => (i + 1) % reviews.length);
-    }, REVIEWS_AUTOPLAY_MS);
-  }, [reviews.length]);
-
-  useEffect(() => {
-    resetAutoplay();
-    return () => {
-      if (intervalRef.current != null) {
-        window.clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [resetAutoplay]);
-
-  const goPrev = () => {
-    setDirection("prev");
-    setIndex((i) => (i - 1 + reviews.length) % reviews.length);
-    resetAutoplay();
-  };
-  const goNext = () => {
-    setDirection("next");
-    setIndex((i) => (i + 1) % reviews.length);
-    resetAutoplay();
-  };
-
-  // Lightweight swipe support — no extra deps.
-  const touchStartX = useRef<number | null>(null);
-  const onTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0]?.clientX ?? null; };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const start = touchStartX.current;
-    if (start == null) return;
-    const endX = e.changedTouches[0]?.clientX ?? start;
-    const dx = endX - start;
-    touchStartX.current = null;
-    if (Math.abs(dx) < 40) return;
-    if (dx > 0) goPrev();
-    else goNext();
-  };
-
-  if (!current) return null;
+  // Match a calm reading pace: longer the track, longer the loop, so px/s stays
+  // roughly constant regardless of how many reviews are loaded.
+  const durationSec = Math.max(20, reviews.length * 8);
 
   return (
-    <div className="flex flex-col gap-3" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+    <div className="eco-reviews-marquee">
       <style>{REVIEWS_CAROUSEL_CSS}</style>
       <div
-        key={safe}
-        className={direction === "next" ? "eco-review-slide-next" : "eco-review-slide-prev"}
+        className="eco-reviews-marquee-track eco-reviews-marquee-track--animated"
+        style={{ animationDuration: `${durationSec}s` }}
       >
-        <Card className="flex flex-col gap-3">
-          <div className="flex items-center gap-1" aria-label={`${current.rating}/5`}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                size={15}
-                fill={i < current.rating ? "var(--eco-warning-500)" : "none"}
-                style={{ color: i < current.rating ? "var(--eco-warning-500)" : "var(--eco-border)" }}
-              />
-            ))}
+        {reviews.map((r) => (
+          <ReviewCard key={`a-${r.id}`} review={r} language={language} />
+        ))}
+        {reviews.map((r) => (
+          <div key={`b-${r.id}`} aria-hidden="true">
+            <ReviewCard review={r} language={language} />
           </div>
-          <p className="text-[14px] whitespace-pre-wrap" style={{ color: "var(--eco-text-secondary)" }}>
-            {current.text}
-          </p>
-          <div className="flex items-center justify-between gap-3 mt-1">
-            <span className="text-[13px]" style={{ color: "var(--eco-text)" }}>{current.authorDisplayName}</span>
-            <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-              {formatDate(current.createdAt, language)}
-            </span>
-          </div>
-        </Card>
+        ))}
       </div>
-
-      {reviews.length > 1 && (
-        <div className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={goPrev}
-            aria-label="prev"
-            className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
-            style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
-          >
-            <ChevronLeft size={16} style={{ color: "var(--eco-text-secondary)" }} />
-          </button>
-          <div className="flex items-center gap-1.5">
-            {reviews.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setIndex(i)}
-                aria-label={`${i + 1} / ${reviews.length}`}
-                className="w-2 h-2 rounded-full cursor-pointer"
-                style={{
-                  background: i === safe ? "var(--eco-primary)" : "var(--eco-neutral-200)",
-                  border: "none",
-                }}
-              />
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={goNext}
-            aria-label="next"
-            className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
-            style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
-          >
-            <ChevronRight size={16} style={{ color: "var(--eco-text-secondary)" }} />
-          </button>
-        </div>
-      )}
     </div>
   );
 }

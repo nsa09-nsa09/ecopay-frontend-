@@ -1585,6 +1585,7 @@ export function createReviewRequest(payload: CreateReviewPayload, accessToken: s
 export interface ReputationDto {
   userId: number;
   displayName: string;
+  avatar: string | null;
   reputation: number;
   reputationLevel?: string | null;
   averageRating: number | null;

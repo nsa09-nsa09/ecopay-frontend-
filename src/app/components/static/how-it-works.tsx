@@ -1,35 +1,54 @@
-import { WaveDivider, Card } from "../ds-primitives";
+import { WaveDivider } from "../ds-primitives";
 import { UserPlus, Key, CreditCard, CheckCircle, AlertCircle, MessageSquare } from "lucide-react";
+import { useI18n } from "../i18n-provider";
 
 export function HowItWorksPage() {
+  const { t } = useI18n();
+
   const steps = [
     {
       icon: UserPlus,
       number: 1,
-      title: "Create or Join a Room",
-      description: "Browse available shared plans by operator (Beeline, Activ, Altel, Tele2, Kcell) and join an existing room, or create your own if you have a family plan to share.",
-      details: ["Pick your operator and plan", "See available slots", "Instant room creation"],
+      title: t("howItWorksStep1Title"),
+      description: t("howItWorksStep1Desc"),
+      details: [
+        t("howItWorksStep1Detail1"),
+        t("howItWorksStep1Detail2"),
+        t("howItWorksStep1Detail3"),
+      ],
     },
     {
       icon: Key,
       number: 2,
-      title: "Enter Your Identifier",
-      description: "Provide your telecom identifier (phone number or account ID) so the plan owner can add you to their family plan. Your contact info stays private—only verified identifiers are shared.",
-      details: ["Secure identifier submission", "No personal contact sharing", "Verified by platform"],
+      title: t("howItWorksStep2Title"),
+      description: t("howItWorksStep2Desc"),
+      details: [
+        t("howItWorksStep2Detail1"),
+        t("howItWorksStep2Detail2"),
+        t("howItWorksStep2Detail3"),
+      ],
     },
     {
       icon: CreditCard,
       number: 3,
-      title: "Pay Your Share",
-      description: "Pay your monthly share securely through the platform. Payments are held in escrow and released to the room owner once service is confirmed active.",
-      details: ["Secure payment processing", "Escrow protection", "Transparent pricing"],
+      title: t("howItWorksStep3Title"),
+      description: t("howItWorksStep3Desc"),
+      details: [
+        t("howItWorksStep3Detail1"),
+        t("howItWorksStep3Detail2"),
+        t("howItWorksStep3Detail3"),
+      ],
     },
     {
       icon: CheckCircle,
       number: 4,
-      title: "Verify & Activate",
-      description: "The room owner adds you to their plan. Once verified, your service activates and you start saving. All coordination happens through support tickets—no direct user contact needed.",
-      details: ["Owner adds you to plan", "Platform verification", "Service activation confirmed"],
+      title: t("howItWorksStep4Title"),
+      description: t("howItWorksStep4Desc"),
+      details: [
+        t("howItWorksStep4Detail1"),
+        t("howItWorksStep4Detail2"),
+        t("howItWorksStep4Detail3"),
+      ],
     },
   ];
 
@@ -39,10 +58,10 @@ export function HowItWorksPage() {
       <div className="py-12 sm:py-16 px-4 sm:px-6" style={{ background: "var(--eco-surface)" }}>
         <div className="max-w-[900px] mx-auto text-center">
           <h1 className="text-[26px] sm:text-[40px] tracking-tight mb-4" style={{ color: "var(--eco-text)" }}>
-            How EcoPay Works
+            {t("howItWorksTitle")}
           </h1>
           <p className="text-[16px] max-w-[600px] mx-auto" style={{ color: "var(--eco-text-secondary)" }}>
-            Join shared telecom plans in four simple steps. Save money without the hassle.
+            {t("howItWorksSubtitle")}
           </p>
         </div>
       </div>
@@ -114,10 +133,10 @@ export function HowItWorksPage() {
             <AlertCircle size={24} className="shrink-0 mt-1" style={{ color: "var(--eco-warning-500)" }} />
             <div>
               <h3 className="text-[16px] mb-2" style={{ color: "var(--eco-text)" }}>
-                Important: No User-to-User Chat
+                {t("howItWorksNoticeTitle")}
               </h3>
               <p className="text-[14px] leading-relaxed" style={{ color: "var(--eco-text-secondary)" }}>
-                EcoPay does not provide direct messaging between users. All communication, questions, and coordination happen through official support tickets monitored by our team. This protects your privacy and ensures all interactions are secure and documented.
+                {t("howItWorksNoticeDesc")}
               </p>
             </div>
           </div>
@@ -129,17 +148,17 @@ export function HowItWorksPage() {
             <MessageSquare size={24} className="shrink-0 mt-1" style={{ color: "var(--eco-primary)" }} />
             <div>
               <h3 className="text-[16px] mb-2" style={{ color: "var(--eco-text)" }}>
-                Need Help?
+                {t("howItWorksHelpTitle")}
               </h3>
               <p className="text-[14px] mb-4" style={{ color: "var(--eco-text-secondary)" }}>
-                Our support team is here to help with any questions about joining rooms, payments, or plan activation.
+                {t("howItWorksHelpDesc")}
               </p>
               <a
                 href="/support/new"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[14px] transition-colors"
                 style={{ background: "var(--eco-primary)", color: "#fff", textDecoration: "none" }}
               >
-                Create Support Ticket
+                {t("howItWorksCreateTicketCta")}
               </a>
             </div>
           </div>
@@ -151,17 +170,17 @@ export function HowItWorksPage() {
       <div className="py-12 sm:py-16 px-4 sm:px-6" style={{ background: "var(--eco-surface)" }}>
         <div className="max-w-[600px] mx-auto text-center">
           <h2 className="text-[24px] sm:text-[28px] mb-3" style={{ color: "var(--eco-text)" }}>
-            Ready to Start Saving?
+            {t("howItWorksReadyTitle")}
           </h2>
           <p className="text-[14px] mb-6" style={{ color: "var(--eco-text-secondary)" }}>
-            Browse available plans from Kazakhstan's top operators and join a room today.
+            {t("howItWorksReadyDesc")}
           </p>
           <a
             href="/"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-[15px] transition-colors"
             style={{ background: "var(--eco-primary)", color: "#fff", textDecoration: "none" }}
           >
-            View Catalog
+            {t("howItWorksViewCatalogCta")}
           </a>
         </div>
       </div>

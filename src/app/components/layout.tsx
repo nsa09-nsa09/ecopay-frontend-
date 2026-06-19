@@ -528,8 +528,6 @@ export function AppLayout() {
                 {[
                   { id: "f-catalog", label: t("catalog"), path: "/" },
                   { id: "f-how", label: t("howItWorks"), path: "/how-it-works" },
-                  { id: "f-pricing", label: t("pricing"), path: "#" },
-                  { id: "f-faq", label: t("faq"), path: "#" },
                 ].map((item) => (
                   <Link
                     key={item.id}
@@ -569,7 +567,7 @@ export function AppLayout() {
               <div className="flex flex-col gap-2">
                 {[
                   { id: "f-ticket", label: t("createTicket"), path: "/support/new" },
-                  { id: "f-status", label: t("ticketStatus"), path: "#" },
+                  { id: "f-status", label: t("ticketStatus"), path: "/support" },
                 ].map((item) => (
                   <Link
                     key={item.id}
@@ -591,8 +589,6 @@ export function AppLayout() {
                 {[
                   { id: "m-catalog", label: t("catalog"), path: "/" },
                   { id: "m-how", label: t("howItWorks"), path: "/how-it-works" },
-                  { id: "m-pricing", label: t("pricing"), path: "#" },
-                  { id: "m-faq", label: t("faq"), path: "#" },
                 ].map((item) => (
                   <Link
                     key={item.id}
@@ -632,7 +628,7 @@ export function AppLayout() {
               <div className="flex flex-col gap-1.5 pl-3">
                 {[
                   { id: "m-ticket", label: t("createTicket"), path: "/support/new" },
-                  { id: "m-status", label: t("ticketStatus"), path: "#" },
+                  { id: "m-status", label: t("ticketStatus"), path: "/support" },
                 ].map((item) => (
                   <Link
                     key={item.id}

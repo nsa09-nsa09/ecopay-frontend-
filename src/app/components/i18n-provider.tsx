@@ -260,7 +260,7 @@ const translations: Translations = {
   familySharing: { ru: "Семейный доступ", kz: "Отбасылық қатынас", en: "Family Sharing" },
   
   // ===== Static Pages =====
-  aboutEcoPay: { ru: "О EcoPay", kz: "EcoPay туралы", en: "About EcoPay" },
+  aboutEcoPay: { ru: "Об EcoPay", kz: "EcoPay туралы", en: "About EcoPay" },
   ourMission: { ru: "Наша миссия", kz: "Біздің миссия", en: "Our Mission" },
   aboutSubtitle: {
     ru: "Надёжная платформа Казахстана для совместных тарифов связи",
@@ -1803,6 +1803,224 @@ const translations: Translations = {
     kz: "Әкімшілік тіркелгіге қолжетімділікті жапты. Бұны қате деп санасаңыз, қолдау қызметіне хабарласыңыз.",
     en: "Administrators have blocked access to this account. Contact support if you believe this is a mistake.",
   },
+
+  // ===== /privacy =====
+  privacyHeroSubtitle: {
+    ru: "Конфиденциальность — наш приоритет. Вот как мы защищаем ваши данные.",
+    kz: "Құпиялылық — біздің басымдығымыз. Сіздің деректеріңізді қалай қорғайтынымызды осында оқыңыз.",
+    en: "Your privacy is our priority. Here's how we protect your data.",
+  },
+  privacyLastUpdatedDate: {
+    ru: "Обновлено: 3 апреля 2026",
+    kz: "Жаңартылды: 2026 жылғы 3 сәуір",
+    en: "Last updated: April 3, 2026",
+  },
+  privacyPrinciplesHeading: {
+    ru: "Наши принципы конфиденциальности",
+    kz: "Біздің құпиялылық принциптеріміз",
+    en: "Our Privacy Principles",
+  },
+  privacyPrincipleEncryptionTitle: {
+    ru: "Ваши данные зашифрованы",
+    kz: "Деректеріңіз шифрланған",
+    en: "Your Data is Encrypted",
+  },
+  privacyPrincipleEncryptionDesc: {
+    ru: "Все персональные данные и платёжная информация шифруются при передаче и хранении по отраслевым стандартам.",
+    kz: "Барлық жеке және төлем деректері өнеркәсіптік стандарттарға сай тасымалдау және сақтау кезінде шифрланады.",
+    en: "All personal information and payment data is encrypted in transit and at rest using industry-standard protocols.",
+  },
+  privacyPrincipleNoContactTitle: {
+    ru: "Контакты не передаются",
+    kz: "Байланыс деректері берілмейді",
+    en: "No Contact Sharing",
+  },
+  privacyPrincipleNoContactDesc: {
+    ru: "Мы никогда не передаём ваш номер, e-mail или личные данные другим пользователям. Всё взаимодействие — через платформу.",
+    kz: "Біз сіздің телефон нөміріңізді, e-mail-ыңызды немесе жеке мәліметтеріңізді басқа пайдаланушыларға бермейміз. Барлық үйлестіру платформа арқылы өтеді.",
+    en: "We never share your phone number, email, or personal details with other users. All coordination happens through our platform.",
+  },
+  privacyPrincipleSupportOnlyTitle: {
+    ru: "Общение только через поддержку",
+    kz: "Қарым-қатынас тек қолдау арқылы",
+    en: "Support-Only Communication",
+  },
+  privacyPrincipleSupportOnlyDesc: {
+    ru: "Прямой переписки между пользователями нет. Все вопросы решаются через официальные заявки в поддержку, которые проверяет наша команда.",
+    kz: "Пайдаланушылар арасында тікелей хабар алмасу жоқ. Барлық сұрақтар біздің команда қарайтын ресми қолдау өтінімдері арқылы шешіледі.",
+    en: "There is no direct user-to-user messaging. All communication is handled through official support tickets monitored by our team.",
+  },
+  privacyPrincipleTransparentTitle: {
+    ru: "Прозрачное использование данных",
+    kz: "Деректерді мөлдір пайдалану",
+    en: "Transparent Data Usage",
+  },
+  privacyPrincipleTransparentDesc: {
+    ru: "Мы собираем только то, что необходимо для работы сервиса. Вы можете в любой момент запросить просмотр, экспорт или удаление своих данных.",
+    kz: "Біз қызмет жұмысы үшін қажетті деректерді ғана жинаймыз. Кез келген уақытта деректеріңізді көру, экспорттау немесе жою сұранысын жасай аласыз.",
+    en: "We only collect data necessary to provide our service. You can request to see, export, or delete your data at any time.",
+  },
+  privacyPrincipleMinimalTitle: {
+    ru: "Минимальный сбор данных",
+    kz: "Деректерді ең аз көлемде жинау",
+    en: "Minimal Data Collection",
+  },
+  privacyPrincipleMinimalDesc: {
+    ru: "Только необходимое: имя, e-mail, номер телефона и реквизиты платежа. Никакой истории браузера, отслеживания геолокации или сторонней аналитики.",
+    kz: "Тек қажеттісі: аты-жөні, e-mail, телефон нөмірі және төлем деректемелері. Шолғыш тарихы, геолокацияны бақылау немесе сыртқы аналитика жоқ.",
+    en: "We collect only essential information: name, email, phone number, and payment details. No browsing history, location tracking, or third-party analytics.",
+  },
+  privacyPrincipleComplianceTitle: {
+    ru: "Соответствие и защита",
+    kz: "Сәйкестік және қорғау",
+    en: "Compliance & Protection",
+  },
+  privacyPrincipleComplianceDesc: {
+    ru: "Мы соблюдаем требования законодательства Казахстана о защите данных и применяем международные передовые практики.",
+    kz: "Біз Қазақстанның дербес деректерді қорғау туралы талаптарын сақтаймыз және халықаралық озық тәжірибелерді қолданамыз.",
+    en: "We comply with Kazakhstan data protection regulations and international best practices to keep your information safe.",
+  },
+
+  privacyDataHeading: {
+    ru: "Какие данные мы собираем",
+    kz: "Қандай деректерді жинаймыз",
+    en: "What Data We Collect",
+  },
+  privacyDataAccountTitle: { ru: "Данные аккаунта", kz: "Тіркелгі деректері", en: "Account Information" },
+  privacyDataAccountItem1: { ru: "Полное имя", kz: "Толық аты-жөні", en: "Full name" },
+  privacyDataAccountItem2: { ru: "Адрес e-mail", kz: "E-mail мекенжайы", en: "Email address" },
+  privacyDataAccountItem3: { ru: "Номер телефона", kz: "Телефон нөмірі", en: "Phone number" },
+  privacyDataAccountItem4: { ru: "Пароль (хешированный)", kz: "Құпиясөз (хэштелген)", en: "Password (hashed)" },
+
+  privacyDataPaymentTitle: { ru: "Платёжные данные", kz: "Төлем деректері", en: "Payment Information" },
+  privacyDataPaymentItem1: { ru: "Реквизиты способа оплаты", kz: "Төлем тәсілінің деректемелері", en: "Payment method details" },
+  privacyDataPaymentItem2: { ru: "История транзакций", kz: "Транзакциялар тарихы", en: "Transaction history" },
+  privacyDataPaymentItem3: { ru: "Платёжный адрес", kz: "Төлем мекенжайы", en: "Billing address" },
+
+  privacyDataUsageTitle: { ru: "Использование сервиса", kz: "Қызметті пайдалану", en: "Usage Data" },
+  privacyDataUsageItem1: { ru: "История участия в комнатах", kz: "Бөлмелерге қатысу тарихы", en: "Room participation history" },
+  privacyDataUsageItem2: { ru: "Записи заявок в поддержку", kz: "Қолдау өтінімдерінің жазбалары", en: "Support ticket records" },
+  privacyDataUsageItem3: { ru: "Активность входов", kz: "Кіру белсенділігі", en: "Login activity" },
+
+  privacyDataTechnicalTitle: { ru: "Технические данные", kz: "Техникалық деректер", en: "Technical Data" },
+  privacyDataTechnicalItem1: { ru: "IP-адрес", kz: "IP-мекенжай", en: "IP address" },
+  privacyDataTechnicalItem2: { ru: "Тип браузера", kz: "Шолғыш түрі", en: "Browser type" },
+  privacyDataTechnicalItem3: { ru: "Сведения об устройстве", kz: "Құрылғы туралы мәліметтер", en: "Device information" },
+
+  privacyCommitmentsHeading: { ru: "Ключевые обязательства", kz: "Негізгі міндеттемелер", en: "Key Commitments" },
+  privacyCommitmentNoSellingLabel: { ru: "Никаких продаж:", kz: "Сатылмайды:", en: "No selling:" },
+  privacyCommitmentNoSellingDesc: {
+    ru: "Мы никогда не продаём ваши данные третьим сторонам.",
+    kz: "Біз сіздің деректеріңізді ешқашан үшінші тұлғаларға сатпаймыз.",
+    en: "We never sell your data to third parties.",
+  },
+  privacyCommitmentNoUserSharingLabel: {
+    ru: "Никакого обмена между пользователями:",
+    kz: "Пайдаланушылар арасында бөлісу жоқ:",
+    en: "No user-to-user sharing:",
+  },
+  privacyCommitmentNoUserSharingDesc: {
+    ru: "Ваши контактные данные никогда не передаются другим пользователям.",
+    kz: "Сіздің байланыс деректеріңіз ешқашан басқа пайдаланушыларға берілмейді.",
+    en: "Your contact information is never shared with other users.",
+  },
+  privacyCommitmentDeletionLabel: { ru: "Право на удаление:", kz: "Жою құқығы:", en: "Right to deletion:" },
+  privacyCommitmentDeletionDesc: {
+    ru: "Вы можете в любое время запросить удаление аккаунта и данных.",
+    kz: "Кез келген уақытта тіркелгі мен деректерді жоюды талап ете аласыз.",
+    en: "You can request account and data deletion at any time.",
+  },
+  privacyCommitmentPortabilityLabel: { ru: "Переносимость данных:", kz: "Деректердің тасымалдануы:", en: "Data portability:" },
+  privacyCommitmentPortabilityDesc: {
+    ru: "Вы можете экспортировать свои данные в стандартном формате.",
+    kz: "Деректеріңізді стандартты пішімде экспорттай аласыз.",
+    en: "You can export your data in a standard format.",
+  },
+
+  privacyContactHeading: { ru: "Вопросы о конфиденциальности?", kz: "Құпиялылық туралы сұрақтар бар ма?", en: "Privacy Questions?" },
+  privacyContactDescBefore: {
+    ru: "Если у вас есть вопросы об этой политике или том, как мы обращаемся с данными, напишите нам на ",
+    kz: "Осы саясат немесе деректерді қалай өңдейтініміз туралы сұрақтарыңыз болса, бізге хат жазыңыз: ",
+    en: "If you have questions about this privacy policy or how we handle your data, contact us at ",
+  },
+  privacyContactDescAfter: {
+    ru: " или через нашу систему поддержки.",
+    kz: " немесе қолдау жүйеміз арқылы хабарласыңыз.",
+    en: " or through our support system.",
+  },
+
+  // ===== /how-it-works =====
+  howItWorksSubtitle: {
+    ru: "Присоединяйтесь к общим тарифам в четыре простых шага. Экономьте без лишних хлопот.",
+    kz: "Ортақ тарифтерге төрт қарапайым қадаммен қосылыңыз. Артық қиындықсыз үнемдеңіз.",
+    en: "Join shared telecom plans in four simple steps. Save money without the hassle.",
+  },
+  howItWorksStep1Title: {
+    ru: "Создайте или присоединитесь к комнате",
+    kz: "Бөлме құрыңыз немесе оған қосылыңыз",
+    en: "Create or Join a Room",
+  },
+  howItWorksStep1Desc: {
+    ru: "Изучите доступные общие тарифы по оператору (Beeline, Activ, Altel, Tele2, Kcell) и присоединитесь к существующей комнате — или создайте свою, если у вас есть семейный тариф, которым можно поделиться.",
+    kz: "Оператор бойынша қолжетімді ортақ тарифтерді (Beeline, Activ, Altel, Tele2, Kcell) қараңыз да, бар бөлмеге қосылыңыз немесе бөлісуге болатын отбасылық тарифіңіз болса, өзіңіздің бөлмеңізді құрыңыз.",
+    en: "Browse available shared plans by operator (Beeline, Activ, Altel, Tele2, Kcell) and join an existing room, or create your own if you have a family plan to share.",
+  },
+  howItWorksStep1Detail1: { ru: "Выберите оператора и тариф", kz: "Операторды және тарифті таңдаңыз", en: "Pick your operator and plan" },
+  howItWorksStep1Detail2: { ru: "Посмотрите свободные места", kz: "Бос орындарды көріңіз", en: "See available slots" },
+  howItWorksStep1Detail3: { ru: "Мгновенное создание комнаты", kz: "Бөлмені бірден құру", en: "Instant room creation" },
+
+  howItWorksStep2Title: { ru: "Укажите идентификатор", kz: "Идентификаторыңызды енгізіңіз", en: "Enter Your Identifier" },
+  howItWorksStep2Desc: {
+    ru: "Укажите телеком-идентификатор (номер телефона или ID аккаунта), чтобы владелец тарифа смог добавить вас. Контактные данные остаются приватными — передаются только проверенные идентификаторы.",
+    kz: "Телеком идентификаторыңызды (телефон нөмірі немесе тіркелгі ID-сі) енгізіңіз — иесі сізді тарифіне қоса алады. Байланыс деректеріңіз құпия қалады, тек тексерілген идентификаторлар ғана беріледі.",
+    en: "Provide your telecom identifier (phone number or account ID) so the plan owner can add you to their family plan. Your contact info stays private—only verified identifiers are shared.",
+  },
+  howItWorksStep2Detail1: { ru: "Безопасная отправка идентификатора", kz: "Идентификаторды қауіпсіз жіберу", en: "Secure identifier submission" },
+  howItWorksStep2Detail2: { ru: "Без передачи личных контактов", kz: "Жеке байланыс деректерін бермейміз", en: "No personal contact sharing" },
+  howItWorksStep2Detail3: { ru: "Проверено платформой", kz: "Платформа тексереді", en: "Verified by platform" },
+
+  howItWorksStep3Title: { ru: "Оплатите свою долю", kz: "Өз үлесіңізді төлеңіз", en: "Pay Your Share" },
+  howItWorksStep3Desc: {
+    ru: "Безопасно оплатите ежемесячную долю через платформу. Средства хранятся на эскроу-счёте и переводятся владельцу комнаты только после подтверждения активной услуги.",
+    kz: "Ай сайынғы үлесіңізді платформа арқылы қауіпсіз төлеңіз. Қаражат эскроу-шотта сақталып, қызмет белсенді екені расталғаннан кейін ғана бөлме иесіне аударылады.",
+    en: "Pay your monthly share securely through the platform. Payments are held in escrow and released to the room owner once service is confirmed active.",
+  },
+  howItWorksStep3Detail1: { ru: "Безопасная обработка платежей", kz: "Қауіпсіз төлемді өңдеу", en: "Secure payment processing" },
+  howItWorksStep3Detail2: { ru: "Защита через эскроу", kz: "Эскроу арқылы қорғау", en: "Escrow protection" },
+  howItWorksStep3Detail3: { ru: "Прозрачные цены", kz: "Айқын бағалар", en: "Transparent pricing" },
+
+  howItWorksStep4Title: { ru: "Подтверждение и активация", kz: "Растау және белсендіру", en: "Verify & Activate" },
+  howItWorksStep4Desc: {
+    ru: "Владелец комнаты добавляет вас в тариф. После проверки услуга активируется, и вы начинаете экономить. Все вопросы — только через заявки в поддержку, без прямого общения.",
+    kz: "Бөлме иесі сізді тарифіне қосады. Тексеруден кейін қызмет белсендіріледі, ал сіз үнемдеуді бастайсыз. Барлық үйлестіру тікелей емес, қолдау өтінімдері арқылы өтеді.",
+    en: "The room owner adds you to their plan. Once verified, your service activates and you start saving. All coordination happens through support tickets—no direct user contact needed.",
+  },
+  howItWorksStep4Detail1: { ru: "Владелец добавляет вас в тариф", kz: "Иесі сізді тарифке қосады", en: "Owner adds you to plan" },
+  howItWorksStep4Detail2: { ru: "Проверка платформой", kz: "Платформа тексеруі", en: "Platform verification" },
+  howItWorksStep4Detail3: { ru: "Активация услуги подтверждена", kz: "Қызметтің белсендірілуі расталды", en: "Service activation confirmed" },
+
+  howItWorksNoticeTitle: { ru: "Важно: между пользователями нет чата", kz: "Маңызды: пайдаланушылар арасында чат жоқ", en: "Important: No User-to-User Chat" },
+  howItWorksNoticeDesc: {
+    ru: "EcoPay не предоставляет прямого общения между пользователями. Все вопросы и координация решаются через официальные заявки в поддержку, которые проверяет наша команда. Это защищает вашу приватность и обеспечивает безопасность и фиксацию всех взаимодействий.",
+    kz: "EcoPay пайдаланушылар арасында тікелей хабарласуды қамтамасыз етпейді. Барлық сұрақтар мен үйлестіру біздің команда қарайтын ресми қолдау өтінімдері арқылы шешіледі. Бұл сіздің құпиялылығыңызды қорғайды әрі барлық әрекеттің қауіпсіз және құжатталған болуын қамтамасыз етеді.",
+    en: "EcoPay does not provide direct messaging between users. All communication, questions, and coordination happen through official support tickets monitored by our team. This protects your privacy and ensures all interactions are secure and documented.",
+  },
+
+  howItWorksHelpTitle: { ru: "Нужна помощь?", kz: "Көмек керек пе?", en: "Need Help?" },
+  howItWorksHelpDesc: {
+    ru: "Наша служба поддержки готова ответить на любые вопросы о присоединении к комнатам, оплате и активации тарифа.",
+    kz: "Біздің қолдау тобы бөлмеге қосылу, төлеу немесе тарифті белсендіру туралы кез келген сұраққа жауап беруге дайын.",
+    en: "Our support team is here to help with any questions about joining rooms, payments, or plan activation.",
+  },
+  howItWorksCreateTicketCta: { ru: "Создать заявку в поддержку", kz: "Қолдау өтінімін жасау", en: "Create Support Ticket" },
+
+  howItWorksReadyTitle: { ru: "Готовы начать экономить?", kz: "Үнемдеуге дайынсыз ба?", en: "Ready to Start Saving?" },
+  howItWorksReadyDesc: {
+    ru: "Изучите доступные тарифы от ведущих операторов Казахстана и присоединяйтесь к комнате уже сегодня.",
+    kz: "Қазақстанның жетекші операторларының қолжетімді тарифтерін қарап шығып, бүгін бөлмеге қосылыңыз.",
+    en: "Browse available plans from Kazakhstan's top operators and join a room today.",
+  },
+  howItWorksViewCatalogCta: { ru: "Открыть каталог", kz: "Каталогты ашу", en: "View Catalog" },
 };
 
 interface I18nContextType {

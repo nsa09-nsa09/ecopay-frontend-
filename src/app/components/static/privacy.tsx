@@ -1,45 +1,77 @@
 import { WaveDivider } from "../ds-primitives";
 import { Shield, Lock, Eye, UserX, Database, MessageSquare, Calendar } from "lucide-react";
+import { useI18n } from "../i18n-provider";
 
 export function PrivacyPage() {
+  const { t } = useI18n();
+
   const principles = [
     {
       icon: Lock,
-      title: "Your Data is Encrypted",
-      description: "All personal information and payment data is encrypted in transit and at rest using industry-standard protocols.",
+      title: t("privacyPrincipleEncryptionTitle"),
+      description: t("privacyPrincipleEncryptionDesc"),
     },
     {
       icon: UserX,
-      title: "No Contact Sharing",
-      description: "We never share your phone number, email, or personal details with other users. All coordination happens through our platform.",
+      title: t("privacyPrincipleNoContactTitle"),
+      description: t("privacyPrincipleNoContactDesc"),
     },
     {
       icon: MessageSquare,
-      title: "Support-Only Communication",
-      description: "There is no direct user-to-user messaging. All communication is handled through official support tickets monitored by our team.",
+      title: t("privacyPrincipleSupportOnlyTitle"),
+      description: t("privacyPrincipleSupportOnlyDesc"),
     },
     {
       icon: Eye,
-      title: "Transparent Data Usage",
-      description: "We only collect data necessary to provide our service. You can request to see, export, or delete your data at any time.",
+      title: t("privacyPrincipleTransparentTitle"),
+      description: t("privacyPrincipleTransparentDesc"),
     },
     {
       icon: Database,
-      title: "Minimal Data Collection",
-      description: "We collect only essential information: name, email, phone number, and payment details. No browsing history, location tracking, or third-party analytics.",
+      title: t("privacyPrincipleMinimalTitle"),
+      description: t("privacyPrincipleMinimalDesc"),
     },
     {
       icon: Shield,
-      title: "Compliance & Protection",
-      description: "We comply with Kazakhstan data protection regulations and international best practices to keep your information safe.",
+      title: t("privacyPrincipleComplianceTitle"),
+      description: t("privacyPrincipleComplianceDesc"),
     },
   ];
 
   const dataCollected = [
-    { category: "Account Information", items: ["Full name", "Email address", "Phone number", "Password (hashed)"] },
-    { category: "Payment Information", items: ["Payment method details", "Transaction history", "Billing address"] },
-    { category: "Usage Data", items: ["Room participation history", "Support ticket records", "Login activity"] },
-    { category: "Technical Data", items: ["IP address", "Browser type", "Device information"] },
+    {
+      category: t("privacyDataAccountTitle"),
+      items: [
+        t("privacyDataAccountItem1"),
+        t("privacyDataAccountItem2"),
+        t("privacyDataAccountItem3"),
+        t("privacyDataAccountItem4"),
+      ],
+    },
+    {
+      category: t("privacyDataPaymentTitle"),
+      items: [
+        t("privacyDataPaymentItem1"),
+        t("privacyDataPaymentItem2"),
+        t("privacyDataPaymentItem3"),
+      ],
+    },
+    {
+      category: t("privacyDataUsageTitle"),
+      items: [
+        t("privacyDataUsageItem1"),
+        t("privacyDataUsageItem2"),
+        t("privacyDataUsageItem3"),
+      ],
+    },
+    {
+      category: t("privacyDataTechnicalTitle"),
+      items: [
+        t("privacyDataTechnicalItem1"),
+        t("privacyDataTechnicalItem2"),
+        t("privacyDataTechnicalItem3"),
+      ],
+    },
   ];
 
   return (
@@ -50,15 +82,15 @@ export function PrivacyPage() {
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <Shield size={32} style={{ color: "var(--eco-primary)" }} />
             <h1 className="text-[26px] sm:text-[40px] tracking-tight" style={{ color: "var(--eco-text)" }}>
-              Privacy Policy
+              {t("privacyPolicy")}
             </h1>
           </div>
           <p className="text-[16px] mb-3" style={{ color: "var(--eco-text-secondary)" }}>
-            Your privacy is our priority. Here's how we protect your data.
+            {t("privacyHeroSubtitle")}
           </p>
           <div className="flex items-center gap-2 text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
             <Calendar size={14} />
-            <span>Last updated: April 3, 2026</span>
+            <span>{t("privacyLastUpdatedDate")}</span>
           </div>
         </div>
       </div>
@@ -66,7 +98,7 @@ export function PrivacyPage() {
 
       {/* Privacy Principles */}
       <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-12">
-        <h2 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>Our Privacy Principles</h2>
+        <h2 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>{t("privacyPrinciplesHeading")}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           {principles.map((principle) => {
             const Icon = principle.icon;
@@ -94,7 +126,7 @@ export function PrivacyPage() {
         <div className="my-12 border-t" style={{ borderColor: "var(--eco-border)" }} />
 
         {/* Data We Collect */}
-        <h2 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>What Data We Collect</h2>
+        <h2 className="text-[24px] mb-6" style={{ color: "var(--eco-text)" }}>{t("privacyDataHeading")}</h2>
         <div className="space-y-6 mb-12">
           {dataCollected.map((section) => (
             <div key={section.category} className="p-5 rounded-xl" style={{ background: "var(--eco-surface)" }}>
@@ -116,24 +148,24 @@ export function PrivacyPage() {
         {/* Key Commitments */}
         <div className="p-6 rounded-xl border-2" style={{ background: "var(--eco-bg)", borderColor: "var(--eco-primary)" }}>
           <h3 className="text-[18px] mb-4" style={{ color: "var(--eco-text)" }}>
-            Key Commitments
+            {t("privacyCommitmentsHeading")}
           </h3>
           <ul className="space-y-3">
             <li className="flex items-start gap-3 text-[14px]" style={{ color: "var(--eco-text-secondary)" }}>
               <span className="text-[16px]">✓</span>
-              <span><strong style={{ color: "var(--eco-text)" }}>No selling:</strong> We never sell your data to third parties.</span>
+              <span><strong style={{ color: "var(--eco-text)" }}>{t("privacyCommitmentNoSellingLabel")}</strong> {t("privacyCommitmentNoSellingDesc")}</span>
             </li>
             <li className="flex items-start gap-3 text-[14px]" style={{ color: "var(--eco-text-secondary)" }}>
               <span className="text-[16px]">✓</span>
-              <span><strong style={{ color: "var(--eco-text)" }}>No user-to-user sharing:</strong> Your contact information is never shared with other users.</span>
+              <span><strong style={{ color: "var(--eco-text)" }}>{t("privacyCommitmentNoUserSharingLabel")}</strong> {t("privacyCommitmentNoUserSharingDesc")}</span>
             </li>
             <li className="flex items-start gap-3 text-[14px]" style={{ color: "var(--eco-text-secondary)" }}>
               <span className="text-[16px]">✓</span>
-              <span><strong style={{ color: "var(--eco-text)" }}>Right to deletion:</strong> You can request account and data deletion at any time.</span>
+              <span><strong style={{ color: "var(--eco-text)" }}>{t("privacyCommitmentDeletionLabel")}</strong> {t("privacyCommitmentDeletionDesc")}</span>
             </li>
             <li className="flex items-start gap-3 text-[14px]" style={{ color: "var(--eco-text-secondary)" }}>
               <span className="text-[16px]">✓</span>
-              <span><strong style={{ color: "var(--eco-text)" }}>Data portability:</strong> You can export your data in a standard format.</span>
+              <span><strong style={{ color: "var(--eco-text)" }}>{t("privacyCommitmentPortabilityLabel")}</strong> {t("privacyCommitmentPortabilityDesc")}</span>
             </li>
           </ul>
         </div>
@@ -141,10 +173,10 @@ export function PrivacyPage() {
         {/* Contact */}
         <div className="mt-12 p-5 rounded-xl" style={{ background: "var(--eco-surface)" }}>
           <h3 className="text-[15px] mb-2" style={{ color: "var(--eco-text)" }}>
-            Privacy Questions?
+            {t("privacyContactHeading")}
           </h3>
           <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-            If you have questions about this privacy policy or how we handle your data, contact us at <strong style={{ color: "var(--eco-primary)" }}>privacy@ecopay.kz</strong> or through our support system.
+            {t("privacyContactDescBefore")}<strong style={{ color: "var(--eco-primary)" }}>privacy@ecopay.kz</strong>{t("privacyContactDescAfter")}
           </p>
         </div>
       </div>
