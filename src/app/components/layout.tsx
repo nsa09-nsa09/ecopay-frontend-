@@ -1,12 +1,224 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { Button, LanguageSwitcher, WaveDivider } from "./ds-primitives";
 import { BrandLogo } from "./brand-logo";
 import { Menu, X, Search } from "lucide-react";
 import { useI18n } from "./i18n-provider";
 import { useAuth } from "./auth/auth-provider";
-import { NotificationBell } from "./notifications/notification-bell";
-import { trackVisitRequest } from "../lib/api";
+import { ApiError, searchCatalog, trackVisitRequest, type CatalogSearchHit } from "../lib/api";
+
+interface CatalogSearchBoxProps {
+  variant: "desktop" | "mobile";
+  onPicked?: () => void;
+  autoFocus?: boolean;
+}
+
+function CatalogSearchBox({ variant, onPicked, autoFocus }: CatalogSearchBoxProps) {
+  const { t } = useI18n();
+  const navigate = useNavigate();
+
+  const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [results, setResults] = useState<CatalogSearchHit[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(query.trim()), 300);
+    return () => window.clearTimeout(id);
+  }, [query]);
+
+  useEffect(() => {
+    if (debounced.length < 2) {
+      setResults(null);
+      setHasError(false);
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setLoading(true);
+    setHasError(false);
+    searchCatalog(debounced, { signal: controller.signal })
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        setResults(data ?? []);
+      })
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        // Swallow raw server messages; show a quiet "no results" instead.
+        if (err instanceof ApiError) {
+          setHasError(true);
+        } else {
+          setHasError(true);
+        }
+        setResults(null);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [debounced]);
+
+  // Outside click closes dropdown on desktop.
+  useEffect(() => {
+    if (variant !== "desktop") return;
+    if (!open) return;
+    const handle = (event: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [open, variant]);
+
+  // Esc closes the dropdown from anywhere.
+  useEffect(() => {
+    if (!open) return;
+    const handle = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        inputRef.current?.blur();
+      }
+    };
+    document.addEventListener("keydown", handle);
+    return () => document.removeEventListener("keydown", handle);
+  }, [open]);
+
+  const handlePick = (hit: CatalogSearchHit) => {
+    setOpen(false);
+    setQuery("");
+    setDebounced("");
+    setResults(null);
+    navigate(`/browse?service=${encodeURIComponent(hit.serviceId)}`);
+    onPicked?.();
+  };
+
+  const showPanel = open && debounced.length >= 2;
+  const empty = showPanel && !loading && results !== null && results.length === 0;
+
+  const panel = showPanel ? (
+    <div
+      role="listbox"
+      className={
+        variant === "desktop"
+          ? "absolute left-0 right-0 top-full mt-2 z-50 rounded-xl shadow-lg max-h-[60vh] overflow-y-auto"
+          : "rounded-xl max-h-[60vh] overflow-y-auto"
+      }
+      style={{
+        background: "var(--eco-bg)",
+        border: "1px solid var(--eco-border)",
+        boxShadow: variant === "desktop" ? "0 12px 32px rgba(0,0,0,0.10)" : undefined,
+      }}
+    >
+      {loading && (
+        <div className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+          {t("navbarSearchLoading")}
+        </div>
+      )}
+      {!loading && (empty || hasError) && (
+        <div className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+          {t("navbarSearchEmpty")}
+        </div>
+      )}
+      {!loading && results && results.length > 0 && (
+        <div className="flex flex-col">
+          {results.map((hit) => (
+            <button
+              key={`hit-${hit.serviceId}`}
+              type="button"
+              onClick={() => handlePick(hit)}
+              className="flex items-center gap-3 px-4 py-2.5 text-left cursor-pointer transition-colors hover:bg-[var(--eco-surface)]"
+              style={{ background: "transparent", border: "none" }}
+              role="option"
+            >
+              {hit.logoUrl ? (
+                <img
+                  src={hit.logoUrl}
+                  alt=""
+                  width={28}
+                  height={28}
+                  loading="lazy"
+                  decoding="async"
+                  className="rounded-lg shrink-0 object-cover"
+                  style={{ background: "var(--eco-surface)" }}
+                />
+              ) : (
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-[12px] shrink-0"
+                  style={{ background: "var(--eco-brand-50)", color: "var(--eco-primary)", fontWeight: 700 }}
+                >
+                  {(hit.name?.charAt(0) ?? "?").toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="text-[13px] truncate" style={{ color: "var(--eco-text)" }}>{hit.name}</div>
+                <div className="text-[11px] truncate" style={{ color: "var(--eco-text-tertiary)" }}>{hit.categoryName}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  ) : null;
+
+  if (variant === "desktop") {
+    return (
+      <div ref={containerRef} className="relative hidden md:flex items-center w-56">
+        <Search size={15} className="absolute left-2.5 pointer-events-none" style={{ color: "var(--eco-text-tertiary)" }} />
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder={t("navbarSearchPlaceholder")}
+          aria-label={t("navbarSearchPlaceholder")}
+          className="pl-8 pr-3 py-1.5 rounded-lg text-[13px] outline-none w-full"
+          style={{
+            background: "var(--eco-surface)",
+            border: "1px solid var(--eco-border)",
+            color: "var(--eco-text)",
+          }}
+        />
+        {panel}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="relative">
+        <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--eco-text-tertiary)" }} />
+        <input
+          ref={inputRef}
+          autoFocus={autoFocus}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          placeholder={t("navbarSearchPlaceholder")}
+          aria-label={t("navbarSearchPlaceholder")}
+          className="pl-8 pr-3 py-2 rounded-lg text-[14px] outline-none w-full"
+          style={{
+            background: "var(--eco-surface)",
+            border: "1px solid var(--eco-border)",
+            color: "var(--eco-text)",
+          }}
+        />
+      </div>
+      {open ? panel : null}
+    </div>
+  );
+}
 
 export function AppLayout() {
   const { language, setLanguage, t } = useI18n();
@@ -14,6 +226,7 @@ export function AppLayout() {
   const navigate = useNavigate();
   const [mobileMenu, setMobileMenu] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const location = useLocation();
   const lastTrackedPath = useRef<string | null>(null);
 
@@ -30,6 +243,12 @@ export function AppLayout() {
     });
   }, [location.pathname]);
 
+  // Auto-close the mobile search overlay on navigation.
+  useEffect(() => {
+    setMobileSearchOpen(false);
+    setMobileMenu(false);
+  }, [location.pathname]);
+
   const isAuthRoute =
     location.pathname.startsWith("/login") ||
     location.pathname.startsWith("/register") ||
@@ -42,13 +261,21 @@ export function AppLayout() {
     .join("")
     .slice(0, 2);
 
-  const navItems = [
-    { label: t("catalog"), path: "/" },
-    { label: t("browseRooms"), path: "/browse" },
-    { label: t("myRooms"), path: "/rooms" },
-    { label: t("support"), path: "/support" },
-    { label: t("aboutUs"), path: "/about" },
-  ];
+  // /rooms is gated by auth — hide the entry for guests so they don't land on
+  // the empty-state screen by accident. /browse is decommissioned; room
+  // discovery now happens via service-match on the catalog tiles.
+  const navItems = useMemo(() => {
+    const items: { label: string; path: string }[] = [
+      { label: t("catalog"), path: "/" },
+      { label: t("news"), path: "/news" },
+    ];
+    if (isAuthenticated) {
+      items.push({ label: t("myRooms"), path: "/rooms" });
+    }
+    items.push({ label: t("support"), path: "/support" });
+    items.push({ label: t("aboutUs"), path: "/about" });
+    return items;
+  }, [t, isAuthenticated]);
 
   const languageLabels = {
     ru: "Рус",
@@ -91,16 +318,15 @@ export function AppLayout() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="hidden md:flex items-center relative">
-              <Search size={15} className="absolute left-2.5" style={{ color: "var(--eco-text-tertiary)" }} />
-              <input
-                placeholder={t("searchPlans")}
-                className="pl-8 pr-3 py-1.5 rounded-lg text-[13px] outline-none w-56"
-                style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
-              />
-            </div>
+            <CatalogSearchBox variant="desktop" />
 
-            <button className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--eco-surface)" }}>
+            <button
+              type="button"
+              onClick={() => setMobileSearchOpen(true)}
+              className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
+              style={{ background: "var(--eco-surface)", border: "none" }}
+              aria-label={t("navbarSearchPlaceholder")}
+            >
               <Search size={16} style={{ color: "var(--eco-text-secondary)" }} />
             </button>
 
@@ -111,10 +337,6 @@ export function AppLayout() {
             <div className="md:hidden px-2.5 py-1 rounded-md text-[12px] font-medium" style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)" }}>
               {languageLabels[language]}
             </div>
-
-            {isAuthenticated && !isAuthRoute && (
-              <NotificationBell />
-            )}
 
             {isAuthenticated && !isAuthRoute ? (
               <div className="relative hidden md:block">
@@ -252,6 +474,42 @@ export function AppLayout() {
           </div>
         )}
       </nav>
+
+      {/* Mobile search overlay — sheet anchored to the top so it remains
+          usable inside the on-screen keyboard. */}
+      {mobileSearchOpen && (
+        <div
+          className="fixed inset-0 z-[60] md:hidden flex flex-col"
+          style={{ background: "rgba(0,0,0,0.45)" }}
+          onClick={() => setMobileSearchOpen(false)}
+        >
+          <div
+            className="m-3 mt-4 p-3 rounded-2xl shadow-xl"
+            style={{ background: "var(--eco-bg)", border: "1px solid var(--eco-border)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                {t("navbarSearchPlaceholder")}
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileSearchOpen(false)}
+                className="p-1 rounded-md cursor-pointer"
+                style={{ background: "transparent", border: "none", color: "var(--eco-text-secondary)" }}
+                aria-label={t("navbarSearchClose")}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <CatalogSearchBox
+              variant="mobile"
+              autoFocus
+              onPicked={() => setMobileSearchOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       <main>
         <Outlet />

@@ -43,6 +43,7 @@ export interface ServiceDto {
   minPricePerMember?: number | null;
   currency?: string | null;
   tariffCount?: number;
+  logoUrl?: string | null;
 }
 
 export type CatalogSort = "name_asc" | "name_desc" | "price_asc" | "price_desc" | "newest";
@@ -76,6 +77,7 @@ export interface RoomSummaryDto {
   ownerReputationLevel?: string | null;
   serviceId: number;
   serviceName: string;
+  serviceLogoUrl?: string | null;
 }
 
 export interface RoomResponseDto {
@@ -83,6 +85,7 @@ export interface RoomResponseDto {
   ownerUserId: number;
   categoryId: number;
   serviceId: number;
+  serviceLogoUrl?: string | null;
   tariffPlanId: number;
   roomType: string;
   verificationMode: string;
@@ -167,6 +170,7 @@ function classifyApiErrorCode(
   if (status === 401) return "sessionExpired";
   if (status === 403) return "noAccess";
   if (status === 404) return "notAvailable";
+  if (status === 429) return "rateLimited";
   if (rawMessage && /no static resource/i.test(rawMessage)) return "notAvailable";
   if (status >= 500) return "serverError";
   return "generic";
@@ -475,10 +479,10 @@ export function loginRequest(email: string, password: string) {
   });
 }
 
-export function registerRequest(displayName: string, email: string, password: string, phone: string) {
+export function registerRequest(displayName: string, email: string, password: string) {
   return requestJson<AuthResponse>("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ displayName, email, password, phone }),
+    body: JSON.stringify({ displayName, email, password }),
   });
 }
 
@@ -593,6 +597,15 @@ export function getRooms(params: Record<string, string | number | undefined> = {
 
 export function getRoom(roomId: number) {
   return requestJson<RoomResponseDto>(`/rooms/${roomId}`);
+}
+
+export interface RoomInviteLinkDto {
+  url: string;
+  token: string;
+}
+
+export function getRoomInviteLink(roomId: number, accessToken: string) {
+  return requestJson<RoomInviteLinkDto>(`/rooms/${roomId}/invite-link`, {}, accessToken);
 }
 
 export function joinRoomRequest(
@@ -1830,6 +1843,7 @@ export interface AdminServiceDto {
   providerType: string;
   isActive: boolean;
   tariffsCount: number;
+  logoUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -2180,54 +2194,173 @@ export function adminUpdateSiteAbout(payload: UpdateSiteAboutPayload, accessToke
   );
 }
 
-// ===================== Notifications =====================
+// ───────────────────────────────────────────────────────────────
+// News module
+// ───────────────────────────────────────────────────────────────
 
-export type NotificationType =
-  | "MEMBER_JOINED"
-  | "PAYMENT_SUCCESS"
-  | "PAYMENT_FAILED"
-  | "OWNER_ACCESS_GRANTED"
-  | "MEMBER_CONFIRMED"
-  | "MEMBERSHIP_ACTIVATED"
-  | "MEMBERSHIP_REJECTED"
-  | "CONFIRMATION_DEADLINE_WARNING"
-  | "ROOM_ACTIVE"
-  | "ROOM_COMPLETED"
-  | "ROOM_BLOCKED"
-  | "ROOM_CANCELLED"
-  | "REFUND_ISSUED"
-  | "PAYOUT_SENT"
-  | "DISPUTE_OPENED"
-  | "DISPUTE_RESOLVED"
-  | "TICKET_REPLY"
-  | "ACCOUNT_BANNED"
-  | "ACCOUNT_UNBANNED";
+export type NewsStatus = "PUBLISHED" | "DRAFT" | "ARCHIVED";
 
-export type NotificationCategory =
-  | "MEMBERSHIP"
-  | "ROOM"
-  | "PAYMENTS"
-  | "DISPUTES"
-  | "SUPPORT"
-  | "ACCOUNT";
+export interface NewsDto {
+  id: number;
+  titleKz?: string | null;
+  titleRu?: string | null;
+  titleEn?: string | null;
+  bodyKz?: string | null;
+  bodyRu?: string | null;
+  bodyEn?: string | null;
+  imageUrl?: string | null;
+  status?: NewsStatus;
+  publishedAt?: string | null;
+  sortOrder?: number;
+}
+
+export interface AdminNewsDto extends NewsDto {
+  status: NewsStatus;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertNewsPayload {
+  titleKz?: string | null;
+  titleRu?: string | null;
+  titleEn?: string | null;
+  bodyKz?: string | null;
+  bodyRu?: string | null;
+  bodyEn?: string | null;
+  status: NewsStatus;
+  sortOrder?: number;
+  publishedAt?: string | null;
+}
+
+const newsCache = new Map<string, Promise<NewsDto[]>>();
+
+export function getNews(page = 0, limit = 6) {
+  const key = `${page}::${limit}`;
+  const cached = newsCache.get(key);
+  if (cached) return cached;
+  const promise = requestJson<PagedResponse<NewsDto>>(
+    `/news${toSearchParams({ page, limit })}`,
+  )
+    .then((res) => res?.items ?? [])
+    .catch((err) => {
+      newsCache.delete(key);
+      throw err;
+    });
+  newsCache.set(key, promise);
+  return promise;
+}
+
+export function clearNewsCache() {
+  newsCache.clear();
+}
+
+export function adminListNews(accessToken: string) {
+  return requestJson<PagedResponse<AdminNewsDto>>(
+    "/admin/news",
+    {},
+    accessToken,
+  ).then((res) => res?.items ?? []);
+}
+
+export function adminGetNews(id: number, accessToken: string) {
+  return requestJson<AdminNewsDto>(`/admin/news/${id}`, {}, accessToken);
+}
+
+export function adminCreateNews(payload: UpsertNewsPayload, accessToken: string) {
+  return requestJson<AdminNewsDto>(
+    "/admin/news",
+    { method: "POST", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminUpdateNews(id: number, payload: UpsertNewsPayload, accessToken: string) {
+  return requestJson<AdminNewsDto>(
+    `/admin/news/${id}`,
+    { method: "PUT", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminDeleteNews(id: number, accessToken: string) {
+  return requestJson<void>(
+    `/admin/news/${id}`,
+    { method: "DELETE" },
+    accessToken,
+  );
+}
+
+export function adminUploadNewsImage(id: number, file: File, accessToken: string) {
+  const form = new FormData();
+  form.append("file", file);
+  return requestJson<AdminNewsDto>(
+    `/admin/news/${id}/image`,
+    { method: "POST", body: form },
+    accessToken,
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
+// Public catalog search (typeahead) + match
+// ───────────────────────────────────────────────────────────────
+
+export interface CatalogSearchHit {
+  serviceId: number;
+  name: string;
+  categoryName: string;
+  logoUrl?: string | null;
+}
+
+export function searchCatalog(q: string, init: RequestInit = {}) {
+  return requestJson<CatalogSearchHit[]>(
+    `/catalog/search${toSearchParams({ q })}`,
+    init,
+  );
+}
+
+export interface ServiceMatchResult {
+  action: "JOIN" | "CREATE";
+  roomId: number | null;
+}
+
+export function matchRoomForService(serviceId: number, accessToken: string) {
+  return requestJson<ServiceMatchResult>(
+    `/catalog/services/${serviceId}/match`,
+    {},
+    accessToken,
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
+// Admin: service logo upload
+// ───────────────────────────────────────────────────────────────
+
+export function adminUploadServiceLogo(serviceId: number, file: File, accessToken: string) {
+  const form = new FormData();
+  form.append("file", file);
+  return requestJson<AdminServiceDto>(
+    `/admin/catalog/services/${serviceId}/logo`,
+    { method: "POST", body: form },
+    accessToken,
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
+// Notifications (in-app bell + STOMP push)
+// ───────────────────────────────────────────────────────────────
 
 export interface NotificationDto {
   id: number;
-  type: NotificationType | string;
   title: string;
   body: string;
   link?: string | null;
-  metadata?: Record<string, unknown> | null;
   read: boolean;
   createdAt: string;
 }
 
-export interface NotificationPreferenceDto {
-  type: NotificationType | string;
-  category: NotificationCategory | string;
-  inApp: boolean;
-  email: boolean;
-  emailEligible: boolean;
+export function notificationsTopic(userId: number): string {
+  return `/topic/notifications.${userId}`;
 }
 
 export function getNotificationsRequest(
@@ -2242,19 +2375,43 @@ export function getNotificationsRequest(
 }
 
 export function getUnreadNotificationCountRequest(accessToken: string) {
-  return requestJson<{ count: number }>("/notifications/unread-count", {}, accessToken);
+  return requestJson<{ count: number }>(
+    "/notifications/unread-count",
+    {},
+    accessToken,
+  );
 }
 
 export function markNotificationReadRequest(id: number, accessToken: string) {
-  return requestJson<void>(`/notifications/${id}/read`, { method: "POST" }, accessToken);
+  return requestJson<void>(
+    `/notifications/${id}/read`,
+    { method: "POST" },
+    accessToken,
+  );
 }
 
 export function markAllNotificationsReadRequest(accessToken: string) {
-  return requestJson<{ updated: number }>(
+  return requestJson<void>(
     "/notifications/read-all",
     { method: "POST" },
     accessToken,
   );
+}
+
+export type NotificationCategory =
+  | "MEMBERSHIP" | "ROOM" | "PAYMENTS" | "DISPUTES" | "SUPPORT" | "ACCOUNT";
+
+export interface NotificationPreferenceDto {
+  type: string;
+  category: NotificationCategory | string;
+  inApp: boolean;
+  email: boolean;
+}
+
+export interface NotificationPreferenceUpdate {
+  type: string;
+  inApp: boolean;
+  email: boolean;
 }
 
 export function getNotificationPreferencesRequest(accessToken: string) {
@@ -2266,17 +2423,12 @@ export function getNotificationPreferencesRequest(accessToken: string) {
 }
 
 export function updateNotificationPreferencesRequest(
-  preferences: Array<{ type: string; inApp: boolean; email: boolean }>,
+  payload: NotificationPreferenceUpdate[],
   accessToken: string,
 ) {
   return requestJson<NotificationPreferenceDto[]>(
     "/notifications/preferences",
-    { method: "PUT", body: JSON.stringify({ preferences }) },
+    { method: "PUT", body: JSON.stringify({ items: payload }) },
     accessToken,
   );
-}
-
-/** Personal STOMP topic the backend pushes live notifications to. */
-export function notificationsTopic(userId: number) {
-  return `/topic/users/${userId}/notifications`;
 }

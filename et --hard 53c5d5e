@@ -1,0 +1,555 @@
+[1mdiff --git a/src/app/components/layout.tsx b/src/app/components/layout.tsx[m
+[1mindex 098f5fa..1114a33 100644[m
+[1m--- a/src/app/components/layout.tsx[m
+[1m+++ b/src/app/components/layout.tsx[m
+[36m@@ -1,224 +1,12 @@[m
+[31m-import { useEffect, useMemo, useRef, useState } from "react";[m
+[32m+[m[32mimport { useEffect, useRef, useState } from "react";[m
+ import { Outlet, Link, useLocation, useNavigate } from "react-router";[m
+ import { Button, LanguageSwitcher, WaveDivider } from "./ds-primitives";[m
+ import { BrandLogo } from "./brand-logo";[m
+ import { Menu, X, Search } from "lucide-react";[m
+ import { useI18n } from "./i18n-provider";[m
+ import { useAuth } from "./auth/auth-provider";[m
+[31m-import { ApiError, searchCatalog, trackVisitRequest, type CatalogSearchHit } from "../lib/api";[m
+[31m-[m
+[31m-interface CatalogSearchBoxProps {[m
+[31m-  variant: "desktop" | "mobile";[m
+[31m-  onPicked?: () => void;[m
+[31m-  autoFocus?: boolean;[m
+[31m-}[m
+[31m-[m
+[31m-function CatalogSearchBox({ variant, onPicked, autoFocus }: CatalogSearchBoxProps) {[m
+[31m-  const { t } = useI18n();[m
+[31m-  const navigate = useNavigate();[m
+[31m-[m
+[31m-  const [query, setQuery] = useState("");[m
+[31m-  const [debounced, setDebounced] = useState("");[m
+[31m-  const [results, setResults] = useState<CatalogSearchHit[] | null>(null);[m
+[31m-  const [loading, setLoading] = useState(false);[m
+[31m-  const [hasError, setHasError] = useState(false);[m
+[31m-  const [open, setOpen] = useState(false);[m
+[31m-[m
+[31m-  const containerRef = useRef<HTMLDivElement | null>(null);[m
+[31m-  const inputRef = useRef<HTMLInputElement | null>(null);[m
+[31m-[m
+[31m-  useEffect(() => {[m
+[31m-    const id = window.setTimeout(() => setDebounced(query.trim()), 300);[m
+[31m-    return () => window.clearTimeout(id);[m
+[31m-  }, [query]);[m
+[31m-[m
+[31m-  useEffect(() => {[m
+[31m-    if (debounced.length < 2) {[m
+[31m-      setResults(null);[m
+[31m-      setHasError(false);[m
+[31m-      setLoading(false);[m
+[31m-      return;[m
+[31m-    }[m
+[31m-    const controller = new AbortController();[m
+[31m-    setLoading(true);[m
+[31m-    setHasError(false);[m
+[31m-    searchCatalog(debounced, { signal: controller.signal })[m
+[31m-      .then((data) => {[m
+[31m-        if (controller.signal.aborted) return;[m
+[31m-        setResults(data ?? []);[m
+[31m-      })[m
+[31m-      .catch((err) => {[m
+[31m-        if (controller.signal.aborted) return;[m
+[31m-        // Swallow raw server messages; show a quiet "no results" instead.[m
+[31m-        if (err instanceof ApiError) {[m
+[31m-          setHasError(true);[m
+[31m-        } else {[m
+[31m-          setHasError(true);[m
+[31m-        }[m
+[31m-        setResults(null);[m
+[31m-      })[m
+[31m-      .finally(() => {[m
+[31m-        if (!controller.signal.aborted) setLoading(false);[m
+[31m-      });[m
+[31m-    return () => controller.abort();[m
+[31m-  }, [debounced]);[m
+[31m-[m
+[31m-  // Outside click closes dropdown on desktop.[m
+[31m-  useEffect(() => {[m
+[31m-    if (variant !== "desktop") return;[m
+[31m-    if (!open) return;[m
+[31m-    const handle = (event: MouseEvent) => {[m
+[31m-      if (!containerRef.current) return;[m
+[31m-      if (!containerRef.current.contains(event.target as Node)) {[m
+[31m-        setOpen(false);[m
+[31m-      }[m
+[31m-    };[m
+[31m-    document.addEventListener("mousedown", handle);[m
+[31m-    return () => document.removeEventListener("mousedown", handle);[m
+[31m-  }, [open, variant]);[m
+[31m-[m
+[31m-  // Esc closes the dropdown from anywhere.[m
+[31m-  useEffect(() => {[m
+[31m-    if (!open) return;[m
+[31m-    const handle = (event: KeyboardEvent) => {[m
+[31m-      if (event.key === "Escape") {[m
+[31m-        setOpen(false);[m
+[31m-        inputRef.current?.blur();[m
+[31m-      }[m
+[31m-    };[m
+[31m-    document.addEventListener("keydown", handle);[m
+[31m-    return () => document.removeEventListener("keydown", handle);[m
+[31m-  }, [open]);[m
+[31m-[m
+[31m-  const handlePick = (hit: CatalogSearchHit) => {[m
+[31m-    setOpen(false);[m
+[31m-    setQuery("");[m
+[31m-    setDebounced("");[m
+[31m-    setResults(null);[m
+[31m-    navigate(`/browse?service=${encodeURIComponent(hit.serviceId)}`);[m
+[31m-    onPicked?.();[m
+[31m-  };[m
+[31m-[m
+[31m-  const showPanel = open && debounced.length >= 2;[m
+[31m-  const empty = showPanel && !loading && results !== null && results.length === 0;[m
+[31m-[m
+[31m-  const panel = showPanel ? ([m
+[31m-    <div[m
+[31m-      role="listbox"[m
+[31m-      className={[m
+[31m-        variant === "desktop"[m
+[31m-          ? "absolute left-0 right-0 top-full mt-2 z-50 rounded-xl shadow-lg max-h-[60vh] overflow-y-auto"[m
+[31m-          : "rounded-xl max-h-[60vh] overflow-y-auto"[m
+[31m-      }[m
+[31m-      style={{[m
+[31m-        background: "var(--eco-bg)",[m
+[31m-        border: "1px solid var(--eco-border)",[m
+[31m-        boxShadow: variant === "desktop" ? "0 12px 32px rgba(0,0,0,0.10)" : undefined,[m
+[31m-      }}[m
+[31m-    >[m
+[31m-      {loading && ([m
+[31m-        <div className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>[m
+[31m-          {t("navbarSearchLoading")}[m
+[31m-        </div>[m
+[31m-      )}[m
+[31m-      {!loading && (empty || hasError) && ([m
+[31m-        <div className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>[m
+[31m-          {t("navbarSearchEmpty")}[m
+[31m-        </div>[m
+[31m-      )}[m
+[31m-      {!loading && results && results.length > 0 && ([m
+[31m-        <div className="flex flex-col">[m
+[31m-          {results.map((hit) => ([m
+[31m-            <button[m
+[31m-              key={`hit-${hit.serviceId}`}[m
+[31m-              type="button"[m
+[31m-              onClick={() => handlePick(hit)}[m
+[31m-              className="flex items-center gap-3 px-4 py-2.5 text-left cursor-pointer transition-colors hover:bg-[var(--eco-surface)]"[m
+[31m-              style={{ background: "transparent", border: "none" }}[m
+[31m-              role="option"[m
+[31m-            >[m
+[31m-              {hit.logoUrl ? ([m
+[31m-                <img[m
+[31m-                  src={hit.logoUrl}[m
+[31m-                  alt=""[m
+[31m-                  width={28}[m
+[31m-                  height={28}[m
+[31m-                  loading="lazy"[m
+[31m-                  decoding="async"[m
+[31m-                  className="rounded-lg shrink-0 object-cover"[m
+[31m-                  style={{ background: "var(--eco-surface)" }}[m
+[31m-                />[m
+[31m-              ) : ([m
+[31m-                <div[m
+[31m-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-[12px] shrink-0"[m
+[31m-                  style={{ background: "var(--eco-brand-50)", color: "var(--eco-primary)", fontWeight: 700 }}[m
+[31m-                >[m
+[31m-                  {(hit.name?.charAt(0) ?? "?").toUpperCase()}[m
+[31m-                </div>[m
+[31m-              )}[m
+[31m-              <div className="min-w-0">[m
+[31m-                <div className="text-[13px] truncate" style={{ color: "var(--eco-text)" }}>{hit.name}</div>[m
+[31m-                <div className="text-[11px] truncate" style={{ color: "var(--eco-text-tertiary)" }}>{hit.categoryName}</div>[m
+[31m-              </div>[m
+[31m-            </button>[m
+[31m-          ))}[m
+[31m-        </div>[m
+[31m-      )}[m
+[31m-    </div>[m
+[31m-  ) : null;[m
+[31m-[m
+[31m-  if (variant === "desktop") {[m
+[31m-    return ([m
+[31m-      <div ref={containerRef} className="relative hidden md:flex items-center w-56">[m
+[31m-        <Search size={15} className="absolute left-2.5 pointer-events-none" style={{ color: "var(--eco-text-tertiary)" }} />[m
+[31m-        <input[m
+[31m-          ref={inputRef}[m
+[31m-          value={query}[m
+[31m-          onChange={(e) => {[m
+[31m-            setQuery(e.target.value);[m
+[31m-            setOpen(true);[m
+[31m-          }}[m
+[31m-          onFocus={() => setOpen(true)}[m
+[31m-          placeholder={t("navbarSearchPlaceholder")}[m
+[31m-          aria-label={t("navbarSearchPlaceholder")}[m
+[31m-          className="pl-8 pr-3 py-1.5 rounded-lg text-[13px] outline-none w-full"[m
+[31m-          style={{[m
+[31m-            background: "var(--eco-surface)",[m
+[31m-            border: "1px solid var(--eco-border)",[m
+[31m-            color: "var(--eco-text)",[m
+[31m-          }}[m
+[31m-        />[m
+[31m-        {panel}[m
+[31m-      </div>[m
+[31m-    );[m
+[31m-  }[m
+[31m-[m
+[31m-  return ([m
+[31m-    <div className="flex flex-col gap-3">[m
+[31m-      <div className="relative">[m
+[31m-        <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--eco-text-tertiary)" }} />[m
+[31m-        <input[m
+[31m-          ref={inputRef}[m
+[31m-          autoFocus={autoFocus}[m
+[31m-          value={query}[m
+[31m-          onChange={(e) => {[m
+[31m-            setQuery(e.target.value);[m
+[31m-            setOpen(true);[m
+[31m-          }}[m
+[31m-          placeholder={t("navbarSearchPlaceholder")}[m
+[31m-          aria-label={t("navbarSearchPlaceholder")}[m
+[31m-          className="pl-8 pr-3 py-2 rounded-lg text-[14px] outline-none w-full"[m
+[31m-          style={{[m
+[31m-            background: "var(--eco-surface)",[m
+[31m-            border: "1px solid var(--eco-border)",[m
+[31m-            color: "var(--eco-text)",[m
+[31m-          }}[m
+[31m-        />[m
+[31m-      </div>[m
+[31m-      {open ? panel : null}[m
+[31m-    </div>[m
+[31m-  );[m
+[31m-}[m
+[32m+[m[32mimport { NotificationBell } from "./notifications/notification-bell";[m
+[32m+[m[32mimport { trackVisitRequest } from "../lib/api";[m
+ [m
+ export function AppLayout() {[m
+   const { language, setLanguage, t } = useI18n();[m
+[36m@@ -226,7 +14,6 @@[m [mexport function AppLayout() {[m
+   const navigate = useNavigate();[m
+   const [mobileMenu, setMobileMenu] = useState(false);[m
+   const [profileOpen, setProfileOpen] = useState(false);[m
+[31m-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);[m
+   const location = useLocation();[m
+   const lastTrackedPath = useRef<string | null>(null);[m
+ [m
+[36m@@ -243,12 +30,6 @@[m [mexport function AppLayout() {[m
+     });[m
+   }, [location.pathname]);[m
+ [m
+[31m-  // Auto-close the mobile search overlay on navigation.[m
+[31m-  useEffect(() => {[m
+[31m-    setMobileSearchOpen(false);[m
+[31m-    setMobileMenu(false);[m
+[31m-  }, [location.pathname]);[m
+[31m-[m
+   const isAuthRoute =[m
+     location.pathname.startsWith("/login") ||[m
+     location.pathname.startsWith("/register") ||[m
+[36m@@ -261,20 +42,13 @@[m [mexport function AppLayout() {[m
+     .join("")[m
+     .slice(0, 2);[m
+ [m
+[31m-  // /rooms is gated by auth — hide the entry for guests so they don't land on[m
+[31m-  // the empty-state screen by accident.[m
+[31m-  const navItems = useMemo(() => {[m
+[31m-    const items: { label: string; path: string }[] = [[m
+[31m-      { label: t("catalog"), path: "/" },[m
+[31m-      { label: t("browseRooms"), path: "/browse" },[m
+[31m-    ];[m
+[31m-    if (isAuthenticated) {[m
+[31m-      items.push({ label: t("myRooms"), path: "/rooms" });[m
+[31m-    }[m
+[31m-    items.push({ label: t("support"), path: "/support" });[m
+[31m-    items.push({ label: t("aboutUs"), path: "/about" });[m
+[31m-    return items;[m
+[31m-  }, [t, isAuthenticated]);[m
+[32m+[m[32m  const navItems = [[m
+[32m+[m[32m    { label: t("catalog"), path: "/" },[m
+[32m+[m[32m    { label: t("browseRooms"), path: "/browse" },[m
+[32m+[m[32m    { label: t("myRooms"), path: "/rooms" },[m
+[32m+[m[32m    { label: t("support"), path: "/support" },[m
+[32m+[m[32m    { label: t("aboutUs"), path: "/about" },[m
+[32m+[m[32m  ];[m
+ [m
+   const languageLabels = {[m
+     ru: "Рус",[m
+[36m@@ -317,15 +91,16 @@[m [mexport function AppLayout() {[m
+           </div>[m
+ [m
+           <div className="flex items-center gap-2 sm:gap-3 shrink-0">[m
+[31m-            <CatalogSearchBox variant="desktop" />[m
+[32m+[m[32m            <div className="hidden md:flex items-center relative">[m
+[32m+[m[32m              <Search size={15} className="absolute left-2.5" style={{ color: "var(--eco-text-tertiary)" }} />[m
+[32m+[m[32m              <input[m
+[32m+[m[32m                placeholder={t("searchPlans")}[m
+[32m+[m[32m                className="pl-8 pr-3 py-1.5 rounded-lg text-[13px] outline-none w-56"[m
+[32m+[m[32m                style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}[m
+[32m+[m[32m              />[m
+[32m+[m[32m            </div>[m
+ [m
+[31m-            <button[m
+[31m-              type="button"[m
+[31m-              onClick={() => setMobileSearchOpen(true)}[m
+[31m-              className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"[m
+[31m-              style={{ background: "var(--eco-surface)", border: "none" }}[m
+[31m-              aria-label={t("navbarSearchPlaceholder")}[m
+[31m-            >[m
+[32m+[m[32m            <button className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--eco-surface)" }}>[m
+               <Search size={16} style={{ color: "var(--eco-text-secondary)" }} />[m
+             </button>[m
+ [m
+[36m@@ -337,6 +112,10 @@[m [mexport function AppLayout() {[m
+               {languageLabels[language]}[m
+             </div>[m
+ [m
+[32m+[m[32m            {isAuthenticated && !isAuthRoute && ([m
+[32m+[m[32m              <NotificationBell />[m
+[32m+[m[32m            )}[m
+[32m+[m
+             {isAuthenticated && !isAuthRoute ? ([m
+               <div className="relative hidden md:block">[m
+                 <button[m
+[36m@@ -474,42 +253,6 @@[m [mexport function AppLayout() {[m
+         )}[m
+       </nav>[m
+ [m
+[31m-      {/* Mobile search overlay — sheet anchored to the top so it remains[m
+[31m-          usable inside the on-screen keyboard. */}[m
+[31m-      {mobileSearchOpen && ([m
+[31m-        <div[m
+[31m-          className="fixed inset-0 z-[60] md:hidden flex flex-col"[m
+[31m-          style={{ background: "rgba(0,0,0,0.45)" }}[m
+[31m-          onClick={() => setMobileSearchOpen(false)}[m
+[31m-        >[m
+[31m-          <div[m
+[31m-            className="m-3 mt-4 p-3 rounded-2xl shadow-xl"[m
+[31m-            style={{ background: "var(--eco-bg)", border: "1px solid var(--eco-border)" }}[m
+[31m-            onClick={(e) => e.stopPropagation()}[m
+[31m-          >[m
+[31m-            <div className="flex items-center justify-between gap-2 mb-2">[m
+[31m-              <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>[m
+[31m-                {t("navbarSearchPlaceholder")}[m
+[31m-              </div>[m
+[31m-              <button[m
+[31m-                type="button"[m
+[31m-                onClick={() => setMobileSearchOpen(false)}[m
+[31m-                className="p-1 rounded-md cursor-pointer"[m
+[31m-                style={{ background: "transparent", border: "none", color: "var(--eco-text-secondary)" }}[m
+[31m-                aria-label={t("navbarSearchClose")}[m
+[31m-              >[m
+[31m-                <X size={16} />[m
+[31m-              </button>[m
+[31m-            </div>[m
+[31m-            <CatalogSearchBox[m
+[31m-              variant="mobile"[m
+[31m-              autoFocus[m
+[31m-              onPicked={() => setMobileSearchOpen(false)}[m
+[31m-            />[m
+[31m-          </div>[m
+[31m-        </div>[m
+[31m-      )}[m
+[31m-[m
+       <main>[m
+         <Outlet />[m
+       </main>[m
+[1mdiff --git a/src/app/lib/api.ts b/src/app/lib/api.ts[m
+[1mindex d68a423..677d381 100644[m
+[1m--- a/src/app/lib/api.ts[m
+[1m+++ b/src/app/lib/api.ts[m
+[36m@@ -2144,115 +2144,103 @@[m [mexport function adminUpdateSiteAbout(payload: UpdateSiteAboutPayload, accessToke[m
+   );[m
+ }[m
+ [m
+[31m-// ───────────────────────────────────────────────────────────────[m
+[31m-// News module[m
+[31m-// ───────────────────────────────────────────────────────────────[m
+[31m-[m
+[31m-export type NewsStatus = "PUBLISHED" | "DRAFT" | "ARCHIVED";[m
+[31m-[m
+[31m-export interface NewsDto {[m
+[32m+[m[32m// ===================== Notifications =====================[m
+[32m+[m
+[32m+[m[32mexport type NotificationType =[m
+[32m+[m[32m  | "MEMBER_JOINED"[m
+[32m+[m[32m  | "PAYMENT_SUCCESS"[m
+[32m+[m[32m  | "PAYMENT_FAILED"[m
+[32m+[m[32m  | "OWNER_ACCESS_GRANTED"[m
+[32m+[m[32m  | "MEMBER_CONFIRMED"[m
+[32m+[m[32m  | "MEMBERSHIP_ACTIVATED"[m
+[32m+[m[32m  | "MEMBERSHIP_REJECTED"[m
+[32m+[m[32m  | "CONFIRMATION_DEADLINE_WARNING"[m
+[32m+[m[32m  | "ROOM_ACTIVE"[m
+[32m+[m[32m  | "ROOM_COMPLETED"[m
+[32m+[m[32m  | "ROOM_BLOCKED"[m
+[32m+[m[32m  | "ROOM_CANCELLED"[m
+[32m+[m[32m  | "REFUND_ISSUED"[m
+[32m+[m[32m  | "PAYOUT_SENT"[m
+[32m+[m[32m  | "DISPUTE_OPENED"[m
+[32m+[m[32m  | "DISPUTE_RESOLVED"[m
+[32m+[m[32m  | "TICKET_REPLY"[m
+[32m+[m[32m  | "ACCOUNT_BANNED"[m
+[32m+[m[32m  | "ACCOUNT_UNBANNED";[m
+[32m+[m
+[32m+[m[32mexport type NotificationCategory =[m
+[32m+[m[32m  | "MEMBERSHIP"[m
+[32m+[m[32m  | "ROOM"[m
+[32m+[m[32m  | "PAYMENTS"[m
+[32m+[m[32m  | "DISPUTES"[m
+[32m+[m[32m  | "SUPPORT"[m
+[32m+[m[32m  | "ACCOUNT";[m
+[32m+[m
+[32m+[m[32mexport interface NotificationDto {[m
+   id: number;[m
+[31m-  title_kz?: string | null;[m
+[31m-  title_ru?: string | null;[m
+[31m-  title_en?: string | null;[m
+[31m-  body_kz?: string | null;[m
+[31m-  body_ru?: string | null;[m
+[31m-  body_en?: string | null;[m
+[31m-  imageUrl?: string | null;[m
+[31m-  publishedAt?: string | null;[m
+[31m-}[m
+[31m-[m
+[31m-export interface AdminNewsDto extends NewsDto {[m
+[31m-  status: NewsStatus;[m
+[31m-  sortOrder: number;[m
+[32m+[m[32m  type: NotificationType | string;[m
+[32m+[m[32m  title: string;[m
+[32m+[m[32m  body: string;[m
+[32m+[m[32m  link?: string | null;[m
+[32m+[m[32m  metadata?: Record<string, unknown> | null;[m
+[32m+[m[32m  read: boolean;[m
+   createdAt: string;[m
+[31m-  updatedAt: string;[m
+[31m-}[m
+[31m-[m
+[31m-export interface UpsertNewsPayload {[m
+[31m-  title_kz?: string | null;[m
+[31m-  title_ru?: string | null;[m
+[31m-  title_en?: string | null;[m
+[31m-  body_kz?: string | null;[m
+[31m-  body_ru?: string | null;[m
+[31m-  body_en?: string | null;[m
+[31m-  status: NewsStatus;[m
+[31m-  sortOrder?: number;[m
+[31m-  publishedAt?: string | null;[m
+ }[m
+ [m
+[31m-const newsCache = new Map<string, Promise<NewsDto[]>>();[m
+[31m-[m
+[31m-export function getNews(limit?: number) {[m
+[31m-  const key = String(limit ?? "");[m
+[31m-  const cached = newsCache.get(key);[m
+[31m-  if (cached) return cached;[m
+[31m-  const promise = requestJson<NewsDto[]>([m
+[31m-    `/news${toSearchParams({ limit })}`,[m
+[31m-  ).catch((err) => {[m
+[31m-    newsCache.delete(key);[m
+[31m-    throw err;[m
+[31m-  });[m
+[31m-  newsCache.set(key, promise);[m
+[31m-  return promise;[m
+[32m+[m[32mexport interface NotificationPreferenceDto {[m
+[32m+[m[32m  type: NotificationType | string;[m
+[32m+[m[32m  category: NotificationCategory | string;[m
+[32m+[m[32m  inApp: boolean;[m
+[32m+[m[32m  email: boolean;[m
+[32m+[m[32m  emailEligible: boolean;[m
+ }[m
+ [m
+[31m-export function clearNewsCache() {[m
+[31m-  newsCache.clear();[m
+[32m+[m[32mexport function getNotificationsRequest([m
+[32m+[m[32m  accessToken: string,[m
+[32m+[m[32m  params: { page?: number; size?: number } = {},[m
+[32m+[m[32m) {[m
+[32m+[m[32m  return requestJson<PagedResponse<NotificationDto>>([m
+[32m+[m[32m    `/notifications${toSearchParams({ page: params.page, size: params.size })}`,[m
+[32m+[m[32m    {},[m
+[32m+[m[32m    accessToken,[m
+[32m+[m[32m  );[m
+ }[m
+ [m
+[31m-export function adminListNews(accessToken: string) {[m
+[31m-  return requestJson<AdminNewsDto[]>("/admin/news", {}, accessToken);[m
+[32m+[m[32mexport function getUnreadNotificationCountRequest(accessToken: string) {[m
+[32m+[m[32m  return requestJson<{ count: number }>("/notifications/unread-count", {}, accessToken);[m
+ }[m
+ [m
+[31m-export function adminCreateNews(payload: UpsertNewsPayload, accessToken: string) {[m
+[31m-  return requestJson<AdminNewsDto>([m
+[31m-    "/admin/news",[m
+[31m-    { method: "POST", body: JSON.stringify(payload) },[m
+[31m-    accessToken,[m
+[31m-  );[m
+[32m+[m[32mexport function markNotificationReadRequest(id: number, accessToken: string) {[m
+[32m+[m[32m  return requestJson<void>(`/notifications/${id}/read`, { method: "POST" }, accessToken);[m
+ }[m
+ [m
+[31m-export function adminUpdateNews(id: number, payload: UpsertNewsPayload, accessToken: string) {[m
+[31m-  return requestJson<AdminNewsDto>([m
+[31m-    `/admin/news/${id}`,[m
+[31m-    { method: "PUT", body: JSON.stringify(payload) },[m
+[32m+[m[32mexport function markAllNotificationsReadRequest(accessToken: string) {[m
+[32m+[m[32m  return requestJson<{ updated: number }>([m
+[32m+[m[32m    "/notifications/read-all",[m
+[32m+[m[32m    { method: "POST" },[m
+     accessToken,[m
+   );[m
+ }[m
+ [m
+[31m-export function adminDeleteNews(id: number, accessToken: string) {[m
+[31m-  return requestJson<void>([m
+[31m-    `/admin/news/${id}`,[m
+[31m-    { method: "DELETE" },[m
+[32m+[m[32mexport function getNotificationPreferencesRequest(accessToken: string) {[m
+[32m+[m[32m  return requestJson<NotificationPreferenceDto[]>([m
+[32m+[m[32m    "/notifications/preferences",[m
+[32m+[m[32m    {},[m
+     accessToken,[m
+   );[m
+ }[m
+ [m
+[31m-export function adminUploadNewsImage(id: number, file: File, accessToken: string) {[m
+[31m-  const form = new FormData();[m
+[31m-  form.append("file", file);[m
+[31m-  return requestJson<AdminNewsDto>([m
+[31m-    `/admin/news/${id}/image`,[m
+[31m-    { method: "POST", body: form },[m
+[32m+[m[32mexport function updateNotificationPreferencesRequest([m
+[32m+[m[32m  preferences: Array<{ type: string; inApp: boolean; email: boolean }>,[m
+[32m+[m[32m  accessToken: string,[m
+[32m+[m[32m) {[m
+[32m+[m[32m  return requestJson<NotificationPreferenceDto[]>([m
+[32m+[m[32m    "/notifications/preferences",[m
+[32m+[m[32m    { method: "PUT", body: JSON.stringify({ preferences }) },[m
+     accessToken,[m
+   );[m
+ }[m
+ [m
+[31m-// ───────────────────────────────────────────────────────────────[m
+[31m-// Public catalog search (typeahead)[m
+[31m-// ───────────────────────────────────────────────────────────────[m
+[31m-[m
+[31m-export interface CatalogSearchHit {[m
+[31m-  serviceId: number;[m
+[31m-  name: string;[m
+[31m-  categoryName: string;[m
+[31m-  logoUrl?: string | null;[m
+[31m-}[m
+[31m-[m
+[31m-export function searchCatalog(q: string, init: RequestInit = {}) {[m
+[31m-  return requestJson<CatalogSearchHit[]>([m
+[31m-    `/catalog/search${toSearchParams({ q })}`,[m
+[31m-    init,[m
+[31m-  );[m
+[32m+[m[32m/** Personal STOMP topic the backend pushes live notifications to. */[m
+[32m+[m[32mexport function notificationsTopic(userId: number) {[m
+[32m+[m[32m  return `/topic/users/${userId}/notifications`;[m
+ }[m

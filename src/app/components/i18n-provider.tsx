@@ -14,6 +14,21 @@ type Translations = {
 const translations: Translations = {
   // ===== Navigation & Header =====
   catalog: { ru: "Каталог", kz: "Каталог", en: "Catalog" },
+  news: { ru: "Новости", kz: "Жаңалықтар", en: "News" },
+  memberReviewsTitle: { ru: "Отзывы участников", kz: "Қатысушылар пікірлері", en: "Member reviews" },
+  inviteOffPlatformTitle: { ru: "Пригласить вне платформы", kz: "Платформадан тыс шақыру", en: "Invite off-platform" },
+  inviteOffPlatformDesc: {
+    ru: "Поделитесь этой ссылкой — открывший её человек войдёт или зарегистрируется и попадёт в комнату.",
+    kz: "Бұл сілтемемен бөлісіңіз — оны ашқан адам кіреді немесе тіркеліп, бөлмеге қосылады.",
+    en: "Share this link — opening it will let someone sign in or register and land directly in your room.",
+  },
+  inviteLinkCopy: { ru: "Скопировать ссылку", kz: "Сілтемені көшіру", en: "Copy link" },
+  inviteLinkCopiedToast: { ru: "Ссылка скопирована", kz: "Сілтеме көшірілді", en: "Link copied" },
+  inviteLinkCopyFailed: {
+    ru: "Не удалось скопировать автоматически — скопируйте вручную.",
+    kz: "Автоматты түрде көшіру мүмкін болмады — қолмен көшіріңіз.",
+    en: "Could not copy automatically — copy it manually.",
+  },
   browseRooms: { ru: "Открытые комнаты", kz: "Ашық бөлмелер", en: "Open Rooms" },
   myRooms: { ru: "Мои комнаты", kz: "Менің бөлмелерім", en: "My Rooms" },
   support: { ru: "Поддержка", kz: "Қолдау", en: "Support" },
@@ -1648,6 +1663,136 @@ const translations: Translations = {
   adminSearchGroupRooms: { ru: "Комнаты", kz: "Бөлмелер", en: "Rooms" },
   adminSearchGroupUsers: { ru: "Пользователи", kz: "Пайдаланушылар", en: "Users" },
   adminSearchGroupFeedback: { ru: "Обращения", kz: "Өтінімдер", en: "Feedback" },
+
+  // ===== Sign-in gates (e.g. /rooms for guests) =====
+  signInToSeeRooms: {
+    ru: "Войдите, чтобы увидеть свои комнаты",
+    kz: "Бөлмелеріңізді көру үшін кіріңіз",
+    en: "Sign in to see your rooms",
+  },
+  signInToSeeRoomsDesc: {
+    ru: "После входа вы увидите список созданных и присоединённых комнат подписки.",
+    kz: "Кіргеннен кейін сіз жасаған және қосылған жазылым бөлмелерінің тізімін көресіз.",
+    en: "Once signed in, you'll see all the subscription rooms you created or joined.",
+  },
+
+  // ===== Verification mode (room protection type) =====
+  verificationModeRiskBased: { ru: "Защита по риску", kz: "Тәуекелге қарай қорғау", en: "Risk-based protection" },
+  verificationModeAuto: { ru: "Авто-проверка", kz: "Авто тексеру", en: "Auto verification" },
+  verificationModeAdminRequired: { ru: "Проверка администратора", kz: "Әкімші тексеруі", en: "Admin verification" },
+
+  // ===== Navbar typeahead (public catalog search) =====
+  navbarSearchPlaceholder: { ru: "Поиск планов…", kz: "Жоспарларды іздеу…", en: "Search plans…" },
+  navbarSearchLoading: { ru: "Ищем…", kz: "Іздеу…", en: "Searching…" },
+  navbarSearchEmpty: { ru: "Ничего не найдено", kz: "Ештеңе табылмады", en: "No results" },
+  navbarSearchHint: { ru: "Введите минимум 2 символа", kz: "Кемінде 2 таңба енгізіңіз", en: "Type at least 2 characters" },
+  navbarSearchClose: { ru: "Закрыть", kz: "Жабу", en: "Close" },
+
+  // ===== News (home + admin) =====
+  newsSectionTitle: { ru: "Новости", kz: "Жаңалықтар", en: "News" },
+  newsSectionSubtitle: {
+    ru: "Свежие обновления EcoPay — релизы, изменения и истории сообщества.",
+    kz: "EcoPay жаңартулары — релиздер, өзгерістер және қауымдастық оқиғалары.",
+    en: "Latest EcoPay updates — releases, changes, and community stories.",
+  },
+  newsReadMore: { ru: "Читать", kz: "Оқу", en: "Read" },
+  newsEmptyTitle: { ru: "Новостей пока нет", kz: "Әзірге жаңалықтар жоқ", en: "No news yet" },
+  newsEmptyDesc: {
+    ru: "Как только мы что-то опубликуем — оно появится здесь.",
+    kz: "Жариялаған кезде осында пайда болады.",
+    en: "When we publish something, it will appear here.",
+  },
+  newsLoadFailed: { ru: "Не удалось загрузить новости", kz: "Жаңалықтарды жүктеу мүмкін болмады", en: "Failed to load news" },
+
+  // ===== Admin: Create room shortcut =====
+  adminCreateRoomNav: { ru: "Создать комнату", kz: "Бөлме жасау", en: "Create room" },
+
+  // ===== Admin: News =====
+  adminNewsNav: { ru: "Новости", kz: "Жаңалықтар", en: "News" },
+  adminNewsTitle: { ru: "Новости", kz: "Жаңалықтар", en: "News" },
+  adminNewsHint: {
+    ru: "Управляйте новостями, видимыми на главной. Заполняйте все три языка — пустые откатываются на русский.",
+    kz: "Басты беттегі жаңалықтарды басқарыңыз. Барлық үш тілді толтырыңыз — бос өрістер орысшаға қайтады.",
+    en: "Manage news visible on the home page. Fill all three languages — empty ones fall back to Russian.",
+  },
+  adminNewsCreate: { ru: "Новая новость", kz: "Жаңа жаңалық", en: "New post" },
+  adminNewsEdit: { ru: "Редактировать", kz: "Өңдеу", en: "Edit" },
+  adminNewsDelete: { ru: "Удалить", kz: "Жою", en: "Delete" },
+  adminNewsDeleteConfirm: { ru: "Удалить эту новость?", kz: "Бұл жаңалықты жою керек пе?", en: "Delete this post?" },
+  adminNewsFieldTitle: { ru: "Заголовок", kz: "Тақырып", en: "Title" },
+  adminNewsFieldBody: { ru: "Текст", kz: "Мәтін", en: "Body" },
+  adminNewsFieldStatus: { ru: "Статус", kz: "Мәртебесі", en: "Status" },
+  adminNewsFieldSortOrder: { ru: "Порядок", kz: "Реті", en: "Sort order" },
+  adminNewsFieldImage: { ru: "Изображение", kz: "Сурет", en: "Image" },
+  adminNewsImageUpload: { ru: "Загрузить", kz: "Жүктеу", en: "Upload" },
+  adminNewsImageReplace: { ru: "Заменить", kz: "Ауыстыру", en: "Replace" },
+  adminNewsImageRemove: { ru: "Убрать", kz: "Алу", en: "Remove" },
+  adminNewsImageHint: { ru: "PNG/JPG, до 5 МБ. Сначала сохраните пост, потом загрузите картинку.", kz: "PNG/JPG, 5 МБ-қа дейін. Алдымен жазбаны сақтаңыз, содан кейін суретті жүктеңіз.", en: "PNG/JPG, up to 5 MB. Save the post first, then upload an image." },
+  adminNewsStatusPublished: { ru: "Опубликовано", kz: "Жарияланды", en: "Published" },
+  adminNewsStatusDraft: { ru: "Черновик", kz: "Жоба", en: "Draft" },
+  adminNewsStatusArchived: { ru: "В архиве", kz: "Мұрағатта", en: "Archived" },
+  adminNewsCarouselTitle: { ru: "Опубликованные новости", kz: "Жарияланған жаңалықтар", en: "Published news" },
+  adminNewsCarouselEmpty: { ru: "Пока нет опубликованных", kz: "Әзірге жарияланғаны жоқ", en: "No published items yet" },
+  adminNewsCarouselNext: { ru: "Вперёд", kz: "Алға", en: "Next" },
+  adminNewsCarouselPrev: { ru: "Назад", kz: "Артқа", en: "Back" },
+  adminNewsListTitle: { ru: "Все записи", kz: "Барлық жазбалар", en: "All posts" },
+  adminNewsEmpty: { ru: "Новостей ещё нет", kz: "Жаңалықтар әлі жоқ", en: "No news yet" },
+  adminNewsListColTitle: { ru: "Заголовок", kz: "Тақырып", en: "Title" },
+  adminNewsListColStatus: { ru: "Статус", kz: "Мәртебесі", en: "Status" },
+  adminNewsListColSort: { ru: "Порядок", kz: "Реті", en: "Order" },
+  adminNewsListColUpdated: { ru: "Обновлено", kz: "Жаңартылды", en: "Updated" },
+  adminNewsFormCreate: { ru: "Создать новость", kz: "Жаңалық жасау", en: "Create post" },
+  adminNewsFormEdit: { ru: "Редактирование", kz: "Өңдеу", en: "Editing" },
+  adminNewsSaveSuccess: { ru: "Сохранено", kz: "Сақталды", en: "Saved" },
+  adminNewsDeleteSuccess: { ru: "Удалено", kz: "Жойылды", en: "Deleted" },
+  adminNewsImageRequired: {
+    ru: "Сначала сохраните новость — потом можно загрузить картинку.",
+    kz: "Алдымен жаңалықты сақтаңыз — содан кейін суретті жүктеуге болады.",
+    en: "Save the post first, then you can upload an image.",
+  },
+  adminNewsImageAtCreateHint: {
+    ru: "PNG/JPG/WebP, до 5 МБ. Картинка загрузится сразу после сохранения.",
+    kz: "PNG/JPG/WebP, 5 МБ-қа дейін. Сурет сақтаудан кейін жүктеледі.",
+    en: "PNG/JPG/WebP, up to 5 MB. The image uploads right after the post is saved.",
+  },
+  adminNewsImageInvalidType: {
+    ru: "Поддерживаются только PNG, JPG и WebP.",
+    kz: "Тек PNG, JPG және WebP қолдау табады.",
+    en: "Only PNG, JPG and WebP are supported.",
+  },
+  adminNewsImageTooBig: {
+    ru: "Файл больше 5 МБ — выберите поменьше.",
+    kz: "Файл 5 МБ-тан үлкен — кішірек таңдаңыз.",
+    en: "File is larger than 5 MB — please pick a smaller one.",
+  },
+
+  // ===== Admin catalog — service logo =====
+  catalogFieldLogo: { ru: "Логотип", kz: "Логотип", en: "Logo" },
+  catalogLogoUpload: { ru: "Загрузить логотип", kz: "Логотипті жүктеу", en: "Upload logo" },
+  catalogLogoReplace: { ru: "Заменить логотип", kz: "Логотипті ауыстыру", en: "Replace logo" },
+  catalogLogoHint: {
+    ru: "PNG/JPG, до 5 МБ. Будет показан на карточке сервиса в каталоге.",
+    kz: "PNG/JPG, 5 МБ-қа дейін. Каталогтағы сервис карточкасында көрсетіледі.",
+    en: "PNG/JPG, up to 5 MB. Shown on the service tile in the catalog.",
+  },
+  catalogLogoAtCreateHint: {
+    ru: "PNG/JPG, до 5 МБ. Загрузится сразу после сохранения сервиса.",
+    kz: "PNG/JPG, 5 МБ-қа дейін. Сервис сақталғаннан кейін бірден жүктеледі.",
+    en: "PNG/JPG, up to 5 MB. Uploads right after the service is saved.",
+  },
+  catalogLogoInvalidType: {
+    ru: "Поддерживаются только PNG и JPG.",
+    kz: "Тек PNG және JPG қолдау табады.",
+    en: "Only PNG and JPG are supported.",
+  },
+  catalogLogoTooBig: {
+    ru: "Файл больше 5 МБ — выберите поменьше.",
+    kz: "Файл 5 МБ-тан үлкен — кішірек таңдаңыз.",
+    en: "File is larger than 5 MB — please pick a smaller one.",
+  },
+
+  // ===== FAQ extra (8–12 questions) =====
+  faqSectionTitle: { ru: "Частые вопросы", kz: "Жиі сұрақтар", en: "FAQ" },
 
   // ===== Ban event (realtime) =====
   bannedHeadline: { ru: "Аккаунт заблокирован", kz: "Тіркелгі бұғатталды", en: "Account blocked" },

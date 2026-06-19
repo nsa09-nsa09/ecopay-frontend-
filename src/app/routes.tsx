@@ -1,8 +1,7 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import { AppLayout } from "./components/layout";
 import { HomePage } from "./components/catalog/home";
 import { OperatorPage } from "./components/catalog/operator";
-import { RoomsCatalogPage } from "./components/catalog/rooms-catalog";
 import { LoginPage } from "./components/auth/login";
 import { RegisterPage } from "./components/auth/register";
 import { ForgotPasswordPage } from "./components/auth/forgot-password";
@@ -18,6 +17,7 @@ import { ProfilePage } from "./components/profile/profile";
 import { SupportPage, NewTicketPage } from "./components/support/support";
 import { FeedbackPage } from "./components/support/feedback";
 import { AboutPage } from "./components/static/about";
+import { NewsPage } from "./components/static/news";
 import { TermsPage } from "./components/static/terms";
 import { PrivacyPage } from "./components/static/privacy";
 import { HowItWorksPage } from "./components/static/how-it-works";
@@ -33,6 +33,7 @@ import { AdminLogsPage } from "./components/admin/admin-logs";
 import { AdminCatalogPage } from "./components/admin/admin-catalog";
 import { AdminServiceReviewsPage } from "./components/admin/admin-service-reviews";
 import { AdminAboutPage } from "./components/admin/admin-about";
+import { AdminNewsPage } from "./components/admin/admin-news";
 import { AdminRoute } from "./components/admin/admin-route";
 import { PaymentRoomDetailsPage, PaymentCheckoutPage, PaymentConfirmationPage, PaymentPendingPage, RefundStatusPage, OwnerPayoutPage } from "./components/payments/payments";
 import { PaymentReturnPage } from "./components/payments/payment-return";
@@ -72,7 +73,9 @@ export const router = createBrowserRouter([
     ErrorBoundary: ErrorFallback,
     children: [
       { index: true, Component: HomePage },
-      { path: "browse", Component: RoomsCatalogPage },
+      // /browse is decommissioned — selection now happens via service-match on
+      // the home catalog tiles. Keep the route to avoid 404s on old links.
+      { path: "browse", element: <Navigate to="/" replace /> },
       { path: "operator/:id", Component: OperatorPage },
       { path: "login", Component: LoginPage },
       { path: "register", Component: RegisterPage },
@@ -92,6 +95,7 @@ export const router = createBrowserRouter([
       { path: "support/new", Component: NewTicketPage },
       { path: "feedback", Component: FeedbackPage },
       { path: "about", Component: AboutPage },
+      { path: "news", Component: NewsPage },
       { path: "terms", Component: TermsPage },
       { path: "privacy", Component: PrivacyPage },
       { path: "how-it-works", Component: HowItWorksPage },
@@ -151,6 +155,7 @@ export const router = createBrowserRouter([
       { path: "catalog", Component: AdminCatalogPage },
       { path: "service-reviews", Component: AdminServiceReviewsPage },
       { path: "about", Component: AdminAboutPage },
+      { path: "news", Component: AdminNewsPage },
     ],
   },
 ]);

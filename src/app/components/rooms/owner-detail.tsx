@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import { Card, Button, Badge, MemberStatusBadge, RoomStatusBadge, Modal, Select } from "../ds-primitives";
-import { ArrowLeft, Eye, Shield, CheckCircle2, Lock, Users, Calendar, Clock, Star } from "lucide-react";
+import { ArrowLeft, Eye, Shield, CheckCircle2, Copy, Lock, Users, Calendar, Clock, Star } from "lucide-react";
+import { toast } from "sonner";
 import {
   ApiError,
   confirmOwnerAccessRequest,
   getRoom,
+  getRoomInviteLink,
   getRoomMembers,
   revealIdentifierRequest,
   type RoomMemberDto,
@@ -31,9 +33,21 @@ const formatDateTime = (v: string | null | undefined, l: Language) => (v ? forma
 // A member occupies a slot / is post-payment once PENDING or ACTIVE.
 const POST_PAYMENT = new Set(["PENDING", "ACTIVE"]);
 
+const verificationModeI18nKey: Record<string, string> = {
+  RISK_BASED: "verificationModeRiskBased",
+  AUTO: "verificationModeAuto",
+  ADMIN_REQUIRED: "verificationModeAdminRequired",
+};
+
+function localizeVerificationMode(mode: string | null | undefined, t: (k: string) => string): string {
+  if (!mode) return "—";
+  const key = verificationModeI18nKey[mode];
+  return key ? t(key) : mode;
+}
+
 export function OwnerDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const roomId = Number(id);
   const { authorizedRequest } = useAuth();
 
@@ -307,6 +321,8 @@ export function OwnerDetailPage() {
             ))}
           </Card>
 
+          <InviteLinkCard roomId={roomId} language={language} t={t} />
+
           <Card className="flex flex-col gap-3">
             <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>{tx(language, "Верификация", "Растау", "Verification")}</h3>
             <div
@@ -314,7 +330,7 @@ export function OwnerDetailPage() {
               style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)", border: "1px solid var(--eco-border)" }}
             >
               <Shield size={13} />
-              {room.verificationMode}
+              {localizeVerificationMode(room.verificationMode, t)}
             </div>
             <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
               {tx(
@@ -431,5 +447,108 @@ export function OwnerDetailPage() {
         recipientName={reviewTarget?.userDisplayName}
       />
     </div>
+  );
+}
+
+function InviteLinkCard({
+  roomId,
+  language,
+  t,
+}: {
+  roomId: number;
+  language: Language;
+  t: (k: string) => string;
+}) {
+  const { authorizedRequest } = useAuth();
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const writeToClipboard = async (value: string): Promise<boolean> => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+        return true;
+      }
+    } catch {
+      /* fall through to legacy path */
+    }
+    // Legacy fallback: select the read-only input and use the old API. Some
+    // older Safari builds and any non-https origin land here.
+    try {
+      const input = inputRef.current;
+      if (input) {
+        input.focus();
+        input.select();
+        const ok = typeof document !== "undefined" && document.execCommand?.("copy");
+        input.blur();
+        return Boolean(ok);
+      }
+    } catch {
+      /* user can still copy manually from the visible input */
+    }
+    return false;
+  };
+
+  const ensureLink = async (): Promise<string | null> => {
+    if (url) return url;
+    setLoading(true);
+    try {
+      const res = await authorizedRequest((token) => getRoomInviteLink(roomId, token));
+      setUrl(res.url);
+      return res.url;
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : tx(language, "Не удалось получить ссылку.", "Сілтемені алу мүмкін болмады.", "Could not get the invite link.");
+      toast.error(msg);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    const link = await ensureLink();
+    if (!link) return;
+    const ok = await writeToClipboard(link);
+    if (ok) {
+      setCopied(true);
+      toast.success(t("inviteLinkCopiedToast"));
+      window.setTimeout(() => setCopied(false), 1800);
+    } else {
+      // Surface the read-only input so the owner can copy manually.
+      inputRef.current?.focus();
+      inputRef.current?.select();
+      toast.error(t("inviteLinkCopyFailed"));
+    }
+  };
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <h3 className="text-[15px]" style={{ color: "var(--eco-text)" }}>{t("inviteOffPlatformTitle")}</h3>
+      <p className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("inviteOffPlatformDesc")}</p>
+      {url && (
+        <input
+          ref={inputRef}
+          readOnly
+          value={url}
+          onClick={(e) => e.currentTarget.select()}
+          className="w-full px-3 py-2 rounded-lg text-[12px] outline-none"
+          style={{
+            background: "var(--eco-surface)",
+            border: "1px solid var(--eco-border)",
+            color: "var(--eco-text-secondary)",
+          }}
+          aria-label={t("inviteOffPlatformTitle")}
+        />
+      )}
+      <Button variant="secondary" size="sm" loading={loading} onClick={() => void handleCopy()}>
+        <Copy size={13} />
+        {copied ? t("inviteLinkCopiedToast") : t("inviteLinkCopy")}
+      </Button>
+    </Card>
   );
 }

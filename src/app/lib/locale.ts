@@ -24,6 +24,7 @@ export type FriendlyApiErrorCode =
   | "noAccess" // 401 / 403
   | "sessionExpired" // 401 (when token expired)
   | "serverError" // 5xx
+  | "rateLimited" // 429 (too many requests)
   | "network" // fetch failure, no response
   | "generic"; // anything else
 
@@ -47,6 +48,11 @@ const FRIENDLY: Record<FriendlyApiErrorCode, Record<Language, string>> = {
     ru: "Не удалось загрузить данные. Попробуйте позже.",
     kz: "Деректерді жүктеу мүмкін болмады. Кейінірек қайталап көріңіз.",
     en: "Couldn't load the data. Please try again later.",
+  },
+  rateLimited: {
+    ru: "Слишком много запросов. Попробуйте позже.",
+    kz: "Сұраныстар тым көп. Кейінірек қайталап көріңіз.",
+    en: "Too many requests. Please try again later.",
   },
   network: {
     ru: "Проблема с подключением. Проверьте сеть.",

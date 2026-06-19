@@ -12,6 +12,34 @@ const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.forma
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === "ru" ? ru : l === "kz" ? kz : en;
 
+const serviceInitial = (name: string) => (name?.trim()?.[0] ?? "?").toUpperCase();
+
+// Service logo (S3-backed) with a letter fallback when none uploaded.
+function ServiceLogo({ url, name }: { url?: string | null; name: string }) {
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt=""
+        width={36}
+        height={36}
+        loading="lazy"
+        decoding="async"
+        className="w-9 h-9 rounded-lg shrink-0"
+        style={{ objectFit: "cover", background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
+      />
+    );
+  }
+  return (
+    <div
+      className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-[14px]"
+      style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)", fontWeight: 700, border: "1px solid var(--eco-border)" }}
+    >
+      {serviceInitial(name)}
+    </div>
+  );
+}
+
 export function RoomsCatalogPage() {
   const { language } = useI18n();
   const [rooms, setRooms] = useState<RoomSummaryDto[]>([]);
@@ -228,9 +256,12 @@ export function RoomsCatalogPage() {
             <Link key={room.id} to={`/room/${room.id}`} style={{ textDecoration: "none" }}>
               <Card className="flex flex-col gap-3 h-full hover:shadow-sm transition-shadow cursor-pointer">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-[15px] truncate" style={{ color: "var(--eco-text)" }}>{room.title}</div>
-                    <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{room.serviceName}</div>
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <ServiceLogo url={room.serviceLogoUrl} name={room.serviceName} />
+                    <div className="min-w-0">
+                      <div className="text-[15px] truncate" style={{ color: "var(--eco-text)" }}>{room.title}</div>
+                      <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{room.serviceName}</div>
+                    </div>
                   </div>
                   <RoomStatusBadge status={room.status} />
                 </div>

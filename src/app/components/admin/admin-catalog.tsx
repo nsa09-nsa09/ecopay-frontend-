@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AdminLayout } from "./admin-layout";
 import { useI18n, type Language } from "../i18n-provider";
 import { useAuth } from "../auth/auth-provider";
@@ -12,7 +12,8 @@ import {
   Tabs,
 } from "../ds-primitives";
 import { FlashBanner, formatAdminApiError, useFlash } from "./admin-action-ui";
-import { Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import { LogoCropModal } from "./logo-crop-modal";
+import { Image as ImageIcon, Pencil, Plus, RefreshCw, Trash2, Upload, X } from "lucide-react";
 import {
   adminCreateCategory,
   adminCreateService,
@@ -26,6 +27,7 @@ import {
   adminUpdateCategory,
   adminUpdateService,
   adminUpdateTariff,
+  adminUploadServiceLogo,
   clearServicesCache,
   type AdminCategoryDto,
   type AdminServiceDto,
@@ -444,6 +446,11 @@ function ServicesSection() {
   );
 }
 
+const LOGO_MAX_BYTES = 5 * 1024 * 1024;
+// Must match the backend allowlist (ServiceLogoStorageService): png / jpg / jpeg only.
+// WebP is intentionally excluded — Java ImageIO can't decode it server-side.
+const ACCEPTED_LOGO_TYPES = ["image/png", "image/jpeg", "image/jpg"];
+
 function ServiceFormModal({
   open, existing, categories, onClose, onSaved,
 }: {
@@ -451,7 +458,7 @@ function ServiceFormModal({
   existing: AdminServiceDto | null;
   categories: AdminCategoryDto[];
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (saved: AdminServiceDto) => void;
 }) {
   const { t } = useI18n();
   const { authorizedRequest } = useAuth();
@@ -463,6 +470,16 @@ function ServiceFormModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Track the locally-edited service so the logo block can show the latest
+  // logoUrl after upload without waiting for the parent list to refetch.
+  const [current, setCurrent] = useState<AdminServiceDto | null>(existing);
+  const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
+  const [pendingLogoPreview, setPendingLogoPreview] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Raw file awaiting crop in the LogoCropModal (null = editor closed).
+  const [cropFile, setCropFile] = useState<File | null>(null);
+
   useEffect(() => {
     if (!open) return;
     setCategoryId(String(existing?.categoryId ?? categories[0]?.id ?? ""));
@@ -471,14 +488,69 @@ function ServiceFormModal({
     setProviderType(existing?.providerType ?? PROVIDER_TYPES[0]);
     setIsActive(existing?.isActive ?? true);
     setError(null);
-  }, [open, existing, categories]);
+    setCurrent(existing);
+    setPendingLogoFile(null);
+    setCropFile(null);
+    if (pendingLogoPreview) {
+      URL.revokeObjectURL(pendingLogoPreview);
+      setPendingLogoPreview(null);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    // Reset only when the modal (re)opens or switches to another service.
+    // `categories` is deliberately NOT a dependency: when the parent reloads
+    // its list after a logo upload it hands us a fresh `categories` array, and
+    // re-running this effect would clobber the just-uploaded `current.logoUrl`
+    // back to the stale `existing`, making the new logo flicker out of preview.
+    // pendingLogoPreview is owned here; reset is intentional on every open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, existing]);
+
+  const validateLogo = (file: File): string | null => {
+    if (!ACCEPTED_LOGO_TYPES.includes(file.type)) return t("catalogLogoInvalidType");
+    if (file.size > LOGO_MAX_BYTES) return t("catalogLogoTooBig");
+    return null;
+  };
+
+  const pickLogo = (file: File) => {
+    const validationError = validateLogo(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError(null);
+    if (pendingLogoPreview) URL.revokeObjectURL(pendingLogoPreview);
+    setPendingLogoFile(file);
+    setPendingLogoPreview(URL.createObjectURL(file));
+  };
+
+  const clearPickedLogo = () => {
+    setPendingLogoFile(null);
+    if (pendingLogoPreview) URL.revokeObjectURL(pendingLogoPreview);
+    setPendingLogoPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const uploadLogoFor = async (serviceId: number, file: File): Promise<AdminServiceDto | null> => {
+    setUploadingLogo(true);
+    try {
+      const updated = await authorizedRequest((token) => adminUploadServiceLogo(serviceId, file, token));
+      return updated;
+    } catch (err) {
+      setError(formatAdminApiError(err, t));
+      return null;
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const submit = async () => {
+    if (submitting) return; // guard double-click
     if (!name.trim() || !categoryId) { setError(t("catalogFieldName")); return; }
     setSubmitting(true);
     setError(null);
     try {
-      if (existing) {
+      let saved: AdminServiceDto;
+      if (current) {
         const payload: UpdateServicePayload = {
           categoryId: Number(categoryId),
           name: name.trim(),
@@ -486,7 +558,7 @@ function ServiceFormModal({
           providerType,
           isActive,
         };
-        await authorizedRequest((token) => adminUpdateService(existing.id, payload, token));
+        saved = await authorizedRequest((token) => adminUpdateService(current.id, payload, token));
       } else {
         const payload: CreateServicePayload = {
           categoryId: Number(categoryId),
@@ -495,9 +567,20 @@ function ServiceFormModal({
           providerType,
           isActive,
         };
-        await authorizedRequest((token) => adminCreateService(payload, token));
+        saved = await authorizedRequest((token) => adminCreateService(payload, token));
       }
-      onSaved();
+
+      // If the admin picked a logo file while the service had no id yet,
+      // upload it right after the create response lands so the new service
+      // appears with its logo in one round-trip from the admin's POV.
+      if (pendingLogoFile && saved && typeof saved.id === "number") {
+        const withLogo = await uploadLogoFor(saved.id, pendingLogoFile);
+        if (withLogo) saved = withLogo;
+      }
+
+      setCurrent(saved);
+      clearPickedLogo();
+      onSaved(saved);
       onClose();
     } catch (err) {
       setError(formatAdminApiError(err, t));
@@ -506,9 +589,50 @@ function ServiceFormModal({
     }
   };
 
+  // Direct-upload path for already-saved services: pick a file in edit mode
+  // and it uploads immediately (matches the admin-news editor's "replace"
+  // flow). Create mode still routes through submit().
+  const replaceLogoNow = async (file: File) => {
+    const validationError = validateLogo(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    if (!current) {
+      pickLogo(file);
+      return;
+    }
+    const updated = await uploadLogoFor(current.id, file);
+    if (updated) {
+      setCurrent(updated);
+      onSaved(updated);
+      clearPickedLogo();
+    }
+  };
+
+  // A file was chosen → validate, then open the crop editor. The framed,
+  // square JPEG it returns is what actually gets uploaded/previewed.
+  const onLogoFilePicked = (file: File) => {
+    const validationError = validateLogo(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError(null);
+    setCropFile(file);
+  };
+
+  const onLogoCropped = (cropped: File) => {
+    setCropFile(null);
+    if (current) void replaceLogoNow(cropped);
+    else pickLogo(cropped);
+  };
+
+  const previewUrl = pendingLogoPreview || current?.logoUrl || null;
+
   return (
-    <Modal open={open} onClose={onClose} title={existing ? t("catalogEdit") : t("catalogCreateService")}>
-      <div className="flex flex-col gap-4">
+    <Modal open={open} onClose={onClose} title={current ? t("catalogEdit") : t("catalogCreateService")}>
+      <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto pr-1">
         <Select
           label={t("catalogPickCategory")}
           value={categoryId}
@@ -527,9 +651,82 @@ function ServiceFormModal({
           <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
           {t("catalogActive")}
         </label>
+
+        {/* Logo block — visible in both create and edit modes. */}
+        <div className="flex flex-col gap-2">
+          <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("catalogFieldLogo")}</span>
+          <div className="flex items-center gap-3">
+            {previewUrl ? (
+              <img
+                src={previewUrl}
+                alt=""
+                width={64}
+                height={64}
+                loading="lazy"
+                decoding="async"
+                className="w-16 h-16 rounded-xl shrink-0"
+                style={{
+                  objectFit: "cover",
+                  background: "var(--eco-surface)",
+                  border: "1px solid var(--eco-border)",
+                }}
+              />
+            ) : (
+              <div
+                className="w-16 h-16 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
+              >
+                <ImageIcon size={18} style={{ color: "var(--eco-text-tertiary)" }} />
+              </div>
+            )}
+            <div className="flex flex-col gap-2 flex-1 min-w-0">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPTED_LOGO_TYPES.join(",")}
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                  if (!file) return;
+                  onLogoFilePicked(file);
+                }}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={uploadingLogo}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload size={13} />
+                  {previewUrl ? t("catalogLogoReplace") : t("catalogLogoUpload")}
+                </Button>
+                {pendingLogoFile && (
+                  <Button variant="ghost" size="sm" onClick={clearPickedLogo}>
+                    <X size={13} /> {t("cancel")}
+                  </Button>
+                )}
+              </div>
+              <span className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                {current ? t("catalogLogoHint") : t("catalogLogoAtCreateHint")}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {error && <div className="text-[13px]" style={{ color: "var(--eco-negative)" }}>{error}</div>}
-        <Button variant="primary" loading={submitting} onClick={() => void submit()}>{t("catalogEdit")}</Button>
+        <Button variant="primary" loading={submitting} onClick={() => void submit()}>
+          {t("save")}
+        </Button>
       </div>
+
+      <LogoCropModal
+        open={!!cropFile}
+        file={cropFile}
+        onCancel={() => setCropFile(null)}
+        onApply={onLogoCropped}
+      />
     </Modal>
   );
 }

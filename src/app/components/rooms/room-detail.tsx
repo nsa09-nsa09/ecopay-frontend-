@@ -23,9 +23,21 @@ function formatDate(value: string | undefined, l: Language) {
   return formatAlmatyDate(value, l);
 }
 
+const verificationModeI18nKey: Record<string, string> = {
+  RISK_BASED: "verificationModeRiskBased",
+  AUTO: "verificationModeAuto",
+  ADMIN_REQUIRED: "verificationModeAdminRequired",
+};
+
+function localizeVerificationMode(mode: string | null | undefined, t: (k: string) => string): string {
+  if (!mode) return "—";
+  const key = verificationModeI18nKey[mode];
+  return key ? t(key) : mode;
+}
+
 export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const roomId = Number(id);
   const location = useLocation();
   const navigate = useNavigate();
@@ -174,14 +186,28 @@ export function RoomDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-              <h1 className="text-[22px] sm:text-[24px] break-words" style={{ color: "var(--eco-text)" }}>{room.title}</h1>
-              <RoomStatusBadge status={room.status} />
+          <div className="flex items-start gap-3">
+            {room.serviceLogoUrl ? (
+              <img
+                src={room.serviceLogoUrl}
+                alt=""
+                width={48}
+                height={48}
+                loading="lazy"
+                decoding="async"
+                className="w-12 h-12 rounded-xl shrink-0"
+                style={{ objectFit: "cover", background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
+              />
+            ) : null}
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                <h1 className="text-[22px] sm:text-[24px] break-words" style={{ color: "var(--eco-text)" }}>{room.title}</h1>
+                <RoomStatusBadge status={room.status} />
+              </div>
+              <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+                {room.providerName} · {room.connectionType}
+              </p>
             </div>
-            <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-              {room.providerName} · {room.connectionType}
-            </p>
           </div>
 
           <Card className="flex flex-col gap-4">
@@ -263,7 +289,7 @@ export function RoomDetailPage() {
                   <ReputationLevelBadge level={summary?.ownerReputationLevel} score={summary?.ownerReputation} size="sm" />
                 </div>
                 <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                  {tx(language, "Верификация", "Растау", "Verification")}: {room.verificationMode}
+                  {tx(language, "Верификация", "Растау", "Verification")}: {localizeVerificationMode(room.verificationMode, t)}
                 </div>
               </div>
             </div>
@@ -349,18 +375,6 @@ export function RoomDetailPage() {
 
             {joinStep === 0 && (
               <div className="flex flex-col gap-4">
-                {user && !user.phoneVerified && (
-                  <div className="p-3 rounded-lg text-[12px] flex items-start gap-2" style={{ background: "var(--eco-warning-100)", color: "var(--eco-text-secondary)" }}>
-                    <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
-                    <span>
-                      {tx(language, "Подтвердите номер телефона перед вступлением.", "Қосылмас бұрын телефон нөміріңізді растаңыз.", "Verify your phone number before joining a room.")}{" "}
-                      <Link to="/profile" style={{ color: "var(--eco-primary)" }}>
-                        {tx(language, "Перейти в профиль", "Профильге өту", "Go to profile")}
-                      </Link>
-                      .
-                    </span>
-                  </div>
-                )}
                 {requiresIdentifier && (
                   <>
                     <Select
@@ -403,8 +417,7 @@ export function RoomDetailPage() {
                   className="w-full"
                   disabled={
                     !consent ||
-                    (requiresIdentifier && !identifierValue.trim()) ||
-                    (!!user && !user.phoneVerified)
+                    (requiresIdentifier && !identifierValue.trim())
                   }
                   onClick={() => setJoinStep(1)}
                 >
