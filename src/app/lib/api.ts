@@ -95,6 +95,10 @@ export interface RoomResponseDto {
   maxMembers: number;
   priceTotal: number;
   pricePerMember: number;
+  /** ECOpay commission a joining member pays on top of pricePerMember (null if not computable). */
+  pricePerMemberCommission?: number | null;
+  /** Total a joining member pays = pricePerMember + pricePerMemberCommission. */
+  pricePerMemberTotal?: number | null;
   currency: string;
   periodType: string;
   startDate: string;
@@ -821,7 +825,12 @@ export type PaymentIntentStatus = "PENDING" | "SUCCESS" | "FAILED" | "EXPIRED" |
 export interface PaymentIntentResponseDto {
   id: number;
   idempotencyKey: string;
+  /** Total charged to the member = tariff share + ECOpay commission. */
   amount: number;
+  /** The member's tariff share (the portion the owner receives). */
+  shareAmount?: number | null;
+  /** The ECOpay commission added on top of the share. */
+  commissionAmount?: number | null;
   currency: string;
   status: PaymentIntentStatus;
   providerName: string;

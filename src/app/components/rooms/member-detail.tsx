@@ -142,6 +142,12 @@ export function MemberDetailPage() {
   const isActive = membership.status === "ACTIVE";
   const canConfirm = membership.status === "PENDING" && ownerGranted && !memberConfirmed;
 
+  // ECOpay commission the member pays on top of their tariff share (owner pays none).
+  // Backend-computed; fall back to the bare share if the breakdown isn't available.
+  const payShare = Number(room.pricePerMember ?? 0);
+  const payTotal = Number(room.pricePerMemberTotal ?? payShare);
+  const payCommission = Number(room.pricePerMemberCommission ?? Math.max(0, payTotal - payShare));
+
   const timelineSteps = [
     { label: tx(language, "Заявка отправлена", "Өтінім жіберілді", "Application submitted"), time: null as string | null, done: true },
     { label: tx(language, "Оплата подтверждена", "Төлем расталды", "Payment confirmed"), time: null, done: paid, active: !paid },
@@ -234,6 +240,16 @@ export function MemberDetailPage() {
                 <span style={{ color: "var(--eco-text-secondary)" }}>{tx(language, "Ваша доля", "Сіздің үлесіңіз", "Your share")}</span>
                 <span style={{ color: "var(--eco-text)" }}>{formatMoney(room.pricePerMember)}</span>
               </div>
+              {payCommission > 0 && (
+                <div className="flex justify-between text-[14px] mb-1">
+                  <span style={{ color: "var(--eco-text-secondary)" }}>{tx(language, "Комиссия ECOpay", "ECOpay комиссиясы", "ECOpay fee")}</span>
+                  <span style={{ color: "var(--eco-text)" }}>{formatMoney(payCommission)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-[14px] mb-2 pt-1 border-t" style={{ borderColor: "var(--eco-border)" }}>
+                <span style={{ color: "var(--eco-text)" }}>{tx(language, "Итого к оплате", "Барлығы төлеуге", "Total to pay")}</span>
+                <span style={{ color: "var(--eco-text)", fontWeight: 600 }}>{formatMoney(payTotal)}</span>
+              </div>
               <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
                 {tx(
                   language,
@@ -245,7 +261,7 @@ export function MemberDetailPage() {
             </div>
             {payError && <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{payError}</p>}
             <Button variant="primary" size="md" loading={paying} onClick={handlePay}>
-              <CreditCard size={14} /> {tx(language, "Оплатить", "Төлеу", "Pay")} {formatMoney(room.pricePerMember)}
+              <CreditCard size={14} /> {tx(language, "Оплатить", "Төлеу", "Pay")} {formatMoney(payTotal)}
             </Button>
           </Card>
         )}
