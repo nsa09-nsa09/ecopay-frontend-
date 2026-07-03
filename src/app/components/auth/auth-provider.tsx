@@ -74,7 +74,14 @@ interface AuthContextType {
   staffLogin: (email: string, password: string) => Promise<StaffLoginResult>;
   verifyStaffTwoFactor: (challengeId: string, code: string) => Promise<User>;
   resendStaffTwoFactor: (challengeId: string) => Promise<void>;
-  register: (displayName: string, email: string, password: string) => Promise<User>;
+  register: (
+    displayName: string,
+    email: string,
+    password: string,
+    termsAccepted: boolean,
+    acceptedTermsVersion?: number,
+    acceptedPrivacyVersion?: number,
+  ) => Promise<User>;
   logout: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
@@ -288,8 +295,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await resendStaffTwoFactorRequest(challengeId);
   };
 
-  const register = async (displayName: string, email: string, password: string) => {
-    const response = await registerRequest(displayName, email, password);
+  const register = async (
+    displayName: string,
+    email: string,
+    password: string,
+    termsAccepted: boolean,
+    acceptedTermsVersion?: number,
+    acceptedPrivacyVersion?: number,
+  ) => {
+    const response = await registerRequest(
+      displayName,
+      email,
+      password,
+      termsAccepted,
+      acceptedTermsVersion,
+      acceptedPrivacyVersion,
+    );
     const nextSession = {
       accessToken: response.accessToken,
       refreshToken: response.refreshToken,

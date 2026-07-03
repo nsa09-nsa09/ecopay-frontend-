@@ -33,6 +33,7 @@ import { AdminLogsPage } from "./components/admin/admin-logs";
 import { AdminCatalogPage } from "./components/admin/admin-catalog";
 import { AdminServiceReviewsPage } from "./components/admin/admin-service-reviews";
 import { AdminAboutPage } from "./components/admin/admin-about";
+import { AdminLegalPage } from "./components/admin/admin-legal";
 import { AdminNewsPage } from "./components/admin/admin-news";
 import { AdminRoute } from "./components/admin/admin-route";
 import { PaymentRoomDetailsPage, PaymentCheckoutPage, PaymentConfirmationPage, PaymentPendingPage, RefundStatusPage, OwnerPayoutPage } from "./components/payments/payments";
@@ -156,6 +157,7 @@ export const router = createBrowserRouter([
       { path: "service-reviews", Component: AdminServiceReviewsPage },
       { path: "about", Component: AdminAboutPage },
       { path: "news", Component: AdminNewsPage },
+      { path: "legal", Component: AdminLegalPage },
     ],
   },
 ]);

@@ -483,10 +483,24 @@ export function loginRequest(email: string, password: string) {
   });
 }
 
-export function registerRequest(displayName: string, email: string, password: string) {
+export function registerRequest(
+  displayName: string,
+  email: string,
+  password: string,
+  termsAccepted: boolean,
+  acceptedTermsVersion?: number,
+  acceptedPrivacyVersion?: number,
+) {
   return requestJson<AuthResponse>("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ displayName, email, password }),
+    body: JSON.stringify({
+      displayName,
+      email,
+      password,
+      termsAccepted,
+      acceptedTermsVersion,
+      acceptedPrivacyVersion,
+    }),
   });
 }
 
@@ -2194,6 +2208,53 @@ export function adminGetSiteAbout(accessToken: string) {
 export function adminUpdateSiteAbout(payload: UpdateSiteAboutPayload, accessToken: string) {
   return requestJson<SiteAboutContent>(
     "/admin/site/about",
+    { method: "PUT", body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
+// Legal documents — Terms of Service / Privacy consent
+// ───────────────────────────────────────────────────────────────
+
+export type LegalDocType = "terms" | "privacy";
+
+export interface LegalDocumentDto {
+  docType: LegalDocType;
+  version: number;
+  updatedAt: string | null;
+  title_kz?: string | null;
+  title_ru?: string | null;
+  title_en?: string | null;
+  body_kz?: string | null;
+  body_ru?: string | null;
+  body_en?: string | null;
+}
+
+export interface UpdateLegalDocumentPayload {
+  title_kz?: string | null;
+  title_ru?: string | null;
+  title_en?: string | null;
+  body_kz?: string | null;
+  body_ru?: string | null;
+  body_en?: string | null;
+}
+
+export function getLegalDocumentRequest(docType: LegalDocType) {
+  return requestJson<LegalDocumentDto>(`/site/legal/${docType}`);
+}
+
+export function adminGetLegalDocument(docType: LegalDocType, accessToken: string) {
+  return requestJson<LegalDocumentDto>(`/admin/legal/${docType}`, {}, accessToken);
+}
+
+export function adminUpdateLegalDocument(
+  docType: LegalDocType,
+  payload: UpdateLegalDocumentPayload,
+  accessToken: string,
+) {
+  return requestJson<LegalDocumentDto>(
+    `/admin/legal/${docType}`,
     { method: "PUT", body: JSON.stringify(payload) },
     accessToken,
   );

@@ -1,13 +1,36 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Button, Input, Card } from "../ds-primitives";
+import { Checkbox } from "../ui/checkbox";
 import { Eye, EyeOff, Check, X } from "lucide-react";
-import { useI18n } from "../i18n-provider";
+import { useI18n, type Language } from "../i18n-provider";
 import { useAuth } from "./auth-provider";
-import { ApiError } from "../../lib/api";
+import {
+  ApiError,
+  getLegalDocumentRequest,
+  type LegalDocumentDto,
+} from "../../lib/api";
+
+// Pick the localized body/title for a legal document, falling back to Russian
+// (canonical) then to any non-empty variant so the box never shows blank text.
+function pickLocalized(
+  doc: LegalDocumentDto | null,
+  field: "title" | "body",
+  language: Language,
+): string {
+  if (!doc) return "";
+  const primary = doc[`${field}_${language}` as keyof LegalDocumentDto] as string | null | undefined;
+  if (primary && primary.trim()) return primary;
+  const ru = doc[`${field}_ru` as keyof LegalDocumentDto] as string | null | undefined;
+  if (ru && ru.trim()) return ru;
+  const kz = doc[`${field}_kz` as keyof LegalDocumentDto] as string | null | undefined;
+  if (kz && kz.trim()) return kz;
+  const en = doc[`${field}_en` as keyof LegalDocumentDto] as string | null | undefined;
+  return (en ?? "") as string;
+}
 
 export function RegisterPage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { register } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -18,15 +41,33 @@ export function RegisterPage() {
   const [show, setShow] = useState(false);
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [terms, setTerms] = useState<LegalDocumentDto | null>(null);
+  const [privacy, setPrivacy] = useState<LegalDocumentDto | null>(null);
+  const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  // Load both documents once. If either fetch fails we leave the box empty —
+  // the user can still see the fallback labels and the check is server-enforced.
+  useEffect(() => {
+    let cancelled = false;
+    void getLegalDocumentRequest("terms")
+      .then((data) => { if (!cancelled) setTerms(data); })
+      .catch(() => { /* checkbox stays required either way */ });
+    void getLegalDocumentRequest("privacy")
+      .then((data) => { if (!cancelled) setPrivacy(data); })
+      .catch(() => { /* fallthrough */ });
+    return () => { cancelled = true; };
+  }, []);
 
   const rules = [
     { label: t("pwMin8"), ok: pw.length >= 8 },
     { label: t("pwUppercase"), ok: /[A-Z]/.test(pw) },
     { label: t("pwOneNumber"), ok: /\d/.test(pw) },
   ];
+
+  const termsBody = pickLocalized(terms, "body", language);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -38,10 +79,22 @@ export function RegisterPage() {
       return;
     }
 
+    if (!accepted) {
+      setError(t("mustAcceptTerms"));
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await register(displayName, email, pw);
+      await register(
+        displayName,
+        email,
+        pw,
+        true,
+        terms?.version,
+        privacy?.version,
+      );
       navigate(redirectTarget);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -54,6 +107,8 @@ export function RegisterPage() {
       setLoading(false);
     }
   };
+
+  const canSubmit = accepted && !loading;
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
@@ -124,12 +179,62 @@ export function RegisterPage() {
               onChange={(event) => setConfirm(event.target.value)}
               error={fieldErrors.confirmPassword}
             />
+
+            {/* Scrollable Terms preview + required acceptance checkbox. The
+                text is rendered as plain (whitespace-pre-line) so paragraphs
+                keep the newlines the backend stored. */}
+            <div className="flex flex-col gap-2">
+              <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                {t("termsScrollHint")}
+              </span>
+              <div
+                className="rounded-lg text-[12px] leading-relaxed whitespace-pre-line px-3 py-2"
+                style={{
+                  background: "var(--eco-surface)",
+                  border: "1px solid var(--eco-border)",
+                  color: "var(--eco-text-secondary)",
+                  maxHeight: 220,
+                  overflowY: "auto",
+                }}
+              >
+                {termsBody || t("loading")}
+              </div>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <span className="mt-0.5">
+                  <Checkbox
+                    checked={accepted}
+                    onCheckedChange={(v) => setAccepted(v === true)}
+                    aria-label={t("agreeCheckboxLabel")}
+                  />
+                </span>
+                <span className="text-[12px] leading-snug" style={{ color: "var(--eco-text-secondary)" }}>
+                  {t("agreeCheckboxLabel")}{" "}
+                  <Link to="/terms" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
+                    {t("agreeTermsLink")}
+                  </Link>
+                  {" "}
+                  <span>&amp;</span>
+                  {" "}
+                  <Link to="/privacy" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
+                    {t("agreePrivacyLink")}
+                  </Link>
+                </span>
+              </label>
+            </div>
+
             {error && (
               <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>
                 {error}
               </p>
             )}
-            <Button type="submit" variant="primary" size="lg" className="w-full mt-2" loading={loading}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="w-full mt-2"
+              loading={loading}
+              disabled={!canSubmit}
+            >
               {t("createAccount")}
             </Button>
           </form>

@@ -2021,6 +2021,62 @@ const translations: Translations = {
     en: "Browse available plans from Kazakhstan's top operators and join a room today.",
   },
   howItWorksViewCatalogCta: { ru: "Открыть каталог", kz: "Каталогты ашу", en: "View Catalog" },
+
+  // ===== Legal documents (Terms / Privacy) =====
+  agreeCheckboxLabel: {
+    ru: "Я прочитал(а) и принимаю",
+    kz: "Мен оқыдым және қабылдаймын",
+    en: "I have read and accept",
+  },
+  agreeTermsLink: {
+    ru: "Условия использования",
+    kz: "Пайдалану шарттарын",
+    en: "the Terms of Service",
+  },
+  agreePrivacyLink: {
+    ru: "согласие на обработку персональных данных",
+    kz: "дербес деректерді өңдеуге келісімді",
+    en: "the Privacy consent",
+  },
+  mustAcceptTerms: {
+    ru: "Чтобы продолжить, отметьте согласие с условиями и обработкой персональных данных.",
+    kz: "Жалғастыру үшін шарттарды және дербес деректерді өңдеуге келісімді белгілеңіз.",
+    en: "You must accept the Terms of Service and the Privacy consent to continue.",
+  },
+  termsScrollHint: {
+    ru: "Пожалуйста, ознакомьтесь с полным текстом условий (можно прокручивать).",
+    kz: "Толық шарттармен танысыңыз (айналдыруға болады).",
+    en: "Please read the full text below (scrollable).",
+  },
+
+  adminLegalNav: {
+    ru: "Юр. документы",
+    kz: "Заңды құжаттар",
+    en: "Legal docs",
+  },
+  adminLegalTitle: {
+    ru: "Юридические документы",
+    kz: "Заңды құжаттар",
+    en: "Legal documents",
+  },
+  adminLegalHint: {
+    ru: "Выберите документ и язык. Каждое сохранение фиксируется в журнале действий администратора и увеличивает версию.",
+    kz: "Құжатты және тілді таңдаңыз. Әрбір сақтау әкімші журналына жазылып, нұсқаны арттырады.",
+    en: "Pick a document and language. Every save is recorded in the admin action log and bumps the version.",
+  },
+  adminLegalDocTerms: {
+    ru: "Условия использования",
+    kz: "Пайдалану шарттары",
+    en: "Terms of Service",
+  },
+  adminLegalDocPrivacy: {
+    ru: "Согласие на обработку ПДн",
+    kz: "Дербес деректерді өңдеуге келісім",
+    en: "Privacy consent",
+  },
+  adminLegalDocTitle: { ru: "Заголовок", kz: "Тақырып", en: "Title" },
+  adminLegalBody: { ru: "Текст документа", kz: "Құжаттың мәтіні", en: "Document body" },
+  adminLegalLastUpdated: { ru: "Обновлено", kz: "Жаңартылды", en: "Last updated" },
 };
 
 interface I18nContextType {
