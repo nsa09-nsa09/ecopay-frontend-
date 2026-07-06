@@ -1,0 +1,11 @@
+# GitHub Linguist: корректная плашка для Vite + React + TypeScript
+*.md                 linguist-documentation
+package-lock.json    linguist-generated
+pnpm-lock.yaml       linguist-generated
+yarn.lock            linguist-generated
+*.patch              linguist-generated
+*.diff               linguist-generated
+_design_reference/** linguist-vendored
+guidelines/**        linguist-documentation
+*.ts                 linguist-detectable
+*.tsx                linguist-detectable
