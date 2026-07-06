@@ -13,8 +13,10 @@ import { useAuth } from '../auth/auth-provider';
 const PENDING_KEY = 'ecopay.pendingPayment';
 
 interface PendingContext {
-  intentId: number;
-  roomId: number;
+  // Strings: both are 64-bit ids serialized as strings by the backend
+  // (see PaymentIntentResponseDto.id). member-detail stores them as strings.
+  intentId: string;
+  roomId: string;
 }
 
 function readContext(): PendingContext | null {
@@ -22,7 +24,7 @@ function readContext(): PendingContext | null {
     const raw = window.localStorage.getItem(PENDING_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PendingContext;
-    if (typeof parsed.intentId === 'number' && typeof parsed.roomId === 'number') {
+    if (typeof parsed.intentId === 'string' && typeof parsed.roomId === 'string') {
       return parsed;
     }
   } catch {

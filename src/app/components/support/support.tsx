@@ -402,7 +402,7 @@ function CreateTicketView({
     setSubmitting(true);
     setError(null);
     try {
-      const parsedRoomId = roomId.trim() ? Number(roomId.trim()) : undefined;
+      const parsedRoomId = roomId.trim() || undefined;
       const ticket = await authorizedRequest((token) =>
         createSupportTicketRequest(
           {

@@ -165,7 +165,7 @@ export function PublicUserProfilePage() {
       setReviews(rev);
     }
 
-    async function loadByNumericId(uid: number) {
+    async function loadByNumericId(uid: string) {
       const [rep, rev] = await Promise.all([
         getReputationRequest(uid),
         getReputationReviewsRequest(uid),
@@ -180,12 +180,8 @@ export function PublicUserProfilePage() {
         if (publicId) {
           await loadByPublicId(publicId);
         } else if (id) {
-          const numeric = Number(id);
-          if (!Number.isNaN(numeric)) {
-            await loadByNumericId(numeric);
-          } else {
-            throw new ApiError(400, 'Invalid user.');
-          }
+          // User ids are 64-bit; keep the raw string (Number() would corrupt it).
+          await loadByNumericId(id);
         } else {
           throw new ApiError(400, 'Invalid user.');
         }

@@ -648,7 +648,9 @@ export interface CategoryDto {
 }
 
 export interface RoomMemberDto {
-  id: number;
+  // String: backend serializes 64-bit ids as strings (CockroachDB unique_rowid()
+  // exceeds JS Number precision). Kept opaque for owner-action URL round-trips.
+  id: string;
   roomId: number;
   userId: number;
   userDisplayName: string;
@@ -668,7 +670,9 @@ export interface RoomMemberDto {
 }
 
 export interface MyRoomMembershipDto {
-  id: number;
+  // String: backend serializes 64-bit ids as strings (CockroachDB unique_rowid()
+  // exceeds JS Number precision). Kept opaque for URL round-trips.
+  id: string;
   roomId: number;
   userId: number;
   status: string;
@@ -827,7 +831,7 @@ export function getMyMembership(roomId: number, accessToken: string) {
 
 export function confirmOwnerAccessRequest(
   roomId: number,
-  memberId: number,
+  memberId: string,
   accessMethod: string,
   accessToken: string,
 ) {
@@ -853,7 +857,7 @@ export function confirmMemberAccessRequest(roomId: number, accessToken: string) 
 
 export function revealIdentifierRequest(
   roomId: number,
-  memberId: number,
+  memberId: string,
   payload: { reason: string; contextType?: string; contextId?: number },
   accessToken: string,
 ) {
@@ -879,7 +883,9 @@ export function revealIdentifierRequest(
 export type PaymentIntentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED' | string;
 
 export interface PaymentIntentResponseDto {
-  id: number;
+  // String: backend serializes 64-bit ids as strings (see MyRoomMembershipDto.id).
+  // Used to build /payments/intents/{id} and confirm-success URLs.
+  id: string;
   idempotencyKey: string;
   /** Total charged to the member = tariff share + ECOpay commission. */
   amount: number;
@@ -900,7 +906,7 @@ export interface PaymentIntentResponseDto {
 }
 
 export function createPaymentIntentRequest(
-  roomMemberId: number,
+  roomMemberId: string,
   payload: { idempotencyKey: string; saveCard?: boolean; savedCardId?: number },
   accessToken: string,
 ) {
@@ -914,7 +920,7 @@ export function createPaymentIntentRequest(
   );
 }
 
-export function getPaymentIntentRequest(intentId: number, accessToken: string) {
+export function getPaymentIntentRequest(intentId: string, accessToken: string) {
   return requestJson<PaymentIntentResponseDto>(`/payments/intents/${intentId}`, {}, accessToken);
 }
 
@@ -924,7 +930,7 @@ export function getPaymentIntentRequest(intentId: number, accessToken: string) {
  * intent (and the membership) if the payment already succeeded.
  */
 export function confirmPaymentSuccessRequest(
-  intentId: number,
+  intentId: string,
   accessToken: string,
   externalTransactionId?: string,
 ) {

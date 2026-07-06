@@ -470,7 +470,7 @@ function OwnerViolationButton({
           dispute.id,
           {
             createRefund,
-            paymentTransactionId: paymentTxId.trim() ? Number(paymentTxId.trim()) : undefined,
+            paymentTransactionId: paymentTxId.trim() || undefined,
             refundAmount: refundAmount.trim() ? Number(refundAmount.trim()) : undefined,
             reason: reason.trim(),
           },

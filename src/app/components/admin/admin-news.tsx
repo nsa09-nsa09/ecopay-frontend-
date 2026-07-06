@@ -247,7 +247,7 @@ export function AdminNewsPage() {
       // `saved` is undefined and splicing it into the list would throw — which
       // surfaced as a generic "save failed" toast even though the POST itself
       // returned 2xx. Refetch the list and bail cleanly instead.
-      if (!saved || typeof saved.id !== 'number') {
+      if (!saved || saved.id == null) {
         await load();
         clearNewsCache();
         show('success', t('adminNewsSaveSuccess'));

@@ -57,7 +57,8 @@ function localizeVerificationMode(
 export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { language, t } = useI18n();
-  const roomId = Number(id);
+  // Keep the id as a string: room ids are 64-bit and Number() would corrupt them.
+  const roomId = id ?? '';
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, authorizedRequest, user } = useAuth();

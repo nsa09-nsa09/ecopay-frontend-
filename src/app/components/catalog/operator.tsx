@@ -46,7 +46,9 @@ function formatDate(value: string | undefined, language?: Language) {
 export function OperatorPage() {
   const { t, language } = useI18n();
   const { id } = useParams<{ id: string }>();
-  const serviceId = Number(id);
+  // Keep the id as a string: service ids are 64-bit and Number() would corrupt them.
+  // (Must match room.serviceId, which the backend now serializes as a string.)
+  const serviceId = id ?? '';
 
   const [service, setService] = useState<ServiceDto | null>(null);
   const [plans, setPlans] = useState<TariffPlanDto[]>([]);

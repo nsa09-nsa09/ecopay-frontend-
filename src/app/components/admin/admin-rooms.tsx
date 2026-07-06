@@ -26,10 +26,10 @@ export function AdminRoomsPage() {
   // Honor `?selected=<id>` so the global admin search can deep-link straight
   // to a room's detail panel.
   useEffect(() => {
+    // Keep the id as a string: 64-bit ids would be corrupted by Number().
     const raw = searchParams.get('selected');
     if (!raw) return;
-    const parsed = Number(raw);
-    if (Number.isFinite(parsed)) setSelectedId(parsed);
+    setSelectedId(raw);
   }, [searchParams]);
   const [blockModal, setBlockModal] = useState<RoomSummaryDto | null>(null);
   const [blockSubmitting, setBlockSubmitting] = useState(false);

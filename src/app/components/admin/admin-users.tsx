@@ -108,10 +108,10 @@ export function AdminUsersPage() {
   // Honor `?selected=<id>` so the global admin search can deep-link straight
   // to a user's detail panel.
   useEffect(() => {
+    // Keep the id as a string: user ids are 64-bit and Number() would corrupt them.
     const raw = searchParams.get('selected');
     if (!raw) return;
-    const parsed = Number(raw);
-    if (Number.isFinite(parsed)) setSelectedId(parsed);
+    setSelectedId(raw);
   }, [searchParams]);
 
   const load = useCallback(async () => {

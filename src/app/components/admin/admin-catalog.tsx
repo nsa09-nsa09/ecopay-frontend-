@@ -444,7 +444,7 @@ function ServicesSection() {
         authorizedRequest((token) =>
           adminGetServices(
             token,
-            filterCategoryId === 'ALL' ? undefined : Number(filterCategoryId),
+            filterCategoryId === 'ALL' ? undefined : filterCategoryId,
           ),
         ),
       ]);
@@ -769,7 +769,7 @@ function ServiceFormModal({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const uploadLogoFor = async (serviceId: number, file: File): Promise<AdminServiceDto | null> => {
+  const uploadLogoFor = async (serviceId: string, file: File): Promise<AdminServiceDto | null> => {
     setUploadingLogo(true);
     try {
       const updated = await authorizedRequest((token) =>
@@ -796,7 +796,7 @@ function ServiceFormModal({
       let saved: AdminServiceDto;
       if (current) {
         const payload: UpdateServicePayload = {
-          categoryId: Number(categoryId),
+          categoryId,
           name: name.trim(),
           slug: slug.trim() || undefined,
           providerType,
@@ -805,7 +805,7 @@ function ServiceFormModal({
         saved = await authorizedRequest((token) => adminUpdateService(current.id, payload, token));
       } else {
         const payload: CreateServicePayload = {
-          categoryId: Number(categoryId),
+          categoryId,
           name: name.trim(),
           slug: slug.trim() || undefined,
           providerType,
@@ -817,7 +817,7 @@ function ServiceFormModal({
       // If the admin picked a logo file while the service had no id yet,
       // upload it right after the create response lands so the new service
       // appears with its logo in one round-trip from the admin's POV.
-      if (pendingLogoFile && saved && typeof saved.id === 'number') {
+      if (pendingLogoFile && saved && saved.id != null) {
         const withLogo = await uploadLogoFor(saved.id, pendingLogoFile);
         if (withLogo) saved = withLogo;
       }
@@ -1036,7 +1036,7 @@ function TariffsSection() {
     setLoading(true);
     setError(null);
     try {
-      const data = await authorizedRequest((token) => adminGetTariffs(Number(serviceId), token));
+      const data = await authorizedRequest((token) => adminGetTariffs(serviceId, token));
       setItems(data);
     } catch (err) {
       setError(formatAdminApiError(err, t));
@@ -1239,7 +1239,7 @@ function TariffsSection() {
 
       <TariffFormModal
         open={creating || !!editing}
-        serviceId={serviceId ? Number(serviceId) : null}
+        serviceId={serviceId || null}
         existing={editing}
         onClose={() => {
           setEditing(null);
@@ -1287,7 +1287,7 @@ function TariffFormModal({
   onSaved,
 }: {
   open: boolean;
-  serviceId: number | null;
+  serviceId: string | null;
   existing: AdminTariffDto | null;
   onClose: () => void;
   onSaved: () => void;

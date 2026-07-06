@@ -163,7 +163,9 @@ export function RoomsCatalogPage() {
         sorted.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
         break;
       default:
-        sorted.sort((a, b) => b.id - a.id);
+        // Newest first. Ids are 64-bit numeric strings (roughly time-ordered), so
+        // compare them numerically-as-strings — b.id - a.id would corrupt them.
+        sorted.sort((a, b) => String(b.id).localeCompare(String(a.id), undefined, { numeric: true }));
     }
     return sorted;
   }, [rooms, query, typeFilter, operatorFilter, priceFilter, sort]);

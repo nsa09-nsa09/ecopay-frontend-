@@ -43,7 +43,8 @@ const POST_PAYMENT = new Set(['PENDING', 'ACTIVE']);
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { language } = useI18n();
-  const roomId = Number(id);
+  // Keep the id as a string: room ids are 64-bit and Number() would corrupt them.
+  const roomId = id ?? '';
   const { authorizedRequest, user } = useAuth();
 
   const [room, setRoom] = useState<RoomResponseDto | null>(null);

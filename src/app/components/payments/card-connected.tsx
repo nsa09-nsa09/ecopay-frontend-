@@ -26,10 +26,9 @@ export function CardConnectedPage() {
 
   // Prefer the query param, but fall back to localStorage — Freedom Pay's redirect does not
   // reliably preserve our query string, and localStorage is shared across the original tab.
+  // Keep the id as a string: binding ids are 64-bit and Number() would corrupt them.
   const bindingId =
-    Number(params.get('binding')) ||
-    Number(window.localStorage.getItem('ecopay.pendingCardBinding')) ||
-    0;
+    params.get('binding') || window.localStorage.getItem('ecopay.pendingCardBinding') || '';
   const returnedStatus = params.get('status'); // success | failure (from the provider redirect)
 
   const [phase, setPhase] = useState<'loading' | 'success' | 'failed'>('loading');

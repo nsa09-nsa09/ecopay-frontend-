@@ -164,7 +164,9 @@ export function CreateRoomPage() {
         if (cancelled) return;
         setServices(list);
         const preferred =
-          navState?.serviceId != null ? list.find((s) => s.id === navState.serviceId) : undefined;
+          navState?.serviceId != null
+            ? list.find((s) => String(s.id) === String(navState.serviceId))
+            : undefined;
         if (preferred) {
           setServiceId(String(preferred.id));
         } else if (list.length > 0) {
@@ -201,7 +203,7 @@ export function CreateRoomPage() {
       return;
     }
     let cancelled = false;
-    getTariffs(Number(serviceId))
+    getTariffs(serviceId)
       .then((list) => {
         if (cancelled) return;
         setTariffs(list);
@@ -402,8 +404,8 @@ export function CreateRoomPage() {
         createRoomRequest(
           {
             categoryId: selectedService?.categoryId ?? null,
-            serviceId: Number(serviceId),
-            tariffPlanId: Number(tariffPlanId),
+            serviceId,
+            tariffPlanId,
             roomType,
             title: title.trim(),
             startDate: startDate.length === 16 ? `${startDate}:00` : startDate,

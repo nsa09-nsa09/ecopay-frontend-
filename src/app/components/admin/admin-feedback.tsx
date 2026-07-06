@@ -165,10 +165,10 @@ export function AdminFeedbackPage() {
   // Honor `?selected=<id>` so the global admin search can deep-link straight
   // to a feedback item's detail panel.
   useEffect(() => {
+    // Keep the id as a string: 64-bit ids would be corrupted by Number().
     const raw = searchParams.get('selected');
     if (!raw) return;
-    const parsed = Number(raw);
-    if (Number.isFinite(parsed)) setSelectedId(parsed);
+    setSelectedId(raw);
   }, [searchParams]);
 
   const handleSave = async () => {
