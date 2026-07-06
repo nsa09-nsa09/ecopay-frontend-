@@ -2507,3 +2507,166 @@ export function updateNotificationPreferencesRequest(
     accessToken,
   );
 }
+
+// ───────────────────────────────────────────────────────────────
+// Admin: subscription price monitoring (/api/v1/admin/pricing/**)
+// ───────────────────────────────────────────────────────────────
+
+export type PricingExtractionType = 'AUTO' | 'JSON_LD' | 'META' | 'CSS' | 'REGEX' | 'MANUAL';
+
+export type PricingProviderStatus = 'OK' | 'STALE' | 'FAILING' | 'BLOCKED' | 'PENDING';
+
+export type PricingSnapshotOutcome =
+  | 'SUCCESS'
+  | 'OK'
+  | 'UNCHANGED'
+  | 'PARSE_FAILED'
+  | 'FETCH_FAILED'
+  | 'BLOCKED';
+
+export type PricingChangeDirection = 'UP' | 'DOWN' | 'FLAT';
+
+export interface PricingExtractionConfig {
+  selector?: string | null;
+  regex?: string | null;
+  jsonPath?: string | null;
+}
+
+export interface PricingProviderDto {
+  /**
+   * Backend serialises this as a string, not a number: CockroachDB's BIGSERIAL
+   * emits ids past 2^53 that JavaScript's number type would silently round on
+   * {@code JSON.parse}. Treat it as an opaque token — no arithmetic.
+   */
+  id: string;
+  platform: string;
+  name: string;
+  planName: string;
+  url: string;
+  extractionType: PricingExtractionType;
+  extractionConfig?: PricingExtractionConfig | null;
+  currentPrice: number | null;
+  previousPrice: number | null;
+  currency: string;
+  status: PricingProviderStatus;
+  lastCheckedAt: string | null;
+  checkIntervalMinutes: number;
+  active: boolean;
+  requiresJs: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertPricingProviderPayload {
+  platform: string;
+  name: string;
+  planName: string;
+  url: string;
+  extractionType: PricingExtractionType;
+  extractionConfig?: PricingExtractionConfig | null;
+  currency: string;
+  checkIntervalMinutes: number;
+  active: boolean;
+  requiresJs: boolean;
+  /** For MANUAL extraction — sets the current price directly. */
+  manualPrice?: number | null;
+}
+
+export interface PricingSnapshotDto {
+  /** String-encoded — see {@link PricingProviderDto.id}. */
+  id: string;
+  providerId: string;
+  price: number | null;
+  currency: string;
+  capturedAt: string;
+  outcome: PricingSnapshotOutcome;
+  errorMessage?: string | null;
+}
+
+export interface PricingChangeDto {
+  /** String-encoded — see {@link PricingProviderDto.id}. */
+  id: string;
+  providerId: string;
+  providerName: string;
+  planName: string;
+  oldPrice: number | null;
+  newPrice: number | null;
+  currency: string;
+  direction: PricingChangeDirection;
+  detectedAt: string;
+  acknowledged: boolean;
+  acknowledgedAt?: string | null;
+}
+
+export function adminListPricingProviders(accessToken: string) {
+  return requestJson<PricingProviderDto[]>('/admin/pricing/providers', {}, accessToken);
+}
+
+export function adminGetPricingProvider(id: string, accessToken: string) {
+  return requestJson<PricingProviderDto>(`/admin/pricing/providers/${id}`, {}, accessToken);
+}
+
+export function adminCreatePricingProvider(
+  payload: UpsertPricingProviderPayload,
+  accessToken: string,
+) {
+  return requestJson<PricingProviderDto>(
+    '/admin/pricing/providers',
+    { method: 'POST', body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminUpdatePricingProvider(
+  id: string,
+  payload: UpsertPricingProviderPayload,
+  accessToken: string,
+) {
+  return requestJson<PricingProviderDto>(
+    `/admin/pricing/providers/${id}`,
+    { method: 'PUT', body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminDeletePricingProvider(id: string, accessToken: string) {
+  return requestJson<void>(
+    `/admin/pricing/providers/${id}`,
+    { method: 'DELETE' },
+    accessToken,
+  );
+}
+
+export function adminCheckPricingProvider(id: string, accessToken: string) {
+  return requestJson<PricingProviderDto>(
+    `/admin/pricing/providers/${id}/check`,
+    { method: 'POST' },
+    accessToken,
+  );
+}
+
+export function adminGetPricingHistory(id: string, accessToken: string) {
+  return requestJson<PricingSnapshotDto[]>(
+    `/admin/pricing/providers/${id}/history`,
+    {},
+    accessToken,
+  );
+}
+
+export function adminListPricingChanges(
+  accessToken: string,
+  params: { unacknowledged?: boolean } = {},
+) {
+  const query = toSearchParams({
+    unacknowledged: params.unacknowledged === undefined ? undefined : String(params.unacknowledged),
+  });
+  return requestJson<PricingChangeDto[]>(`/admin/pricing/changes${query}`, {}, accessToken);
+}
+
+export function adminAcknowledgePricingChange(id: string, accessToken: string) {
+  return requestJson<PricingChangeDto>(
+    `/admin/pricing/changes/${id}/ack`,
+    { method: 'POST' },
+    accessToken,
+  );
+}

@@ -4109,6 +4109,106 @@ const translations: Translations = {
   adminLegalDocTitle: { ru: 'Заголовок', kz: 'Тақырып', en: 'Title' },
   adminLegalBody: { ru: 'Текст документа', kz: 'Құжаттың мәтіні', en: 'Document body' },
   adminLegalLastUpdated: { ru: 'Обновлено', kz: 'Жаңартылды', en: 'Last updated' },
+
+  // ===== Admin: subscription price monitoring =====
+  adminPricingNav: {
+    ru: 'Мониторинг цен',
+    kz: 'Баға мониторингі',
+    en: 'Price watch',
+  },
+  adminPricingTitle: {
+    ru: 'Мониторинг цен подписок',
+    kz: 'Жазылым бағаларының мониторингі',
+    en: 'Subscription price watch',
+  },
+  adminPricingAddProvider: {
+    ru: 'Добавить источник',
+    kz: 'Дереккөз қосу',
+    en: 'Add source',
+  },
+  adminPricingEmpty: {
+    ru: 'Источники цен пока не добавлены',
+    kz: 'Баға дереккөздері әлі қосылмаған',
+    en: 'No pricing sources yet',
+  },
+  adminPricingColPlatform: { ru: 'Платформа', kz: 'Платформа', en: 'Platform' },
+  adminPricingColPlan: { ru: 'План', kz: 'Жоспар', en: 'Plan' },
+  adminPricingColPrice: { ru: 'Цена', kz: 'Баға', en: 'Price' },
+  adminPricingColLastCheck: { ru: 'Проверено', kz: 'Тексерілді', en: 'Last check' },
+  adminPricingColStatus: { ru: 'Статус', kz: 'Мәртебесі', en: 'Status' },
+  adminPricingColActions: { ru: 'Действия', kz: 'Әрекеттер', en: 'Actions' },
+  adminPricingCheckNow: { ru: 'Проверить сейчас', kz: 'Қазір тексеру', en: 'Check now' },
+  adminPricingHistory: { ru: 'История', kz: 'Тарих', en: 'History' },
+  adminPricingHistoryEmpty: {
+    ru: 'История пока пуста',
+    kz: 'Тарих әлі бос',
+    en: 'No snapshots yet',
+  },
+  adminPricingPrevious: { ru: 'Ранее', kz: 'Бұрын', en: 'Previously' },
+  adminPricingInactive: { ru: 'Отключено', kz: 'Өшірілген', en: 'Inactive' },
+  adminPricingRecentChanges: {
+    ru: 'Недавние изменения цен',
+    kz: 'Соңғы баға өзгерістері',
+    en: 'Recent price changes',
+  },
+  adminPricingAcknowledge: {
+    ru: 'Отметить просмотренным',
+    kz: 'Көрілді деп белгілеу',
+    en: 'Mark as seen',
+  },
+  adminPricingCreateTitle: {
+    ru: 'Новый источник цен',
+    kz: 'Жаңа баға дереккөзі',
+    en: 'New pricing source',
+  },
+  adminPricingEditTitle: {
+    ru: 'Изменить источник цен',
+    kz: 'Баға дереккөзін өзгерту',
+    en: 'Edit pricing source',
+  },
+  adminPricingCreate: { ru: 'Создать', kz: 'Жасау', en: 'Create' },
+  adminPricingDeleteConfirmTitle: {
+    ru: 'Удалить источник цен?',
+    kz: 'Дереккөзді жою керек пе?',
+    en: 'Delete pricing source?',
+  },
+  adminPricingUrl: { ru: 'URL страницы', kz: 'Бет URL мекенжайы', en: 'Page URL' },
+  adminPricingPlatform: { ru: 'Платформа', kz: 'Платформа', en: 'Platform' },
+  adminPricingName: {
+    ru: 'Название',
+    kz: 'Атауы',
+    en: 'Name',
+  },
+  adminPricingPlan: { ru: 'План', kz: 'Жоспар', en: 'Plan' },
+  adminPricingExtractionType: {
+    ru: 'Тип извлечения',
+    kz: 'Алу түрі',
+    en: 'Extraction type',
+  },
+  adminPricingCurrency: { ru: 'Валюта', kz: 'Валюта', en: 'Currency' },
+  adminPricingSelector: { ru: 'CSS-селектор', kz: 'CSS селекторы', en: 'CSS selector' },
+  adminPricingRegex: {
+    ru: 'Регулярное выражение',
+    kz: 'Тұрақты өрнек',
+    en: 'Regex',
+  },
+  adminPricingJsonPath: { ru: 'JSON path', kz: 'JSON path', en: 'JSON path' },
+  adminPricingManualPrice: {
+    ru: 'Цена (вручную)',
+    kz: 'Баға (қолмен)',
+    en: 'Manual price',
+  },
+  adminPricingInterval: {
+    ru: 'Интервал проверки (мин)',
+    kz: 'Тексеру аралығы (мин)',
+    en: 'Check interval (min)',
+  },
+  adminPricingActive: { ru: 'Активно', kz: 'Белсенді', en: 'Active' },
+  adminPricingRequiresJs: {
+    ru: 'Требуется JS-рендеринг',
+    kz: 'JS рендерингі керек',
+    en: 'Requires JS rendering',
+  },
 };
 
 interface I18nContextType {

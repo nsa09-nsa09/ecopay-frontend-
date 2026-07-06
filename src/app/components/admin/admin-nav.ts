@@ -14,6 +14,7 @@ import {
   Newspaper,
   PlusSquare,
   ScrollText,
+  LineChart,
 } from 'lucide-react';
 import type { UserRole } from '../../lib/api';
 
@@ -59,6 +60,7 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
   { labelKey: 'adminCreateRoomNav', path: '/rooms/create', icon: PlusSquare, roles: ['ADMIN'] },
   { labelKey: 'users', path: '/admin/users', icon: Users, roles: ['ADMIN'] },
   { labelKey: 'adminCatalog', path: '/admin/catalog', icon: Layers, roles: ['ADMIN'] },
+  { labelKey: 'adminPricingNav', path: '/admin/pricing', icon: LineChart, roles: ['ADMIN'] },
   { labelKey: 'adminServiceReviews', path: '/admin/service-reviews', icon: Star, roles: ['ADMIN'] },
   { labelKey: 'tickets', path: '/admin/tickets', icon: MessageSquare, roles: ['ADMIN', 'SUPPORT'] },
   { labelKey: 'adminFeedbackNav', path: '/admin/feedback', icon: Inbox, roles: ['ADMIN'] },
