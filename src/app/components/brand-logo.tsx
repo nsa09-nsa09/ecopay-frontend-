@@ -1,9 +1,9 @@
-import { Link } from "react-router";
-import logoUrl from "../assets/ecopay-logo-transparent-256.png";
+import { Link } from 'react-router';
+import logoUrl from '../assets/ecopay-logo-transparent-256.png';
 
 type BrandLogoProps = {
   to?: string;
-  size?: "sm" | "md" | "lg";
+  size?: 'sm' | 'md' | 'lg';
   label?: string;
   sublabel?: string;
   className?: string;
@@ -11,17 +11,17 @@ type BrandLogoProps = {
 };
 
 const sizes = {
-  sm: { image: 34, text: "text-[18px]", gap: "gap-2" },
-  md: { image: 46, text: "text-[28px]", gap: "gap-2.5" },
-  lg: { image: 82, text: "text-[32px]", gap: "gap-3" },
+  sm: { image: 34, text: 'text-[18px]', gap: 'gap-2' },
+  md: { image: 46, text: 'text-[28px]', gap: 'gap-2.5' },
+  lg: { image: 82, text: 'text-[32px]', gap: 'gap-3' },
 };
 
 function BrandLogoContent({
-  size = "md",
-  label = "EcoPay",
+  size = 'md',
+  label = 'EcoPay',
   sublabel,
-  textColor = "var(--eco-text)",
-}: Omit<BrandLogoProps, "to" | "className">) {
+  textColor = 'var(--eco-text)',
+}: Omit<BrandLogoProps, 'to' | 'className'>) {
   const config = sizes[size];
 
   return (
@@ -34,11 +34,17 @@ function BrandLogoContent({
         style={{ width: config.image, height: config.image }}
       />
       <span className="flex flex-col leading-none">
-        <span className={`${config.text} tracking-tight`} style={{ color: textColor, fontWeight: 700 }}>
+        <span
+          className={`${config.text} tracking-tight`}
+          style={{ color: textColor, fontWeight: 700 }}
+        >
           {label}
         </span>
         {sublabel && (
-          <span className="text-[11px] mt-1" style={{ color: "var(--eco-text-tertiary)", fontWeight: 400 }}>
+          <span
+            className="text-[11px] mt-1"
+            style={{ color: 'var(--eco-text-tertiary)', fontWeight: 400 }}
+          >
             {sublabel}
           </span>
         )}
@@ -47,10 +53,15 @@ function BrandLogoContent({
   );
 }
 
-export function BrandLogo({ to, className = "", ...props }: BrandLogoProps) {
+export function BrandLogo({ to, className = '', ...props }: BrandLogoProps) {
   if (to) {
     return (
-      <Link to={to} className={className} style={{ color: "var(--eco-text)", textDecoration: "none" }} aria-label="EcoPay">
+      <Link
+        to={to}
+        className={className}
+        style={{ color: 'var(--eco-text)', textDecoration: 'none' }}
+        aria-label="EcoPay"
+      >
         <BrandLogoContent {...props} />
       </Link>
     );

@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AdminLayout } from "./admin-layout";
-import { useI18n, type Language } from "../i18n-provider";
-import { formatDateTime } from "../../lib/datetime";
-import { useAuth } from "../auth/auth-provider";
-import { Badge, Button, Card, Input, Modal, Select, Skeleton, Tabs } from "../ds-primitives";
-import { FlashBanner, formatAdminApiError, useFlash } from "./admin-action-ui";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AdminLayout } from './admin-layout';
+import { useI18n, type Language } from '../i18n-provider';
+import { formatDateTime } from '../../lib/datetime';
+import { useAuth } from '../auth/auth-provider';
+import { Badge, Button, Card, Input, Modal, Select, Skeleton, Tabs } from '../ds-primitives';
+import { FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
 import {
   ChevronLeft,
   ChevronRight,
@@ -16,7 +16,7 @@ import {
   Trash2,
   Upload,
   X,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   adminCreateNews,
   adminDeleteNews,
@@ -27,15 +27,15 @@ import {
   type AdminNewsDto,
   type NewsStatus,
   type UpsertNewsPayload,
-} from "../../lib/api";
+} from '../../lib/api';
 
-const NEWS_LANGS: readonly Language[] = ["kz", "ru", "en"] as const;
+const NEWS_LANGS: readonly Language[] = ['kz', 'ru', 'en'] as const;
 type NewsLang = (typeof NEWS_LANGS)[number];
 
 const TITLE_MAX = 200;
 const BODY_MAX = 4000;
 const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
-const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 
 type LangFields = { title: string; body: string };
 type LangBag = Record<NewsLang, LangFields>;
@@ -47,23 +47,23 @@ interface FormState {
 }
 
 const EMPTY_LANGS: LangBag = {
-  kz: { title: "", body: "" },
-  ru: { title: "", body: "" },
-  en: { title: "", body: "" },
+  kz: { title: '', body: '' },
+  ru: { title: '', body: '' },
+  en: { title: '', body: '' },
 };
 
 const EMPTY_FORM: FormState = {
   langs: EMPTY_LANGS,
-  status: "DRAFT",
+  status: 'DRAFT',
   sortOrder: 0,
 };
 
 function toForm(item: AdminNewsDto): FormState {
   return {
     langs: {
-      kz: { title: item.titleKz ?? "", body: item.bodyKz ?? "" },
-      ru: { title: item.titleRu ?? "", body: item.bodyRu ?? "" },
-      en: { title: item.titleEn ?? "", body: item.bodyEn ?? "" },
+      kz: { title: item.titleKz ?? '', body: item.bodyKz ?? '' },
+      ru: { title: item.titleRu ?? '', body: item.bodyRu ?? '' },
+      en: { title: item.titleEn ?? '', body: item.bodyEn ?? '' },
     },
     status: item.status,
     sortOrder: item.sortOrder ?? 0,
@@ -85,17 +85,30 @@ function buildPayload(form: FormState): UpsertNewsPayload {
 }
 
 function pickLocalized(
-  item: { titleKz?: string | null; titleRu?: string | null; titleEn?: string | null; bodyKz?: string | null; bodyRu?: string | null; bodyEn?: string | null },
+  item: {
+    titleKz?: string | null;
+    titleRu?: string | null;
+    titleEn?: string | null;
+    bodyKz?: string | null;
+    bodyRu?: string | null;
+    bodyEn?: string | null;
+  },
   language: Language,
 ) {
-  const titleKey = language === "kz" ? "titleKz" : language === "en" ? "titleEn" : "titleRu";
-  const bodyKey = language === "kz" ? "bodyKz" : language === "en" ? "bodyEn" : "bodyRu";
+  const titleKey = language === 'kz' ? 'titleKz' : language === 'en' ? 'titleEn' : 'titleRu';
+  const bodyKey = language === 'kz' ? 'bodyKz' : language === 'en' ? 'bodyEn' : 'bodyRu';
   const title =
-    (item as Record<string, unknown>)[titleKey] as string | null | undefined
-      || item.titleRu || item.titleEn || item.titleKz || "";
+    ((item as Record<string, unknown>)[titleKey] as string | null | undefined) ||
+    item.titleRu ||
+    item.titleEn ||
+    item.titleKz ||
+    '';
   const body =
-    (item as Record<string, unknown>)[bodyKey] as string | null | undefined
-      || item.bodyRu || item.bodyEn || item.bodyKz || "";
+    ((item as Record<string, unknown>)[bodyKey] as string | null | undefined) ||
+    item.bodyRu ||
+    item.bodyEn ||
+    item.bodyKz ||
+    '';
   return { title, body };
 }
 
@@ -111,7 +124,7 @@ export function AdminNewsPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<AdminNewsDto | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [activeLang, setActiveLang] = useState<NewsLang>("ru");
+  const [activeLang, setActiveLang] = useState<NewsLang>('ru');
   const [saving, setSaving] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
 
@@ -129,7 +142,9 @@ export function AdminNewsPage() {
   // Release the object URL when the picked file changes or the editor closes.
   useEffect(() => {
     if (!pendingImagePreview) return;
-    return () => { URL.revokeObjectURL(pendingImagePreview); };
+    return () => {
+      URL.revokeObjectURL(pendingImagePreview);
+    };
   }, [pendingImagePreview]);
 
   const load = useCallback(async () => {
@@ -152,7 +167,7 @@ export function AdminNewsPage() {
   const published = useMemo(
     () =>
       [...items]
-        .filter((it) => it.status === "PUBLISHED")
+        .filter((it) => it.status === 'PUBLISHED')
         .sort((a, b) => {
           const ta = a.publishedAt ? Date.parse(a.publishedAt) : 0;
           const tb = b.publishedAt ? Date.parse(b.publishedAt) : 0;
@@ -164,13 +179,13 @@ export function AdminNewsPage() {
   const resetPendingImage = () => {
     setPendingImageFile(null);
     setPendingImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const openCreate = () => {
     setEditing(null);
     setForm(EMPTY_FORM);
-    setActiveLang("ru");
+    setActiveLang('ru');
     setEditorError(null);
     resetPendingImage();
     setEditorOpen(true);
@@ -179,7 +194,7 @@ export function AdminNewsPage() {
   const openEdit = (item: AdminNewsDto) => {
     setEditing(item);
     setForm(toForm(item));
-    setActiveLang("ru");
+    setActiveLang('ru');
     setEditorError(null);
     resetPendingImage();
     setEditorOpen(true);
@@ -194,8 +209,8 @@ export function AdminNewsPage() {
   };
 
   const validateImageFile = (file: File): string | null => {
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) return t("adminNewsImageInvalidType");
-    if (file.size > IMAGE_MAX_BYTES) return t("adminNewsImageTooBig");
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) return t('adminNewsImageInvalidType');
+    if (file.size > IMAGE_MAX_BYTES) return t('adminNewsImageTooBig');
     return null;
   };
 
@@ -223,18 +238,19 @@ export function AdminNewsPage() {
     try {
       const payload = buildPayload(form);
       const editingId = editing?.id;
-      let saved = editingId != null
-        ? await authorizedRequest((token) => adminUpdateNews(editingId, payload, token))
-        : await authorizedRequest((token) => adminCreateNews(payload, token));
+      let saved =
+        editingId != null
+          ? await authorizedRequest((token) => adminUpdateNews(editingId, payload, token))
+          : await authorizedRequest((token) => adminCreateNews(payload, token));
 
       // Defensive: some backends respond 201 with an empty body. In that case
       // `saved` is undefined and splicing it into the list would throw — which
       // surfaced as a generic "save failed" toast even though the POST itself
       // returned 2xx. Refetch the list and bail cleanly instead.
-      if (!saved || typeof saved.id !== "number") {
+      if (!saved || typeof saved.id !== 'number') {
         await load();
         clearNewsCache();
-        show("success", t("adminNewsSaveSuccess"));
+        show('success', t('adminNewsSaveSuccess'));
         resetPendingImage();
         setEditorOpen(false);
         setEditing(null);
@@ -266,7 +282,7 @@ export function AdminNewsPage() {
       setEditing(saved);
       clearNewsCache();
       resetPendingImage();
-      show("success", t("adminNewsSaveSuccess"));
+      show('success', t('adminNewsSaveSuccess'));
       setEditorOpen(false);
     } catch (err) {
       setEditorError(formatAdminApiError(err, t));
@@ -281,9 +297,9 @@ export function AdminNewsPage() {
       await authorizedRequest((token) => adminDeleteNews(item.id, token));
       setItems((prev) => prev.filter((it) => it.id !== item.id));
       clearNewsCache();
-      show("success", t("adminNewsDeleteSuccess"));
+      show('success', t('adminNewsDeleteSuccess'));
     } catch (err) {
-      show("error", formatAdminApiError(err, t));
+      show('error', formatAdminApiError(err, t));
     } finally {
       setDeletingId(null);
       setConfirmDelete(null);
@@ -301,7 +317,9 @@ export function AdminNewsPage() {
       // Backend should clear imageUrl when an explicit null is sent; we rely on a
       // dedicated endpoint if the upload route does not support null.
       // If your backend exposes a separate DELETE for images, call it here.
-      setItems((prev) => prev.map((it) => (it.id === updated.id ? { ...updated, imageUrl: null } : it)));
+      setItems((prev) =>
+        prev.map((it) => (it.id === updated.id ? { ...updated, imageUrl: null } : it)),
+      );
       setEditing({ ...updated, imageUrl: null });
       clearNewsCache();
     } catch (err) {
@@ -320,18 +338,18 @@ export function AdminNewsPage() {
 
   const langTabs = useMemo(
     () => [
-      { id: "kz", label: t("adminAboutLangKz") },
-      { id: "ru", label: t("adminAboutLangRu") },
-      { id: "en", label: t("adminAboutLangEn") },
+      { id: 'kz', label: t('adminAboutLangKz') },
+      { id: 'ru', label: t('adminAboutLangRu') },
+      { id: 'en', label: t('adminAboutLangEn') },
     ],
     [t],
   );
 
   const statusOptions = useMemo(
     () => [
-      { value: "PUBLISHED", label: t("adminNewsStatusPublished") },
-      { value: "DRAFT", label: t("adminNewsStatusDraft") },
-      { value: "ARCHIVED", label: t("adminNewsStatusArchived") },
+      { value: 'PUBLISHED', label: t('adminNewsStatusPublished') },
+      { value: 'DRAFT', label: t('adminNewsStatusDraft') },
+      { value: 'ARCHIVED', label: t('adminNewsStatusArchived') },
     ],
     [t],
   );
@@ -344,13 +362,20 @@ export function AdminNewsPage() {
     <AdminLayout>
       <div className="max-w-[1200px]">
         <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("adminNewsTitle")}</h1>
+          <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
+            {t('adminNewsTitle')}
+          </h1>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading || saving}>
-              <RefreshCw size={13} /> {t("retry")}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void load()}
+              disabled={loading || saving}
+            >
+              <RefreshCw size={13} /> {t('retry')}
             </Button>
             <Button variant="primary" size="sm" onClick={openCreate}>
-              <Plus size={13} /> {t("adminNewsCreate")}
+              <Plus size={13} /> {t('adminNewsCreate')}
             </Button>
           </div>
         </div>
@@ -358,13 +383,17 @@ export function AdminNewsPage() {
         <FlashBanner flash={flash} />
 
         <Card className="mb-5">
-          <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{t("adminNewsHint")}</p>
+          <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+            {t('adminNewsHint')}
+          </p>
         </Card>
 
         {/* Published carousel */}
         <Card className="mb-5">
           <div className="flex items-center justify-between gap-2 mb-3">
-            <h2 className="text-[16px]" style={{ color: "var(--eco-text)" }}>{t("adminNewsCarouselTitle")}</h2>
+            <h2 className="text-[16px]" style={{ color: 'var(--eco-text)' }}>
+              {t('adminNewsCarouselTitle')}
+            </h2>
           </div>
           {loading ? (
             <Skeleton height={200} />
@@ -376,11 +405,15 @@ export function AdminNewsPage() {
         {/* List */}
         <Card>
           <div className="flex items-center justify-between gap-2 mb-3">
-            <h2 className="text-[16px]" style={{ color: "var(--eco-text)" }}>{t("adminNewsListTitle")}</h2>
+            <h2 className="text-[16px]" style={{ color: 'var(--eco-text)' }}>
+              {t('adminNewsListTitle')}
+            </h2>
           </div>
 
           {error && (
-            <div className="mb-3 text-[13px]" style={{ color: "var(--eco-negative)" }}>{error}</div>
+            <div className="mb-3 text-[13px]" style={{ color: 'var(--eco-negative)' }}>
+              {error}
+            </div>
           )}
 
           {loading ? (
@@ -390,18 +423,26 @@ export function AdminNewsPage() {
               <Skeleton height={48} />
             </div>
           ) : items.length === 0 ? (
-            <div className="py-6 text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
-              {t("adminNewsEmpty")}
+            <div
+              className="py-6 text-center text-[13px]"
+              style={{ color: 'var(--eco-text-tertiary)' }}
+            >
+              {t('adminNewsEmpty')}
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-[13px]" style={{ borderCollapse: "collapse" }}>
+              <table className="w-full text-[13px]" style={{ borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: "1px solid var(--eco-border)", color: "var(--eco-text-tertiary)" }}>
-                    <th className="text-left py-2 pr-3">{t("adminNewsListColTitle")}</th>
-                    <th className="text-left py-2 pr-3">{t("adminNewsListColStatus")}</th>
-                    <th className="text-left py-2 pr-3">{t("adminNewsListColSort")}</th>
-                    <th className="text-left py-2 pr-3">{t("adminNewsListColUpdated")}</th>
+                  <tr
+                    style={{
+                      borderBottom: '1px solid var(--eco-border)',
+                      color: 'var(--eco-text-tertiary)',
+                    }}
+                  >
+                    <th className="text-left py-2 pr-3">{t('adminNewsListColTitle')}</th>
+                    <th className="text-left py-2 pr-3">{t('adminNewsListColStatus')}</th>
+                    <th className="text-left py-2 pr-3">{t('adminNewsListColSort')}</th>
+                    <th className="text-left py-2 pr-3">{t('adminNewsListColUpdated')}</th>
                     <th className="py-2"></th>
                   </tr>
                 </thead>
@@ -409,8 +450,8 @@ export function AdminNewsPage() {
                   {items.map((it) => {
                     const { title } = pickLocalized(it, language);
                     return (
-                      <tr key={it.id} style={{ borderBottom: "1px solid var(--eco-border)" }}>
-                        <td className="py-2 pr-3" style={{ color: "var(--eco-text)" }}>
+                      <tr key={it.id} style={{ borderBottom: '1px solid var(--eco-border)' }}>
+                        <td className="py-2 pr-3" style={{ color: 'var(--eco-text)' }}>
                           <div className="flex items-center gap-2">
                             {it.imageUrl ? (
                               <img
@@ -425,26 +466,31 @@ export function AdminNewsPage() {
                             ) : (
                               <div
                                 className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
-                                style={{ background: "var(--eco-surface)" }}
+                                style={{ background: 'var(--eco-surface)' }}
                               >
-                                <ImageIcon size={14} style={{ color: "var(--eco-text-tertiary)" }} />
+                                <ImageIcon
+                                  size={14}
+                                  style={{ color: 'var(--eco-text-tertiary)' }}
+                                />
                               </div>
                             )}
-                            <span className="truncate" style={{ maxWidth: 360 }}>{title || `#${it.id}`}</span>
+                            <span className="truncate" style={{ maxWidth: 360 }}>
+                              {title || `#${it.id}`}
+                            </span>
                           </div>
                         </td>
                         <td className="py-2 pr-3">
                           <StatusBadge status={it.status} t={t} />
                         </td>
-                        <td className="py-2 pr-3" style={{ color: "var(--eco-text-secondary)" }}>
+                        <td className="py-2 pr-3" style={{ color: 'var(--eco-text-secondary)' }}>
                           {it.sortOrder ?? 0}
                         </td>
-                        <td className="py-2 pr-3" style={{ color: "var(--eco-text-tertiary)" }}>
+                        <td className="py-2 pr-3" style={{ color: 'var(--eco-text-tertiary)' }}>
                           {formatDateTime(it.updatedAt, language)}
                         </td>
                         <td className="py-2 text-right whitespace-nowrap">
                           <Button variant="ghost" size="sm" onClick={() => openEdit(it)}>
-                            <Pencil size={13} /> {t("adminNewsEdit")}
+                            <Pencil size={13} /> {t('adminNewsEdit')}
                           </Button>
                           <Button
                             variant="ghost"
@@ -452,7 +498,7 @@ export function AdminNewsPage() {
                             onClick={() => setConfirmDelete(it)}
                             disabled={deletingId === it.id}
                           >
-                            <Trash2 size={13} style={{ color: "var(--eco-negative)" }} />
+                            <Trash2 size={13} style={{ color: 'var(--eco-negative)' }} />
                           </Button>
                         </td>
                       </tr>
@@ -469,59 +515,69 @@ export function AdminNewsPage() {
       <Modal
         open={editorOpen}
         onClose={closeEditor}
-        title={editing ? t("adminNewsFormEdit") : t("adminNewsFormCreate")}
+        title={editing ? t('adminNewsFormEdit') : t('adminNewsFormCreate')}
       >
         <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto pr-1">
-          <Tabs tabs={langTabs} active={activeLang} onChange={(id) => setActiveLang(id as NewsLang)} />
+          <Tabs
+            tabs={langTabs}
+            active={activeLang}
+            onChange={(id) => setActiveLang(id as NewsLang)}
+          />
 
-          <FormRow label={t("adminNewsFieldTitle")}>
+          <FormRow label={t('adminNewsFieldTitle')}>
             <Input
               value={currentFields.title}
-              onChange={(e) => setLangField(activeLang, "title", e.target.value.slice(0, TITLE_MAX))}
+              onChange={(e) =>
+                setLangField(activeLang, 'title', e.target.value.slice(0, TITLE_MAX))
+              }
               maxLength={TITLE_MAX}
               hint={`${currentFields.title.length} / ${TITLE_MAX}`}
             />
           </FormRow>
 
-          <FormRow label={t("adminNewsFieldBody")}>
+          <FormRow label={t('adminNewsFieldBody')}>
             <textarea
               value={currentFields.body}
-              onChange={(e) => setLangField(activeLang, "body", e.target.value.slice(0, BODY_MAX))}
+              onChange={(e) => setLangField(activeLang, 'body', e.target.value.slice(0, BODY_MAX))}
               rows={6}
               maxLength={BODY_MAX}
               className="w-full px-3 py-2 rounded-lg text-[14px]"
               style={{
-                background: "var(--eco-bg)",
-                color: "var(--eco-text)",
-                border: "1px solid var(--eco-border)",
-                resize: "vertical",
+                background: 'var(--eco-bg)',
+                color: 'var(--eco-text)',
+                border: '1px solid var(--eco-border)',
+                resize: 'vertical',
               }}
             />
-            <span className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
+            <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
               {currentFields.body.length} / {BODY_MAX}
             </span>
           </FormRow>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormRow label={t("adminNewsFieldStatus")}>
+            <FormRow label={t('adminNewsFieldStatus')}>
               <Select
                 value={form.status}
-                onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as NewsStatus }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, status: e.target.value as NewsStatus }))
+                }
                 options={statusOptions}
               />
             </FormRow>
-            <FormRow label={t("adminNewsFieldSortOrder")}>
+            <FormRow label={t('adminNewsFieldSortOrder')}>
               <Input
                 type="number"
                 value={String(form.sortOrder)}
-                onChange={(e) => setForm((prev) => ({ ...prev, sortOrder: Number(e.target.value) || 0 }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, sortOrder: Number(e.target.value) || 0 }))
+                }
               />
             </FormRow>
           </div>
 
           {/* Image — works in both create and edit modes. In create mode we
               hold the file in state and upload it after the post exists. */}
-          <FormRow label={t("adminNewsFieldImage")}>
+          <FormRow label={t('adminNewsFieldImage')}>
             {(() => {
               const previewUrl = pendingImagePreview || editing?.imageUrl || null;
               const hasPersistedImage = Boolean(editing?.imageUrl);
@@ -538,21 +594,21 @@ export function AdminNewsPage() {
                       loading="lazy"
                       decoding="async"
                       className="rounded-lg object-cover shrink-0"
-                      style={{ background: "var(--eco-surface)" }}
+                      style={{ background: 'var(--eco-surface)' }}
                     />
                   ) : (
                     <div
                       className="w-[120px] h-[80px] rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: "var(--eco-surface)" }}
+                      style={{ background: 'var(--eco-surface)' }}
                     >
-                      <ImageIcon size={20} style={{ color: "var(--eco-text-tertiary)" }} />
+                      <ImageIcon size={20} style={{ color: 'var(--eco-text-tertiary)' }} />
                     </div>
                   )}
                   <div className="flex flex-col gap-2 flex-1">
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                      accept={ACCEPTED_IMAGE_TYPES.join(',')}
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
@@ -567,15 +623,11 @@ export function AdminNewsPage() {
                         onClick={() => fileInputRef.current?.click()}
                       >
                         <Upload size={13} />
-                        {hasAnyPreview ? t("adminNewsImageReplace") : t("adminNewsImageUpload")}
+                        {hasAnyPreview ? t('adminNewsImageReplace') : t('adminNewsImageUpload')}
                       </Button>
                       {pendingImageFile && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={resetPendingImage}
-                        >
-                          <X size={13} /> {t("cancel")}
+                        <Button variant="ghost" size="sm" onClick={resetPendingImage}>
+                          <X size={13} /> {t('cancel')}
                         </Button>
                       )}
                       {hasPersistedImage && !pendingImageFile && editing && (
@@ -585,12 +637,12 @@ export function AdminNewsPage() {
                           onClick={() => void handleRemoveImage()}
                           disabled={uploadingNow}
                         >
-                          <X size={13} /> {t("adminNewsImageRemove")}
+                          <X size={13} /> {t('adminNewsImageRemove')}
                         </Button>
                       )}
                     </div>
-                    <span className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                      {editing ? t("adminNewsImageHint") : t("adminNewsImageAtCreateHint")}
+                    <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                      {editing ? t('adminNewsImageHint') : t('adminNewsImageAtCreateHint')}
                     </span>
                   </div>
                 </div>
@@ -599,15 +651,22 @@ export function AdminNewsPage() {
           </FormRow>
 
           {editorError && (
-            <div className="text-[13px]" style={{ color: "var(--eco-negative)" }}>{editorError}</div>
+            <div className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
+              {editorError}
+            </div>
           )}
 
           <div className="flex items-center justify-end gap-2 pt-2">
             <Button variant="ghost" size="sm" onClick={closeEditor} disabled={saving}>
-              {t("cancel")}
+              {t('cancel')}
             </Button>
-            <Button variant="primary" onClick={() => void handleSave()} disabled={!canSave} loading={saving}>
-              <Save size={13} /> {t("save")}
+            <Button
+              variant="primary"
+              onClick={() => void handleSave()}
+              disabled={!canSave}
+              loading={saving}
+            >
+              <Save size={13} /> {t('save')}
             </Button>
           </div>
         </div>
@@ -617,16 +676,16 @@ export function AdminNewsPage() {
       <Modal
         open={confirmDelete !== null}
         onClose={() => setConfirmDelete(null)}
-        title={t("adminNewsDeleteConfirm")}
+        title={t('adminNewsDeleteConfirm')}
       >
         {confirmDelete && (
           <div className="flex flex-col gap-3">
-            <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+            <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
               {pickLocalized(confirmDelete, language).title || `#${confirmDelete.id}`}
             </p>
             <div className="flex items-center justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(null)}>
-                {t("cancel")}
+                {t('cancel')}
               </Button>
               <Button
                 variant="destructive"
@@ -634,7 +693,7 @@ export function AdminNewsPage() {
                 loading={deletingId === confirmDelete.id}
                 onClick={() => void handleDelete(confirmDelete)}
               >
-                <Trash2 size={13} /> {t("adminNewsDelete")}
+                <Trash2 size={13} /> {t('adminNewsDelete')}
               </Button>
             </div>
           </div>
@@ -647,17 +706,19 @@ export function AdminNewsPage() {
 function FormRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{label}</span>
+      <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+        {label}
+      </span>
       {children}
     </label>
   );
 }
 
 function StatusBadge({ status, t }: { status: NewsStatus; t: (k: string) => string }) {
-  const map: Record<NewsStatus, { variant: "success" | "info" | "default"; key: string }> = {
-    PUBLISHED: { variant: "success", key: "adminNewsStatusPublished" },
-    DRAFT: { variant: "info", key: "adminNewsStatusDraft" },
-    ARCHIVED: { variant: "default", key: "adminNewsStatusArchived" },
+  const map: Record<NewsStatus, { variant: 'success' | 'info' | 'default'; key: string }> = {
+    PUBLISHED: { variant: 'success', key: 'adminNewsStatusPublished' },
+    DRAFT: { variant: 'info', key: 'adminNewsStatusDraft' },
+    ARCHIVED: { variant: 'default', key: 'adminNewsStatusArchived' },
   };
   const cfg = map[status];
   return <Badge variant={cfg.variant}>{t(cfg.key)}</Badge>;
@@ -686,8 +747,8 @@ function PublishedCarousel({
 
   if (items.length === 0) {
     return (
-      <div className="py-6 text-center text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
-        {t("adminNewsCarouselEmpty")}
+      <div className="py-6 text-center text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+        {t('adminNewsCarouselEmpty')}
       </div>
     );
   }
@@ -719,7 +780,7 @@ function PublishedCarousel({
     <div className="flex flex-col gap-3" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div
         className="rounded-xl overflow-hidden flex flex-col sm:flex-row"
-        style={{ background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
+        style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
       >
         {current.imageUrl ? (
           <img
@@ -734,23 +795,27 @@ function PublishedCarousel({
         ) : (
           <div
             className="w-full sm:w-[360px] h-[200px] sm:h-[220px] flex items-center justify-center shrink-0"
-            style={{ background: "var(--eco-brand-50)" }}
+            style={{ background: 'var(--eco-brand-50)' }}
           >
-            <ImageIcon size={28} style={{ color: "var(--eco-primary)" }} />
+            <ImageIcon size={28} style={{ color: 'var(--eco-primary)' }} />
           </div>
         )}
         <div className="p-4 sm:p-5 flex flex-col gap-2 flex-1 min-w-0">
-          <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+          <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
             {formatDateTime(current.publishedAt ?? current.updatedAt, language)}
           </div>
-          <div className="text-[16px]" style={{ color: "var(--eco-text)" }}>{title || `#${current.id}`}</div>
-          <div className="text-[13px] line-clamp-4" style={{ color: "var(--eco-text-secondary)" }}>{body}</div>
+          <div className="text-[16px]" style={{ color: 'var(--eco-text)' }}>
+            {title || `#${current.id}`}
+          </div>
+          <div className="text-[13px] line-clamp-4" style={{ color: 'var(--eco-text-secondary)' }}>
+            {body}
+          </div>
         </div>
       </div>
 
       <div className="flex items-center justify-between gap-3">
         <Button variant="ghost" size="sm" onClick={goPrev} disabled={items.length < 2}>
-          <ChevronLeft size={14} /> {t("adminNewsCarouselPrev")}
+          <ChevronLeft size={14} /> {t('adminNewsCarouselPrev')}
         </Button>
         <div className="flex items-center gap-1.5">
           {items.map((_, i) => (
@@ -761,14 +826,14 @@ function PublishedCarousel({
               aria-label={`${i + 1} / ${items.length}`}
               className="w-2 h-2 rounded-full transition-colors cursor-pointer"
               style={{
-                background: i === safeIndex ? "var(--eco-primary)" : "var(--eco-neutral-200)",
-                border: "none",
+                background: i === safeIndex ? 'var(--eco-primary)' : 'var(--eco-neutral-200)',
+                border: 'none',
               }}
             />
           ))}
         </div>
         <Button variant="ghost" size="sm" onClick={goNext} disabled={items.length < 2}>
-          {t("adminNewsCarouselNext")} <ChevronRight size={14} />
+          {t('adminNewsCarouselNext')} <ChevronRight size={14} />
         </Button>
       </div>
     </div>

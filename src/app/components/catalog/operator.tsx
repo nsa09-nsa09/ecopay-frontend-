@@ -1,27 +1,34 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router";
-import { Card, Pill, Select, RoomStatusBadge, EmptyState, Tabs } from "../ds-primitives";
-import { ArrowLeft, Users, Filter, Calendar } from "lucide-react";
-import { useI18n, type Language } from "../i18n-provider";
-import { formatDate as formatAlmatyDate } from "../../lib/datetime";
-import { getRooms, getService, getTariffs, type RoomSummaryDto, type ServiceDto, type TariffPlanDto } from "../../lib/api";
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router';
+import { Card, Pill, Select, RoomStatusBadge, EmptyState, Tabs } from '../ds-primitives';
+import { ArrowLeft, Users, Filter, Calendar } from 'lucide-react';
+import { useI18n, type Language } from '../i18n-provider';
+import { formatDate as formatAlmatyDate } from '../../lib/datetime';
+import {
+  getRooms,
+  getService,
+  getTariffs,
+  type RoomSummaryDto,
+  type ServiceDto,
+  type TariffPlanDto,
+} from '../../lib/api';
 
-const moneyFormatter = new Intl.NumberFormat("ru-RU");
+const moneyFormatter = new Intl.NumberFormat('ru-RU');
 
 const operatorColors: Record<string, string> = {
-  "beeline-family": "#FFB800",
-  "activ-family": "#9B59B6",
-  "altel-family": "#E74C3C",
-  "tele2-family": "#1A1A2E",
-  "kcell-family": "#00A651",
+  'beeline-family': '#FFB800',
+  'activ-family': '#9B59B6',
+  'altel-family': '#E74C3C',
+  'tele2-family': '#1A1A2E',
+  'kcell-family': '#00A651',
 };
 
 function getOperatorColor(service: ServiceDto | null) {
   if (!service) {
-    return "var(--eco-primary)";
+    return 'var(--eco-primary)';
   }
 
-  return operatorColors[service.slug] ?? "var(--eco-primary)";
+  return operatorColors[service.slug] ?? 'var(--eco-primary)';
 }
 
 function formatMoney(value: number | null | undefined) {
@@ -30,7 +37,7 @@ function formatMoney(value: number | null | undefined) {
 
 function formatDate(value: string | undefined, language?: Language) {
   if (!value) {
-    return "TBD";
+    return 'TBD';
   }
 
   return formatAlmatyDate(value, language);
@@ -44,8 +51,8 @@ export function OperatorPage() {
   const [service, setService] = useState<ServiceDto | null>(null);
   const [plans, setPlans] = useState<TariffPlanDto[]>([]);
   const [rooms, setRooms] = useState<RoomSummaryDto[]>([]);
-  const [tab, setTab] = useState<"plans" | "rooms">("plans");
-  const [priceFilter, setPriceFilter] = useState("all");
+  const [tab, setTab] = useState<'plans' | 'rooms'>('plans');
+  const [priceFilter, setPriceFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,7 +61,7 @@ export function OperatorPage() {
 
     async function loadOperator() {
       if (!serviceId) {
-        setError(t("operatorNotFound"));
+        setError(t('operatorNotFound'));
         setLoading(false);
         return;
       }
@@ -63,7 +70,7 @@ export function OperatorPage() {
         const [serviceResponse, tariffResponse, roomResponse] = await Promise.all([
           getService(serviceId),
           getTariffs(serviceId),
-          getRooms({ status: "OPEN", size: 100 }),
+          getRooms({ status: 'OPEN', size: 100 }),
         ]);
 
         if (!isCancelled) {
@@ -73,7 +80,7 @@ export function OperatorPage() {
         }
       } catch {
         if (!isCancelled) {
-          setError(t("unableToLoadOperator"));
+          setError(t('unableToLoadOperator'));
         }
       } finally {
         if (!isCancelled) {
@@ -92,15 +99,15 @@ export function OperatorPage() {
   const filteredRooms = rooms.filter((room) => {
     const monthlyPrice = Number(room.pricePerMember ?? 0);
 
-    if (priceFilter === "low") {
+    if (priceFilter === 'low') {
       return monthlyPrice < 3000;
     }
 
-    if (priceFilter === "mid") {
+    if (priceFilter === 'mid') {
       return monthlyPrice >= 3000 && monthlyPrice <= 5000;
     }
 
-    if (priceFilter === "high") {
+    if (priceFilter === 'high') {
       return monthlyPrice > 5000;
     }
 
@@ -110,7 +117,7 @@ export function OperatorPage() {
   if (loading) {
     return (
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
-        <Card>{t("loadingOperator")}</Card>
+        <Card>{t('loadingOperator')}</Card>
       </div>
     );
   }
@@ -118,12 +125,16 @@ export function OperatorPage() {
   if (error || !service) {
     return (
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
-        <Link to="/" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
-          <ArrowLeft size={14} /> {t("catalog")}
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1 text-[13px] mb-6"
+          style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+        >
+          <ArrowLeft size={14} /> {t('catalog')}
         </Link>
         <EmptyState
-          title={t("operatorUnavailable")}
-          description={error ?? t("operatorCouldNotLoad")}
+          title={t('operatorUnavailable')}
+          description={error ?? t('operatorCouldNotLoad')}
         />
       </div>
     );
@@ -133,8 +144,12 @@ export function OperatorPage() {
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
-      <Link to="/" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
-        <ArrowLeft size={14} /> {t("catalog")}
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1 text-[13px] mb-6"
+        style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+      >
+        <ArrowLeft size={14} /> {t('catalog')}
       </Link>
 
       <div className="flex items-center gap-4 mb-8">
@@ -145,37 +160,60 @@ export function OperatorPage() {
           {service.name.charAt(0)}
         </div>
         <div className="min-w-0">
-          <h1 className="text-[22px] sm:text-[24px] break-words" style={{ color: "var(--eco-text)" }}>{service.name}</h1>
-          <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-            {noPlans ? t("noFamilyGroupPlans") : t("plansOpenRooms", { plans: plans.length, rooms: rooms.length })}
+          <h1
+            className="text-[22px] sm:text-[24px] break-words"
+            style={{ color: 'var(--eco-text)' }}
+          >
+            {service.name}
+          </h1>
+          <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+            {noPlans
+              ? t('noFamilyGroupPlans')
+              : t('plansOpenRooms', { plans: plans.length, rooms: rooms.length })}
           </p>
         </div>
       </div>
 
       {noPlans ? (
         <EmptyState
-          title={t("noFamilyPlansAvailable")}
-          description={t("noShareableTariffs", { operator: service.name })}
+          title={t('noFamilyPlansAvailable')}
+          description={t('noShareableTariffs', { operator: service.name })}
         />
       ) : (
         <>
           <Tabs
             tabs={[
-              { id: "plans", label: t("tabPlans") },
-              { id: "rooms", label: t("availableRooms") },
+              { id: 'plans', label: t('tabPlans') },
+              { id: 'rooms', label: t('availableRooms') },
             ]}
             active={tab}
-            onChange={(id) => setTab(id as "plans" | "rooms")}
+            onChange={(id) => setTab(id as 'plans' | 'rooms')}
           />
 
-          {tab === "plans" && (
+          {tab === 'plans' && (
             <div className="mt-6">
-              <div className="overflow-x-auto rounded-xl border" style={{ borderColor: "var(--eco-border)" }}>
+              <div
+                className="overflow-x-auto rounded-xl border"
+                style={{ borderColor: 'var(--eco-border)' }}
+              >
                 <table className="w-full min-w-[640px]">
                   <thead>
-                    <tr style={{ borderBottom: "1px solid var(--eco-border)" }}>
-                      {[t("plan"), t("members"), t("colTotalPerPeriod"), t("colPerMember"), t("connection")].map((heading) => (
-                        <th key={heading} className="px-4 py-3 text-left text-[12px]" style={{ color: "var(--eco-text-tertiary)", background: "var(--eco-surface)" }}>
+                    <tr style={{ borderBottom: '1px solid var(--eco-border)' }}>
+                      {[
+                        t('plan'),
+                        t('members'),
+                        t('colTotalPerPeriod'),
+                        t('colPerMember'),
+                        t('connection'),
+                      ].map((heading) => (
+                        <th
+                          key={heading}
+                          className="px-4 py-3 text-left text-[12px]"
+                          style={{
+                            color: 'var(--eco-text-tertiary)',
+                            background: 'var(--eco-surface)',
+                          }}
+                        >
                           {heading}
                         </th>
                       ))}
@@ -183,8 +221,8 @@ export function OperatorPage() {
                   </thead>
                   <tbody>
                     {plans.map((plan) => (
-                      <tr key={plan.id} style={{ borderBottom: "1px solid var(--eco-border)" }}>
-                        <td className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-text)" }}>
+                      <tr key={plan.id} style={{ borderBottom: '1px solid var(--eco-border)' }}>
+                        <td className="px-4 py-3 text-[13px]" style={{ color: 'var(--eco-text)' }}>
                           <div>{plan.name}</div>
                           {plan.features && plan.features.length > 0 && (
                             <ul className="mt-1.5 flex flex-wrap gap-1.5">
@@ -192,7 +230,10 @@ export function OperatorPage() {
                                 <li
                                   key={`${plan.id}-f-${i}`}
                                   className="text-[11px] px-2 py-0.5 rounded-full"
-                                  style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)" }}
+                                  style={{
+                                    background: 'var(--eco-surface)',
+                                    color: 'var(--eco-text-secondary)',
+                                  }}
                                 >
                                   {f}
                                 </li>
@@ -200,10 +241,22 @@ export function OperatorPage() {
                             </ul>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{plan.maxMembers}</td>
-                        <td className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-text)" }}>{formatMoney(plan.basePriceTotal)}</td>
-                        <td className="px-4 py-3 text-[13px]" style={{ color: "var(--eco-primary)" }}>
-                          {formatMoney(Number(plan.basePriceTotal ?? 0) / Math.max(plan.maxMembers ?? 1, 1))}
+                        <td
+                          className="px-4 py-3 text-[13px]"
+                          style={{ color: 'var(--eco-text-secondary)' }}
+                        >
+                          {plan.maxMembers}
+                        </td>
+                        <td className="px-4 py-3 text-[13px]" style={{ color: 'var(--eco-text)' }}>
+                          {formatMoney(plan.basePriceTotal)}
+                        </td>
+                        <td
+                          className="px-4 py-3 text-[13px]"
+                          style={{ color: 'var(--eco-primary)' }}
+                        >
+                          {formatMoney(
+                            Number(plan.basePriceTotal ?? 0) / Math.max(plan.maxMembers ?? 1, 1),
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <Pill variant="info">{plan.connectionType}</Pill>
@@ -216,16 +269,16 @@ export function OperatorPage() {
             </div>
           )}
 
-          {tab === "rooms" && (
+          {tab === 'rooms' && (
             <div className="mt-6">
               <div className="flex flex-wrap items-center gap-3 mb-4">
-                <Filter size={14} style={{ color: "var(--eco-text-tertiary)" }} />
+                <Filter size={14} style={{ color: 'var(--eco-text-tertiary)' }} />
                 <Select
                   options={[
-                    { value: "all", label: t("allPrices") },
-                    { value: "low", label: t("priceUnder3000") },
-                    { value: "mid", label: t("priceMid") },
-                    { value: "high", label: t("priceOver5000") },
+                    { value: 'all', label: t('allPrices') },
+                    { value: 'low', label: t('priceUnder3000') },
+                    { value: 'mid', label: t('priceMid') },
+                    { value: 'high', label: t('priceOver5000') },
                   ]}
                   value={priceFilter}
                   onChange={(event) => setPriceFilter(event.target.value)}
@@ -233,28 +286,38 @@ export function OperatorPage() {
               </div>
 
               {filteredRooms.length === 0 ? (
-                <EmptyState
-                  title={t("noMatchingRooms")}
-                  description={t("noMatchingRoomsDesc")}
-                />
+                <EmptyState title={t('noMatchingRooms')} description={t('noMatchingRoomsDesc')} />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {filteredRooms.map((room) => (
-                    <Link key={room.id} to={`/room/${room.id}`} style={{ textDecoration: "none" }}>
+                    <Link key={room.id} to={`/room/${room.id}`} style={{ textDecoration: 'none' }}>
                       <Card className="flex flex-col gap-3 hover:shadow-sm transition-shadow cursor-pointer">
                         <div className="flex items-center justify-between">
-                          <span className="text-[14px]" style={{ color: "var(--eco-text)" }}>{room.title}</span>
+                          <span className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+                            {room.title}
+                          </span>
                           <RoomStatusBadge status={room.status} />
                         </div>
                         <div className="flex items-center justify-between text-[13px]">
-                          <span className="inline-flex items-center gap-1" style={{ color: "var(--eco-text-secondary)" }}>
-                            <Users size={13} /> {t("maxMembersCount", { count: room.maxMembers })}
+                          <span
+                            className="inline-flex items-center gap-1"
+                            style={{ color: 'var(--eco-text-secondary)' }}
+                          >
+                            <Users size={13} /> {t('maxMembersCount', { count: room.maxMembers })}
                           </span>
-                          <span style={{ color: "var(--eco-primary)" }}>{formatMoney(room.pricePerMember)}{t("perMonthShort")}</span>
+                          <span style={{ color: 'var(--eco-primary)' }}>
+                            {formatMoney(room.pricePerMember)}
+                            {t('perMonthShort')}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between text-[12px]">
-                          <span style={{ color: "var(--eco-text-tertiary)" }}>{t("ownerColon", { name: room.ownerDisplayName })}</span>
-                          <span className="inline-flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}>
+                          <span style={{ color: 'var(--eco-text-tertiary)' }}>
+                            {t('ownerColon', { name: room.ownerDisplayName })}
+                          </span>
+                          <span
+                            className="inline-flex items-center gap-1"
+                            style={{ color: 'var(--eco-text-tertiary)' }}
+                          >
                             <Calendar size={12} /> {formatDate(room.startDate, language)}
                           </span>
                         </div>

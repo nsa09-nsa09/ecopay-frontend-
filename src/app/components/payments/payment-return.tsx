@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { Card, Button } from "../ds-primitives";
-import { CheckCircle2, XCircle, Clock, RefreshCw, MessageSquare } from "lucide-react";
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { Card, Button } from '../ds-primitives';
+import { CheckCircle2, XCircle, Clock, RefreshCw, MessageSquare } from 'lucide-react';
 import {
   ApiError,
   confirmPaymentSuccessRequest,
   getPaymentIntentRequest,
   type PaymentIntentResponseDto,
-} from "../../lib/api";
-import { useAuth } from "../auth/auth-provider";
+} from '../../lib/api';
+import { useAuth } from '../auth/auth-provider';
 
-const PENDING_KEY = "ecopay.pendingPayment";
+const PENDING_KEY = 'ecopay.pendingPayment';
 
 interface PendingContext {
   intentId: number;
@@ -22,7 +22,7 @@ function readContext(): PendingContext | null {
     const raw = window.localStorage.getItem(PENDING_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PendingContext;
-    if (typeof parsed.intentId === "number" && typeof parsed.roomId === "number") {
+    if (typeof parsed.intentId === 'number' && typeof parsed.roomId === 'number') {
       return parsed;
     }
   } catch {
@@ -31,7 +31,7 @@ function readContext(): PendingContext | null {
   return null;
 }
 
-const moneyFormatter = new Intl.NumberFormat("ru-RU");
+const moneyFormatter = new Intl.NumberFormat('ru-RU');
 const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
 
 /**
@@ -46,7 +46,7 @@ export function PaymentReturnPage() {
 
   const [context] = useState<PendingContext | null>(() => readContext());
   const [intent, setIntent] = useState<PaymentIntentResponseDto | null>(null);
-  const [phase, setPhase] = useState<"loading" | "done" | "error">("loading");
+  const [phase, setPhase] = useState<'loading' | 'done' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
 
@@ -55,8 +55,10 @@ export function PaymentReturnPage() {
     startedRef.current = true;
 
     if (!isAuthenticated || !context) {
-      setPhase("error");
-      setError(context ? "Please sign in to view your payment status." : "No pending payment was found.");
+      setPhase('error');
+      setError(
+        context ? 'Please sign in to view your payment status.' : 'No pending payment was found.',
+      );
       return;
     }
 
@@ -64,7 +66,7 @@ export function PaymentReturnPage() {
     const MAX_ATTEMPTS = 5;
 
     const isTerminal = (status: string) =>
-      status === "SUCCESS" || status === "FAILED" || status === "EXPIRED";
+      status === 'SUCCESS' || status === 'FAILED' || status === 'EXPIRED';
 
     async function reconcile() {
       try {
@@ -84,14 +86,16 @@ export function PaymentReturnPage() {
 
         if (cancelled) return;
         setIntent(result);
-        setPhase("done");
+        setPhase('done');
         if (isTerminal(result.status)) {
           window.localStorage.removeItem(PENDING_KEY);
         }
       } catch (err) {
         if (cancelled) return;
-        setError(err instanceof ApiError ? err.message : "Unable to confirm your payment right now.");
-        setPhase("error");
+        setError(
+          err instanceof ApiError ? err.message : 'Unable to confirm your payment right now.',
+        );
+        setPhase('error');
       }
     }
 
@@ -103,16 +107,18 @@ export function PaymentReturnPage() {
 
   const goToMembership = () => {
     if (context) navigate(`/rooms/member/${context.roomId}`);
-    else navigate("/rooms");
+    else navigate('/rooms');
   };
 
-  if (phase === "loading") {
+  if (phase === 'loading') {
     return (
       <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
         <Card className="flex flex-col items-center text-center gap-4 py-12">
-          <Clock size={32} className="animate-pulse" style={{ color: "var(--eco-primary)" }} />
-          <div className="text-[16px]" style={{ color: "var(--eco-text)" }}>Confirming your payment…</div>
-          <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+          <Clock size={32} className="animate-pulse" style={{ color: 'var(--eco-primary)' }} />
+          <div className="text-[16px]" style={{ color: 'var(--eco-text)' }}>
+            Confirming your payment…
+          </div>
+          <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
             This can take a few seconds. Please don't close this page.
           </div>
         </Card>
@@ -120,13 +126,15 @@ export function PaymentReturnPage() {
     );
   }
 
-  if (phase === "error") {
+  if (phase === 'error') {
     return (
       <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
         <Card className="flex flex-col items-center text-center gap-4 py-12">
-          <XCircle size={32} style={{ color: "var(--eco-negative)" }} />
-          <div className="text-[16px]" style={{ color: "var(--eco-text)" }}>{error}</div>
-          <Link to="/rooms" style={{ textDecoration: "none" }}>
+          <XCircle size={32} style={{ color: 'var(--eco-negative)' }} />
+          <div className="text-[16px]" style={{ color: 'var(--eco-text)' }}>
+            {error}
+          </div>
+          <Link to="/rooms" style={{ textDecoration: 'none' }}>
             <Button variant="primary">Go to My Rooms</Button>
           </Link>
         </Card>
@@ -134,27 +142,35 @@ export function PaymentReturnPage() {
     );
   }
 
-  const status = intent?.status ?? "PENDING";
-  const success = status === "SUCCESS";
-  const failed = status === "FAILED" || status === "EXPIRED";
+  const status = intent?.status ?? 'PENDING';
+  const success = status === 'SUCCESS';
+  const failed = status === 'FAILED' || status === 'EXPIRED';
 
   return (
     <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
       <Card className="flex flex-col items-center text-center gap-5 py-10">
         {success ? (
           <>
-            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "var(--eco-success-100)" }}>
-              <CheckCircle2 size={32} style={{ color: "var(--eco-positive)" }} />
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ background: 'var(--eco-success-100)' }}
+            >
+              <CheckCircle2 size={32} style={{ color: 'var(--eco-positive)' }} />
             </div>
             <div>
-              <h2 className="text-[22px]" style={{ color: "var(--eco-text)" }}>Payment Successful</h2>
-              <p className="text-[14px] mt-2 max-w-sm mx-auto" style={{ color: "var(--eco-text-secondary)" }}>
-                Your payment of {formatMoney(intent?.amount)} has been received. Funds are held until the
-                owner grants access and you confirm it.
+              <h2 className="text-[22px]" style={{ color: 'var(--eco-text)' }}>
+                Payment Successful
+              </h2>
+              <p
+                className="text-[14px] mt-2 max-w-sm mx-auto"
+                style={{ color: 'var(--eco-text-secondary)' }}
+              >
+                Your payment of {formatMoney(intent?.amount)} has been received. Funds are held
+                until the owner grants access and you confirm it.
               </p>
             </div>
             {intent?.externalPaymentId && (
-              <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+              <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                 Ref: {intent.externalPaymentId}
               </div>
             )}
@@ -164,17 +180,26 @@ export function PaymentReturnPage() {
           </>
         ) : failed ? (
           <>
-            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "var(--eco-danger-100)" }}>
-              <XCircle size={32} style={{ color: "var(--eco-negative)" }} />
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ background: 'var(--eco-danger-100)' }}
+            >
+              <XCircle size={32} style={{ color: 'var(--eco-negative)' }} />
             </div>
             <div>
-              <h2 className="text-[22px]" style={{ color: "var(--eco-text)" }}>Payment Failed</h2>
-              <p className="text-[14px] mt-2 max-w-sm mx-auto" style={{ color: "var(--eco-text-secondary)" }}>
-                {intent?.failureMessage ?? "The payment did not complete. You can safely retry — idempotent processing means no double charge."}
+              <h2 className="text-[22px]" style={{ color: 'var(--eco-text)' }}>
+                Payment Failed
+              </h2>
+              <p
+                className="text-[14px] mt-2 max-w-sm mx-auto"
+                style={{ color: 'var(--eco-text-secondary)' }}
+              >
+                {intent?.failureMessage ??
+                  'The payment did not complete. You can safely retry — idempotent processing means no double charge.'}
               </p>
             </div>
             {intent?.failureCode && (
-              <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+              <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                 Error code: {intent.failureCode}
               </div>
             )}
@@ -182,7 +207,7 @@ export function PaymentReturnPage() {
               <Button variant="primary" size="lg" onClick={goToMembership}>
                 <RefreshCw size={14} /> Back to Membership
               </Button>
-              <Link to="/support/new" style={{ textDecoration: "none" }}>
+              <Link to="/support/new" style={{ textDecoration: 'none' }}>
                 <Button variant="secondary" size="lg">
                   <MessageSquare size={14} /> Support
                 </Button>
@@ -191,12 +216,17 @@ export function PaymentReturnPage() {
           </>
         ) : (
           <>
-            <Clock size={32} style={{ color: "var(--eco-warning)" }} />
+            <Clock size={32} style={{ color: 'var(--eco-warning)' }} />
             <div>
-              <h2 className="text-[22px]" style={{ color: "var(--eco-text)" }}>Payment Processing</h2>
-              <p className="text-[14px] mt-2 max-w-sm mx-auto" style={{ color: "var(--eco-text-secondary)" }}>
-                Your payment is still being confirmed. You can check the status on your membership page —
-                it will update automatically once settled.
+              <h2 className="text-[22px]" style={{ color: 'var(--eco-text)' }}>
+                Payment Processing
+              </h2>
+              <p
+                className="text-[14px] mt-2 max-w-sm mx-auto"
+                style={{ color: 'var(--eco-text-secondary)' }}
+              >
+                Your payment is still being confirmed. You can check the status on your membership
+                page — it will update automatically once settled.
               </p>
             </div>
             <Button variant="primary" size="lg" onClick={goToMembership}>

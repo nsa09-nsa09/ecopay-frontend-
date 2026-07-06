@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { Client } from "@stomp/stompjs";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Client } from '@stomp/stompjs';
 import {
   ApiError,
   buildSupportWebSocketUrl,
@@ -19,16 +19,16 @@ import {
   staffLoginRequest,
   updateCurrentUser,
   verifyStaffTwoFactorRequest,
-} from "../../lib/api";
-import { clearAdminDashboardCache } from "../../lib/admin-dashboard-cache";
+} from '../../lib/api';
+import { clearAdminDashboardCache } from '../../lib/admin-dashboard-cache';
 
 interface BanEvent {
-  type: "BANNED";
+  type: 'BANNED';
   reason?: string;
   bannedAt?: string;
 }
 
-const BAN_EVENT_STORAGE_KEY = "ecosplit.banEvent";
+const BAN_EVENT_STORAGE_KEY = 'ecosplit.banEvent';
 
 export interface PersistedBanEvent {
   reason: string | null;
@@ -36,7 +36,7 @@ export interface PersistedBanEvent {
 }
 
 export function consumePersistedBanEvent(): PersistedBanEvent | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
   try {
     const raw = window.sessionStorage.getItem(BAN_EVENT_STORAGE_KEY);
     if (!raw) return null;
@@ -48,7 +48,7 @@ export function consumePersistedBanEvent(): PersistedBanEvent | null {
 }
 
 function persistBanEvent(reason: string | null, bannedAt: string | null) {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   try {
     window.sessionStorage.setItem(BAN_EVENT_STORAGE_KEY, JSON.stringify({ reason, bannedAt }));
   } catch {
@@ -63,8 +63,7 @@ interface SessionState {
 }
 
 export type StaffLoginResult =
-  | { kind: "session"; user: User }
-  | { kind: "twoFactor"; challenge: TwoFactorChallenge };
+  { kind: 'session'; user: User } | { kind: 'twoFactor'; challenge: TwoFactorChallenge };
 
 interface AuthContextType {
   user: User | null;
@@ -90,11 +89,11 @@ interface AuthContextType {
   authorizedRequest: <T>(operation: (accessToken: string) => Promise<T>) => Promise<T>;
 }
 
-const STORAGE_KEY = "ecosplit.session";
+const STORAGE_KEY = 'ecosplit.session';
 const AuthContext = createContext<AuthContextType>(null!);
 
 function loadStoredSession(): SessionState | null {
-  if (typeof window === "undefined") {
+  if (typeof window === 'undefined') {
     return null;
   }
 
@@ -113,7 +112,7 @@ function loadStoredSession(): SessionState | null {
 }
 
 function persistSession(session: SessionState | null) {
-  if (typeof window === "undefined") {
+  if (typeof window === 'undefined') {
     return;
   }
 
@@ -145,7 +144,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const client = banClientRef.current;
       banClientRef.current = null;
       if (client) {
-        try { void client.deactivate(); } catch { /* ignore */ }
+        try {
+          void client.deactivate();
+        } catch {
+          /* ignore */
+        }
       }
     };
 
@@ -165,16 +168,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         client.subscribe(`/topic/users/${userId}/account`, (message) => {
           try {
             const event = JSON.parse(message.body) as BanEvent;
-            if (event?.type !== "BANNED") return;
+            if (event?.type !== 'BANNED') return;
             persistBanEvent(event.reason ?? null, event.bannedAt ?? null);
             // Drop session locally — best-effort server logout follows.
             commitSession(null);
             tearDown();
             const params = new URLSearchParams();
-            params.set("banned", "1");
-            if (event.reason) params.set("reason", event.reason);
-            if (event.bannedAt) params.set("bannedAt", event.bannedAt);
-            if (typeof window !== "undefined") {
+            params.set('banned', '1');
+            if (event.reason) params.set('reason', event.reason);
+            if (event.bannedAt) params.set('bannedAt', event.bannedAt);
+            if (typeof window !== 'undefined') {
               window.location.replace(`/login?${params.toString()}`);
             }
           } catch {
@@ -182,8 +185,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         });
       },
-      onStompError: () => { /* swallow — ban listener is best-effort */ },
-      onWebSocketError: () => { /* swallow */ },
+      onStompError: () => {
+        /* swallow — ban listener is best-effort */
+      },
+      onWebSocketError: () => {
+        /* swallow */
+      },
     });
 
     banClientRef.current = client;
@@ -259,13 +266,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return response.user;
   };
 
-  const isStaff = (role: string | undefined | null) => role === "ADMIN" || role === "SUPPORT";
+  const isStaff = (role: string | undefined | null) => role === 'ADMIN' || role === 'SUPPORT';
 
   const commitStaffSession = (response: AuthResponse): User => {
     if (!isStaff(response.user?.role)) {
       // Never persist a non-staff session via the admin login path.
       commitSession(null);
-      throw new ApiError(403, "This account does not have staff access.");
+      throw new ApiError(403, 'This account does not have staff access.');
     }
     commitSession({
       accessToken: response.accessToken,
@@ -279,11 +286,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response: StaffLoginResponse = await staffLoginRequest(email, password);
 
     if (isTwoFactorChallenge(response)) {
-      return { kind: "twoFactor", challenge: response };
+      return { kind: 'twoFactor', challenge: response };
     }
 
     const user = commitStaffSession(response);
-    return { kind: "session", user };
+    return { kind: 'session', user };
   };
 
   const verifyStaffTwoFactor = async (challengeId: string, code: string) => {
@@ -346,7 +353,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const authorizedRequest = async <T,>(operation: (accessToken: string) => Promise<T>) => {
     if (!session) {
-      throw new ApiError(401, "Please sign in to continue");
+      throw new ApiError(401, 'Please sign in to continue');
     }
 
     try {

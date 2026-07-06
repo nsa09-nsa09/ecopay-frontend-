@@ -6,8 +6,8 @@ import {
   useRef,
   useState,
   type ReactNode,
-} from "react";
-import { Client } from "@stomp/stompjs";
+} from 'react';
+import { Client } from '@stomp/stompjs';
 import {
   buildSupportWebSocketUrl,
   getNotificationsRequest,
@@ -16,8 +16,8 @@ import {
   markNotificationReadRequest,
   notificationsTopic,
   type NotificationDto,
-} from "../../lib/api";
-import { useAuth } from "../auth/auth-provider";
+} from '../../lib/api';
+import { useAuth } from '../auth/auth-provider';
 
 interface NotificationsContextType {
   notifications: NotificationDto[];
@@ -82,42 +82,52 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     let client: Client | null = null;
 
-    void authRef.current(async (token) => {
-      if (cancelled) return null;
-      client = new Client({
-        webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl(token)),
-        reconnectDelay: 5000,
-        onConnect: () => {
-          client?.subscribe(notificationsTopic(userId), (message) => {
-            try {
-              const dto = JSON.parse(message.body) as NotificationDto;
-              setNotifications((prev) =>
-                prev.some((n) => n.id === dto.id) ? prev : [dto, ...prev],
-              );
-              if (!dto.read) {
-                setUnreadCount((c) => c + 1);
+    void authRef
+      .current(async (token) => {
+        if (cancelled) return null;
+        client = new Client({
+          webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl(token)),
+          reconnectDelay: 5000,
+          onConnect: () => {
+            client?.subscribe(notificationsTopic(userId), (message) => {
+              try {
+                const dto = JSON.parse(message.body) as NotificationDto;
+                setNotifications((prev) =>
+                  prev.some((n) => n.id === dto.id) ? prev : [dto, ...prev],
+                );
+                if (!dto.read) {
+                  setUnreadCount((c) => c + 1);
+                }
+              } catch {
+                /* malformed push — ignore */
               }
-            } catch {
-              /* malformed push — ignore */
-            }
-          });
-        },
-        onStompError: () => { /* best-effort */ },
-        onWebSocketError: () => { /* best-effort */ },
+            });
+          },
+          onStompError: () => {
+            /* best-effort */
+          },
+          onWebSocketError: () => {
+            /* best-effort */
+          },
+        });
+        client.activate();
+        clientRef.current = client;
+        return null;
+      })
+      .catch(() => {
+        /* could not open WS — polling on mount still seeded the bell */
       });
-      client.activate();
-      clientRef.current = client;
-      return null;
-    }).catch(() => {
-      /* could not open WS — polling on mount still seeded the bell */
-    });
 
     return () => {
       cancelled = true;
       const c = client ?? clientRef.current;
       clientRef.current = null;
       if (c) {
-        try { void c.deactivate(); } catch { /* ignore */ }
+        try {
+          void c.deactivate();
+        } catch {
+          /* ignore */
+        }
       }
     };
   }, [isAuthenticated, user?.id]);
@@ -170,7 +180,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 export function useNotifications() {
   const ctx = useContext(NotificationsContext);
   if (!ctx) {
-    throw new Error("useNotifications must be used within NotificationsProvider");
+    throw new Error('useNotifications must be used within NotificationsProvider');
   }
   return ctx;
 }

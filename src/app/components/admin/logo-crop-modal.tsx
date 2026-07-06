@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Modal, Button } from "../ds-primitives";
-import { useI18n, type Language } from "../i18n-provider";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Modal, Button } from '../ds-primitives';
+import { useI18n, type Language } from '../i18n-provider';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
-  l === "ru" ? ru : l === "kz" ? kz : en;
+  l === 'ru' ? ru : l === 'kz' ? kz : en;
 
 /** Side of the square JPEG we emit. Backend downscales further if needed. */
 const OUTPUT_SIZE = 512;
@@ -69,8 +69,8 @@ export function LogoCropModal({
       if (w && w > 0) setFrame(w);
     };
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
   }, [open, src]);
 
   const clamp = useCallback(
@@ -140,28 +140,28 @@ export function LogoCropModal({
       const srcY = -pos.y / scale;
       const srcSize = frame / scale;
 
-      const canvas = document.createElement("canvas");
+      const canvas = document.createElement('canvas');
       canvas.width = OUTPUT_SIZE;
       canvas.height = OUTPUT_SIZE;
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext('2d');
       if (!ctx) {
         setBusy(false);
         return;
       }
       // Transparent areas flatten to white, matching the backend re-encode.
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
-      ctx.imageSmoothingQuality = "high";
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(image, srcX, srcY, srcSize, srcSize, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
 
       canvas.toBlob(
         (blob) => {
           setBusy(false);
           if (!blob) return;
-          const base = (file.name || "logo").replace(/\.[^.]+$/, "");
-          onApply(new File([blob], `${base}.jpg`, { type: "image/jpeg" }));
+          const base = (file.name || 'logo').replace(/\.[^.]+$/, '');
+          onApply(new File([blob], `${base}.jpg`, { type: 'image/jpeg' }));
         },
-        "image/jpeg",
+        'image/jpeg',
         0.92,
       );
     } catch {
@@ -170,14 +170,18 @@ export function LogoCropModal({
   }, [nat, file, pos, scale, frame, onApply]);
 
   return (
-    <Modal open={open} onClose={onCancel} title={tx(lang, "Кадрирование логотипа", "Логотипті кадрлау", "Crop logo")}>
+    <Modal
+      open={open}
+      onClose={onCancel}
+      title={tx(lang, 'Кадрирование логотипа', 'Логотипті кадрлау', 'Crop logo')}
+    >
       <div className="flex flex-col gap-4">
-        <p className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+        <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
           {tx(
             lang,
-            "Перетащите и масштабируйте, чтобы логотип заполнил всю область.",
-            "Логотип бүкіл аумақты толтыру үшін жылжытып, масштабтаңыз.",
-            "Drag and zoom so the logo fills the whole area.",
+            'Перетащите и масштабируйте, чтобы логотип заполнил всю область.',
+            'Логотип бүкіл аумақты толтыру үшін жылжытып, масштабтаңыз.',
+            'Drag and zoom so the logo fills the whole area.',
           )}
         </p>
 
@@ -191,11 +195,11 @@ export function LogoCropModal({
           className="relative w-full mx-auto overflow-hidden rounded-xl select-none"
           style={{
             maxWidth: 320,
-            aspectRatio: "1 / 1",
-            background: "var(--eco-surface)",
-            border: "1px solid var(--eco-border)",
-            cursor: dragRef.current ? "grabbing" : "grab",
-            touchAction: "none",
+            aspectRatio: '1 / 1',
+            background: 'var(--eco-surface)',
+            border: '1px solid var(--eco-border)',
+            cursor: dragRef.current ? 'grabbing' : 'grab',
+            touchAction: 'none',
           }}
         >
           {src && nat && (
@@ -204,21 +208,21 @@ export function LogoCropModal({
               alt=""
               draggable={false}
               style={{
-                position: "absolute",
+                position: 'absolute',
                 left: pos.x,
                 top: pos.y,
                 width: nat.w * scale,
                 height: nat.h * scale,
-                maxWidth: "none",
-                pointerEvents: "none",
+                maxWidth: 'none',
+                pointerEvents: 'none',
               }}
             />
           )}
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-            {tx(lang, "Масштаб", "Масштаб", "Zoom")}
+          <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+            {tx(lang, 'Масштаб', 'Масштаб', 'Zoom')}
           </span>
           <input
             type="range"
@@ -233,10 +237,10 @@ export function LogoCropModal({
 
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onCancel}>
-            {tx(lang, "Отмена", "Бас тарту", "Cancel")}
+            {tx(lang, 'Отмена', 'Бас тарту', 'Cancel')}
           </Button>
           <Button variant="primary" size="sm" loading={busy} onClick={apply} disabled={!nat}>
-            {tx(lang, "Применить", "Қолдану", "Apply")}
+            {tx(lang, 'Применить', 'Қолдану', 'Apply')}
           </Button>
         </div>
       </div>

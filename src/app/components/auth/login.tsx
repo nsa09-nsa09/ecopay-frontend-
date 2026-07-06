@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router";
-import { Button, Input, Card } from "../ds-primitives";
-import { useI18n } from "../i18n-provider";
-import { formatDateTime } from "../../lib/datetime";
-import { useAuth } from "./auth-provider";
-import { consumePersistedBanEvent } from "./auth-provider";
-import { Ban } from "lucide-react";
-import { ApiError } from "../../lib/api";
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router';
+import { Button, Input, Card } from '../ds-primitives';
+import { useI18n } from '../i18n-provider';
+import { formatDateTime } from '../../lib/datetime';
+import { useAuth } from './auth-provider';
+import { consumePersistedBanEvent } from './auth-provider';
+import { Ban } from 'lucide-react';
+import { ApiError } from '../../lib/api';
 
 interface BanInfo {
   reason: string | null;
@@ -15,10 +15,10 @@ interface BanInfo {
 
 function parseBanFromQuery(search: string): BanInfo | null {
   const params = new URLSearchParams(search);
-  if (params.get("banned") !== "1") return null;
+  if (params.get('banned') !== '1') return null;
   return {
-    reason: params.get("reason"),
-    bannedAt: params.get("bannedAt"),
+    reason: params.get('reason'),
+    bannedAt: params.get('bannedAt'),
   };
 }
 
@@ -28,8 +28,8 @@ function parseBanFromApiError(err: ApiError): BanInfo | null {
   const code = (err.errors as Record<string, string>)?.code;
   // Use the raw server detail (not the sanitized .message) because the
   // ACCOUNT_BANNED marker is a backend code string, not user-facing text.
-  const messageHasCode = /ACCOUNT[_ ]BANNED/i.test(err.serverMessage ?? "");
-  if (code !== "ACCOUNT_BANNED" && !messageHasCode) return null;
+  const messageHasCode = /ACCOUNT[_ ]BANNED/i.test(err.serverMessage ?? '');
+  if (code !== 'ACCOUNT_BANNED' && !messageHasCode) return null;
   const reason = err.errors?.reason ?? null;
   const bannedAt = err.errors?.bannedAt ?? null;
   return { reason, bannedAt };
@@ -40,10 +40,10 @@ export function LoginPage() {
   const { login } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const redirectTarget = new URLSearchParams(location.search).get("redirect") || "/profile";
+  const redirectTarget = new URLSearchParams(location.search).get('redirect') || '/profile';
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -81,7 +81,7 @@ export function LoginPage() {
           setFieldErrors(err.errors);
         }
       } else {
-        setError("Unable to sign in right now.");
+        setError('Unable to sign in right now.');
       }
     } finally {
       setLoading(false);
@@ -92,36 +92,40 @@ export function LoginPage() {
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("signIn")}</h1>
-          <p className="text-[13px] mt-2" style={{ color: "var(--eco-text-secondary)" }}>
-            {t("welcomeBack")}
+          <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
+            {t('signIn')}
+          </h1>
+          <p className="text-[13px] mt-2" style={{ color: 'var(--eco-text-secondary)' }}>
+            {t('welcomeBack')}
           </p>
         </div>
         {banInfo && (
-          <Card className="mb-4 flex flex-col gap-3" >
+          <Card className="mb-4 flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: "var(--eco-danger-100)" }}
+                style={{ background: 'var(--eco-danger-100)' }}
               >
-                <Ban size={15} style={{ color: "var(--eco-danger-500)" }} />
+                <Ban size={15} style={{ color: 'var(--eco-danger-500)' }} />
               </div>
-              <h2 className="text-[16px]" style={{ color: "var(--eco-text)" }}>
-                {t("bannedHeadline")}
+              <h2 className="text-[16px]" style={{ color: 'var(--eco-text)' }}>
+                {t('bannedHeadline')}
               </h2>
             </div>
-            <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-              {t("bannedDescription")}
+            <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+              {t('bannedDescription')}
             </p>
             {banInfo.reason && (
               <div className="text-[13px]">
-                <span style={{ color: "var(--eco-text-tertiary)" }}>{t("bannedReasonLabel")}: </span>
-                <span style={{ color: "var(--eco-text)" }}>{banInfo.reason}</span>
+                <span style={{ color: 'var(--eco-text-tertiary)' }}>
+                  {t('bannedReasonLabel')}:{' '}
+                </span>
+                <span style={{ color: 'var(--eco-text)' }}>{banInfo.reason}</span>
               </div>
             )}
             {banInfo.bannedAt && (
-              <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                {t("bannedAtLabel")}: {formatDateTime(banInfo.bannedAt, language)}
+              <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                {t('bannedAtLabel')}: {formatDateTime(banInfo.bannedAt, language)}
               </div>
             )}
           </Card>
@@ -129,17 +133,17 @@ export function LoginPage() {
         <Card>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <Input
-              label={t("email")}
+              label={t('email')}
               type="email"
-              placeholder={t("yourEmail")}
+              placeholder={t('yourEmail')}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               error={fieldErrors.email}
             />
             <Input
-              label={t("password")}
+              label={t('password')}
               type="password"
-              placeholder={t("enterPassword")}
+              placeholder={t('enterPassword')}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               error={fieldErrors.password}
@@ -147,25 +151,33 @@ export function LoginPage() {
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" className="rounded" defaultChecked />
-                <span className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{t("rememberMe")}</span>
+                <span className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                  {t('rememberMe')}
+                </span>
               </label>
-              <Link to="/forgot-password" className="text-[13px]" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
-                {t("forgotPassword")}
+              <Link
+                to="/forgot-password"
+                className="text-[13px]"
+                style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+              >
+                {t('forgotPassword')}
               </Link>
             </div>
             {error && (
-              <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>
+              <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
                 {error}
               </p>
             )}
             <Button type="submit" variant="primary" size="lg" className="w-full" loading={loading}>
-              {t("signIn")}
+              {t('signIn')}
             </Button>
           </form>
         </Card>
-        <p className="text-center text-[13px] mt-4" style={{ color: "var(--eco-text-secondary)" }}>
-          {t("dontHaveAccount")}{" "}
-          <Link to="/register" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>{t("createAccount")}</Link>
+        <p className="text-center text-[13px] mt-4" style={{ color: 'var(--eco-text-secondary)' }}>
+          {t('dontHaveAccount')}{' '}
+          <Link to="/register" style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}>
+            {t('createAccount')}
+          </Link>
         </p>
       </div>
     </div>

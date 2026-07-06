@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from 'react';
 import {
   ApiError,
   getAdminCategoryDistributionRequest,
@@ -15,8 +15,8 @@ import {
   type NamedCountDto,
   type OperatorDistributionDto,
   type PopularServiceDto,
-} from "./api";
-import type { FriendlyApiErrorCode } from "./locale";
+} from './api';
+import type { FriendlyApiErrorCode } from './locale';
 
 /**
  * Shared admin-dashboard cache.
@@ -100,27 +100,57 @@ function pickKey<K extends keyof AdminDashboardState>(key: K) {
   return key;
 }
 
-function startLoading<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution" | "countryDistribution">(key: K) {
+function startLoading<
+  K extends
+    | 'kpis'
+    | 'popularServices'
+    | 'operatorDistribution'
+    | 'currencyDistribution'
+    | 'categoryDistribution'
+    | 'roomStatusDistribution'
+    | 'countryDistribution',
+>(key: K) {
   setState((prev) => ({ ...prev, [pickKey(key)]: { ...prev[key], loading: true, error: null } }));
 }
 
-function setError<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution" | "countryDistribution">(key: K, code: FriendlyApiErrorCode) {
+function setError<
+  K extends
+    | 'kpis'
+    | 'popularServices'
+    | 'operatorDistribution'
+    | 'currencyDistribution'
+    | 'categoryDistribution'
+    | 'roomStatusDistribution'
+    | 'countryDistribution',
+>(key: K, code: FriendlyApiErrorCode) {
   setState((prev) => ({ ...prev, [pickKey(key)]: { ...prev[key], loading: false, error: code } }));
 }
 
-function setData<K extends "kpis" | "popularServices" | "operatorDistribution" | "currencyDistribution" | "categoryDistribution" | "roomStatusDistribution" | "countryDistribution", T>(
-  key: K,
-  data: T,
-) {
+function setData<
+  K extends
+    | 'kpis'
+    | 'popularServices'
+    | 'operatorDistribution'
+    | 'currencyDistribution'
+    | 'categoryDistribution'
+    | 'roomStatusDistribution'
+    | 'countryDistribution',
+  T,
+>(key: K, data: T) {
   setState((prev) => ({
     ...prev,
-    [pickKey(key)]: { data: data as unknown as AdminDashboardState[K]["data"], loading: false, error: null, loadedAt: Date.now() },
+    [pickKey(key)]: {
+      data: data as unknown as AdminDashboardState[K]['data'],
+      loading: false,
+      error: null,
+      loadedAt: Date.now(),
+    },
   }));
 }
 
 function toErrorCode(err: unknown): FriendlyApiErrorCode {
   if (err instanceof ApiError) return err.code;
-  return "network";
+  return 'network';
 }
 
 // In-flight promise map prevents racing duplicate fetches from concurrent
@@ -137,97 +167,115 @@ function dedupe<T>(key: string, fn: () => Promise<T>): Promise<T> {
 
 export function fetchKpis(authorizedRequest: AuthorizedRequest, force = false): Promise<void> {
   if (!force && state.kpis.data) return Promise.resolve();
-  startLoading("kpis");
-  return dedupe("kpis", async () => {
+  startLoading('kpis');
+  return dedupe('kpis', async () => {
     try {
       const data = await authorizedRequest((token) => getAdminDashboardKpisRequest(token));
-      setData("kpis", data);
+      setData('kpis', data);
     } catch (err) {
-      setError("kpis", toErrorCode(err));
+      setError('kpis', toErrorCode(err));
       throw err;
     }
   });
 }
 
-export function fetchPopularServices(authorizedRequest: AuthorizedRequest, force = false): Promise<void> {
+export function fetchPopularServices(
+  authorizedRequest: AuthorizedRequest,
+  force = false,
+): Promise<void> {
   if (!force && state.popularServices.data) return Promise.resolve();
-  startLoading("popularServices");
-  return dedupe("popularServices", async () => {
+  startLoading('popularServices');
+  return dedupe('popularServices', async () => {
     try {
       const data = await authorizedRequest((token) => getAdminPopularServicesRequest(token, 10));
-      setData("popularServices", data);
+      setData('popularServices', data);
     } catch (err) {
-      setError("popularServices", toErrorCode(err));
+      setError('popularServices', toErrorCode(err));
       throw err;
     }
   });
 }
 
-export function fetchOperatorDistribution(authorizedRequest: AuthorizedRequest, force = false): Promise<void> {
+export function fetchOperatorDistribution(
+  authorizedRequest: AuthorizedRequest,
+  force = false,
+): Promise<void> {
   if (!force && state.operatorDistribution.data) return Promise.resolve();
-  startLoading("operatorDistribution");
-  return dedupe("operatorDistribution", async () => {
+  startLoading('operatorDistribution');
+  return dedupe('operatorDistribution', async () => {
     try {
       const data = await authorizedRequest((token) => getAdminOperatorDistributionRequest(token));
-      setData("operatorDistribution", data);
+      setData('operatorDistribution', data);
     } catch (err) {
-      setError("operatorDistribution", toErrorCode(err));
+      setError('operatorDistribution', toErrorCode(err));
       throw err;
     }
   });
 }
 
-export function fetchCurrencyDistribution(authorizedRequest: AuthorizedRequest, force = false): Promise<void> {
+export function fetchCurrencyDistribution(
+  authorizedRequest: AuthorizedRequest,
+  force = false,
+): Promise<void> {
   if (!force && state.currencyDistribution.data) return Promise.resolve();
-  startLoading("currencyDistribution");
-  return dedupe("currencyDistribution", async () => {
+  startLoading('currencyDistribution');
+  return dedupe('currencyDistribution', async () => {
     try {
       const data = await authorizedRequest((token) => getAdminCurrencyDistributionRequest(token));
-      setData("currencyDistribution", data);
+      setData('currencyDistribution', data);
     } catch (err) {
-      setError("currencyDistribution", toErrorCode(err));
+      setError('currencyDistribution', toErrorCode(err));
       throw err;
     }
   });
 }
 
-export function fetchCategoryDistribution(authorizedRequest: AuthorizedRequest, force = false): Promise<void> {
+export function fetchCategoryDistribution(
+  authorizedRequest: AuthorizedRequest,
+  force = false,
+): Promise<void> {
   if (!force && state.categoryDistribution.data) return Promise.resolve();
-  startLoading("categoryDistribution");
-  return dedupe("categoryDistribution", async () => {
+  startLoading('categoryDistribution');
+  return dedupe('categoryDistribution', async () => {
     try {
       const data = await authorizedRequest((token) => getAdminCategoryDistributionRequest(token));
-      setData("categoryDistribution", data);
+      setData('categoryDistribution', data);
     } catch (err) {
-      setError("categoryDistribution", toErrorCode(err));
+      setError('categoryDistribution', toErrorCode(err));
       throw err;
     }
   });
 }
 
-export function fetchRoomStatusDistribution(authorizedRequest: AuthorizedRequest, force = false): Promise<void> {
+export function fetchRoomStatusDistribution(
+  authorizedRequest: AuthorizedRequest,
+  force = false,
+): Promise<void> {
   if (!force && state.roomStatusDistribution.data) return Promise.resolve();
-  startLoading("roomStatusDistribution");
-  return dedupe("roomStatusDistribution", async () => {
+  startLoading('roomStatusDistribution');
+  return dedupe('roomStatusDistribution', async () => {
     try {
       const data = await authorizedRequest((token) => getAdminRoomStatusDistributionRequest(token));
-      setData("roomStatusDistribution", data);
+      setData('roomStatusDistribution', data);
     } catch (err) {
-      setError("roomStatusDistribution", toErrorCode(err));
+      setError('roomStatusDistribution', toErrorCode(err));
       throw err;
     }
   });
 }
 
-export function fetchCountryDistribution(authorizedRequest: AuthorizedRequest, force = false): Promise<void> {
+export function fetchCountryDistribution(
+  authorizedRequest: AuthorizedRequest,
+  force = false,
+): Promise<void> {
   if (!force && state.countryDistribution.data) return Promise.resolve();
-  startLoading("countryDistribution");
-  return dedupe("countryDistribution", async () => {
+  startLoading('countryDistribution');
+  return dedupe('countryDistribution', async () => {
     try {
       const data = await authorizedRequest((token) => getAdminCountryDistributionRequest(token));
-      setData("countryDistribution", data);
+      setData('countryDistribution', data);
     } catch (err) {
-      setError("countryDistribution", toErrorCode(err));
+      setError('countryDistribution', toErrorCode(err));
       throw err;
     }
   });
@@ -235,7 +283,7 @@ export function fetchCountryDistribution(authorizedRequest: AuthorizedRequest, f
 
 // ───────── Metrics (parametrised by granularity + range) ─────────
 
-function metricsKey(granularity: DashboardGranularity, rangeKey: "12m" | "30d"): string {
+function metricsKey(granularity: DashboardGranularity, rangeKey: '12m' | '30d'): string {
   return `${granularity}|${rangeKey}`;
 }
 
@@ -243,17 +291,17 @@ function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-function rangeBounds(rangeKey: "12m" | "30d"): { from: string; to: string } {
+function rangeBounds(rangeKey: '12m' | '30d'): { from: string; to: string } {
   const to = new Date();
   const from = new Date(to);
-  if (rangeKey === "12m") from.setMonth(from.getMonth() - 12);
+  if (rangeKey === '12m') from.setMonth(from.getMonth() - 12);
   else from.setDate(from.getDate() - 30);
   return { from: isoDate(from), to: isoDate(to) };
 }
 
 export function getMetricsEntry(
   granularity: DashboardGranularity,
-  rangeKey: "12m" | "30d",
+  rangeKey: '12m' | '30d',
 ): CacheEntry<DashboardMetricsResponse> {
   return state.metrics[metricsKey(granularity, rangeKey)] ?? emptyEntry();
 }
@@ -261,7 +309,7 @@ export function getMetricsEntry(
 export function fetchMetrics(
   authorizedRequest: AuthorizedRequest,
   granularity: DashboardGranularity,
-  rangeKey: "12m" | "30d",
+  rangeKey: '12m' | '30d',
   force = false,
 ): Promise<void> {
   const key = metricsKey(granularity, rangeKey);
@@ -272,7 +320,11 @@ export function fetchMetrics(
     ...prev,
     metrics: {
       ...prev.metrics,
-      [key]: { ...(prev.metrics[key] ?? emptyEntry<DashboardMetricsResponse>()), loading: true, error: null },
+      [key]: {
+        ...(prev.metrics[key] ?? emptyEntry<DashboardMetricsResponse>()),
+        loading: true,
+        error: null,
+      },
     },
   }));
 
@@ -294,7 +346,11 @@ export function fetchMetrics(
         ...prev,
         metrics: {
           ...prev.metrics,
-          [key]: { ...(prev.metrics[key] ?? emptyEntry<DashboardMetricsResponse>()), loading: false, error: toErrorCode(err) },
+          [key]: {
+            ...(prev.metrics[key] ?? emptyEntry<DashboardMetricsResponse>()),
+            loading: false,
+            error: toErrorCode(err),
+          },
         },
       }));
       throw err;
@@ -315,10 +371,10 @@ export function fetchMetrics(
  */
 export function prefetchAdminDashboard(
   authorizedRequest: AuthorizedRequest,
-  options: { granularity?: DashboardGranularity; rangeKey?: "12m" | "30d"; force?: boolean } = {},
+  options: { granularity?: DashboardGranularity; rangeKey?: '12m' | '30d'; force?: boolean } = {},
 ): Promise<PromiseSettledResult<void>[]> {
-  const granularity = options.granularity ?? "month";
-  const rangeKey = options.rangeKey ?? "12m";
+  const granularity = options.granularity ?? 'month';
+  const rangeKey = options.rangeKey ?? '12m';
   const force = options.force ?? false;
   return Promise.allSettled([
     fetchKpis(authorizedRequest, force),

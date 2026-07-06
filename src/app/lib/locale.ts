@@ -7,9 +7,9 @@
 // here on every render, and `getFriendlyApiMessage(code)` returns a translated
 // string that is safe to display.
 
-export type Language = "ru" | "kz" | "en";
+export type Language = 'ru' | 'kz' | 'en';
 
-let currentLanguage: Language = "ru";
+let currentLanguage: Language = 'ru';
 
 export function setCurrentLanguage(lang: Language): void {
   currentLanguage = lang;
@@ -20,48 +20,48 @@ export function getCurrentLanguage(): Language {
 }
 
 export type FriendlyApiErrorCode =
-  | "notAvailable" // 404 / "no static resource"
-  | "noAccess" // 401 / 403
-  | "sessionExpired" // 401 (when token expired)
-  | "serverError" // 5xx
-  | "rateLimited" // 429 (too many requests)
-  | "network" // fetch failure, no response
-  | "generic"; // anything else
+  | 'notAvailable' // 404 / "no static resource"
+  | 'noAccess' // 401 / 403
+  | 'sessionExpired' // 401 (when token expired)
+  | 'serverError' // 5xx
+  | 'rateLimited' // 429 (too many requests)
+  | 'network' // fetch failure, no response
+  | 'generic'; // anything else
 
 const FRIENDLY: Record<FriendlyApiErrorCode, Record<Language, string>> = {
   notAvailable: {
-    ru: "Раздел временно недоступен.",
-    kz: "Бөлім уақытша қолжетімсіз.",
-    en: "This section is temporarily unavailable.",
+    ru: 'Раздел временно недоступен.',
+    kz: 'Бөлім уақытша қолжетімсіз.',
+    en: 'This section is temporarily unavailable.',
   },
   noAccess: {
-    ru: "Недостаточно прав.",
-    kz: "Құқықтар жеткіліксіз.",
+    ru: 'Недостаточно прав.',
+    kz: 'Құқықтар жеткіліксіз.',
     en: "You don't have permission to do this.",
   },
   sessionExpired: {
-    ru: "Сессия истекла. Войдите снова.",
-    kz: "Сессия аяқталды. Қайта кіріңіз.",
-    en: "Your session has expired. Please sign in again.",
+    ru: 'Сессия истекла. Войдите снова.',
+    kz: 'Сессия аяқталды. Қайта кіріңіз.',
+    en: 'Your session has expired. Please sign in again.',
   },
   serverError: {
-    ru: "Не удалось загрузить данные. Попробуйте позже.",
-    kz: "Деректерді жүктеу мүмкін болмады. Кейінірек қайталап көріңіз.",
+    ru: 'Не удалось загрузить данные. Попробуйте позже.',
+    kz: 'Деректерді жүктеу мүмкін болмады. Кейінірек қайталап көріңіз.',
     en: "Couldn't load the data. Please try again later.",
   },
   rateLimited: {
-    ru: "Слишком много запросов. Попробуйте позже.",
-    kz: "Сұраныстар тым көп. Кейінірек қайталап көріңіз.",
-    en: "Too many requests. Please try again later.",
+    ru: 'Слишком много запросов. Попробуйте позже.',
+    kz: 'Сұраныстар тым көп. Кейінірек қайталап көріңіз.',
+    en: 'Too many requests. Please try again later.',
   },
   network: {
-    ru: "Проблема с подключением. Проверьте сеть.",
-    kz: "Желіге қосылу мәселесі. Қосылымды тексеріңіз.",
-    en: "Network error. Check your connection.",
+    ru: 'Проблема с подключением. Проверьте сеть.',
+    kz: 'Желіге қосылу мәселесі. Қосылымды тексеріңіз.',
+    en: 'Network error. Check your connection.',
   },
   generic: {
-    ru: "Не удалось загрузить данные.",
-    kz: "Деректерді жүктеу мүмкін болмады.",
+    ru: 'Не удалось загрузить данные.',
+    kz: 'Деректерді жүктеу мүмкін болмады.',
     en: "Couldn't load the data.",
   },
 };

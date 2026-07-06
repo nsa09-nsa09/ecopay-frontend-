@@ -1,4 +1,4 @@
-export type UserRole = "USER" | "SUPPORT" | "ADMIN";
+export type UserRole = 'USER' | 'SUPPORT' | 'ADMIN';
 
 export interface User {
   id: number;
@@ -46,7 +46,7 @@ export interface ServiceDto {
   logoUrl?: string | null;
 }
 
-export type CatalogSort = "name_asc" | "name_desc" | "price_asc" | "price_desc" | "newest";
+export type CatalogSort = 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc' | 'newest';
 
 export interface TariffPlanDto {
   id: number;
@@ -131,20 +131,20 @@ interface ErrorPayload {
   errors?: Record<string, string>;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api/v1").replace(/\/$/, "");
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
 
 export function buildSupportWebSocketUrl(accessToken: string) {
   const wsUrl = new URL(
-    "/ws",
+    '/ws',
     /^https?:\/\//.test(API_BASE_URL) ? new URL(API_BASE_URL).origin : window.location.origin,
   );
 
-  wsUrl.protocol = wsUrl.protocol === "https:" ? "wss:" : "ws:";
-  wsUrl.searchParams.set("token", accessToken);
+  wsUrl.protocol = wsUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+  wsUrl.searchParams.set('token', accessToken);
   return wsUrl.toString();
 }
 
-import { getFriendlyApiMessage, type FriendlyApiErrorCode } from "./locale";
+import { getFriendlyApiMessage, type FriendlyApiErrorCode } from './locale';
 
 /**
  * Heuristic: detect server-side internals that must never leak to end users
@@ -170,14 +170,14 @@ function classifyApiErrorCode(
   status: number,
   rawMessage: string | undefined | null,
 ): FriendlyApiErrorCode {
-  if (status === 0) return "network";
-  if (status === 401) return "sessionExpired";
-  if (status === 403) return "noAccess";
-  if (status === 404) return "notAvailable";
-  if (status === 429) return "rateLimited";
-  if (rawMessage && /no static resource/i.test(rawMessage)) return "notAvailable";
-  if (status >= 500) return "serverError";
-  return "generic";
+  if (status === 0) return 'network';
+  if (status === 401) return 'sessionExpired';
+  if (status === 403) return 'noAccess';
+  if (status === 404) return 'notAvailable';
+  if (status === 429) return 'rateLimited';
+  if (rawMessage && /no static resource/i.test(rawMessage)) return 'notAvailable';
+  if (status >= 500) return 'serverError';
+  return 'generic';
 }
 
 /**
@@ -216,7 +216,7 @@ export class ApiError extends Error {
     const code = classifyApiErrorCode(status, rawMessage);
     const friendly = buildFriendlyApiMessage(status, rawMessage, code);
     super(friendly);
-    this.name = "ApiError";
+    this.name = 'ApiError';
     this.status = status;
     this.errors = errors;
     this.code = code;
@@ -229,7 +229,7 @@ function buildUrl(path: string) {
     return path;
   }
 
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${API_BASE_URL}${normalizedPath}`;
 }
 
@@ -247,16 +247,20 @@ async function parseResponseBody(response: Response) {
   }
 }
 
-async function requestJson<T>(path: string, init: RequestInit = {}, accessToken?: string): Promise<T> {
+async function requestJson<T>(
+  path: string,
+  init: RequestInit = {},
+  accessToken?: string,
+): Promise<T> {
   const headers = new Headers(init.headers);
   const hasJsonBody = init.body != null && !(init.body instanceof FormData);
 
-  if (hasJsonBody && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
+  if (hasJsonBody && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
   }
 
   if (accessToken) {
-    headers.set("Authorization", `Bearer ${accessToken}`);
+    headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
   let response: Response;
@@ -269,25 +273,27 @@ async function requestJson<T>(path: string, init: RequestInit = {}, accessToken?
     // Network failure (DNS, offline, CORS preflight reject). Surface a
     // friendly localized ApiError so catch-blocks across the UI render a
     // user-safe message rather than "TypeError: Failed to fetch".
-    if (typeof console !== "undefined" && console.warn) {
-      console.warn(`[api] ${init.method ?? "GET"} ${path} network error:`, err);
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn(`[api] ${init.method ?? 'GET'} ${path} network error:`, err);
     }
-    throw new ApiError(0, err instanceof Error ? err.message : "Network error");
+    throw new ApiError(0, err instanceof Error ? err.message : 'Network error');
   }
 
   const body = await parseResponseBody(response);
 
   if (!response.ok) {
-    const payload = typeof body === "object" && body !== null ? (body as ErrorPayload) : {};
+    const payload = typeof body === 'object' && body !== null ? (body as ErrorPayload) : {};
     const rawMessage =
       payload.message ??
-      (typeof body === "string" && body.trim() ? body : `Request failed with status ${response.status}`);
+      (typeof body === 'string' && body.trim()
+        ? body
+        : `Request failed with status ${response.status}`);
 
     // Log the raw server detail to console for engineers; the thrown ApiError
     // exposes a sanitized + localized `.message` to the UI.
-    if (typeof console !== "undefined" && console.warn) {
+    if (typeof console !== 'undefined' && console.warn) {
       console.warn(
-        `[api] ${init.method ?? "GET"} ${path} failed with ${response.status}:`,
+        `[api] ${init.method ?? 'GET'} ${path} failed with ${response.status}:`,
         rawMessage,
       );
     }
@@ -306,13 +312,13 @@ function toSearchParams(params: Record<string, string | number | undefined>) {
   const searchParams = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
+    if (value !== undefined && value !== null && value !== '') {
       searchParams.set(key, String(value));
     }
   });
 
   const query = searchParams.toString();
-  return query ? `?${query}` : "";
+  return query ? `?${query}` : '';
 }
 
 // ============================================================
@@ -323,15 +329,7 @@ function toSearchParams(params: Record<string, string | number | undefined>) {
 // `base` is always "KZT". The frontend uses this to live-convert any
 // non-KZT price the room owner enters into a KZT equivalent.
 
-export type SupportedCurrency =
-  | "KZT"
-  | "USD"
-  | "EUR"
-  | "CNY"
-  | "GBP"
-  | "RUB"
-  | "UZS"
-  | "KGS";
+export type SupportedCurrency = 'KZT' | 'USD' | 'EUR' | 'CNY' | 'GBP' | 'RUB' | 'UZS' | 'KGS';
 
 export interface FxRatesResponse {
   base: string;
@@ -340,7 +338,7 @@ export interface FxRatesResponse {
 }
 
 export function getFxRatesRequest() {
-  return requestJson<FxRatesResponse>("/fx/rates");
+  return requestJson<FxRatesResponse>('/fx/rates');
 }
 
 // ============================================================
@@ -372,15 +370,15 @@ export interface MemberDashboardDto {
 }
 
 export function getMyDashboardRequest(accessToken: string) {
-  return requestJson<MemberDashboardDto>("/users/me/dashboard", {}, accessToken);
+  return requestJson<MemberDashboardDto>('/users/me/dashboard', {}, accessToken);
 }
 
 // ============================================================
 // User feedback (complaints / ideas / requests)
 // ============================================================
 
-export type FeedbackType = "COMPLAINT" | "IDEA" | "REQUEST" | string;
-export type FeedbackStatus = "NEW" | "IN_REVIEW" | "RESOLVED" | "DISMISSED" | string;
+export type FeedbackType = 'COMPLAINT' | 'IDEA' | 'REQUEST' | string;
+export type FeedbackStatus = 'NEW' | 'IN_REVIEW' | 'RESOLVED' | 'DISMISSED' | string;
 
 export interface FeedbackDto {
   id: number;
@@ -409,8 +407,8 @@ export interface UpdateFeedbackPayload {
 
 export function createFeedbackRequest(payload: CreateFeedbackPayload, accessToken: string) {
   return requestJson<FeedbackDto>(
-    "/feedback",
-    { method: "POST", body: JSON.stringify(payload) },
+    '/feedback',
+    { method: 'POST', body: JSON.stringify(payload) },
     accessToken,
   );
 }
@@ -454,7 +452,7 @@ export function adminUpdateFeedbackRequest(
 ) {
   return requestJson<FeedbackDto>(
     `/admin/feedback/${id}`,
-    { method: "PATCH", body: JSON.stringify(payload) },
+    { method: 'PATCH', body: JSON.stringify(payload) },
     accessToken,
   );
 }
@@ -469,16 +467,16 @@ export function adminUpdateFeedbackRequest(
 // so this must never block rendering.
 
 export function trackVisitRequest(path: string): Promise<void> {
-  return requestJson<void>("/analytics/visit", {
-    method: "POST",
+  return requestJson<void>('/analytics/visit', {
+    method: 'POST',
     body: JSON.stringify({ path }),
-    credentials: "include",
+    credentials: 'include',
   });
 }
 
 export function loginRequest(email: string, password: string) {
-  return requestJson<AuthResponse>("/auth/login", {
-    method: "POST",
+  return requestJson<AuthResponse>('/auth/login', {
+    method: 'POST',
     body: JSON.stringify({ email, password }),
   });
 }
@@ -491,8 +489,8 @@ export function registerRequest(
   acceptedTermsVersion?: number,
   acceptedPrivacyVersion?: number,
 ) {
-  return requestJson<AuthResponse>("/auth/register", {
-    method: "POST",
+  return requestJson<AuthResponse>('/auth/register', {
+    method: 'POST',
     body: JSON.stringify({
       displayName,
       email,
@@ -505,45 +503,42 @@ export function registerRequest(
 }
 
 export function refreshRequest(refreshToken: string) {
-  return requestJson<AuthResponse>("/auth/refresh", {
-    method: "POST",
+  return requestJson<AuthResponse>('/auth/refresh', {
+    method: 'POST',
     body: JSON.stringify({ refreshToken }),
   });
 }
 
 export function logoutRequest(refreshToken: string) {
-  return requestJson<void>("/auth/logout", {
-    method: "POST",
+  return requestJson<void>('/auth/logout', {
+    method: 'POST',
     body: JSON.stringify({ refreshToken }),
   });
 }
 
 export function requestPasswordResetRequest(email: string) {
-  return requestJson<void>("/auth/reset-password", {
-    method: "POST",
+  return requestJson<void>('/auth/reset-password', {
+    method: 'POST',
     body: JSON.stringify({ email }),
   });
 }
 
 export function confirmPasswordResetRequest(token: string, newPassword: string) {
-  return requestJson<void>("/auth/reset-password/confirm", {
-    method: "POST",
+  return requestJson<void>('/auth/reset-password/confirm', {
+    method: 'POST',
     body: JSON.stringify({ token, newPassword }),
   });
 }
 
 export function getCurrentUser(accessToken: string) {
-  return requestJson<User>("/users/me", {}, accessToken);
+  return requestJson<User>('/users/me', {}, accessToken);
 }
 
-export function updateCurrentUser(
-  payload: { displayName: string },
-  accessToken: string,
-) {
+export function updateCurrentUser(payload: { displayName: string }, accessToken: string) {
   return requestJson<User>(
-    "/users/me",
+    '/users/me',
     {
-      method: "PATCH",
+      method: 'PATCH',
       body: JSON.stringify(payload),
     },
     accessToken,
@@ -557,9 +552,9 @@ export function updateCurrentUser(
  */
 export function requestPhoneCodeRequest(phone: string, accessToken: string) {
   return requestJson<void>(
-    "/auth/phone/request-code",
+    '/auth/phone/request-code',
     {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify({ phone }),
     },
     accessToken,
@@ -572,9 +567,9 @@ export function requestPhoneCodeRequest(phone: string, accessToken: string) {
  */
 export function verifyPhoneRequest(phone: string, code: string, accessToken: string) {
   return requestJson<void>(
-    "/auth/phone/verify",
+    '/auth/phone/verify',
     {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify({ phone, code }),
     },
     accessToken,
@@ -584,7 +579,7 @@ export function verifyPhoneRequest(phone: string, code: string, accessToken: str
 const servicesCache = new Map<string, Promise<ServiceDto[]>>();
 
 export function getServices(categoryId?: number, sort?: CatalogSort) {
-  const key = `${categoryId ?? ""}::${sort ?? ""}`;
+  const key = `${categoryId ?? ''}::${sort ?? ''}`;
   const cached = servicesCache.get(key);
   if (cached) return cached;
   const promise = requestJson<ServiceDto[]>(
@@ -635,10 +630,14 @@ export function joinRoomRequest(
   },
   accessToken: string,
 ) {
-  return requestJson<RoomMemberDto>(`/rooms/${roomId}/members`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  }, accessToken);
+  return requestJson<RoomMemberDto>(
+    `/rooms/${roomId}/members`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 export interface CategoryDto {
@@ -740,47 +739,74 @@ export interface UpdateRoomPayload {
 }
 
 export function getCategories() {
-  return requestJson<CategoryDto[]>("/catalog/categories");
+  return requestJson<CategoryDto[]>('/catalog/categories');
 }
 
 export function createRoomRequest(payload: CreateRoomPayload, accessToken: string) {
-  return requestJson<RoomResponseDto>("/rooms", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  }, accessToken);
+  return requestJson<RoomResponseDto>(
+    '/rooms',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
-export function getMyRooms(accessToken: string, params: Record<string, string | number | undefined> = {}) {
-  return requestJson<PagedResponse<RoomSummaryDto>>(`/rooms/me${toSearchParams(params)}`, {}, accessToken);
+export function getMyRooms(
+  accessToken: string,
+  params: Record<string, string | number | undefined> = {},
+) {
+  return requestJson<PagedResponse<RoomSummaryDto>>(
+    `/rooms/me${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
 }
 
 export function getJoinedRooms(accessToken: string) {
-  return requestJson<JoinedRoomDto[]>("/rooms/joined", {}, accessToken);
+  return requestJson<JoinedRoomDto[]>('/rooms/joined', {}, accessToken);
 }
 
 export function updateRoomRequest(roomId: number, payload: UpdateRoomPayload, accessToken: string) {
-  return requestJson<RoomResponseDto>(`/rooms/${roomId}`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  }, accessToken);
+  return requestJson<RoomResponseDto>(
+    `/rooms/${roomId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 export function markRoomReadyRequest(roomId: number, accessToken: string) {
-  return requestJson<RoomResponseDto>(`/rooms/${roomId}/ready-for-verification`, {
-    method: "POST",
-  }, accessToken);
+  return requestJson<RoomResponseDto>(
+    `/rooms/${roomId}/ready-for-verification`,
+    {
+      method: 'POST',
+    },
+    accessToken,
+  );
 }
 
 export function cancelRoomRequest(roomId: number, accessToken: string) {
-  return requestJson<RoomResponseDto>(`/rooms/${roomId}/cancel`, {
-    method: "POST",
-  }, accessToken);
+  return requestJson<RoomResponseDto>(
+    `/rooms/${roomId}/cancel`,
+    {
+      method: 'POST',
+    },
+    accessToken,
+  );
 }
 
 export function completeRoomRequest(roomId: number, accessToken: string) {
-  return requestJson<RoomResponseDto>(`/rooms/${roomId}/complete`, {
-    method: "POST",
-  }, accessToken);
+  return requestJson<RoomResponseDto>(
+    `/rooms/${roomId}/complete`,
+    {
+      method: 'POST',
+    },
+    accessToken,
+  );
 }
 
 export function getRoomMembers(
@@ -788,7 +814,11 @@ export function getRoomMembers(
   accessToken: string,
   params: Record<string, string | number | undefined> = {},
 ) {
-  return requestJson<PagedResponse<RoomMemberDto>>(`/rooms/${roomId}/members${toSearchParams(params)}`, {}, accessToken);
+  return requestJson<PagedResponse<RoomMemberDto>>(
+    `/rooms/${roomId}/members${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
 }
 
 export function getMyMembership(roomId: number, accessToken: string) {
@@ -801,16 +831,24 @@ export function confirmOwnerAccessRequest(
   accessMethod: string,
   accessToken: string,
 ) {
-  return requestJson<RoomMemberDto>(`/rooms/${roomId}/members/${memberId}/owner-access`, {
-    method: "PATCH",
-    body: JSON.stringify({ accessMethod }),
-  }, accessToken);
+  return requestJson<RoomMemberDto>(
+    `/rooms/${roomId}/members/${memberId}/owner-access`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ accessMethod }),
+    },
+    accessToken,
+  );
 }
 
 export function confirmMemberAccessRequest(roomId: number, accessToken: string) {
-  return requestJson<MyRoomMembershipDto>(`/rooms/${roomId}/members/me/confirm-access`, {
-    method: "POST",
-  }, accessToken);
+  return requestJson<MyRoomMembershipDto>(
+    `/rooms/${roomId}/members/me/confirm-access`,
+    {
+      method: 'POST',
+    },
+    accessToken,
+  );
 }
 
 export function revealIdentifierRequest(
@@ -819,10 +857,14 @@ export function revealIdentifierRequest(
   payload: { reason: string; contextType?: string; contextId?: number },
   accessToken: string,
 ) {
-  return requestJson<RevealedIdentifierDto>(`/rooms/${roomId}/members/${memberId}/reveal-identifier`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  }, accessToken);
+  return requestJson<RevealedIdentifierDto>(
+    `/rooms/${roomId}/members/${memberId}/reveal-identifier`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 // ============================================================
@@ -834,7 +876,7 @@ export function revealIdentifierRequest(
 // synchronously and returns status SUCCESS (no redirect). Real Freedom Pay in
 // prod returns requiresRedirect + paymentUrl, and the webhook finalizes later.
 
-export type PaymentIntentStatus = "PENDING" | "SUCCESS" | "FAILED" | "EXPIRED" | string;
+export type PaymentIntentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED' | string;
 
 export interface PaymentIntentResponseDto {
   id: number;
@@ -862,10 +904,14 @@ export function createPaymentIntentRequest(
   payload: { idempotencyKey: string; saveCard?: boolean; savedCardId?: number },
   accessToken: string,
 ) {
-  return requestJson<PaymentIntentResponseDto>(`/payments/members/${roomMemberId}/intent`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  }, accessToken);
+  return requestJson<PaymentIntentResponseDto>(
+    `/payments/members/${roomMemberId}/intent`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 export function getPaymentIntentRequest(intentId: number, accessToken: string) {
@@ -882,10 +928,14 @@ export function confirmPaymentSuccessRequest(
   accessToken: string,
   externalTransactionId?: string,
 ) {
-  return requestJson<PaymentIntentResponseDto>(`/payments/intents/${intentId}/confirm-success`, {
-    method: "POST",
-    body: JSON.stringify({ externalTransactionId: externalTransactionId ?? "" }),
-  }, accessToken);
+  return requestJson<PaymentIntentResponseDto>(
+    `/payments/intents/${intentId}/confirm-success`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ externalTransactionId: externalTransactionId ?? '' }),
+    },
+    accessToken,
+  );
 }
 
 // ============================================================
@@ -904,22 +954,22 @@ export function confirmPaymentSuccessRequest(
 // 2FA service over the existing `staff_two_factor_challenges` table.
 
 export function staffLoginRequest(email: string, password: string) {
-  return requestJson<StaffLoginResponse>("/auth/login", {
-    method: "POST",
+  return requestJson<StaffLoginResponse>('/auth/login', {
+    method: 'POST',
     body: JSON.stringify({ email, password }),
   });
 }
 
 export function verifyStaffTwoFactorRequest(challengeId: string, code: string) {
-  return requestJson<AuthResponse>("/auth/login/2fa/verify", {
-    method: "POST",
+  return requestJson<AuthResponse>('/auth/login/2fa/verify', {
+    method: 'POST',
     body: JSON.stringify({ challengeId, code }),
   });
 }
 
 export function resendStaffTwoFactorRequest(challengeId: string) {
-  return requestJson<void>("/auth/login/2fa/resend", {
-    method: "POST",
+  return requestJson<void>('/auth/login/2fa/resend', {
+    method: 'POST',
     body: JSON.stringify({ challengeId }),
   });
 }
@@ -996,10 +1046,10 @@ export interface AdminDecisionRequest {
 }
 
 export function getAdminDashboardKpisRequest(accessToken: string) {
-  return requestJson<AdminDashboardKpisDto>("/admin/dashboard/kpis", {}, accessToken);
+  return requestJson<AdminDashboardKpisDto>('/admin/dashboard/kpis', {}, accessToken);
 }
 
-export type DashboardGranularity = "day" | "month";
+export type DashboardGranularity = 'day' | 'month';
 
 export interface DashboardMetricPoint {
   period: string;
@@ -1062,42 +1112,26 @@ export function getAdminPopularServicesRequest(accessToken: string, limit = 10) 
 
 export function getAdminOperatorDistributionRequest(accessToken: string) {
   return requestJson<OperatorDistributionDto[]>(
-    "/admin/dashboard/operator-distribution",
+    '/admin/dashboard/operator-distribution',
     {},
     accessToken,
   );
 }
 
 export function getAdminCurrencyDistributionRequest(accessToken: string) {
-  return requestJson<NamedCountDto[]>(
-    "/admin/dashboard/currency-distribution",
-    {},
-    accessToken,
-  );
+  return requestJson<NamedCountDto[]>('/admin/dashboard/currency-distribution', {}, accessToken);
 }
 
 export function getAdminCategoryDistributionRequest(accessToken: string) {
-  return requestJson<NamedCountDto[]>(
-    "/admin/dashboard/category-distribution",
-    {},
-    accessToken,
-  );
+  return requestJson<NamedCountDto[]>('/admin/dashboard/category-distribution', {}, accessToken);
 }
 
 export function getAdminRoomStatusDistributionRequest(accessToken: string) {
-  return requestJson<NamedCountDto[]>(
-    "/admin/dashboard/room-status-distribution",
-    {},
-    accessToken,
-  );
+  return requestJson<NamedCountDto[]>('/admin/dashboard/room-status-distribution', {}, accessToken);
 }
 
 export function getAdminCountryDistributionRequest(accessToken: string) {
-  return requestJson<NamedCountDto[]>(
-    "/admin/dashboard/country-distribution",
-    {},
-    accessToken,
-  );
+  return requestJson<NamedCountDto[]>('/admin/dashboard/country-distribution', {}, accessToken);
 }
 
 // ---- Global admin search (top bar) ----
@@ -1156,32 +1190,44 @@ export function getAdminUsersRequest(
 }
 
 export function banUserRequest(userId: number, reason: string, accessToken: string) {
-  return requestJson<AdminUserDto>(`/admin/users/${userId}/ban`, {
-    method: "POST",
-    body: JSON.stringify({ reason }),
-  }, accessToken);
+  return requestJson<AdminUserDto>(
+    `/admin/users/${userId}/ban`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    },
+    accessToken,
+  );
 }
 
 export function unbanUserRequest(userId: number, reason: string, accessToken: string) {
-  return requestJson<AdminUserDto>(`/admin/users/${userId}/unban`, {
-    method: "POST",
-    body: JSON.stringify({ reason }),
-  }, accessToken);
+  return requestJson<AdminUserDto>(
+    `/admin/users/${userId}/unban`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    },
+    accessToken,
+  );
 }
 
 export interface CreateAdminUserRequest {
   email: string;
   displayName: string;
   password: string;
-  role: "USER" | "SUPPORT" | "ADMIN";
+  role: 'USER' | 'SUPPORT' | 'ADMIN';
   phone?: string;
 }
 
 export function createAdminUserRequest(payload: CreateAdminUserRequest, accessToken: string) {
-  return requestJson<AdminUserDto>("/admin/users", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  }, accessToken);
+  return requestJson<AdminUserDto>(
+    '/admin/users',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 export function getAdminUserRequest(userId: number, accessToken: string) {
@@ -1190,13 +1236,17 @@ export function getAdminUserRequest(userId: number, accessToken: string) {
 
 export function updateAdminUserRoleRequest(
   userId: number,
-  payload: { role: "USER" | "SUPPORT" | "ADMIN"; reason: string },
+  payload: { role: 'USER' | 'SUPPORT' | 'ADMIN'; reason: string },
   accessToken: string,
 ) {
-  return requestJson<AdminUserDto>(`/admin/users/${userId}/role`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  }, accessToken);
+  return requestJson<AdminUserDto>(
+    `/admin/users/${userId}/role`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 export function updateAdminUserOwnerVerifiedRequest(
@@ -1204,10 +1254,14 @@ export function updateAdminUserOwnerVerifiedRequest(
   payload: { verified: boolean; reason?: string },
   accessToken: string,
 ) {
-  return requestJson<AdminUserDto>(`/admin/users/${userId}/owner-verified`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  }, accessToken);
+  return requestJson<AdminUserDto>(
+    `/admin/users/${userId}/owner-verified`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 export function getAdminRoomsRequest(
@@ -1222,10 +1276,14 @@ export function getAdminRoomsRequest(
 }
 
 export function blockRoomRequest(roomId: number, reason: string, accessToken: string) {
-  return requestJson<void>(`/admin/moderation/rooms/${roomId}/block`, {
-    method: "PATCH",
-    body: JSON.stringify({ reason }),
-  }, accessToken);
+  return requestJson<void>(
+    `/admin/moderation/rooms/${roomId}/block`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ reason }),
+    },
+    accessToken,
+  );
 }
 
 // ---- Support tickets (staff) ----
@@ -1269,17 +1327,13 @@ export function getStaffSupportQueueRequest(
 }
 
 export function getStaffSupportTicketRequest(ticketId: number, accessToken: string) {
-  return requestJson<SupportTicketResponse>(
-    `/staff/support-tickets/${ticketId}`,
-    {},
-    accessToken,
-  );
+  return requestJson<SupportTicketResponse>(`/staff/support-tickets/${ticketId}`, {}, accessToken);
 }
 
 export function assignStaffTicketToMeRequest(ticketId: number, accessToken: string) {
   return requestJson<SupportTicketResponse>(
     `/staff/support-tickets/${ticketId}/assign-to-me`,
-    { method: "POST" },
+    { method: 'POST' },
     accessToken,
   );
 }
@@ -1291,7 +1345,7 @@ export function updateStaffTicketStatusRequest(
 ) {
   return requestJson<SupportTicketResponse>(
     `/staff/support-tickets/${ticketId}/status`,
-    { method: "POST", body: JSON.stringify({ status }) },
+    { method: 'POST', body: JSON.stringify({ status }) },
     accessToken,
   );
 }
@@ -1299,7 +1353,7 @@ export function updateStaffTicketStatusRequest(
 export function escalateStaffTicketRequest(ticketId: number, accessToken: string) {
   return requestJson<SupportTicketResponse>(
     `/staff/support-tickets/${ticketId}/escalate`,
-    { method: "POST" },
+    { method: 'POST' },
     accessToken,
   );
 }
@@ -1322,7 +1376,7 @@ export function postStaffSupportTicketMessageRequest(
 ) {
   return requestJson<SupportTicketResponse>(
     `/staff/support-tickets/${ticketId}/messages`,
-    { method: "POST", body: JSON.stringify({ message }) },
+    { method: 'POST', body: JSON.stringify({ message }) },
     accessToken,
   );
 }
@@ -1365,7 +1419,7 @@ export function getAdminDisputesRequest(
 export function assignDisputeToMeRequest(disputeId: number, accessToken: string) {
   return requestJson<DisputeResponse>(
     `/admin/disputes/${disputeId}/assign`,
-    { method: "PATCH" },
+    { method: 'PATCH' },
     accessToken,
   );
 }
@@ -1377,7 +1431,7 @@ export function decideDisputeRequest(
 ) {
   return requestJson<DisputeResponse>(
     `/admin/disputes/${disputeId}/decision`,
-    { method: "PATCH", body: JSON.stringify(payload) },
+    { method: 'PATCH', body: JSON.stringify(payload) },
     accessToken,
   );
 }
@@ -1396,7 +1450,7 @@ export function applyOwnerViolationSanctionRequest(
 ) {
   return requestJson<DisputeResponse>(
     `/admin/disputes/${disputeId}/sanctions/owner-violation`,
-    { method: "POST", body: JSON.stringify(payload) },
+    { method: 'POST', body: JSON.stringify(payload) },
     accessToken,
   );
 }
@@ -1431,7 +1485,7 @@ export function markRefundSuccessRequest(
 ) {
   return requestJson<RefundTransactionResponse>(
     `/admin/refunds/${refundId}/success`,
-    { method: "PATCH", body: JSON.stringify(payload) },
+    { method: 'PATCH', body: JSON.stringify(payload) },
     accessToken,
   );
 }
@@ -1443,7 +1497,7 @@ export function markRefundFailRequest(
 ) {
   return requestJson<RefundTransactionResponse>(
     `/admin/refunds/${refundId}/fail`,
-    { method: "PATCH", body: JSON.stringify(payload) },
+    { method: 'PATCH', body: JSON.stringify(payload) },
     accessToken,
   );
 }
@@ -1522,52 +1576,37 @@ export interface BatchConfirmRequest {
 }
 
 export function getModerationQueueRequest(accessToken: string) {
-  return requestJson<ModerationQueueItemDto[]>(
-    "/admin/moderation/queue",
-    {},
-    accessToken,
-  );
+  return requestJson<ModerationQueueItemDto[]>('/admin/moderation/queue', {}, accessToken);
 }
 
 export function assignModerationItemRequest(queueId: number, accessToken: string) {
   return requestJson<ModerationQueueItemDto>(
     `/admin/moderation/queue/${queueId}/assign`,
-    { method: "PATCH" },
+    { method: 'PATCH' },
     accessToken,
   );
 }
 
-export function confirmModerationItemRequest(
-  queueId: number,
-  reason: string,
-  accessToken: string,
-) {
+export function confirmModerationItemRequest(queueId: number, reason: string, accessToken: string) {
   return requestJson<ModerationQueueItemDto>(
     `/admin/moderation/queue/${queueId}/confirm`,
-    { method: "PATCH", body: JSON.stringify({ reason }) },
+    { method: 'PATCH', body: JSON.stringify({ reason }) },
     accessToken,
   );
 }
 
-export function rejectModerationItemRequest(
-  queueId: number,
-  reason: string,
-  accessToken: string,
-) {
+export function rejectModerationItemRequest(queueId: number, reason: string, accessToken: string) {
   return requestJson<ModerationQueueItemDto>(
     `/admin/moderation/queue/${queueId}/reject`,
-    { method: "PATCH", body: JSON.stringify({ reason }) },
+    { method: 'PATCH', body: JSON.stringify({ reason }) },
     accessToken,
   );
 }
 
-export function batchConfirmModerationRequest(
-  payload: BatchConfirmRequest,
-  accessToken: string,
-) {
+export function batchConfirmModerationRequest(payload: BatchConfirmRequest, accessToken: string) {
   return requestJson<ModerationQueueItemDto[]>(
-    "/admin/moderation/queue/batch-confirm",
-    { method: "POST", body: JSON.stringify(payload) },
+    '/admin/moderation/queue/batch-confirm',
+    { method: 'POST', body: JSON.stringify(payload) },
     accessToken,
   );
 }
@@ -1595,10 +1634,14 @@ export interface CreateReviewPayload {
 }
 
 export function createReviewRequest(payload: CreateReviewPayload, accessToken: string) {
-  return requestJson<ReviewDto>("/reviews", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  }, accessToken);
+  return requestJson<ReviewDto>(
+    '/reviews',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 // ============================================================
@@ -1640,14 +1683,18 @@ export function createSupportTicketRequest(
   payload: CreateSupportTicketPayload,
   accessToken: string,
 ) {
-  return requestJson<SupportTicketResponse>("/support-tickets", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  }, accessToken);
+  return requestJson<SupportTicketResponse>(
+    '/support-tickets',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 export function getMySupportTicketsRequest(accessToken: string) {
-  return requestJson<SupportTicketResponse[]>("/support-tickets", {}, accessToken);
+  return requestJson<SupportTicketResponse[]>('/support-tickets', {}, accessToken);
 }
 
 export function getMySupportTicketRequest(ticketId: number, accessToken: string) {
@@ -1659,10 +1706,14 @@ export function postSupportTicketMessageRequest(
   message: string,
   accessToken: string,
 ) {
-  return requestJson<SupportTicketResponse>(`/support-tickets/${ticketId}/messages`, {
-    method: "POST",
-    body: JSON.stringify({ message }),
-  }, accessToken);
+  return requestJson<SupportTicketResponse>(
+    `/support-tickets/${ticketId}/messages`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    },
+    accessToken,
+  );
 }
 
 // ============================================================
@@ -1691,7 +1742,7 @@ export interface PayoutMethodDto {
 }
 
 export function getMyPayoutsRequest(accessToken: string) {
-  return requestJson<PayoutDto[]>("/payouts/me", {}, accessToken);
+  return requestJson<PayoutDto[]>('/payouts/me', {}, accessToken);
 }
 
 export function getPayoutRequest(payoutId: number, accessToken: string) {
@@ -1699,23 +1750,31 @@ export function getPayoutRequest(payoutId: number, accessToken: string) {
 }
 
 export function getPayoutMethodsRequest(accessToken: string) {
-  return requestJson<PayoutMethodDto[]>("/payouts/methods", {}, accessToken);
+  return requestJson<PayoutMethodDto[]>('/payouts/methods', {}, accessToken);
 }
 
 export function registerPayoutMethodRequest(
   payload: { providerCardToken: string; panMask?: string },
   accessToken: string,
 ) {
-  return requestJson<PayoutMethodDto>("/payouts/methods", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  }, accessToken);
+  return requestJson<PayoutMethodDto>(
+    '/payouts/methods',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 export function deletePayoutMethodRequest(methodId: number, accessToken: string) {
-  return requestJson<void>(`/payouts/methods/${methodId}`, {
-    method: "DELETE",
-  }, accessToken);
+  return requestJson<void>(
+    `/payouts/methods/${methodId}`,
+    {
+      method: 'DELETE',
+    },
+    accessToken,
+  );
 }
 
 // --- Payout card binding (connect a card via the FreedomPay hosted page) ---
@@ -1735,21 +1794,22 @@ export interface PayoutCardBindingConfirmDto {
 }
 
 /** Start connecting a payout card. Returns a hosted-page URL to redirect the owner to. */
-export function initPayoutCardBindingRequest(
-  payload: { returnUrl: string },
-  accessToken: string,
-) {
-  return requestJson<PayoutCardBindingResponseDto>("/payouts/methods/binding", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  }, accessToken);
+export function initPayoutCardBindingRequest(payload: { returnUrl: string }, accessToken: string) {
+  return requestJson<PayoutCardBindingResponseDto>(
+    '/payouts/methods/binding',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 /** Finalize the binding after the owner returns from the hosted page. */
 export function confirmPayoutCardBindingRequest(bindingId: number, accessToken: string) {
   return requestJson<PayoutCardBindingConfirmDto>(
     `/payouts/methods/binding/${bindingId}/confirm`,
-    { method: "POST" },
+    { method: 'POST' },
     accessToken,
   );
 }
@@ -1774,7 +1834,7 @@ export interface RefundTransactionResponse {
 }
 
 export function getMyRefundsRequest(accessToken: string) {
-  return requestJson<RefundTransactionResponse[]>("/refunds/me", {}, accessToken);
+  return requestJson<RefundTransactionResponse[]>('/refunds/me', {}, accessToken);
 }
 
 export function getRefundRequest(refundId: number, accessToken: string) {
@@ -1792,8 +1852,8 @@ export function verifyEmailRequest(token: string) {
 }
 
 export function resendVerificationEmailRequest(email: string) {
-  return requestJson<void>("/auth/resend-verification", {
-    method: "POST",
+  return requestJson<void>('/auth/resend-verification', {
+    method: 'POST',
     body: JSON.stringify({ email }),
   });
 }
@@ -1821,21 +1881,17 @@ export function getPublicProfile(publicId: string) {
 }
 
 export function deleteMyAccount(accessToken: string) {
-  return requestJson<void>("/users/me", { method: "DELETE" }, accessToken);
+  return requestJson<void>('/users/me', { method: 'DELETE' }, accessToken);
 }
 
 export function uploadMyAvatar(file: File, accessToken: string) {
   const form = new FormData();
-  form.append("file", file);
-  return requestJson<User>(
-    "/users/me/avatar",
-    { method: "POST", body: form },
-    accessToken,
-  );
+  form.append('file', file);
+  return requestJson<User>('/users/me/avatar', { method: 'POST', body: form }, accessToken);
 }
 
 export function deleteMyAvatar(accessToken: string) {
-  return requestJson<User>("/users/me/avatar", { method: "DELETE" }, accessToken);
+  return requestJson<User>('/users/me/avatar', { method: 'DELETE' }, accessToken);
 }
 
 // ============================================================
@@ -1937,31 +1993,31 @@ export interface UpdateTariffPayload {
 }
 
 export function adminGetCategories(accessToken: string) {
-  return requestJson<AdminCategoryDto[]>("/admin/catalog/categories", {}, accessToken);
+  return requestJson<AdminCategoryDto[]>('/admin/catalog/categories', {}, accessToken);
 }
 
 export function adminCreateCategory(payload: CreateCategoryPayload, accessToken: string) {
   return requestJson<AdminCategoryDto>(
-    "/admin/catalog/categories",
-    { method: "POST", body: JSON.stringify(payload) },
+    '/admin/catalog/categories',
+    { method: 'POST', body: JSON.stringify(payload) },
     accessToken,
   );
 }
 
-export function adminUpdateCategory(id: number, payload: UpdateCategoryPayload, accessToken: string) {
+export function adminUpdateCategory(
+  id: number,
+  payload: UpdateCategoryPayload,
+  accessToken: string,
+) {
   return requestJson<AdminCategoryDto>(
     `/admin/catalog/categories/${id}`,
-    { method: "PUT", body: JSON.stringify(payload) },
+    { method: 'PUT', body: JSON.stringify(payload) },
     accessToken,
   );
 }
 
 export function adminDeleteCategory(id: number, accessToken: string) {
-  return requestJson<void>(
-    `/admin/catalog/categories/${id}`,
-    { method: "DELETE" },
-    accessToken,
-  );
+  return requestJson<void>(`/admin/catalog/categories/${id}`, { method: 'DELETE' }, accessToken);
 }
 
 export function adminGetServices(accessToken: string, categoryId?: number) {
@@ -1974,8 +2030,8 @@ export function adminGetServices(accessToken: string, categoryId?: number) {
 
 export function adminCreateService(payload: CreateServicePayload, accessToken: string) {
   return requestJson<AdminServiceDto>(
-    "/admin/catalog/services",
-    { method: "POST", body: JSON.stringify(payload) },
+    '/admin/catalog/services',
+    { method: 'POST', body: JSON.stringify(payload) },
     accessToken,
   );
 }
@@ -1983,17 +2039,13 @@ export function adminCreateService(payload: CreateServicePayload, accessToken: s
 export function adminUpdateService(id: number, payload: UpdateServicePayload, accessToken: string) {
   return requestJson<AdminServiceDto>(
     `/admin/catalog/services/${id}`,
-    { method: "PUT", body: JSON.stringify(payload) },
+    { method: 'PUT', body: JSON.stringify(payload) },
     accessToken,
   );
 }
 
 export function adminDeleteService(id: number, accessToken: string) {
-  return requestJson<void>(
-    `/admin/catalog/services/${id}`,
-    { method: "DELETE" },
-    accessToken,
-  );
+  return requestJson<void>(`/admin/catalog/services/${id}`, { method: 'DELETE' }, accessToken);
 }
 
 export function adminGetTariffs(serviceId: number, accessToken: string) {
@@ -2011,7 +2063,7 @@ export function adminCreateTariff(
 ) {
   return requestJson<AdminTariffDto>(
     `/admin/catalog/services/${serviceId}/tariffs`,
-    { method: "POST", body: JSON.stringify(payload) },
+    { method: 'POST', body: JSON.stringify(payload) },
     accessToken,
   );
 }
@@ -2019,17 +2071,13 @@ export function adminCreateTariff(
 export function adminUpdateTariff(id: number, payload: UpdateTariffPayload, accessToken: string) {
   return requestJson<AdminTariffDto>(
     `/admin/catalog/tariffs/${id}`,
-    { method: "PUT", body: JSON.stringify(payload) },
+    { method: 'PUT', body: JSON.stringify(payload) },
     accessToken,
   );
 }
 
 export function adminDeleteTariff(id: number, accessToken: string) {
-  return requestJson<void>(
-    `/admin/catalog/tariffs/${id}`,
-    { method: "DELETE" },
-    accessToken,
-  );
+  return requestJson<void>(`/admin/catalog/tariffs/${id}`, { method: 'DELETE' }, accessToken);
 }
 
 // ============================================================
@@ -2076,31 +2124,31 @@ export interface ServiceReviewPayload {
 }
 
 export function getFeaturedServiceReviews() {
-  return requestJson<PublicServiceReviewDto[]>("/service-reviews/featured");
+  return requestJson<PublicServiceReviewDto[]>('/service-reviews/featured');
 }
 
 export function getMyServiceReview(accessToken: string) {
-  return requestJson<ServiceReviewDto | undefined>("/service-reviews/me", {}, accessToken);
+  return requestJson<ServiceReviewDto | undefined>('/service-reviews/me', {}, accessToken);
 }
 
 export function createServiceReview(payload: ServiceReviewPayload, accessToken: string) {
   return requestJson<ServiceReviewDto>(
-    "/service-reviews",
-    { method: "POST", body: JSON.stringify(payload) },
+    '/service-reviews',
+    { method: 'POST', body: JSON.stringify(payload) },
     accessToken,
   );
 }
 
 export function updateMyServiceReview(payload: ServiceReviewPayload, accessToken: string) {
   return requestJson<ServiceReviewDto>(
-    "/service-reviews/me",
-    { method: "PUT", body: JSON.stringify(payload) },
+    '/service-reviews/me',
+    { method: 'PUT', body: JSON.stringify(payload) },
     accessToken,
   );
 }
 
 export function deleteMyServiceReview(accessToken: string) {
-  return requestJson<void>("/service-reviews/me", { method: "DELETE" }, accessToken);
+  return requestJson<void>('/service-reviews/me', { method: 'DELETE' }, accessToken);
 }
 
 export function adminGetServiceReviews(
@@ -2112,7 +2160,7 @@ export function adminGetServiceReviews(
     size: params.size,
   };
   if (params.featured !== undefined) {
-    query.featured = params.featured ? "true" : "false";
+    query.featured = params.featured ? 'true' : 'false';
   }
   return requestJson<PagedResponse<AdminServiceReviewDto>>(
     `/admin/service-reviews${toSearchParams(query)}`,
@@ -2121,14 +2169,10 @@ export function adminGetServiceReviews(
   );
 }
 
-export function adminSetServiceReviewFeatured(
-  id: number,
-  featured: boolean,
-  accessToken: string,
-) {
+export function adminSetServiceReviewFeatured(id: number, featured: boolean, accessToken: string) {
   return requestJson<AdminServiceReviewDto>(
     `/admin/service-reviews/${id}/featured`,
-    { method: "PATCH", body: JSON.stringify({ featured }) },
+    { method: 'PATCH', body: JSON.stringify({ featured }) },
     accessToken,
   );
 }
@@ -2140,17 +2184,13 @@ export function adminUpdateServiceReview(
 ) {
   return requestJson<AdminServiceReviewDto>(
     `/admin/service-reviews/${id}`,
-    { method: "PUT", body: JSON.stringify(payload) },
+    { method: 'PUT', body: JSON.stringify(payload) },
     accessToken,
   );
 }
 
 export function adminDeleteServiceReview(id: number, accessToken: string) {
-  return requestJson<void>(
-    `/admin/service-reviews/${id}`,
-    { method: "DELETE" },
-    accessToken,
-  );
+  return requestJson<void>(`/admin/service-reviews/${id}`, { method: 'DELETE' }, accessToken);
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -2198,17 +2238,17 @@ export interface UpdateSiteAboutPayload {
 }
 
 export function getSiteAboutRequest() {
-  return requestJson<SiteAboutContent>("/site/about");
+  return requestJson<SiteAboutContent>('/site/about');
 }
 
 export function adminGetSiteAbout(accessToken: string) {
-  return requestJson<SiteAboutContent>("/admin/site/about", {}, accessToken);
+  return requestJson<SiteAboutContent>('/admin/site/about', {}, accessToken);
 }
 
 export function adminUpdateSiteAbout(payload: UpdateSiteAboutPayload, accessToken: string) {
   return requestJson<SiteAboutContent>(
-    "/admin/site/about",
-    { method: "PUT", body: JSON.stringify(payload) },
+    '/admin/site/about',
+    { method: 'PUT', body: JSON.stringify(payload) },
     accessToken,
   );
 }
@@ -2217,7 +2257,7 @@ export function adminUpdateSiteAbout(payload: UpdateSiteAboutPayload, accessToke
 // Legal documents — Terms of Service / Privacy consent
 // ───────────────────────────────────────────────────────────────
 
-export type LegalDocType = "terms" | "privacy";
+export type LegalDocType = 'terms' | 'privacy';
 
 export interface LegalDocumentDto {
   docType: LegalDocType;
@@ -2255,7 +2295,7 @@ export function adminUpdateLegalDocument(
 ) {
   return requestJson<LegalDocumentDto>(
     `/admin/legal/${docType}`,
-    { method: "PUT", body: JSON.stringify(payload) },
+    { method: 'PUT', body: JSON.stringify(payload) },
     accessToken,
   );
 }
@@ -2264,7 +2304,7 @@ export function adminUpdateLegalDocument(
 // News module
 // ───────────────────────────────────────────────────────────────
 
-export type NewsStatus = "PUBLISHED" | "DRAFT" | "ARCHIVED";
+export type NewsStatus = 'PUBLISHED' | 'DRAFT' | 'ARCHIVED';
 
 export interface NewsDto {
   id: number;
@@ -2305,9 +2345,7 @@ export function getNews(page = 0, limit = 6) {
   const key = `${page}::${limit}`;
   const cached = newsCache.get(key);
   if (cached) return cached;
-  const promise = requestJson<PagedResponse<NewsDto>>(
-    `/news${toSearchParams({ page, limit })}`,
-  )
+  const promise = requestJson<PagedResponse<NewsDto>>(`/news${toSearchParams({ page, limit })}`)
     .then((res) => res?.items ?? [])
     .catch((err) => {
       newsCache.delete(key);
@@ -2322,11 +2360,9 @@ export function clearNewsCache() {
 }
 
 export function adminListNews(accessToken: string) {
-  return requestJson<PagedResponse<AdminNewsDto>>(
-    "/admin/news",
-    {},
-    accessToken,
-  ).then((res) => res?.items ?? []);
+  return requestJson<PagedResponse<AdminNewsDto>>('/admin/news', {}, accessToken).then(
+    (res) => res?.items ?? [],
+  );
 }
 
 export function adminGetNews(id: number, accessToken: string) {
@@ -2335,8 +2371,8 @@ export function adminGetNews(id: number, accessToken: string) {
 
 export function adminCreateNews(payload: UpsertNewsPayload, accessToken: string) {
   return requestJson<AdminNewsDto>(
-    "/admin/news",
-    { method: "POST", body: JSON.stringify(payload) },
+    '/admin/news',
+    { method: 'POST', body: JSON.stringify(payload) },
     accessToken,
   );
 }
@@ -2344,25 +2380,21 @@ export function adminCreateNews(payload: UpsertNewsPayload, accessToken: string)
 export function adminUpdateNews(id: number, payload: UpsertNewsPayload, accessToken: string) {
   return requestJson<AdminNewsDto>(
     `/admin/news/${id}`,
-    { method: "PUT", body: JSON.stringify(payload) },
+    { method: 'PUT', body: JSON.stringify(payload) },
     accessToken,
   );
 }
 
 export function adminDeleteNews(id: number, accessToken: string) {
-  return requestJson<void>(
-    `/admin/news/${id}`,
-    { method: "DELETE" },
-    accessToken,
-  );
+  return requestJson<void>(`/admin/news/${id}`, { method: 'DELETE' }, accessToken);
 }
 
 export function adminUploadNewsImage(id: number, file: File, accessToken: string) {
   const form = new FormData();
-  form.append("file", file);
+  form.append('file', file);
   return requestJson<AdminNewsDto>(
     `/admin/news/${id}/image`,
-    { method: "POST", body: form },
+    { method: 'POST', body: form },
     accessToken,
   );
 }
@@ -2379,23 +2411,16 @@ export interface CatalogSearchHit {
 }
 
 export function searchCatalog(q: string, init: RequestInit = {}) {
-  return requestJson<CatalogSearchHit[]>(
-    `/catalog/search${toSearchParams({ q })}`,
-    init,
-  );
+  return requestJson<CatalogSearchHit[]>(`/catalog/search${toSearchParams({ q })}`, init);
 }
 
 export interface ServiceMatchResult {
-  action: "JOIN" | "CREATE";
+  action: 'JOIN' | 'CREATE';
   roomId: number | null;
 }
 
 export function matchRoomForService(serviceId: number, accessToken: string) {
-  return requestJson<ServiceMatchResult>(
-    `/catalog/services/${serviceId}/match`,
-    {},
-    accessToken,
-  );
+  return requestJson<ServiceMatchResult>(`/catalog/services/${serviceId}/match`, {}, accessToken);
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -2404,10 +2429,10 @@ export function matchRoomForService(serviceId: number, accessToken: string) {
 
 export function adminUploadServiceLogo(serviceId: number, file: File, accessToken: string) {
   const form = new FormData();
-  form.append("file", file);
+  form.append('file', file);
   return requestJson<AdminServiceDto>(
     `/admin/catalog/services/${serviceId}/logo`,
-    { method: "POST", body: form },
+    { method: 'POST', body: form },
     accessToken,
   );
 }
@@ -2441,31 +2466,19 @@ export function getNotificationsRequest(
 }
 
 export function getUnreadNotificationCountRequest(accessToken: string) {
-  return requestJson<{ count: number }>(
-    "/notifications/unread-count",
-    {},
-    accessToken,
-  );
+  return requestJson<{ count: number }>('/notifications/unread-count', {}, accessToken);
 }
 
 export function markNotificationReadRequest(id: number, accessToken: string) {
-  return requestJson<void>(
-    `/notifications/${id}/read`,
-    { method: "POST" },
-    accessToken,
-  );
+  return requestJson<void>(`/notifications/${id}/read`, { method: 'POST' }, accessToken);
 }
 
 export function markAllNotificationsReadRequest(accessToken: string) {
-  return requestJson<void>(
-    "/notifications/read-all",
-    { method: "POST" },
-    accessToken,
-  );
+  return requestJson<void>('/notifications/read-all', { method: 'POST' }, accessToken);
 }
 
 export type NotificationCategory =
-  | "MEMBERSHIP" | "ROOM" | "PAYMENTS" | "DISPUTES" | "SUPPORT" | "ACCOUNT";
+  'MEMBERSHIP' | 'ROOM' | 'PAYMENTS' | 'DISPUTES' | 'SUPPORT' | 'ACCOUNT';
 
 export interface NotificationPreferenceDto {
   type: string;
@@ -2481,11 +2494,7 @@ export interface NotificationPreferenceUpdate {
 }
 
 export function getNotificationPreferencesRequest(accessToken: string) {
-  return requestJson<NotificationPreferenceDto[]>(
-    "/notifications/preferences",
-    {},
-    accessToken,
-  );
+  return requestJson<NotificationPreferenceDto[]>('/notifications/preferences', {}, accessToken);
 }
 
 export function updateNotificationPreferencesRequest(
@@ -2493,8 +2502,8 @@ export function updateNotificationPreferencesRequest(
   accessToken: string,
 ) {
   return requestJson<NotificationPreferenceDto[]>(
-    "/notifications/preferences",
-    { method: "PUT", body: JSON.stringify({ items: payload }) },
+    '/notifications/preferences',
+    { method: 'PUT', body: JSON.stringify({ items: payload }) },
     accessToken,
   );
 }
