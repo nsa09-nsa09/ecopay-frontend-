@@ -2517,6 +2517,12 @@ export function updateNotificationPreferencesRequest(
 // ───────────────────────────────────────────────────────────────
 // Admin: subscription price monitoring (/api/v1/admin/pricing/**)
 // ───────────────────────────────────────────────────────────────
+//
+// Field names mirror the backend DTOs verbatim (platformCode / displayName /
+// lastPrice / extractorType / …). Keeping the two sides identical means we
+// never invent an adapter layer that silently drops fields — which is exactly
+// what was masking the 400 on "add source" and the empty platform/price cells
+// in the table.
 
 export type PricingExtractionType = 'AUTO' | 'JSON_LD' | 'META' | 'CSS' | 'REGEX' | 'MANUAL';
 
@@ -2530,7 +2536,7 @@ export type PricingSnapshotOutcome =
   | 'FETCH_FAILED'
   | 'BLOCKED';
 
-export type PricingChangeDirection = 'UP' | 'DOWN' | 'FLAT';
+export type PricingTestOutcome = 'SUCCESS' | 'PARSE_FAILED' | 'FETCH_FAILED' | 'BLOCKED';
 
 export interface PricingExtractionConfig {
   selector?: string | null;
@@ -2545,37 +2551,65 @@ export interface PricingProviderDto {
    * {@code JSON.parse}. Treat it as an opaque token — no arithmetic.
    */
   id: string;
-  platform: string;
-  name: string;
+  platformCode: string;
+  displayName: string;
   planName: string;
   url: string;
-  extractionType: PricingExtractionType;
-  extractionConfig?: PricingExtractionConfig | null;
-  currentPrice: number | null;
-  previousPrice: number | null;
-  currency: string;
-  status: PricingProviderStatus;
-  lastCheckedAt: string | null;
+  locale: string | null;
+  expectedCurrency: string | null;
+  extractorType: PricingExtractionType;
+  extractorConfig: PricingExtractionConfig | null;
+  requiresJs: boolean;
   checkIntervalMinutes: number;
   active: boolean;
-  requiresJs: boolean;
+  status: PricingProviderStatus;
+  consecutiveFailures: number | null;
+  lastCheckedAt: string | null;
+  lastSuccessAt: string | null;
+  nextCheckAt: string | null;
+  /** Most recent successful observation. May be null before the first check lands. */
+  lastPrice: number | null;
+  lastCurrency: string | null;
+  /** Timestamp of the newest {@code price_change} row, or null if none. */
+  lastChangedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface UpsertPricingProviderPayload {
-  platform: string;
-  name: string;
+/** Body for {@code POST /admin/pricing/providers}. */
+export interface CreatePricingProviderPayload {
+  platformCode: string;
+  displayName: string;
   planName: string;
   url: string;
-  extractionType: PricingExtractionType;
-  extractionConfig?: PricingExtractionConfig | null;
-  currency: string;
-  checkIntervalMinutes: number;
-  active: boolean;
-  requiresJs: boolean;
-  /** For MANUAL extraction — sets the current price directly. */
+  locale?: string | null;
+  expectedCurrency?: string | null;
+  extractorType: PricingExtractionType;
+  extractorConfig?: PricingExtractionConfig | null;
+  requiresJs?: boolean;
+  checkIntervalMinutes?: number;
+  active?: boolean;
+  /** For MANUAL extraction — seed the first price without a fetch. */
+  initialPrice?: number | null;
+  initialCurrency?: string | null;
+}
+
+/** Body for {@code PUT /admin/pricing/providers/{id}} — every field is optional. */
+export interface UpdatePricingProviderPayload {
+  platformCode?: string;
+  displayName?: string;
+  planName?: string;
+  url?: string;
+  locale?: string | null;
+  expectedCurrency?: string | null;
+  extractorType?: PricingExtractionType;
+  extractorConfig?: PricingExtractionConfig | null;
+  requiresJs?: boolean;
+  checkIntervalMinutes?: number;
+  active?: boolean;
+  /** MANUAL providers only: overwrite lastPrice/lastCurrency directly. */
   manualPrice?: number | null;
+  manualCurrency?: string | null;
 }
 
 export interface PricingSnapshotDto {
@@ -2583,10 +2617,11 @@ export interface PricingSnapshotDto {
   id: string;
   providerId: string;
   price: number | null;
-  currency: string;
+  currency: string | null;
   capturedAt: string;
   outcome: PricingSnapshotOutcome;
-  errorMessage?: string | null;
+  httpStatus: number | null;
+  errorMessage: string | null;
 }
 
 export interface PricingChangeDto {
@@ -2597,11 +2632,40 @@ export interface PricingChangeDto {
   planName: string;
   oldPrice: number | null;
   newPrice: number | null;
-  currency: string;
-  direction: PricingChangeDirection;
-  detectedAt: string;
+  currency: string | null;
+  changedAt: string;
+  snapshotId: string | null;
   acknowledged: boolean;
-  acknowledgedAt?: string | null;
+}
+
+/** Body for {@code POST /admin/pricing/providers/test} — dry-run extraction against a URL. */
+export interface TestPricingExtractionRequest {
+  url: string;
+  extractorType: PricingExtractionType;
+  extractorConfig?: PricingExtractionConfig | null;
+  requiresJs?: boolean;
+  expectedCurrency?: string | null;
+  locale?: string | null;
+}
+
+export interface TestPricingExtractionResponse {
+  outcome: PricingTestOutcome;
+  price: number | null;
+  currency: string | null;
+  httpStatus: number | null;
+  /** Which extractor path lit up (e.g. "json_ld", "meta", "regex"), or null. */
+  source: string | null;
+  /** Short diagnostic — empty on SUCCESS. */
+  message: string | null;
+}
+
+/**
+ * Convenient display fallback: the live currency the extractor last emitted, else the admin's
+ * expected currency, else null. Used by the admin table where a single "currency" column has to
+ * work even before the first observation lands.
+ */
+export function pricingProviderCurrency(p: PricingProviderDto): string | null {
+  return p.lastCurrency ?? p.expectedCurrency ?? null;
 }
 
 export function adminListPricingProviders(accessToken: string) {
@@ -2613,7 +2677,7 @@ export function adminGetPricingProvider(id: string, accessToken: string) {
 }
 
 export function adminCreatePricingProvider(
-  payload: UpsertPricingProviderPayload,
+  payload: CreatePricingProviderPayload,
   accessToken: string,
 ) {
   return requestJson<PricingProviderDto>(
@@ -2625,7 +2689,7 @@ export function adminCreatePricingProvider(
 
 export function adminUpdatePricingProvider(
   id: string,
-  payload: UpsertPricingProviderPayload,
+  payload: UpdatePricingProviderPayload,
   accessToken: string,
 ) {
   return requestJson<PricingProviderDto>(
@@ -2647,6 +2711,17 @@ export function adminCheckPricingProvider(id: string, accessToken: string) {
   return requestJson<PricingProviderDto>(
     `/admin/pricing/providers/${id}/check`,
     { method: 'POST' },
+    accessToken,
+  );
+}
+
+export function adminTestPricingExtraction(
+  payload: TestPricingExtractionRequest,
+  accessToken: string,
+) {
+  return requestJson<TestPricingExtractionResponse>(
+    '/admin/pricing/providers/test',
+    { method: 'POST', body: JSON.stringify(payload) },
     accessToken,
   );
 }

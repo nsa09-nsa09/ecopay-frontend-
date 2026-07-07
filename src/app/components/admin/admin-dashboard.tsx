@@ -56,13 +56,13 @@ import {
   MapPin,
 } from 'lucide-react';
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   Legend,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -71,11 +71,14 @@ import {
   YAxis,
 } from 'recharts';
 
+type KpiSparklineKey = 'revenue' | 'uniqueVisitors' | 'pageViews' | 'newRooms';
+
 interface KpiCardConfig {
   key: string;
   value: string | number;
   icon: typeof ShieldCheck;
   variant: 'warning' | 'danger' | 'info' | 'success';
+  sparklineKey?: KpiSparklineKey;
 }
 
 function formatCount(value: number | null | undefined): string {
@@ -118,6 +121,22 @@ function translateCacheError(
       return t('errLoadCardFailed');
   }
 }
+
+// Shared card presentation — hairline border comes from the Card primitive,
+// this className layers the premium shadow/hover-lift on top.
+const KPI_CARD_CLASS =
+  'flex flex-col gap-4 h-full transition-all duration-200 hover:-translate-y-0.5 ' +
+  'shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-16px_rgba(0,0,0,0.16)] ' +
+  'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_20px_36px_-20px_rgba(0,0,0,0.24)]';
+
+const PANEL_CARD_CLASS =
+  'shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-16px_rgba(0,0,0,0.14)]';
+
+const PANEL_TITLE_STYLE: CSSProperties = {
+  color: 'var(--eco-text)',
+  fontWeight: 500,
+  letterSpacing: '-0.01em',
+};
 
 export function AdminDashboardPage() {
   const { t } = useI18n();
@@ -310,6 +329,7 @@ export function AdminDashboardPage() {
             value: formatMoney(kpis.totalRevenue),
             icon: TrendingUp,
             variant: 'success',
+            sparklineKey: 'revenue',
           },
           {
             key: 'totalRefundsLabel',
@@ -345,12 +365,14 @@ export function AdminDashboardPage() {
             value: formatCount(kpis.uniqueVisitors30d ?? null),
             icon: Users,
             variant: 'info',
+            sparklineKey: 'uniqueVisitors',
           },
           {
             key: 'kpiPageViews30d',
             value: formatCount(kpis.totalPageViews30d ?? null),
             icon: MousePointerClick,
             variant: 'info',
+            sparklineKey: 'pageViews',
           },
           {
             key: 'kpiConversion30d',
@@ -380,6 +402,7 @@ export function AdminDashboardPage() {
             value: formatCount(kpis.newRoomsLast30Days ?? null),
             icon: PlusCircle,
             variant: 'success',
+            sparklineKey: 'newRooms',
           },
           {
             key: 'kpiAvgRoomFill',
@@ -421,56 +444,120 @@ export function AdminDashboardPage() {
     ];
   }, [kpis, metrics]);
 
+  // Compact sparkline series for KPI cards. Returns null (skip drawing) if
+  // metrics haven't loaded, the series is too short to be meaningful, or
+  // every point is zero — a flat baseline adds noise, not signal.
+  const kpiSparklineData = useCallback(
+    (sparklineKey: KpiSparklineKey): { v: number }[] | null => {
+      if (!metrics || !Array.isArray(metrics.series) || metrics.series.length < 2) return null;
+      const points = metrics.series.map((p) => {
+        const raw = (p as Record<string, unknown>)[sparklineKey];
+        const num = typeof raw === 'string' ? Number(raw) : (raw as number | null | undefined);
+        return { v: typeof num === 'number' && Number.isFinite(num) ? num : 0 };
+      });
+      if (points.every((pt) => pt.v === 0)) return null;
+      return points;
+    },
+    [metrics],
+  );
+
   const renderKpiCard = (k: KpiCardConfig) => {
     const Icon = k.icon;
+    const chipBg =
+      k.variant === 'warning'
+        ? 'var(--eco-warning-100)'
+        : k.variant === 'danger'
+          ? 'var(--eco-danger-100)'
+          : k.variant === 'success'
+            ? 'var(--eco-success-100)'
+            : 'var(--eco-brand-50)';
+    const chipFg =
+      k.variant === 'warning'
+        ? 'var(--eco-warning-500)'
+        : k.variant === 'danger'
+          ? 'var(--eco-danger-500)'
+          : k.variant === 'success'
+            ? 'var(--eco-positive)'
+            : 'var(--eco-brand-600)';
+    const sparkStroke =
+      k.variant === 'warning'
+        ? 'var(--eco-warning-500)'
+        : k.variant === 'danger'
+          ? 'var(--eco-danger-500)'
+          : k.variant === 'success'
+            ? 'var(--eco-positive)'
+            : 'var(--eco-primary)';
+    const spark = k.sparklineKey ? kpiSparklineData(k.sparklineKey) : null;
+    const gradientId = `eco-kpi-spark-${k.key}`;
+
     return (
-      <Card key={k.key} className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
+      <Card key={k.key} className={KPI_CARD_CLASS}>
+        <div className="flex items-start justify-between gap-3">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{
-              background:
-                k.variant === 'warning'
-                  ? 'var(--eco-warning-100)'
-                  : k.variant === 'danger'
-                    ? 'var(--eco-danger-100)'
-                    : k.variant === 'success'
-                      ? 'var(--eco-success-100)'
-                      : 'var(--eco-brand-50)',
-            }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: chipBg }}
           >
-            <Icon
-              size={15}
-              style={{
-                color:
-                  k.variant === 'warning'
-                    ? 'var(--eco-warning-500)'
-                    : k.variant === 'danger'
-                      ? 'var(--eco-danger-500)'
-                      : k.variant === 'success'
-                        ? 'var(--eco-positive)'
-                        : 'var(--eco-brand-600)',
-              }}
-            />
+            <Icon size={16} style={{ color: chipFg }} />
           </div>
         </div>
-        <div>
-          <div className="text-[22px]" style={{ color: 'var(--eco-text)' }}>
+        <div className="flex flex-col gap-1">
+          <div
+            className="text-[24px] leading-tight"
+            style={{
+              color: 'var(--eco-text)',
+              fontVariantNumeric: 'tabular-nums',
+              letterSpacing: '-0.01em',
+              fontWeight: 500,
+            }}
+          >
             {k.value}
           </div>
-          <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+          <div
+            className="text-[12px]"
+            style={{ color: 'var(--eco-text-tertiary)', letterSpacing: '0.01em' }}
+          >
             {t(k.key)}
           </div>
         </div>
+        {spark && (
+          <div className="mt-auto pt-1" style={{ width: '100%', height: 28 }}>
+            <ResponsiveContainer>
+              <AreaChart data={spark} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" style={{ stopColor: sparkStroke, stopOpacity: 0.4 }} />
+                    <stop offset="100%" style={{ stopColor: sparkStroke, stopOpacity: 0 }} />
+                  </linearGradient>
+                </defs>
+                <Area
+                  type="monotone"
+                  dataKey="v"
+                  stroke={sparkStroke}
+                  strokeWidth={1.5}
+                  fill={`url(#${gradientId})`}
+                  fillOpacity={1}
+                  isAnimationActive={false}
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </Card>
     );
   };
 
   return (
     <AdminLayout>
-      <div className="max-w-[1100px]">
-        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
-          <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
+      <div className="max-w-[1280px]">
+        <div
+          className="pb-5 mb-10 border-b flex items-center justify-between gap-3 flex-wrap"
+          style={{ borderColor: 'var(--eco-border)' }}
+        >
+          <h1
+            className="text-[28px]"
+            style={{ color: 'var(--eco-text)', letterSpacing: '-0.02em', fontWeight: 500 }}
+          >
             {t('dashboard')}
           </h1>
           <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
@@ -479,10 +566,10 @@ export function AdminDashboardPage() {
         </div>
 
         {loading && !kpis && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-10">
             {Array.from({ length: 5 }).map((_, i) => (
               <Card key={i} className="flex flex-col gap-3">
-                <div className="w-8 h-8 rounded-lg" style={{ background: 'var(--eco-surface)' }} />
+                <div className="w-9 h-9 rounded-xl" style={{ background: 'var(--eco-surface)' }} />
                 <div className="h-6 rounded" style={{ background: 'var(--eco-surface)' }} />
                 <div className="h-3 rounded" style={{ background: 'var(--eco-surface)' }} />
               </Card>
@@ -491,7 +578,7 @@ export function AdminDashboardPage() {
         )}
 
         {error && !loading && (
-          <Card className="flex flex-col gap-3 mb-6">
+          <Card className="flex flex-col gap-3 mb-10">
             <div className="text-[14px]" style={{ color: 'var(--eco-negative)' }}>
               {t('loadFailedTitle')}
             </div>
@@ -508,23 +595,30 @@ export function AdminDashboardPage() {
 
         {kpis && (
           <>
-            {kpiSections.map((section, idx) => (
-              <section key={section.titleKey} className={idx === 0 ? 'mb-8' : 'mb-8'}>
-                <h2
-                  className="text-[14px] uppercase tracking-wide mb-3"
-                  style={{ color: 'var(--eco-text-tertiary)' }}
-                >
-                  {t(section.titleKey)}
-                </h2>
+            {kpiSections.map((section) => (
+              <section key={section.titleKey} className="mb-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <h2
+                    className="text-[11px] uppercase"
+                    style={{
+                      color: 'var(--eco-text-tertiary)',
+                      letterSpacing: '0.14em',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t(section.titleKey)}
+                  </h2>
+                  <div className="h-px flex-1" style={{ background: 'var(--eco-border)' }} />
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                   {section.cards.map(renderKpiCard)}
                 </div>
               </section>
             ))}
 
-            <Card className="flex flex-col gap-4">
+            <Card className={`flex flex-col gap-4 ${PANEL_CARD_CLASS}`}>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+                <div className="text-[15px]" style={PANEL_TITLE_STYLE}>
                   {t('dashboardChartTitle')}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -572,49 +666,96 @@ export function AdminDashboardPage() {
               ) : (
                 <div style={{ width: '100%', height: 280 }}>
                   <ResponsiveContainer>
-                    <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                      <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                    <AreaChart
+                      data={chartData}
+                      margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="eco-grad-signups" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="0%"
+                            style={{ stopColor: 'var(--eco-primary)', stopOpacity: 0.28 }}
+                          />
+                          <stop
+                            offset="100%"
+                            style={{ stopColor: 'var(--eco-primary)', stopOpacity: 0 }}
+                          />
+                        </linearGradient>
+                        <linearGradient id="eco-grad-logins" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="0%"
+                            style={{ stopColor: 'var(--eco-warning-500)', stopOpacity: 0.24 }}
+                          />
+                          <stop
+                            offset="100%"
+                            style={{ stopColor: 'var(--eco-warning-500)', stopOpacity: 0 }}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        stroke="var(--eco-border)"
+                        strokeDasharray="2 4"
+                        strokeOpacity={0.6}
+                        vertical={false}
+                      />
                       <XAxis
                         dataKey="period"
-                        tick={{ fill: 'var(--eco-text-tertiary)', fontSize: 12 }}
+                        tick={CHART_TICK_STYLE}
+                        axisLine={false}
+                        tickLine={false}
                       />
                       <YAxis
                         allowDecimals={false}
-                        tick={{ fill: 'var(--eco-text-tertiary)', fontSize: 12 }}
+                        tick={CHART_TICK_STYLE}
+                        axisLine={false}
+                        tickLine={false}
                       />
                       <Tooltip
-                        contentStyle={{
-                          background: 'var(--eco-bg)',
-                          border: '1px solid var(--eco-border)',
-                          borderRadius: 8,
-                          fontSize: 12,
-                          color: 'var(--eco-text)',
-                        }}
+                        contentStyle={CHART_TOOLTIP_STYLE}
+                        cursor={CHART_HOVER_LINE}
                       />
-                      <Legend wrapperStyle={{ fontSize: 12 }} />
-                      <Line
+                      <Legend
+                        wrapperStyle={CHART_LEGEND_STYLE}
+                        iconType="circle"
+                        iconSize={8}
+                      />
+                      <Area
                         type="monotone"
                         dataKey={t('dashboardSignups')}
                         stroke="var(--eco-primary)"
                         strokeWidth={2}
+                        fill="url(#eco-grad-signups)"
+                        fillOpacity={1}
                         dot={false}
+                        activeDot={{
+                          r: 4,
+                          strokeWidth: 2,
+                          stroke: 'var(--eco-surface-raised)',
+                        }}
                       />
-                      <Line
+                      <Area
                         type="monotone"
                         dataKey={t('dashboardLogins')}
                         stroke="var(--eco-warning-500)"
                         strokeWidth={2}
+                        fill="url(#eco-grad-logins)"
+                        fillOpacity={1}
                         dot={false}
+                        activeDot={{
+                          r: 4,
+                          strokeWidth: 2,
+                          stroke: 'var(--eco-surface-raised)',
+                        }}
                       />
-                    </LineChart>
+                    </AreaChart>
                   </ResponsiveContainer>
                 </div>
               )}
             </Card>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
-              <Card className="flex flex-col gap-3">
-                <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+              <Card className={`flex flex-col gap-3 ${PANEL_CARD_CLASS}`}>
+                <div className="text-[15px]" style={PANEL_TITLE_STYLE}>
                   {t('dashboardChartTrafficTitle')}
                 </div>
                 {metricsLoading && !metrics ? (
@@ -622,51 +763,85 @@ export function AdminDashboardPage() {
                 ) : (
                   <div style={{ width: '100%', height: 240 }}>
                     <ResponsiveContainer>
-                      <LineChart
+                      <AreaChart
                         data={trafficChartData}
                         margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
                       >
-                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                        <defs>
+                          <linearGradient id="eco-grad-traffic-a" x1="0" y1="0" x2="0" y2="1">
+                            <stop
+                              offset="0%"
+                              style={{ stopColor: 'var(--eco-primary)', stopOpacity: 0.28 }}
+                            />
+                            <stop
+                              offset="100%"
+                              style={{ stopColor: 'var(--eco-primary)', stopOpacity: 0 }}
+                            />
+                          </linearGradient>
+                          <linearGradient id="eco-grad-traffic-b" x1="0" y1="0" x2="0" y2="1">
+                            <stop
+                              offset="0%"
+                              style={{ stopColor: 'var(--eco-warning-500)', stopOpacity: 0.24 }}
+                            />
+                            <stop
+                              offset="100%"
+                              style={{ stopColor: 'var(--eco-warning-500)', stopOpacity: 0 }}
+                            />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          stroke="var(--eco-border)"
+                          strokeDasharray="2 4"
+                          strokeOpacity={0.6}
+                          vertical={false}
+                        />
                         <XAxis
                           dataKey="period"
-                          tick={{ fill: 'var(--eco-text-tertiary)', fontSize: 12 }}
+                          tick={CHART_TICK_STYLE}
+                          axisLine={false}
+                          tickLine={false}
                         />
                         <YAxis
                           allowDecimals={false}
-                          tick={{ fill: 'var(--eco-text-tertiary)', fontSize: 12 }}
+                          tick={CHART_TICK_STYLE}
+                          axisLine={false}
+                          tickLine={false}
                         />
                         <Tooltip
-                          contentStyle={{
-                            background: 'var(--eco-bg)',
-                            border: '1px solid var(--eco-border)',
-                            borderRadius: 8,
-                            fontSize: 12,
-                            color: 'var(--eco-text)',
-                          }}
+                          contentStyle={CHART_TOOLTIP_STYLE}
+                          cursor={CHART_HOVER_LINE}
                         />
-                        <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Line
+                        <Legend
+                          wrapperStyle={CHART_LEGEND_STYLE}
+                          iconType="circle"
+                          iconSize={8}
+                        />
+                        <Area
                           type="monotone"
                           dataKey={t('dashboardMetricUniqueVisitors')}
                           stroke="var(--eco-primary)"
                           strokeWidth={2}
+                          fill="url(#eco-grad-traffic-a)"
+                          fillOpacity={1}
                           dot={false}
                         />
-                        <Line
+                        <Area
                           type="monotone"
                           dataKey={t('dashboardMetricPageViews')}
                           stroke="var(--eco-warning-500)"
                           strokeWidth={2}
+                          fill="url(#eco-grad-traffic-b)"
+                          fillOpacity={1}
                           dot={false}
                         />
-                      </LineChart>
+                      </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 )}
               </Card>
 
-              <Card className="flex flex-col gap-3">
-                <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+              <Card className={`flex flex-col gap-3 ${PANEL_CARD_CLASS}`}>
+                <div className="text-[15px]" style={PANEL_TITLE_STYLE}>
                   {t('dashboardChartNewRoomsTitle')}
                 </div>
                 {metricsLoading && !metrics ? (
@@ -674,44 +849,66 @@ export function AdminDashboardPage() {
                 ) : (
                   <div style={{ width: '100%', height: 240 }}>
                     <ResponsiveContainer>
-                      <LineChart
+                      <AreaChart
                         data={newRoomsChartData}
                         margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
                       >
-                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                        <defs>
+                          <linearGradient id="eco-grad-newrooms" x1="0" y1="0" x2="0" y2="1">
+                            <stop
+                              offset="0%"
+                              style={{ stopColor: 'var(--eco-positive)', stopOpacity: 0.3 }}
+                            />
+                            <stop
+                              offset="100%"
+                              style={{ stopColor: 'var(--eco-positive)', stopOpacity: 0 }}
+                            />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          stroke="var(--eco-border)"
+                          strokeDasharray="2 4"
+                          strokeOpacity={0.6}
+                          vertical={false}
+                        />
                         <XAxis
                           dataKey="period"
-                          tick={{ fill: 'var(--eco-text-tertiary)', fontSize: 12 }}
+                          tick={CHART_TICK_STYLE}
+                          axisLine={false}
+                          tickLine={false}
                         />
                         <YAxis
                           allowDecimals={false}
-                          tick={{ fill: 'var(--eco-text-tertiary)', fontSize: 12 }}
+                          tick={CHART_TICK_STYLE}
+                          axisLine={false}
+                          tickLine={false}
                         />
                         <Tooltip
-                          contentStyle={{
-                            background: 'var(--eco-bg)',
-                            border: '1px solid var(--eco-border)',
-                            borderRadius: 8,
-                            fontSize: 12,
-                            color: 'var(--eco-text)',
-                          }}
+                          contentStyle={CHART_TOOLTIP_STYLE}
+                          cursor={CHART_HOVER_LINE}
                         />
-                        <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Line
+                        <Legend
+                          wrapperStyle={CHART_LEGEND_STYLE}
+                          iconType="circle"
+                          iconSize={8}
+                        />
+                        <Area
                           type="monotone"
                           dataKey={t('dashboardMetricNewRooms')}
                           stroke="var(--eco-positive)"
                           strokeWidth={2}
+                          fill="url(#eco-grad-newrooms)"
+                          fillOpacity={1}
                           dot={false}
                         />
-                      </LineChart>
+                      </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 )}
               </Card>
 
-              <Card className="flex flex-col gap-3 xl:col-span-2">
-                <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+              <Card className={`flex flex-col gap-3 xl:col-span-2 ${PANEL_CARD_CLASS}`}>
+                <div className="text-[15px]" style={PANEL_TITLE_STYLE}>
                   {t('dashboardChartRevenueTitle')}
                 </div>
                 {metricsLoading && !metrics ? (
@@ -719,47 +916,77 @@ export function AdminDashboardPage() {
                 ) : (
                   <div style={{ width: '100%', height: 240 }}>
                     <ResponsiveContainer>
-                      <LineChart
+                      <AreaChart
                         data={revenueChartData}
                         margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
                       >
-                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                        <defs>
+                          <linearGradient id="eco-grad-revenue" x1="0" y1="0" x2="0" y2="1">
+                            <stop
+                              offset="0%"
+                              style={{ stopColor: 'var(--eco-brand-600)', stopOpacity: 0.32 }}
+                            />
+                            <stop
+                              offset="100%"
+                              style={{ stopColor: 'var(--eco-brand-600)', stopOpacity: 0 }}
+                            />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          stroke="var(--eco-border)"
+                          strokeDasharray="2 4"
+                          strokeOpacity={0.6}
+                          vertical={false}
+                        />
                         <XAxis
                           dataKey="period"
-                          tick={{ fill: 'var(--eco-text-tertiary)', fontSize: 12 }}
+                          tick={CHART_TICK_STYLE}
+                          axisLine={false}
+                          tickLine={false}
                         />
-                        <YAxis tick={{ fill: 'var(--eco-text-tertiary)', fontSize: 12 }} />
+                        <YAxis tick={CHART_TICK_STYLE} axisLine={false} tickLine={false} />
                         <Tooltip
-                          contentStyle={{
-                            background: 'var(--eco-bg)',
-                            border: '1px solid var(--eco-border)',
-                            borderRadius: 8,
-                            fontSize: 12,
-                            color: 'var(--eco-text)',
-                          }}
+                          contentStyle={CHART_TOOLTIP_STYLE}
+                          cursor={CHART_HOVER_LINE}
                           formatter={(v: number | string) => formatMoney(v)}
                         />
-                        <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Line
+                        <Legend
+                          wrapperStyle={CHART_LEGEND_STYLE}
+                          iconType="circle"
+                          iconSize={8}
+                        />
+                        <Area
                           type="monotone"
                           dataKey={t('dashboardMetricRevenue')}
                           stroke="var(--eco-brand-600)"
                           strokeWidth={2}
+                          fill="url(#eco-grad-revenue)"
+                          fillOpacity={1}
                           dot={false}
                         />
-                      </LineChart>
+                      </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 )}
               </Card>
             </div>
 
-            <div className="mt-10 mb-4 flex items-center justify-between gap-2 flex-wrap">
+            <div
+              className="mt-14 pb-4 mb-6 border-b flex items-end justify-between gap-3 flex-wrap"
+              style={{ borderColor: 'var(--eco-border)' }}
+            >
               <div>
-                <h2 className="text-[18px]" style={{ color: 'var(--eco-text)' }}>
+                <h2
+                  className="text-[18px]"
+                  style={{
+                    color: 'var(--eco-text)',
+                    fontWeight: 500,
+                    letterSpacing: '-0.015em',
+                  }}
+                >
                   {t('dashboardSectionAudience')}
                 </h2>
-                <p className="text-[12px] mt-0.5" style={{ color: 'var(--eco-text-tertiary)' }}>
+                <p className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
                   {t('dashboardSectionAudienceHint')}
                 </p>
               </div>
@@ -798,28 +1025,47 @@ export function AdminDashboardPage() {
                     layout="vertical"
                     margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
                   >
-                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                    <CartesianGrid
+                      stroke="var(--eco-border)"
+                      strokeDasharray="2 4"
+                      strokeOpacity={0.6}
+                      horizontal={false}
+                    />
                     <XAxis
                       type="number"
                       allowDecimals={false}
                       tick={CHART_TICK_STYLE}
                       tickFormatter={formatCount}
+                      axisLine={false}
+                      tickLine={false}
                     />
-                    <YAxis type="category" dataKey="name" width={150} tick={CHART_TICK_STYLE} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={150}
+                      tick={CHART_TICK_STYLE}
+                      axisLine={false}
+                      tickLine={false}
+                    />
                     <Tooltip
                       contentStyle={CHART_TOOLTIP_STYLE}
+                      cursor={CHART_HOVER_FILL}
                       formatter={(v: number | string) => formatCount(Number(v))}
                     />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Legend
+                      wrapperStyle={CHART_LEGEND_STYLE}
+                      iconType="circle"
+                      iconSize={8}
+                    />
                     <Bar
                       dataKey={t('dashboardMetricRooms')}
                       fill={CHART_PALETTE[0]}
-                      radius={[0, 4, 4, 0]}
+                      radius={[0, 6, 6, 0]}
                     />
                     <Bar
                       dataKey={t('dashboardMetricActiveMembers')}
                       fill={CHART_PALETTE[1]}
-                      radius={[0, 4, 4, 0]}
+                      radius={[0, 6, 6, 0]}
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -841,7 +1087,12 @@ export function AdminDashboardPage() {
                     data={operatorChartData}
                     margin={{ top: 8, right: 12, left: 0, bottom: 40 }}
                   >
-                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                    <CartesianGrid
+                      stroke="var(--eco-border)"
+                      strokeDasharray="2 4"
+                      strokeOpacity={0.6}
+                      vertical={false}
+                    />
                     <XAxis
                       dataKey="name"
                       tick={{ ...CHART_TICK_STYLE, fontSize: 11 }}
@@ -849,17 +1100,22 @@ export function AdminDashboardPage() {
                       angle={-25}
                       textAnchor="end"
                       height={50}
+                      axisLine={false}
+                      tickLine={false}
                     />
                     <YAxis
                       allowDecimals={false}
                       tick={CHART_TICK_STYLE}
                       tickFormatter={formatCount}
+                      axisLine={false}
+                      tickLine={false}
                     />
                     <Tooltip
                       contentStyle={CHART_TOOLTIP_STYLE}
+                      cursor={CHART_HOVER_FILL}
                       formatter={(v: number | string) => formatCount(Number(v))}
                     />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={CHART_PALETTE[0]} />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]} fill={CHART_PALETTE[0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartShell>
@@ -881,18 +1137,25 @@ export function AdminDashboardPage() {
                       contentStyle={CHART_TOOLTIP_STYLE}
                       formatter={(v: number | string) => formatCount(Number(v))}
                     />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Legend
+                      wrapperStyle={CHART_LEGEND_STYLE}
+                      iconType="circle"
+                      iconSize={8}
+                    />
                     <Pie
                       data={currencyChartData}
                       dataKey="value"
                       nameKey="name"
                       outerRadius={90}
                       label={pieLabel}
-                      stroke="var(--eco-bg)"
+                      stroke="var(--eco-surface-raised)"
                       strokeWidth={2}
                     >
                       {currencyChartData.map((entry, idx) => (
-                        <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
+                        <Cell
+                          key={entry.name}
+                          fill={CHART_PALETTE[idx % CHART_PALETTE.length]}
+                        />
                       ))}
                     </Pie>
                   </PieChart>
@@ -915,7 +1178,12 @@ export function AdminDashboardPage() {
                     data={categoryChartData}
                     margin={{ top: 8, right: 12, left: 0, bottom: 40 }}
                   >
-                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                    <CartesianGrid
+                      stroke="var(--eco-border)"
+                      strokeDasharray="2 4"
+                      strokeOpacity={0.6}
+                      vertical={false}
+                    />
                     <XAxis
                       dataKey="name"
                       tick={{ ...CHART_TICK_STYLE, fontSize: 11 }}
@@ -923,17 +1191,22 @@ export function AdminDashboardPage() {
                       angle={-25}
                       textAnchor="end"
                       height={50}
+                      axisLine={false}
+                      tickLine={false}
                     />
                     <YAxis
                       allowDecimals={false}
                       tick={CHART_TICK_STYLE}
                       tickFormatter={formatCount}
+                      axisLine={false}
+                      tickLine={false}
                     />
                     <Tooltip
                       contentStyle={CHART_TOOLTIP_STYLE}
+                      cursor={CHART_HOVER_FILL}
                       formatter={(v: number | string) => formatCount(Number(v))}
                     />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={CHART_PALETTE[1]} />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]} fill={CHART_PALETTE[1]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartShell>
@@ -955,18 +1228,25 @@ export function AdminDashboardPage() {
                       contentStyle={CHART_TOOLTIP_STYLE}
                       formatter={(v: number | string) => formatCount(Number(v))}
                     />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Legend
+                      wrapperStyle={CHART_LEGEND_STYLE}
+                      iconType="circle"
+                      iconSize={8}
+                    />
                     <Pie
                       data={roomStatusChartData}
                       dataKey="value"
                       nameKey="name"
                       outerRadius={90}
                       label={pieLabel}
-                      stroke="var(--eco-bg)"
+                      stroke="var(--eco-surface-raised)"
                       strokeWidth={2}
                     >
                       {roomStatusChartData.map((entry, idx) => (
-                        <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
+                        <Cell
+                          key={entry.name}
+                          fill={CHART_PALETTE[idx % CHART_PALETTE.length]}
+                        />
                       ))}
                     </Pie>
                   </PieChart>
@@ -991,19 +1271,34 @@ export function AdminDashboardPage() {
                     layout="vertical"
                     margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
                   >
-                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
+                    <CartesianGrid
+                      stroke="var(--eco-border)"
+                      strokeDasharray="2 4"
+                      strokeOpacity={0.6}
+                      horizontal={false}
+                    />
                     <XAxis
                       type="number"
                       allowDecimals={false}
                       tick={CHART_TICK_STYLE}
                       tickFormatter={formatCount}
+                      axisLine={false}
+                      tickLine={false}
                     />
-                    <YAxis type="category" dataKey="name" width={150} tick={CHART_TICK_STYLE} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={150}
+                      tick={CHART_TICK_STYLE}
+                      axisLine={false}
+                      tickLine={false}
+                    />
                     <Tooltip
                       contentStyle={CHART_TOOLTIP_STYLE}
+                      cursor={CHART_HOVER_FILL}
                       formatter={(v: number | string) => formatCount(Number(v))}
                     />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]} fill={CHART_PALETTE[0]} />
+                    <Bar dataKey="value" radius={[0, 6, 6, 0]} fill={CHART_PALETTE[0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartShell>
@@ -1016,15 +1311,25 @@ export function AdminDashboardPage() {
 }
 
 const CHART_TOOLTIP_STYLE: CSSProperties = {
-  background: 'var(--eco-bg)',
+  background: 'var(--eco-surface-raised)',
   border: '1px solid var(--eco-border)',
-  borderRadius: 8,
+  borderRadius: 12,
   fontSize: 12,
   color: 'var(--eco-text)',
-  boxShadow: '0 6px 16px rgba(0,0,0,0.06)',
+  boxShadow: '0 12px 32px -12px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.04)',
+  padding: '10px 12px',
 };
 
+const CHART_LEGEND_STYLE: CSSProperties = { fontSize: 12, paddingTop: 8 };
+
 const CHART_TICK_STYLE = { fill: 'var(--eco-text-tertiary)', fontSize: 12 } as const;
+
+const CHART_HOVER_LINE = {
+  stroke: 'var(--eco-border-strong)',
+  strokeDasharray: '2 4',
+} as const;
+
+const CHART_HOVER_FILL = { fill: 'var(--eco-neutral-100)', opacity: 0.5 } as const;
 
 // Branded palette derived entirely from --eco-* tokens so every chart shares
 // the same visual language as the rest of the admin UI (KPI cards, badges,
@@ -1084,16 +1389,16 @@ function ChartShell({
   children: ReactNode;
 }) {
   return (
-    <Card className={`flex flex-col gap-3 ${className ?? ''}`}>
+    <Card className={`flex flex-col gap-3 ${PANEL_CARD_CLASS} ${className ?? ''}`}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
+            className="w-8 h-8 rounded-xl flex items-center justify-center"
             style={{ background: 'var(--eco-brand-50)' }}
           >
             <Icon size={14} style={{ color: 'var(--eco-brand-600)' }} />
           </div>
-          <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+          <div className="text-[14px]" style={PANEL_TITLE_STYLE}>
             {title}
           </div>
         </div>

@@ -4209,6 +4209,47 @@ const translations: Translations = {
     kz: 'JS рендерингі керек',
     en: 'Requires JS rendering',
   },
+  adminPricingChanged: { ru: 'Изменено', kz: 'Өзгертілді', en: 'Changed' },
+  adminPricingOpenUrl: {
+    ru: 'Открыть страницу',
+    kz: 'Бетті ашу',
+    en: 'Open page',
+  },
+  adminPricingTestUrl: {
+    ru: 'Проверить ссылку',
+    kz: 'Сілтемені тексеру',
+    en: 'Test URL',
+  },
+  adminPricingTestHint: {
+    ru: 'Запустит парсер по текущим настройкам без сохранения — увидите цену до создания источника.',
+    kz: 'Ағымдағы параметрлер бойынша талдағышты сақтаусыз жібереді — көзді жасаудан бұрын бағаны көресіз.',
+    en: 'Runs the extractor with the current settings, without saving — see the price before creating the source.',
+  },
+  adminPricingTestRunning: {
+    ru: 'Проверка…',
+    kz: 'Тексеру…',
+    en: 'Testing…',
+  },
+  adminPricingTestResult: {
+    ru: 'Результат',
+    kz: 'Нәтиже',
+    en: 'Result',
+  },
+  adminPricingTestPrice: {
+    ru: 'Распознанная цена',
+    kz: 'Танылған баға',
+    en: 'Parsed price',
+  },
+  adminPricingTestNoPrice: {
+    ru: 'Цена не найдена',
+    kz: 'Баға табылмады',
+    en: 'No price found',
+  },
+  adminPricingTestError: {
+    ru: 'Ошибка проверки',
+    kz: 'Тексеру қатесі',
+    en: 'Test failed',
+  },
 };
 
 interface I18nContextType {

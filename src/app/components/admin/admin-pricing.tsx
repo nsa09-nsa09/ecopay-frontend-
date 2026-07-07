@@ -6,6 +6,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  ExternalLink,
   History,
   Minus,
   Pencil,
@@ -27,14 +28,18 @@ import {
   adminGetPricingHistory,
   adminListPricingChanges,
   adminListPricingProviders,
+  adminTestPricingExtraction,
   adminUpdatePricingProvider,
+  pricingProviderCurrency,
+  type CreatePricingProviderPayload,
   type PricingChangeDto,
+  type PricingExtractionConfig,
   type PricingExtractionType,
   type PricingProviderDto,
-  type PricingProviderStatus,
   type PricingSnapshotDto,
-  type PricingSnapshotOutcome,
-  type UpsertPricingProviderPayload,
+  type TestPricingExtractionRequest,
+  type TestPricingExtractionResponse,
+  type UpdatePricingProviderPayload,
 } from '../../lib/api';
 
 const CURRENCIES = ['KZT', 'USD', 'EUR', 'RUB', 'CNY', 'GBP', 'UZS', 'KGS'];
@@ -164,17 +169,18 @@ function formatRelative(iso: string | null, lang: Language): string {
   return pick(`${day} дн назад`, `${day} күн бұрын`, `${day}d ago`);
 }
 
-function formatPrice(price: number | null, currency: string, lang: Language): string {
+function formatPrice(price: number | null, currency: string | null, lang: Language): string {
   if (price == null) return '—';
+  const ccy = currency ?? 'KZT';
   try {
     const locale = lang === 'ru' ? 'ru-RU' : lang === 'kz' ? 'kk-KZ' : 'en-US';
     return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency,
+      currency: ccy,
       maximumFractionDigits: 2,
     }).format(price);
   } catch {
-    return `${price} ${currency}`;
+    return `${price} ${ccy}`;
   }
 }
 
@@ -338,23 +344,36 @@ export function AdminPricingPage() {
                 {providers.map((p) => (
                   <tr key={p.id} style={{ borderBottom: '1px solid var(--eco-border)' }}>
                     <Td>
-                      <div style={{ color: 'var(--eco-text)' }}>{p.platform}</div>
+                      <div style={{ color: 'var(--eco-text)' }}>{p.platformCode}</div>
                       <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                        {p.name}
+                        {p.displayName}
                       </div>
+                      {p.url && (
+                        <a
+                          href={p.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] inline-flex items-center gap-1 mt-0.5"
+                          style={{ color: 'var(--eco-primary)' }}
+                          title={p.url}
+                        >
+                          <ExternalLink size={10} />
+                          <span className="truncate max-w-[220px]">{t('adminPricingOpenUrl')}</span>
+                        </a>
+                      )}
                     </Td>
                     <Td>{p.planName}</Td>
                     <Td>
-                      <div className="flex items-center gap-1.5">
-                        <span style={{ color: 'var(--eco-text)' }}>
-                          {formatPrice(p.currentPrice, p.currency, language)}
-                        </span>
-                        <ChangeArrow current={p.currentPrice} previous={p.previousPrice} />
+                      <div style={{ color: 'var(--eco-text)' }}>
+                        {formatPrice(p.lastPrice, pricingProviderCurrency(p), language)}
                       </div>
-                      {p.previousPrice != null && (
-                        <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                          {t('adminPricingPrevious')}:{' '}
-                          {formatPrice(p.previousPrice, p.currency, language)}
+                      {p.lastChangedAt && (
+                        <div
+                          className="text-[11px]"
+                          style={{ color: 'var(--eco-text-tertiary)' }}
+                          title={formatDateTime(p.lastChangedAt, language)}
+                        >
+                          {t('adminPricingChanged')}: {formatRelative(p.lastChangedAt, language)}
                         </div>
                       )}
                     </Td>
@@ -435,7 +454,7 @@ export function AdminPricingPage() {
                 className="p-3 rounded-lg text-[12px]"
                 style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
               >
-                {deleting.platform} · {deleting.planName}
+                {deleting.platformCode} · {deleting.planName}
               </div>
             )}
             <Button
@@ -538,7 +557,7 @@ function RecentChangesBlock({
                 <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                   {formatPrice(c.oldPrice, c.currency, language)} →{' '}
                   {formatPrice(c.newPrice, c.currency, language)} ·{' '}
-                  {formatDateTime(c.detectedAt, language)}
+                  {formatDateTime(c.changedAt, language)}
                 </div>
               </div>
               <Button
@@ -571,101 +590,153 @@ function UpsertProviderModal({
   const { t, language } = useI18n();
   const { authorizedRequest } = useAuth();
 
-  const [platform, setPlatform] = useState('');
-  const [name, setName] = useState('');
+  const [platformCode, setPlatformCode] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [planName, setPlanName] = useState('');
   const [url, setUrl] = useState('');
-  const [extractionType, setExtractionType] = useState<PricingExtractionType>('AUTO');
+  const [extractorType, setExtractorType] = useState<PricingExtractionType>('AUTO');
   const [selector, setSelector] = useState('');
   const [regex, setRegex] = useState('');
   const [jsonPath, setJsonPath] = useState('');
-  const [currency, setCurrency] = useState('KZT');
+  const [expectedCurrency, setExpectedCurrency] = useState('KZT');
   const [interval, setInterval] = useState(60);
   const [active, setActive] = useState(true);
   const [requiresJs, setRequiresJs] = useState(false);
   const [manualPrice, setManualPrice] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<TestPricingExtractionResponse | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     if (existing) {
-      setPlatform(existing.platform);
-      setName(existing.name);
+      setPlatformCode(existing.platformCode);
+      setDisplayName(existing.displayName);
       setPlanName(existing.planName);
       setUrl(existing.url);
-      setExtractionType(
-        EXTRACTION_TYPES.includes(existing.extractionType) ? existing.extractionType : 'AUTO',
+      setExtractorType(
+        EXTRACTION_TYPES.includes(existing.extractorType) ? existing.extractorType : 'AUTO',
       );
-      setSelector(existing.extractionConfig?.selector ?? '');
-      setRegex(existing.extractionConfig?.regex ?? '');
-      setJsonPath(existing.extractionConfig?.jsonPath ?? '');
-      setCurrency(existing.currency);
+      setSelector(existing.extractorConfig?.selector ?? '');
+      setRegex(existing.extractorConfig?.regex ?? '');
+      setJsonPath(existing.extractorConfig?.jsonPath ?? '');
+      setExpectedCurrency(existing.expectedCurrency ?? existing.lastCurrency ?? 'KZT');
       setInterval(existing.checkIntervalMinutes);
       setActive(existing.active);
       setRequiresJs(existing.requiresJs);
-      setManualPrice(existing.currentPrice != null ? String(existing.currentPrice) : '');
+      setManualPrice(existing.lastPrice != null ? String(existing.lastPrice) : '');
     } else {
-      setPlatform('');
-      setName('');
+      setPlatformCode('');
+      setDisplayName('');
       setPlanName('');
       setUrl('');
-      setExtractionType('AUTO');
+      setExtractorType('AUTO');
       setSelector('');
       setRegex('');
       setJsonPath('');
-      setCurrency('KZT');
+      setExpectedCurrency('KZT');
       setInterval(60);
       setActive(true);
       setRequiresJs(false);
       setManualPrice('');
     }
     setError(null);
+    setTestResult(null);
+    setTestError(null);
   }, [open, existing]);
 
-  const showSelector = extractionType === 'CSS' || extractionType === 'META';
-  const showRegex = extractionType === 'REGEX';
-  const showJsonPath = extractionType === 'JSON_LD';
-  const showManual = extractionType === 'MANUAL';
+  const showSelector = extractorType === 'CSS' || extractorType === 'META';
+  const showRegex = extractorType === 'REGEX';
+  const showJsonPath = extractorType === 'JSON_LD';
+  const showManual = extractorType === 'MANUAL';
 
   const canSubmit =
-    platform.trim().length > 0 &&
+    platformCode.trim().length > 0 &&
     planName.trim().length > 0 &&
     url.trim().length > 0 &&
     interval > 0;
 
+  const canTest = url.trim().length > 0 && extractorType !== 'MANUAL';
+
+  const buildExtractorConfig = (): PricingExtractionConfig | null => {
+    if (showSelector || showRegex || showJsonPath) {
+      return {
+        selector: showSelector ? selector.trim() || null : null,
+        regex: showRegex ? regex.trim() || null : null,
+        jsonPath: showJsonPath ? jsonPath.trim() || null : null,
+      };
+    }
+    return null;
+  };
+
+  const runTest = async () => {
+    setTesting(true);
+    setTestError(null);
+    setTestResult(null);
+    const payload: TestPricingExtractionRequest = {
+      url: url.trim(),
+      extractorType,
+      extractorConfig: buildExtractorConfig(),
+      requiresJs,
+      expectedCurrency: expectedCurrency || null,
+    };
+    try {
+      const res = await authorizedRequest((token) => adminTestPricingExtraction(payload, token));
+      setTestResult(res);
+    } catch (err) {
+      setTestError(formatAdminApiError(err, t));
+    } finally {
+      setTesting(false);
+    }
+  };
+
   const submit = async () => {
     setSubmitting(true);
     setError(null);
-    const config =
-      showSelector || showRegex || showJsonPath
-        ? {
-            selector: showSelector ? selector.trim() || null : null,
-            regex: showRegex ? regex.trim() || null : null,
-            jsonPath: showJsonPath ? jsonPath.trim() || null : null,
-          }
-        : null;
-
-    const payload: UpsertPricingProviderPayload = {
-      platform: platform.trim(),
-      name: name.trim() || platform.trim(),
-      planName: planName.trim(),
-      url: url.trim(),
-      extractionType,
-      extractionConfig: config,
-      currency,
-      checkIntervalMinutes: interval,
-      active,
-      requiresJs,
-      manualPrice: showManual && manualPrice.trim() ? Number(manualPrice) : null,
-    };
+    const config = buildExtractorConfig();
+    const trimmedName = displayName.trim() || platformCode.trim();
+    const parsedManualPrice =
+      showManual && manualPrice.trim() ? Number(manualPrice) : null;
 
     try {
-      const saved = existing
-        ? await authorizedRequest((token) =>
-            adminUpdatePricingProvider(existing.id, payload, token),
-          )
-        : await authorizedRequest((token) => adminCreatePricingProvider(payload, token));
+      let saved: PricingProviderDto;
+      if (existing) {
+        const payload: UpdatePricingProviderPayload = {
+          platformCode: platformCode.trim(),
+          displayName: trimmedName,
+          planName: planName.trim(),
+          url: url.trim(),
+          expectedCurrency: expectedCurrency || null,
+          extractorType,
+          extractorConfig: config,
+          requiresJs,
+          checkIntervalMinutes: interval,
+          active,
+          manualPrice: parsedManualPrice,
+          manualCurrency: parsedManualPrice != null ? expectedCurrency || null : null,
+        };
+        saved = await authorizedRequest((token) =>
+          adminUpdatePricingProvider(existing.id, payload, token),
+        );
+      } else {
+        const payload: CreatePricingProviderPayload = {
+          platformCode: platformCode.trim(),
+          displayName: trimmedName,
+          planName: planName.trim(),
+          url: url.trim(),
+          expectedCurrency: expectedCurrency || null,
+          extractorType,
+          extractorConfig: config,
+          requiresJs,
+          checkIntervalMinutes: interval,
+          active,
+          initialPrice: parsedManualPrice,
+          initialCurrency: parsedManualPrice != null ? expectedCurrency || null : null,
+        };
+        saved = await authorizedRequest((token) => adminCreatePricingProvider(payload, token));
+      }
       onSaved(saved, existing ? 'update' : 'create');
     } catch (err) {
       setError(formatAdminApiError(err, t));
@@ -690,14 +761,14 @@ function UpsertProviderModal({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input
             label={t('adminPricingPlatform')}
-            value={platform}
-            onChange={(e) => setPlatform(e.target.value)}
+            value={platformCode}
+            onChange={(e) => setPlatformCode(e.target.value)}
             placeholder="Netflix"
           />
           <Input
             label={t('adminPricingName')}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Netflix RU"
           />
         </div>
@@ -710,8 +781,12 @@ function UpsertProviderModal({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Select
             label={t('adminPricingExtractionType')}
-            value={extractionType}
-            onChange={(e) => setExtractionType(e.target.value as PricingExtractionType)}
+            value={extractorType}
+            onChange={(e) => {
+              setExtractorType(e.target.value as PricingExtractionType);
+              setTestResult(null);
+              setTestError(null);
+            }}
             options={EXTRACTION_TYPES.map((v) => ({
               value: v,
               label: extractionLabelText(v, language),
@@ -719,8 +794,8 @@ function UpsertProviderModal({
           />
           <Select
             label={t('adminPricingCurrency')}
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
+            value={expectedCurrency}
+            onChange={(e) => setExpectedCurrency(e.target.value)}
             options={CURRENCIES.map((v) => ({ value: v, label: v }))}
           />
         </div>
@@ -790,6 +865,16 @@ function UpsertProviderModal({
             {t('adminPricingRequiresJs')}
           </label>
         </div>
+
+        <TestExtractionPanel
+          canTest={canTest}
+          testing={testing}
+          onTest={runTest}
+          result={testResult}
+          error={testError}
+          language={language}
+        />
+
         {error && (
           <div className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
             {error}
@@ -805,6 +890,86 @@ function UpsertProviderModal({
         </Button>
       </div>
     </Modal>
+  );
+}
+
+function TestExtractionPanel({
+  canTest,
+  testing,
+  onTest,
+  result,
+  error,
+  language,
+}: {
+  canTest: boolean;
+  testing: boolean;
+  onTest: () => void | Promise<void>;
+  result: TestPricingExtractionResponse | null;
+  error: string | null;
+  language: Language;
+}) {
+  const { t } = useI18n();
+  return (
+    <div
+      className="flex flex-col gap-2 p-3 rounded-lg"
+      style={{ background: 'var(--eco-surface)' }}
+    >
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex flex-col">
+          <span className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+            {t('adminPricingTestUrl')}
+          </span>
+          <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+            {t('adminPricingTestHint')}
+          </span>
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={testing}
+          disabled={!canTest}
+          onClick={() => void onTest()}
+        >
+          <RefreshCw size={12} /> {testing ? t('adminPricingTestRunning') : t('adminPricingTestUrl')}
+        </Button>
+      </div>
+      {error && (
+        <div className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
+          {error}
+        </div>
+      )}
+      {result && (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+              {t('adminPricingTestResult')}:
+            </span>
+            <Badge variant={outcomeVariant(result.outcome)}>
+              {outcomeLabelText(result.outcome, language)}
+            </Badge>
+            {result.httpStatus != null && (
+              <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                HTTP {result.httpStatus}
+              </span>
+            )}
+            {result.source && (
+              <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                · {result.source}
+              </span>
+            )}
+          </div>
+          {result.outcome === 'SUCCESS' && result.price != null ? (
+            <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+              {t('adminPricingTestPrice')}: {formatPrice(result.price, result.currency, language)}
+            </div>
+          ) : (
+            <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+              {result.message ?? t('adminPricingTestNoPrice')}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -858,7 +1023,7 @@ function HistoryDrawer({
     <Drawer
       open={provider !== null}
       onClose={onClose}
-      title={provider ? `${provider.platform} · ${provider.planName}` : ''}
+      title={provider ? `${provider.platformCode} · ${provider.planName}` : ''}
     >
       {loading && (
         <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
