@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { Card, Button, RoomStatusBadge } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n } from '../i18n-provider';
 import { useAuth } from '../auth/auth-provider';
-import { blockRoomRequest, getAdminRoomsRequest, type RoomSummaryDto } from '../../lib/api';
-import { ShieldX, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  blockRoomRequest,
+  unblockRoomRequest,
+  getAdminRoomsRequest,
+  type RoomSummaryDto,
+} from '../../lib/api';
+import { ShieldX, ShieldCheck, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
 
 const PAGE_SIZE = 20;
@@ -34,6 +39,9 @@ export function AdminRoomsPage() {
   const [blockModal, setBlockModal] = useState<RoomSummaryDto | null>(null);
   const [blockSubmitting, setBlockSubmitting] = useState(false);
   const [blockError, setBlockError] = useState<string | null>(null);
+  const [unblockModal, setUnblockModal] = useState<RoomSummaryDto | null>(null);
+  const [unblockSubmitting, setUnblockSubmitting] = useState(false);
+  const [unblockError, setUnblockError] = useState<string | null>(null);
   const { flash, show: showFlash } = useFlash();
 
   const load = useCallback(async () => {
@@ -82,6 +90,29 @@ export function AdminRoomsPage() {
       setBlockError(formatAdminApiError(err, t));
     } finally {
       setBlockSubmitting(false);
+    }
+  };
+
+  const closeUnblockModal = () => {
+    setUnblockModal(null);
+    setUnblockError(null);
+  };
+
+  const submitUnblock = async (reason: string) => {
+    if (!unblockModal) return;
+    setUnblockSubmitting(true);
+    setUnblockError(null);
+    try {
+      await authorizedRequest((token) => unblockRoomRequest(unblockModal.id, reason, token));
+      setItems((prev) =>
+        prev.map((r) => (r.id === unblockModal.id ? { ...r, status: 'ACTIVE' } : r)),
+      );
+      showFlash('success', t('actionCompletedAndLogged'));
+      closeUnblockModal();
+    } catch (err) {
+      setUnblockError(formatAdminApiError(err, t));
+    } finally {
+      setUnblockSubmitting(false);
     }
   };
 
@@ -225,10 +256,6 @@ export function AdminRoomsPage() {
                         label: t('totalCost'),
                         value: `₸${(selected.priceTotal ?? 0).toLocaleString()}`,
                       },
-                      {
-                        label: t('owner'),
-                        value: selected.ownerDisplayName ?? `#${selected.ownerUserId}`,
-                      },
                     ].map((s) => (
                       <div key={s.label}>
                         <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
@@ -237,6 +264,23 @@ export function AdminRoomsPage() {
                         <div style={{ color: 'var(--eco-text)' }}>{s.value}</div>
                       </div>
                     ))}
+                    <div>
+                      <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                        {t('owner')}
+                      </div>
+                      <div style={{ color: 'var(--eco-text)' }}>
+                        {selected.ownerUserId ? (
+                          <Link
+                            to={`/admin/users?selected=${selected.ownerUserId}`}
+                            style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+                          >
+                            {selected.ownerDisplayName ?? `#${selected.ownerUserId}`}
+                          </Link>
+                        ) : (
+                          (selected.ownerDisplayName ?? `#${selected.ownerUserId}`)
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex gap-2 pt-2">
@@ -247,6 +291,15 @@ export function AdminRoomsPage() {
                         onClick={() => setBlockModal(selected)}
                       >
                         <ShieldX size={13} /> {t('blockRoom')}
+                      </Button>
+                    )}
+                    {selected.status === 'BLOCKED' && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setUnblockModal(selected)}
+                      >
+                        <ShieldCheck size={13} /> {t('unblockRoom')}
                       </Button>
                     )}
                   </div>
@@ -267,6 +320,18 @@ export function AdminRoomsPage() {
           submitting={blockSubmitting}
           errorMessage={blockError}
           onConfirm={submitBlock}
+        />
+
+        <ConfirmActionModal
+          open={!!unblockModal}
+          onClose={closeUnblockModal}
+          title={unblockModal ? t('unblockRoom') : ''}
+          description={t('unblockRoomConfirm')}
+          subjectLabel={unblockModal ? `R-${unblockModal.id} — ${unblockModal.title}` : null}
+          submitLabel={t('unblockRoom')}
+          submitting={unblockSubmitting}
+          errorMessage={unblockError}
+          onConfirm={submitUnblock}
         />
       </div>
     </AdminLayout>

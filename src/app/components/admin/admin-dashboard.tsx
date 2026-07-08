@@ -10,6 +10,7 @@ import { Card, Button, Select, Skeleton } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n } from '../i18n-provider';
 import { useAuth } from '../auth/auth-provider';
+import { Link } from 'react-router';
 import {
   type DashboardGranularity,
   type NamedCountDto,
@@ -79,6 +80,12 @@ interface KpiCardConfig {
   icon: typeof ShieldCheck;
   variant: 'warning' | 'danger' | 'info' | 'success';
   sparklineKey?: KpiSparklineKey;
+  /**
+   * When set, the card renders inside a <Link>, letting the operator drill
+   * into a detail page (e.g. /admin/finance?tab=refunds). The card visual
+   * stays identical — hover-lift comes from KPI_CARD_CLASS.
+   */
+  linkTo?: string;
 }
 
 function formatCount(value: number | null | undefined): string {
@@ -330,24 +337,28 @@ export function AdminDashboardPage() {
             icon: TrendingUp,
             variant: 'success',
             sparklineKey: 'revenue',
+            linkTo: '/admin/finance?tab=revenue',
           },
           {
             key: 'totalRefundsLabel',
             value: formatMoney(kpis.totalRefunds),
             icon: Undo2,
             variant: 'warning',
+            linkTo: '/admin/finance?tab=refunds',
           },
           {
             key: 'kpiActiveSubsValue',
             value: formatMoney(kpis.totalActiveSubscriptionsValueKzt ?? null),
             icon: Wallet,
             variant: 'success',
+            linkTo: '/admin/finance?tab=subscriptions',
           },
           {
             key: 'kpiRefundRate',
             value: formatPercent(kpis.refundRatePercent ?? null),
             icon: Percent,
             variant: 'warning',
+            linkTo: '/admin/finance?tab=refunds',
           },
         ],
       },
@@ -490,8 +501,10 @@ export function AdminDashboardPage() {
     const spark = k.sparklineKey ? kpiSparklineData(k.sparklineKey) : null;
     const gradientId = `eco-kpi-spark-${k.key}`;
 
-    return (
-      <Card key={k.key} className={KPI_CARD_CLASS}>
+    const card = (
+      <Card
+        className={`${KPI_CARD_CLASS}${k.linkTo ? ' cursor-pointer' : ''}`}
+      >
         <div className="flex items-start justify-between gap-3">
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center"
@@ -545,6 +558,21 @@ export function AdminDashboardPage() {
         )}
       </Card>
     );
+
+    if (k.linkTo) {
+      return (
+        <Link
+          key={k.key}
+          to={k.linkTo}
+          style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+        >
+          {card}
+        </Link>
+      );
+    }
+
+    // Card carries its own key; React needs it here too when linkTo is absent.
+    return <div key={k.key}>{card}</div>;
   };
 
   return (

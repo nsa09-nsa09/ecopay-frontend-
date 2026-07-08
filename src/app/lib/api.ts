@@ -1186,7 +1186,15 @@ export function adminGlobalSearchRequest(
 
 export function getAdminUsersRequest(
   accessToken: string,
-  params: Record<string, string | number | undefined> = {},
+  params: {
+    page?: number;
+    size?: number;
+    search?: string;
+    status?: string;
+    role?: 'USER' | 'SUPPORT' | 'ADMIN';
+    sort?: string;
+    direction?: string;
+  } & Record<string, string | number | undefined> = {},
 ) {
   return requestJson<PagedResponse<AdminUserDto>>(
     `/admin/users${toSearchParams(params)}`,
@@ -1284,6 +1292,17 @@ export function getAdminRoomsRequest(
 export function blockRoomRequest(roomId: number, reason: string, accessToken: string) {
   return requestJson<void>(
     `/admin/moderation/rooms/${roomId}/block`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ reason }),
+    },
+    accessToken,
+  );
+}
+
+export function unblockRoomRequest(roomId: number, reason: string, accessToken: string) {
+  return requestJson<void>(
+    `/admin/moderation/rooms/${roomId}/unblock`,
     {
       method: 'PATCH',
       body: JSON.stringify({ reason }),
@@ -1508,12 +1527,89 @@ export function markRefundFailRequest(
   );
 }
 
+// ---- Admin Finance drill-down (backs /admin/finance) ----
+
+// Row-level payment transaction as returned by GET /admin/finance/transactions.
+// Aggregates the "who paid, how much, for which room" fields that the operator
+// needs to answer a support ticket without opening the DB.
+export interface FinanceTransactionDto {
+  id: number;
+  createdAt: string;
+  type: string;
+  status: string;
+  amount: number | string;
+  currency: string | null;
+  roomId: number | null;
+  roomTitle: string | null;
+  ownerUserId: number | null;
+  ownerDisplayName: string | null;
+  payerUserId: number | null;
+  payerDisplayName: string | null;
+  providerName: string | null;
+  cardPanMask: string | null;
+  reason: string | null;
+  failureMessage: string | null;
+}
+
+export interface FinanceRefundDto {
+  id: number;
+  createdAt: string;
+  status: string;
+  amount: number | string;
+  currency: string | null;
+  reason: string | null;
+  adminUserId: number | null;
+  adminDisplayName: string | null;
+  paymentTransactionId: number | null;
+  roomId: number | null;
+  roomTitle: string | null;
+  memberUserId: number | null;
+  memberDisplayName: string | null;
+  disputeId: number | null;
+}
+
+export function getAdminFinanceTransactionsRequest(
+  accessToken: string,
+  params: {
+    type?: string;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    size?: number;
+  } = {},
+) {
+  return requestJson<PagedResponse<FinanceTransactionDto>>(
+    `/admin/finance/transactions${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function getAdminFinanceRefundsRequest(
+  accessToken: string,
+  params: {
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    size?: number;
+  } = {},
+) {
+  return requestJson<PagedResponse<FinanceRefundDto>>(
+    `/admin/finance/refunds${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
 // ---- Logs ----
 
 export interface AdminActionLogDto {
   id: number;
   eventId: string;
   adminUserId: number;
+  adminDisplayName: string | null;
   actionType: string;
   entityType: string;
   entityId: number;
@@ -1527,8 +1623,11 @@ export interface RoomEventLogDto {
   id: number;
   eventId: string;
   actorUserId: number | null;
+  actorDisplayName: string | null;
   actorRole: string | null;
   roomId: number;
+  roomOwnerUserId: number | null;
+  roomOwnerDisplayName: string | null;
   roomMemberId: number | null;
   eventType: string;
   oldState: unknown;

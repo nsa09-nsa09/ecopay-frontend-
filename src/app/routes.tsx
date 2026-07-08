@@ -23,6 +23,7 @@ import { PrivacyPage } from './components/static/privacy';
 import { HowItWorksPage } from './components/static/how-it-works';
 import { AdminLoginPage } from './components/admin/admin-login';
 import { AdminDashboardPage } from './components/admin/admin-dashboard';
+import { AdminFinancePage } from './components/admin/admin-finance';
 import { AdminModerationPage } from './components/admin/admin-moderation';
 import { AdminRoomsPage } from './components/admin/admin-rooms';
 import { AdminUsersPage } from './components/admin/admin-users';
@@ -160,6 +161,7 @@ export const router = createBrowserRouter([
       { path: 'feedback', Component: AdminFeedbackPage },
       { path: 'disputes', Component: AdminDisputesPage },
       { path: 'refunds', Component: AdminDisputesPage },
+      { path: 'finance', Component: AdminFinancePage },
       { path: 'logs', Component: AdminLogsPage },
       { path: 'catalog', Component: AdminCatalogPage },
       { path: 'pricing', Component: AdminPricingPage },

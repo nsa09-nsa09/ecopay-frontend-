@@ -2528,6 +2528,15 @@ const translations: Translations = {
   colAmount: { ru: 'Сумма', kz: 'Сома', en: 'Amount' },
   colStatus: { ru: 'Статус', kz: 'Мәртебе', en: 'Status' },
   colDispute: { ru: 'Спор', kz: 'Дау', en: 'Dispute' },
+
+  // ===== Admin: identity in logs + users segmentation =====
+  logsAdminLabel: { ru: 'Админ', kz: 'Әкімші', en: 'Admin' },
+  logsIpLabel: { ru: 'IP', kz: 'IP', en: 'IP' },
+  logsRoomOwnerLabel: { ru: 'Владелец', kz: 'Иесі', en: 'Owner' },
+  usersSegmentUsers: { ru: 'Пользователи', kz: 'Пайдаланушылар', en: 'Users' },
+  usersSegmentAdmins: { ru: 'Админы', kz: 'Әкімшілер', en: 'Admins' },
+  usersLastLogin: { ru: 'Последний вход', kz: 'Соңғы кіру', en: 'Last login' },
+
   roomVerification: { ru: 'Проверка комнаты', kz: 'Бөлмені тексеру', en: 'Room verification' },
   memberVerification: {
     ru: 'Проверка участника',
@@ -2620,6 +2629,7 @@ const translations: Translations = {
     kz: 'Бұғаттан шығару бөлмені бұрынғы белсенді күйіне қайтарады.',
     en: 'Unblocking will restore the room to its previous active state.',
   },
+  adminBackToSite: { ru: 'На сайт', kz: 'Сайтқа', en: 'Back to site' },
   mandatoryReasonAudit: {
     ru: 'Обязательная причина (записывается в аудит)...',
     kz: 'Міндетті себеп (аудитке жазылады)...',
@@ -4250,6 +4260,45 @@ const translations: Translations = {
     kz: 'Тексеру қатесі',
     en: 'Test failed',
   },
+
+  // ===== Admin Finance drill-down (/admin/finance) =====
+  financePageTitle: { ru: 'Финансы', kz: 'Қаржы', en: 'Finance' },
+  financePageHint: {
+    ru: 'Кто платил, кому и когда — построчный разрез по 4 KPI финансов.',
+    kz: 'Кім, кімге және қашан төледі — 4 қаржы KPI бойынша жолдық көрініс.',
+    en: 'Who paid what and when — row-level view behind the 4 finance KPIs.',
+  },
+  financeTabRevenue: { ru: 'Доход', kz: 'Табыс', en: 'Revenue' },
+  financeTabRefunds: { ru: 'Возвраты', kz: 'Қайтарулар', en: 'Refunds' },
+  financeTabSubscriptions: { ru: 'Подписки', kz: 'Жазылымдар', en: 'Subscriptions' },
+
+  financeFilterStatus: { ru: 'Статус', kz: 'Мәртебе', en: 'Status' },
+  financeFilterType: { ru: 'Тип', kz: 'Түрі', en: 'Type' },
+  financeFilterDateFrom: { ru: 'С даты', kz: 'Күннен бастап', en: 'Date from' },
+  financeFilterDateTo: { ru: 'По дату', kz: 'Күнге дейін', en: 'Date to' },
+  financeFilterAll: { ru: 'Все', kz: 'Барлығы', en: 'All' },
+  financeFilterReset: { ru: 'Сбросить', kz: 'Тазалау', en: 'Reset' },
+
+  financeColDate: { ru: 'Дата', kz: 'Күні', en: 'Date' },
+  financeColAmount: { ru: 'Сумма', kz: 'Сомасы', en: 'Amount' },
+  financeColStatus: { ru: 'Статус', kz: 'Мәртебе', en: 'Status' },
+  financeColType: { ru: 'Тип', kz: 'Түрі', en: 'Type' },
+  financeColRoom: { ru: 'Комната', kz: 'Бөлме', en: 'Room' },
+  financeColPayer: { ru: 'Плательщик', kz: 'Төлеуші', en: 'Payer' },
+  financeColOwner: { ru: 'Владелец', kz: 'Иесі', en: 'Owner' },
+  financeColProvider: { ru: 'Провайдер', kz: 'Провайдер', en: 'Provider' },
+  financeColMember: { ru: 'Получатель', kz: 'Алушы', en: 'Recipient' },
+  financeColRefundedBy: { ru: 'Кем оформлен', kz: 'Кім рәсімдеді', en: 'Refunded by' },
+  financeColReason: { ru: 'Причина', kz: 'Себебі', en: 'Reason' },
+  financeColDispute: { ru: 'Спор', kz: 'Дау', en: 'Dispute' },
+
+  financeEmptyList: { ru: 'Записей нет', kz: 'Жазбалар жоқ', en: 'No records' },
+  financeSubscriptionsPending: {
+    ru: 'Список активных подписок появится в следующей версии.',
+    kz: 'Белсенді жазылымдар тізімі келесі нұсқада қосылады.',
+    en: 'Row-level active subscriptions will be added in a follow-up.',
+  },
+  adminFinanceNav: { ru: 'Финансы', kz: 'Қаржы', en: 'Finance' },
 };
 
 interface I18nContextType {

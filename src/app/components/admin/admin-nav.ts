@@ -15,6 +15,8 @@ import {
   PlusSquare,
   ScrollText,
   LineChart,
+  Wallet,
+  ExternalLink,
 } from 'lucide-react';
 import type { UserRole } from '../../lib/api';
 
@@ -72,10 +74,12 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
     badgeKpi: 'openDisputes',
   },
   { labelKey: 'refunds', path: '/admin/refunds', icon: Undo2, roles: ['ADMIN'] },
+  { labelKey: 'adminFinanceNav', path: '/admin/finance', icon: Wallet, roles: ['ADMIN'] },
   { labelKey: 'adminLogs', path: '/admin/logs', icon: FileText, roles: ['ADMIN'] },
   { labelKey: 'adminAboutNav', path: '/admin/about', icon: Info, roles: ['ADMIN'] },
   { labelKey: 'adminNewsNav', path: '/admin/news', icon: Newspaper, roles: ['ADMIN'] },
   { labelKey: 'adminLegalNav', path: '/admin/legal', icon: ScrollText, roles: ['ADMIN'] },
+  { labelKey: 'adminBackToSite', path: '/', icon: ExternalLink, roles: ['ADMIN', 'SUPPORT'] },
 ];
 
 export function findNavItem(pathname: string): AdminNavItem | undefined {

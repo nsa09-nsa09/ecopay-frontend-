@@ -78,6 +78,10 @@ export function AdminUsersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
 
+  const [segment, setSegment] = useState<'USERS' | 'ADMINS'>('USERS');
+  const [usersCount, setUsersCount] = useState<number | null>(null);
+  const [adminsCount, setAdminsCount] = useState<number | null>(null);
+
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<AdminUserDto | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -119,7 +123,12 @@ export function AdminUsersPage() {
     setError(null);
     try {
       const result = await authorizedRequest((token) =>
-        getAdminUsersRequest(token, { page, size: PAGE_SIZE, search: search || undefined }),
+        getAdminUsersRequest(token, {
+          page,
+          size: PAGE_SIZE,
+          search: search || undefined,
+          role: segment === 'ADMINS' ? 'ADMIN' : 'USER',
+        }),
       );
       setItems(result.items);
       setTotalPages(Math.max(1, result.totalPages));
@@ -131,7 +140,26 @@ export function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [authorizedRequest, page, search, selectedId, t]);
+  }, [authorizedRequest, page, search, segment, selectedId, t]);
+
+  // Fetch the two segment counters once (and after mutations that could change them
+  // via the create/role-change modals) via lightweight size=1 requests.
+  const refreshCounts = useCallback(async () => {
+    try {
+      const [usersPage, adminsPage] = await Promise.all([
+        authorizedRequest((token) => getAdminUsersRequest(token, { size: 1, role: 'USER' })),
+        authorizedRequest((token) => getAdminUsersRequest(token, { size: 1, role: 'ADMIN' })),
+      ]);
+      setUsersCount(usersPage.totalItems);
+      setAdminsCount(adminsPage.totalItems);
+    } catch {
+      // counters are non-critical; leave as null on failure
+    }
+  }, [authorizedRequest]);
+
+  useEffect(() => {
+    void refreshCounts();
+  }, [refreshCounts]);
 
   useEffect(() => {
     void load();
@@ -287,6 +315,40 @@ export function AdminUsersPage() {
           </div>
         </div>
 
+        <div className="flex items-center gap-2 flex-wrap mb-4">
+          {(
+            [
+              { key: 'USERS' as const, label: t('usersSegmentUsers'), count: usersCount },
+              { key: 'ADMINS' as const, label: t('usersSegmentAdmins'), count: adminsCount },
+            ]
+          ).map((s) => {
+            const active = segment === s.key;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => {
+                  if (segment === s.key) return;
+                  setSegment(s.key);
+                  setPage(0);
+                  setSelectedId(null);
+                }}
+                className="px-3 py-1.5 rounded-lg text-[13px] cursor-pointer"
+                style={{
+                  background: active ? 'var(--eco-brand-50)' : 'var(--eco-surface-raised)',
+                  border: `1px solid ${active ? 'var(--eco-primary)' : 'var(--eco-border)'}`,
+                  color: active ? 'var(--eco-primary)' : 'var(--eco-text-secondary)',
+                }}
+              >
+                {s.label}
+                <span className="ml-1.5" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  ({s.count ?? '…'})
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         <div className="mb-4 max-w-md">
           <Input
             placeholder={t('searchUsersPlaceholder')}
@@ -376,6 +438,18 @@ export function AdminUsersPage() {
                     </span>
                     · {u.emailMasked ?? u.email}
                   </div>
+                  {segment === 'ADMINS' && (
+                    <div
+                      className="mt-1 flex items-center gap-1 text-[11px]"
+                      style={{ color: 'var(--eco-text-tertiary)' }}
+                    >
+                      <Clock size={10} />
+                      <span>{t('usersLastLogin')}:</span>
+                      <span style={{ color: 'var(--eco-text-secondary)' }}>
+                        {u.lastLoginAt ? formatDateTime(u.lastLoginAt, language) : '—'}
+                      </span>
+                    </div>
+                  )}
                 </button>
               );
             })}

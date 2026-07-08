@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { Card, Badge, Button, Input } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n } from '../i18n-provider';
@@ -255,7 +256,16 @@ export function AdminLogsPage() {
                         className="col-span-2 text-[12px] whitespace-nowrap"
                         style={{ color: 'var(--eco-text-secondary)' }}
                       >
-                        #{log.adminUserId}
+                        {log.adminUserId ? (
+                          <Link
+                            to={`/admin/users?selected=${log.adminUserId}`}
+                            style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+                          >
+                            {log.adminDisplayName ?? `#${log.adminUserId}`}
+                          </Link>
+                        ) : (
+                          '—'
+                        )}
                       </div>
                       <div className="col-span-2">
                         <Badge variant="info">{log.actionType}</Badge>
@@ -273,6 +283,14 @@ export function AdminLogsPage() {
                         {log.reason ?? '—'}
                       </div>
                     </div>
+                    {log.ipAddress && (
+                      <div
+                        className="mt-1.5 text-[11px]"
+                        style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
+                      >
+                        {t('logsIpLabel')}: {log.ipAddress}
+                      </div>
+                    )}
                   </Card>
                 ))}
               </div>
@@ -323,8 +341,18 @@ export function AdminLogsPage() {
                         className="col-span-2 text-[12px] whitespace-nowrap"
                         style={{ color: 'var(--eco-text-secondary)' }}
                       >
-                        {log.actorRole ?? '—'}
-                        {log.actorUserId ? ` #${log.actorUserId}` : ''}
+                        <span>{log.actorRole ?? '—'}</span>
+                        {log.actorUserId ? (
+                          <>
+                            {' '}
+                            <Link
+                              to={`/admin/users?selected=${log.actorUserId}`}
+                              style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+                            >
+                              {log.actorDisplayName ?? `#${log.actorUserId}`}
+                            </Link>
+                          </>
+                        ) : null}
                       </div>
                       <div className="col-span-2">
                         <Badge variant="info">{log.eventType}</Badge>
@@ -341,6 +369,29 @@ export function AdminLogsPage() {
                       >
                         {log.eventId}
                       </div>
+                    </div>
+                    <div
+                      className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]"
+                      style={{ color: 'var(--eco-text-tertiary)' }}
+                    >
+                      <span>
+                        {t('logsRoomOwnerLabel')}:{' '}
+                        {log.roomOwnerUserId ? (
+                          <Link
+                            to={`/admin/users?selected=${log.roomOwnerUserId}`}
+                            style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+                          >
+                            {log.roomOwnerDisplayName ?? `#${log.roomOwnerUserId}`}
+                          </Link>
+                        ) : (
+                          '—'
+                        )}
+                      </span>
+                      {log.ipAddress && (
+                        <span style={{ fontFamily: 'monospace' }}>
+                          {t('logsIpLabel')}: {log.ipAddress}
+                        </span>
+                      )}
                     </div>
                   </Card>
                 ))}
