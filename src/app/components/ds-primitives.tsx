@@ -1,6 +1,7 @@
 import {
   type ReactNode,
   type ButtonHTMLAttributes,
+  type CSSProperties,
   type InputHTMLAttributes,
   type SelectHTMLAttributes,
   useState,
@@ -229,15 +230,17 @@ const badgeColors: Record<BadgeVariant, { bg: string; text: string }> = {
 export function Badge({
   children,
   variant = 'default',
+  style,
 }: {
   children: ReactNode;
   variant?: BadgeVariant;
+  style?: CSSProperties;
 }) {
   const c = badgeColors[variant];
   return (
     <span
       className="inline-flex items-center px-2 py-0.5 rounded text-[12px]"
-      style={{ background: c.bg, color: c.text }}
+      style={{ background: c.bg, color: c.text, ...style }}
     >
       {children}
     </span>
