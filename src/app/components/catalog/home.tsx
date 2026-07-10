@@ -168,7 +168,11 @@ const CatalogServiceCard = memo(function CatalogServiceCard({
           <div className="flex items-center gap-3 min-w-0">
             <ServiceLogo url={service.logoUrl} name={service.name} />
             <div className="min-w-0">
-              <div className="text-[15px] truncate" style={{ color: 'var(--eco-text)' }}>
+              <div
+                className="text-[15px] leading-snug line-clamp-2 break-words"
+                style={{ color: 'var(--eco-text)' }}
+                title={service.name}
+              >
                 {service.name}
               </div>
               <div className="text-[12px] truncate" style={{ color: 'var(--eco-text-tertiary)' }}>

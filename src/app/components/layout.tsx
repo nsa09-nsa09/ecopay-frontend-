@@ -5,7 +5,15 @@ import { BrandLogo } from './brand-logo';
 import { Menu, X, Search } from 'lucide-react';
 import { useI18n } from './i18n-provider';
 import { useAuth } from './auth/auth-provider';
-import { ApiError, searchCatalog, trackVisitRequest, type CatalogSearchHit } from '../lib/api';
+import {
+  ApiError,
+  getSiteAboutRequest,
+  searchCatalog,
+  trackVisitRequest,
+  type CatalogSearchHit,
+} from '../lib/api';
+
+const APEX_DEFAULT_LINK = 'https://apex-digital.kz';
 
 interface CatalogSearchBoxProps {
   variant: 'desktop' | 'mobile';
@@ -243,8 +251,30 @@ export function AppLayout() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [apexLink, setApexLink] = useState<string>(APEX_DEFAULT_LINK);
   const location = useLocation();
   const lastTrackedPath = useRef<string | null>(null);
+
+  // Pull the admin-configured Apex Digital link once per mount. Falls back to
+  // the default constant on error / missing field, so the footer link is
+  // never broken by API hiccups or old backends without the field.
+  useEffect(() => {
+    let cancelled = false;
+    getSiteAboutRequest()
+      .then((about) => {
+        if (cancelled) return;
+        const raw = about?.apexLink?.trim();
+        if (raw && /^https?:\/\//i.test(raw)) setApexLink(raw);
+      })
+      .catch(() => {
+        // Ignore; keep default link.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const apexIsExternal = /^https?:\/\//i.test(apexLink);
 
   // Fire-and-forget analytics ping for every route change. The backend
   // sets a cookie to dedupe unique guests; we just keep the client side
@@ -599,11 +629,66 @@ export function AppLayout() {
       <WaveDivider />
       <footer style={{ background: 'var(--eco-surface)' }} className="py-10 sm:py-12 px-4 sm:px-6">
         <div className="max-w-[1200px] mx-auto">
-          <div className="mb-8">
-            <BrandLogo to="/" size="sm" />
-          </div>
-          <div className="hidden md:grid md:grid-cols-3 gap-8 mb-8">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-10 mb-8">
+            <div className="md:col-span-5 flex flex-col gap-3">
+              <BrandLogo to="/" size="sm" />
+              <p
+                className="text-[14px] leading-snug max-w-[36ch]"
+                style={{ color: 'var(--eco-text-secondary)' }}
+              >
+                {t('footerTagline')}
+              </p>
+              <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                {t('footerContactLine')}
+              </p>
+            </div>
+
+            <div className="md:col-span-4 grid grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-[14px] mb-3" style={{ color: 'var(--eco-text)' }}>
+                  {t('company')}
+                </h4>
+                <div className="flex flex-col gap-2">
+                  {[
+                    { id: 'f-about', label: t('about'), path: '/about' },
+                    { id: 'f-terms', label: t('terms'), path: '/terms' },
+                    { id: 'f-privacy', label: t('privacy'), path: '/privacy' },
+                  ].map((item) => (
+                    <Link
+                      key={item.id}
+                      to={item.path}
+                      className="text-[13px] hover:opacity-70 transition-opacity"
+                      style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-[14px] mb-3" style={{ color: 'var(--eco-text)' }}>
+                  {t('support')}
+                </h4>
+                <div className="flex flex-col gap-2">
+                  {[
+                    { id: 'f-ticket', label: t('createTicket'), path: '/support/new' },
+                    { id: 'f-status', label: t('ticketStatus'), path: '/support' },
+                  ].map((item) => (
+                    <Link
+                      key={item.id}
+                      to={item.path}
+                      className="text-[13px] hover:opacity-70 transition-opacity"
+                      style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="md:col-span-3">
               <h4 className="text-[14px] mb-3" style={{ color: 'var(--eco-text)' }}>
                 {t('product')}
               </h4>
@@ -623,128 +708,36 @@ export function AppLayout() {
                 ))}
               </div>
             </div>
-
-            <div>
-              <h4 className="text-[14px] mb-3" style={{ color: 'var(--eco-text)' }}>
-                {t('company')}
-              </h4>
-              <div className="flex flex-col gap-2">
-                {[
-                  { id: 'f-about', label: t('about'), path: '/about' },
-                  { id: 'f-terms', label: t('terms'), path: '/terms' },
-                  { id: 'f-privacy', label: t('privacy'), path: '/privacy' },
-                  { id: 'f-owners', label: t('forOwners'), path: '/admin-login' },
-                ].map((item) => (
-                  <Link
-                    key={item.id}
-                    to={item.path}
-                    className="text-[13px] hover:opacity-70 transition-opacity"
-                    style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-[14px] mb-3" style={{ color: 'var(--eco-text)' }}>
-                {t('support')}
-              </h4>
-              <div className="flex flex-col gap-2">
-                {[
-                  { id: 'f-ticket', label: t('createTicket'), path: '/support/new' },
-                  { id: 'f-status', label: t('ticketStatus'), path: '/support' },
-                ].map((item) => (
-                  <Link
-                    key={item.id}
-                    to={item.path}
-                    className="text-[13px] hover:opacity-70 transition-opacity"
-                    style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="md:hidden flex flex-col gap-4 mb-8">
-            <div>
-              <h4 className="text-[14px] mb-2" style={{ color: 'var(--eco-text)' }}>
-                {t('product')}
-              </h4>
-              <div className="flex flex-col gap-1.5 pl-3">
-                {[
-                  { id: 'm-catalog', label: t('catalog'), path: '/' },
-                  { id: 'm-how', label: t('howItWorks'), path: '/how-it-works' },
-                ].map((item) => (
-                  <Link
-                    key={item.id}
-                    to={item.path}
-                    className="text-[13px]"
-                    style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-[14px] mb-2" style={{ color: 'var(--eco-text)' }}>
-                {t('company')}
-              </h4>
-              <div className="flex flex-col gap-1.5 pl-3">
-                {[
-                  { id: 'm-about', label: t('about'), path: '/about' },
-                  { id: 'm-terms', label: t('terms'), path: '/terms' },
-                  { id: 'm-privacy', label: t('privacy'), path: '/privacy' },
-                  { id: 'm-owners', label: t('forOwners'), path: '/admin-login' },
-                ].map((item) => (
-                  <Link
-                    key={item.id}
-                    to={item.path}
-                    className="text-[13px]"
-                    style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-[14px] mb-2" style={{ color: 'var(--eco-text)' }}>
-                {t('support')}
-              </h4>
-              <div className="flex flex-col gap-1.5 pl-3">
-                {[
-                  { id: 'm-ticket', label: t('createTicket'), path: '/support/new' },
-                  { id: 'm-status', label: t('ticketStatus'), path: '/support' },
-                ].map((item) => (
-                  <Link
-                    key={item.id}
-                    to={item.path}
-                    className="text-[13px]"
-                    style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
           </div>
 
           <div
-            className="pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4"
+            className="pt-6 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
             style={{ borderColor: 'var(--eco-border)' }}
           >
             <span className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
               {t('copyright')}
             </span>
-            <div className="flex items-center gap-4 text-[13px]">
-              <span style={{ color: 'var(--eco-text-tertiary)' }}>{t('developedBy')}</span>
+            <div className="flex items-center gap-4 flex-wrap text-[13px]">
+              <Link
+                to="/admin-login"
+                className="hover:opacity-70 transition-opacity"
+                style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
+              >
+                {t('forOwnersFooterLink')}
+              </Link>
+              {apexIsExternal ? (
+                <a
+                  href={apexLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:opacity-70 transition-opacity"
+                  style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
+                >
+                  {t('developedBy')}
+                </a>
+              ) : (
+                <span style={{ color: 'var(--eco-text-tertiary)' }}>{t('developedBy')}</span>
+              )}
             </div>
           </div>
         </div>

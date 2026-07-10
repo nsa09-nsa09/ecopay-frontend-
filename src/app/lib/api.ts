@@ -477,6 +477,7 @@ export function trackVisitRequest(path: string): Promise<void> {
 export function loginRequest(email: string, password: string) {
   return requestJson<AuthResponse>('/auth/login', {
     method: 'POST',
+    credentials: 'include',
     body: JSON.stringify({ email, password }),
   });
 }
@@ -502,17 +503,22 @@ export function registerRequest(
   });
 }
 
-export function refreshRequest(refreshToken: string) {
+// Refresh & logout both rely on the httpOnly `ecopay_rt` cookie set by /login
+// (or the previous /refresh call). We deliberately send no body so an
+// XSS-exfiltrated JS runtime can't smuggle a stolen refresh token here — the
+// browser attaches the cookie for us. Old backends that only read the body
+// keep working while both sides deploy.
+export function refreshRequest() {
   return requestJson<AuthResponse>('/auth/refresh', {
     method: 'POST',
-    body: JSON.stringify({ refreshToken }),
+    credentials: 'include',
   });
 }
 
-export function logoutRequest(refreshToken: string) {
+export function logoutRequest() {
   return requestJson<void>('/auth/logout', {
     method: 'POST',
-    body: JSON.stringify({ refreshToken }),
+    credentials: 'include',
   });
 }
 
@@ -962,6 +968,7 @@ export function confirmPaymentSuccessRequest(
 export function staffLoginRequest(email: string, password: string) {
   return requestJson<StaffLoginResponse>('/auth/login', {
     method: 'POST',
+    credentials: 'include',
     body: JSON.stringify({ email, password }),
   });
 }
@@ -969,6 +976,7 @@ export function staffLoginRequest(email: string, password: string) {
 export function verifyStaffTwoFactorRequest(challengeId: string, code: string) {
   return requestJson<AuthResponse>('/auth/login/2fa/verify', {
     method: 'POST',
+    credentials: 'include',
     body: JSON.stringify({ challengeId, code }),
   });
 }

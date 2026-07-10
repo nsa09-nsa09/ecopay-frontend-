@@ -71,6 +71,21 @@ const translations: Translations = {
     kz: '© 2026 EcoPay · Астана, Қазақстан',
     en: '© 2026 EcoPay · Astana, Kazakhstan',
   },
+  footerTagline: {
+    ru: 'Делитесь подписками. Экономьте вместе.',
+    kz: 'Жазылыммен бөлісіңіз. Бірге үнемдеңіз.',
+    en: 'Share subscriptions. Save together.',
+  },
+  footerContactLine: {
+    ru: 'apexdigitalservices3@gmail.com · Астана',
+    kz: 'apexdigitalservices3@gmail.com · Астана',
+    en: 'apexdigitalservices3@gmail.com · Astana',
+  },
+  forOwnersFooterLink: {
+    ru: 'Владельцам',
+    kz: 'Иелерге',
+    en: 'For owners',
+  },
 
   // ===== Auth Pages =====
   createAccount: { ru: 'Создать аккаунт', kz: 'Тіркелгі жасау', en: 'Create Account' },
@@ -687,6 +702,21 @@ const translations: Translations = {
     kz: '{{count}} пікір негізінде',
     en: 'based on {{count}} reviews',
   },
+  basedOnReviews_one: {
+    ru: 'на основе {{count}} отзыва',
+    kz: '{{count}} пікір негізінде',
+    en: 'based on {{count}} review',
+  },
+  basedOnReviews_few: {
+    ru: 'на основе {{count}} отзывов',
+    kz: '{{count}} пікір негізінде',
+    en: 'based on {{count}} reviews',
+  },
+  basedOnReviews_many: {
+    ru: 'на основе {{count}} отзывов',
+    kz: '{{count}} пікір негізінде',
+    en: 'based on {{count}} reviews',
+  },
   memberSince: { ru: 'Участник с', kz: 'Қатысушы', en: 'Member since' },
   lastActive: { ru: 'Был в сети', kz: 'Соңғы белсенділік', en: 'Last active' },
   publicProfile: { ru: 'Публичный профиль', kz: 'Ашық профиль', en: 'Public Profile' },
@@ -698,12 +728,41 @@ const translations: Translations = {
   period: { ru: 'Период', kz: 'Кезең', en: 'Period' },
   ago: { ru: 'назад', kz: 'бұрын', en: 'ago' },
   daysAgo: { ru: '{{count}} дней назад', kz: '{{count}} күн бұрын', en: '{{count}} days ago' },
+  daysAgo_one: { ru: '{{count}} день назад', kz: '{{count}} күн бұрын', en: '{{count}} day ago' },
+  daysAgo_few: { ru: '{{count}} дня назад', kz: '{{count}} күн бұрын', en: '{{count}} days ago' },
+  daysAgo_many: { ru: '{{count}} дней назад', kz: '{{count}} күн бұрын', en: '{{count}} days ago' },
   monthsAgo: {
     ru: '{{count}} месяцев назад',
     kz: '{{count}} ай бұрын',
     en: '{{count}} months ago',
   },
+  monthsAgo_one: {
+    ru: '{{count}} месяц назад',
+    kz: '{{count}} ай бұрын',
+    en: '{{count}} month ago',
+  },
+  monthsAgo_few: {
+    ru: '{{count}} месяца назад',
+    kz: '{{count}} ай бұрын',
+    en: '{{count}} months ago',
+  },
+  monthsAgo_many: {
+    ru: '{{count}} месяцев назад',
+    kz: '{{count}} ай бұрын',
+    en: '{{count}} months ago',
+  },
   yearsAgo: { ru: '{{count}} лет назад', kz: '{{count}} жыл бұрын', en: '{{count}} years ago' },
+  yearsAgo_one: { ru: '{{count}} год назад', kz: '{{count}} жыл бұрын', en: '{{count}} year ago' },
+  yearsAgo_few: {
+    ru: '{{count}} года назад',
+    kz: '{{count}} жыл бұрын',
+    en: '{{count}} years ago',
+  },
+  yearsAgo_many: {
+    ru: '{{count}} лет назад',
+    kz: '{{count}} жыл бұрын',
+    en: '{{count}} years ago',
+  },
   helpful: { ru: 'Полезно', kz: 'Пайдалы', en: 'Helpful' },
   report: { ru: 'Пожаловаться', kz: 'Шағымдану', en: 'Report' },
   reported: { ru: 'Отмечено', kz: 'Белгіленген', en: 'Reported' },
@@ -3016,6 +3075,21 @@ const translations: Translations = {
     kz: '{{count}} тариф',
     en: '{{count}} tariffs',
   },
+  marketplaceTariffsCount_one: {
+    ru: '{{count}} тариф',
+    kz: '{{count}} тариф',
+    en: '{{count}} tariff',
+  },
+  marketplaceTariffsCount_few: {
+    ru: '{{count}} тарифа',
+    kz: '{{count}} тариф',
+    en: '{{count}} tariffs',
+  },
+  marketplaceTariffsCount_many: {
+    ru: '{{count}} тарифов',
+    kz: '{{count}} тариф',
+    en: '{{count}} tariffs',
+  },
   marketplaceLoadFailed: {
     ru: 'Не удалось загрузить каталог',
     kz: 'Каталог жүктелмеді',
@@ -4401,10 +4475,40 @@ const translations: Translations = {
   adminFinanceNav: { ru: 'Финансы', kz: 'Қаржы', en: 'Finance' },
 };
 
+export interface PluralForms {
+  one: string;
+  few?: string;
+  many?: string;
+}
+
+/**
+ * Picks the correct plural form for the given language and count.
+ *
+ * Russian follows CLDR: one (n%10=1 & n%100≠11), few (n%10∈2..4 & n%100∉12..14),
+ * many (otherwise). Kazakh has a single form. English is singular/plural only.
+ * When `few` or `many` are omitted, they fall back to `many`/`few`/`one`.
+ */
+export function plural(language: Language, count: number, forms: PluralForms): string {
+  const many = forms.many ?? forms.few ?? forms.one;
+  const few = forms.few ?? many;
+  if (language === 'ru') {
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    if (mod10 === 1 && mod100 !== 11) return forms.one;
+    if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return few;
+    return many;
+  }
+  if (language === 'kz') {
+    return forms.one;
+  }
+  return count === 1 ? forms.one : many;
+}
+
 interface I18nContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
+  plural: (count: number, forms: PluralForms) => string;
 }
 
 const I18nContext = createContext<I18nContextType>(null!);
@@ -4463,6 +4567,22 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   };
 
   const t = (key: string, params?: Record<string, string | number>): string => {
+    // If a numeric `count` is provided AND per-plural sub-keys exist (`<key>_one`
+    // etc.), route through the plural picker. This keeps callers unchanged while
+    // fixing "1 тарифов / 1 дней / 1 отзывов" bugs in Russian.
+    const countValue = params?.count;
+    if (typeof countValue === 'number' && translations[`${key}_one`]) {
+      const oneTr = translations[`${key}_one`];
+      const fewTr = translations[`${key}_few`];
+      const manyTr = translations[`${key}_many`];
+      const forms: PluralForms = {
+        one: oneTr[language] || oneTr.en || key,
+      };
+      if (fewTr) forms.few = fewTr[language] || fewTr.en;
+      if (manyTr) forms.many = manyTr[language] || manyTr.en;
+      return interpolate(plural(language, countValue, forms), params);
+    }
+
     const translation = translations[key];
     if (!translation) {
       if (import.meta.env?.DEV) {
@@ -4475,8 +4595,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     return interpolate(raw, params);
   };
 
+  const pluralForCurrent = (count: number, forms: PluralForms) => plural(language, count, forms);
+
   return (
-    <I18nContext.Provider value={{ language, setLanguage, t }}>{children}</I18nContext.Provider>
+    <I18nContext.Provider value={{ language, setLanguage, t, plural: pluralForCurrent }}>
+      {children}
+    </I18nContext.Provider>
   );
 }
 
