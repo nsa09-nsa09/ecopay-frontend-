@@ -40,6 +40,23 @@ type CatalogTab = 'categories' | 'services' | 'tariffs';
 const PROVIDER_TYPES = ['DIGITAL', 'TELECOM'];
 const PERIOD_TYPES = ['MONTHLY', 'YEARLY', 'OTHER'];
 
+const ACCESS_TYPES = [
+  { value: 'FAMILY_PLAN', labelKey: 'catalogRuleAccessFamilyPlan' },
+  { value: 'SHARED_ACCOUNT', labelKey: 'catalogRuleAccessSharedAccount' },
+  { value: 'INVITE_LINK', labelKey: 'catalogRuleAccessInviteLink' },
+  { value: 'EMAIL_INVITE', labelKey: 'catalogRuleAccessEmailInvite' },
+] as const;
+
+function parseOperatorRules(raw: string | null): Record<string, unknown> {
+  if (!raw || !raw.trim()) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 export function AdminCatalogPage() {
   const { t } = useI18n();
   const [tab, setTab] = useState<CatalogTab>('categories');
@@ -1300,7 +1317,12 @@ function TariffFormModal({
   const [basePriceTotal, setBasePriceTotal] = useState('0');
   const [currency, setCurrency] = useState('KZT');
   const [connectionType, setConnectionType] = useState('');
-  const [operatorRules, setOperatorRules] = useState('');
+  const [ruleAccessType, setRuleAccessType] = useState('');
+  const [ruleRegion, setRuleRegion] = useState('');
+  const [ruleSharingWarning, setRuleSharingWarning] = useState('');
+  const [ruleSlaHours, setRuleSlaHours] = useState('');
+  const [ruleRequiresEmailForInvite, setRuleRequiresEmailForInvite] = useState(false);
+  const [ruleEmailChangeForbidden, setRuleEmailChangeForbidden] = useState(false);
   const [features, setFeatures] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -1314,7 +1336,15 @@ function TariffFormModal({
     setBasePriceTotal(String(existing?.basePriceTotal ?? 0));
     setCurrency(existing?.currency ?? 'KZT');
     setConnectionType(existing?.connectionType ?? '');
-    setOperatorRules(existing?.operatorRules ?? '');
+    const rules = parseOperatorRules(existing?.operatorRules ?? null);
+    setRuleAccessType(typeof rules.defaultAccessType === 'string' ? rules.defaultAccessType : '');
+    setRuleRegion(typeof rules.region === 'string' ? rules.region : '');
+    setRuleSharingWarning(typeof rules.sharingWarning === 'string' ? rules.sharingWarning : '');
+    setRuleSlaHours(
+      typeof rules.accessGrantSlaHours === 'number' ? String(rules.accessGrantSlaHours) : '',
+    );
+    setRuleRequiresEmailForInvite(rules.requiresEmailForInvite === true);
+    setRuleEmailChangeForbidden(rules.emailChangeForbidden === true);
     setFeatures(existing?.features ?? []);
     setIsActive(existing?.isActive ?? true);
     setError(null);
@@ -1326,6 +1356,18 @@ function TariffFormModal({
   const addFeature = () => setFeatures((prev) => [...prev, '']);
   const removeFeature = (index: number) =>
     setFeatures((prev) => prev.filter((_, i) => i !== index));
+
+  const buildOperatorRules = (): string | null => {
+    const rules: Record<string, unknown> = {};
+    if (ruleAccessType) rules.defaultAccessType = ruleAccessType;
+    if (ruleRegion.trim()) rules.region = ruleRegion.trim();
+    if (ruleSharingWarning.trim()) rules.sharingWarning = ruleSharingWarning.trim();
+    const sla = Number(ruleSlaHours);
+    if (ruleSlaHours.trim() && Number.isFinite(sla) && sla > 0) rules.accessGrantSlaHours = sla;
+    if (ruleRequiresEmailForInvite) rules.requiresEmailForInvite = true;
+    if (ruleEmailChangeForbidden) rules.emailChangeForbidden = true;
+    return Object.keys(rules).length > 0 ? JSON.stringify(rules) : null;
+  };
 
   const submit = async () => {
     const members = Number(maxMembers);
@@ -1345,6 +1387,7 @@ function TariffFormModal({
     setSubmitting(true);
     setError(null);
     const cleanedFeatures = features.map((f) => f.trim()).filter(Boolean);
+    const operatorRules = buildOperatorRules();
     try {
       if (existing) {
         const payload: UpdateTariffPayload = {
@@ -1354,7 +1397,7 @@ function TariffFormModal({
           basePriceTotal: price,
           currency,
           connectionType: connectionType.trim() || null,
-          operatorRules: operatorRules.trim() || null,
+          operatorRules,
           features: cleanedFeatures,
           isActive,
         };
@@ -1368,7 +1411,7 @@ function TariffFormModal({
           basePriceTotal: price,
           currency,
           connectionType: connectionType.trim() || null,
-          operatorRules: operatorRules.trim() || null,
+          operatorRules,
           features: cleanedFeatures,
         };
         await authorizedRequest((token) => adminCreateTariff(serviceId, payload, token));
@@ -1422,21 +1465,61 @@ function TariffFormModal({
           value={connectionType}
           onChange={(e) => setConnectionType(e.target.value)}
         />
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+        <div
+          className="flex flex-col gap-3 rounded-lg p-3"
+          style={{ border: '1px solid var(--eco-border)' }}
+        >
+          <label className="text-[14px] font-medium" style={{ color: 'var(--eco-text)' }}>
             {t('catalogFieldOperatorRules')}
           </label>
-          <textarea
-            rows={3}
-            value={operatorRules}
-            onChange={(e) => setOperatorRules(e.target.value)}
-            className="px-3 py-2 rounded-lg outline-none text-[14px]"
-            style={{
-              background: 'var(--eco-surface)',
-              border: '1px solid var(--eco-border)',
-              color: 'var(--eco-text)',
-            }}
+          <Select
+            label={t('catalogRuleAccessType')}
+            value={ruleAccessType}
+            onChange={(e) => setRuleAccessType(e.target.value)}
+            options={[
+              { value: '', label: t('catalogRuleAccessTypeNone') },
+              ...ACCESS_TYPES.map((a) => ({ value: a.value, label: t(a.labelKey) })),
+            ]}
           />
+          <Input
+            label={t('catalogRuleRegion')}
+            value={ruleRegion}
+            onChange={(e) => setRuleRegion(e.target.value)}
+          />
+          <Input
+            label={t('catalogRuleSharingWarning')}
+            value={ruleSharingWarning}
+            onChange={(e) => setRuleSharingWarning(e.target.value)}
+          />
+          <Input
+            label={t('catalogRuleSlaHours')}
+            type="number"
+            min={0}
+            value={ruleSlaHours}
+            onChange={(e) => setRuleSlaHours(e.target.value)}
+          />
+          <label
+            className="flex items-center gap-2 text-[13px]"
+            style={{ color: 'var(--eco-text)' }}
+          >
+            <input
+              type="checkbox"
+              checked={ruleRequiresEmailForInvite}
+              onChange={(e) => setRuleRequiresEmailForInvite(e.target.checked)}
+            />
+            {t('catalogRuleRequiresEmailForInvite')}
+          </label>
+          <label
+            className="flex items-center gap-2 text-[13px]"
+            style={{ color: 'var(--eco-text)' }}
+          >
+            <input
+              type="checkbox"
+              checked={ruleEmailChangeForbidden}
+              onChange={(e) => setRuleEmailChangeForbidden(e.target.checked)}
+            />
+            {t('catalogRuleEmailChangeForbidden')}
+          </label>
         </div>
         <div className="flex flex-col gap-2">
           <label className="text-[14px]" style={{ color: 'var(--eco-text)' }}>

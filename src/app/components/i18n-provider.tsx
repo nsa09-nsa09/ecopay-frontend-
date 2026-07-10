@@ -3015,6 +3015,61 @@ const translations: Translations = {
     kz: 'Оператор ережелері',
     en: 'Operator rules',
   },
+  catalogRuleAccessType: {
+    ru: 'Способ доступа по умолчанию',
+    kz: 'Әдепкі қолжетімділік тәсілі',
+    en: 'Default access type',
+  },
+  catalogRuleAccessTypeNone: {
+    ru: '— не задано —',
+    kz: '— белгіленбеген —',
+    en: '— not set —',
+  },
+  catalogRuleAccessFamilyPlan: {
+    ru: 'Семейный план',
+    kz: 'Отбасылық жоспар',
+    en: 'Family plan',
+  },
+  catalogRuleAccessSharedAccount: {
+    ru: 'Общий аккаунт',
+    kz: 'Ортақ аккаунт',
+    en: 'Shared account',
+  },
+  catalogRuleAccessInviteLink: {
+    ru: 'Ссылка-приглашение',
+    kz: 'Шақыру сілтемесі',
+    en: 'Invite link',
+  },
+  catalogRuleAccessEmailInvite: {
+    ru: 'Приглашение по email',
+    kz: 'Email арқылы шақыру',
+    en: 'Email invite',
+  },
+  catalogRuleRegion: {
+    ru: 'Регион (ограничение)',
+    kz: 'Аймақ (шектеу)',
+    en: 'Region (restriction)',
+  },
+  catalogRuleSharingWarning: {
+    ru: 'Предупреждение о совместном использовании',
+    kz: 'Бірлесіп пайдалану туралы ескерту',
+    en: 'Sharing warning',
+  },
+  catalogRuleSlaHours: {
+    ru: 'SLA выдачи доступа (часы)',
+    kz: 'Қолжетімділік беру SLA (сағат)',
+    en: 'Access grant SLA (hours)',
+  },
+  catalogRuleRequiresEmailForInvite: {
+    ru: 'Требуется email участника для приглашения',
+    kz: 'Шақыру үшін қатысушының email қажет',
+    en: 'Requires member email for invite',
+  },
+  catalogRuleEmailChangeForbidden: {
+    ru: 'Запрещена смена email',
+    kz: 'Email өзгертуге тыйым салынған',
+    en: 'Email change forbidden',
+  },
 
   // ===== Service reviews =====
   serviceReviewsTitle: {
