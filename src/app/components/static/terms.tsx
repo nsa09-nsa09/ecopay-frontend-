@@ -3,15 +3,15 @@ import { FileText, Calendar } from "lucide-react";
 
 export function TermsPage() {
   const sections = [
-    { id: "acceptance", title: "1. Acceptance of Terms", preview: "By accessing and using EcoPay, you agree to be bound by these Terms of Service..." },
+    { id: "acceptance", title: "1. Acceptance of Terms", preview: "By accessing and using EcoSplit, you agree to be bound by these Terms of Service..." },
     { id: "eligibility", title: "2. Eligibility", preview: "You must be at least 18 years old and a resident of Kazakhstan to use this service..." },
     { id: "accounts", title: "3. User Accounts", preview: "You are responsible for maintaining the confidentiality of your account credentials..." },
-    { id: "services", title: "4. Description of Services", preview: "EcoPay provides a platform to facilitate shared telecom family plans between users..." },
+    { id: "services", title: "4. Description of Services", preview: "EcoSplit provides a platform to facilitate shared telecom family plans between users..." },
     { id: "payments", title: "5. Payments & Billing", preview: "All payments are processed securely. You agree to pay all fees associated with your subscription..." },
     { id: "user-conduct", title: "6. User Conduct", preview: "You agree not to misuse the platform, engage in fraudulent activity, or violate any laws..." },
-    { id: "privacy", title: "7. Privacy & Data Protection", preview: "Your use of EcoPay is also governed by our Privacy Policy, which can be found separately..." },
+    { id: "privacy", title: "7. Privacy & Data Protection", preview: "Your use of EcoSplit is also governed by our Privacy Policy, which can be found separately..." },
     { id: "termination", title: "8. Termination", preview: "We reserve the right to suspend or terminate your account for violations of these terms..." },
-    { id: "disclaimers", title: "9. Disclaimers & Limitations", preview: "EcoPay is provided \"as is\" without warranties of any kind, express or implied..." },
+    { id: "disclaimers", title: "9. Disclaimers & Limitations", preview: "EcoSplit is provided \"as is\" without warranties of any kind, express or implied..." },
     { id: "changes", title: "10. Changes to Terms", preview: "We may update these terms from time to time. Continued use constitutes acceptance..." },
     { id: "contact", title: "11. Contact & Support", preview: "For questions about these terms, please contact us through our support system..." },
   ];

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { Button, LanguageSwitcher, WaveDivider } from "./ds-primitives";
 import { BrandLogo } from "./brand-logo";
+import { PaymentLogosRow } from "./payment-logos";
 import { Menu, X, Search } from "lucide-react";
 import { useI18n } from "./i18n-provider";
 import { useAuth } from "./auth/auth-provider";
@@ -258,14 +259,14 @@ export function AppLayout() {
           <div className="mb-8">
             <BrandLogo to="/" size="sm" />
           </div>
-          <div className="hidden md:grid md:grid-cols-3 gap-8 mb-8">
+          <div className="hidden md:grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <h4 className="text-[14px] mb-3" style={{ color: "var(--eco-text)" }}>{t("product")}</h4>
               <div className="flex flex-col gap-2">
                 {[
                   { id: "f-catalog", label: t("catalog"), path: "/" },
                   { id: "f-how", label: t("howItWorks"), path: "/how-it-works" },
-                  { id: "f-pricing", label: t("pricing"), path: "#" },
+                  { id: "f-security", label: t("security"), path: "/security" },
                   { id: "f-faq", label: t("faq"), path: "#" },
                 ].map((item) => (
                   <Link
@@ -319,6 +320,11 @@ export function AppLayout() {
                 ))}
               </div>
             </div>
+
+            <div>
+              <h4 className="text-[14px] mb-3" style={{ color: "var(--eco-text)" }}>{t("paymentMethods")}</h4>
+              <PaymentLogosRow />
+            </div>
           </div>
 
           <div className="md:hidden flex flex-col gap-4 mb-8">
@@ -328,7 +334,7 @@ export function AppLayout() {
                 {[
                   { id: "m-catalog", label: t("catalog"), path: "/" },
                   { id: "m-how", label: t("howItWorks"), path: "/how-it-works" },
-                  { id: "m-pricing", label: t("pricing"), path: "#" },
+                  { id: "m-security", label: t("security"), path: "/security" },
                   { id: "m-faq", label: t("faq"), path: "#" },
                 ].map((item) => (
                   <Link
@@ -381,6 +387,11 @@ export function AppLayout() {
                   </Link>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <h4 className="text-[14px] mb-2" style={{ color: "var(--eco-text)" }}>{t("paymentMethods")}</h4>
+              <PaymentLogosRow className="pl-3" />
             </div>
           </div>
 

@@ -64,7 +64,7 @@ export function ProfilePage() {
             {tx(language, "Профиль", "Профиль", "Profile")}
           </h1>
           <p className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
-            {tx(language, "Войдите, чтобы управлять аккаунтом EcoPay.", "EcoPay тіркелгісін басқару үшін кіріңіз.", "Sign in to manage your EcoPay account.")}
+            {tx(language, "Войдите, чтобы управлять аккаунтом EcoSplit.", "EcoSplit тіркелгісін басқару үшін кіріңіз.", "Sign in to manage your EcoSplit account.")}
           </p>
           <Link to="/login" style={{ textDecoration: "none" }}>
             <Button>{tx(language, "Войти", "Кіру", "Sign in")}</Button>

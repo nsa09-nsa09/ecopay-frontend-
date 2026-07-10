@@ -119,7 +119,7 @@ function ReceiptPanel({ txn, onClose }: { txn: Txn; onClose: () => void }) {
         <div className="p-6">
           {/* Logo + status */}
           <div className="text-center mb-6">
-            <div className="text-[28px] mb-1" style={{ color: "var(--eco-primary)" }}>EcoPay</div>
+            <div className="text-[28px] mb-1" style={{ color: "var(--eco-primary)" }}>EcoSplit</div>
             <StatusBadge status={txn.status} />
           </div>
 
@@ -178,7 +178,7 @@ function ReceiptPanel({ txn, onClose }: { txn: Txn; onClose: () => void }) {
         <div className="px-6 py-3 text-center" style={{ background: "var(--eco-bg)", borderTop: "1px solid var(--eco-border)" }}>
           <div className="flex items-center justify-center gap-1.5">
             <Shield size={10} style={{ color: "var(--eco-text-tertiary)" }} />
-            <span className="text-[10px]" style={{ color: "var(--eco-text-tertiary)" }}>EcoPay does not store full card numbers. All payments processed by certified PSP.</span>
+            <span className="text-[10px]" style={{ color: "var(--eco-text-tertiary)" }}>EcoSplit does not store full card numbers. All payments processed by certified PSP.</span>
           </div>
         </div>
       </div>
@@ -561,7 +561,7 @@ function ReceiptSampleView() {
           {/* Header with wave */}
           <div className="relative px-6 pt-6 pb-10" style={{ background: "var(--eco-primary)" }}>
             <div className="flex items-center justify-between mb-6">
-              <span className="text-[22px]" style={{ color: "var(--eco-text-on-primary)" }}>EcoPay</span>
+              <span className="text-[22px]" style={{ color: "var(--eco-text-on-primary)" }}>EcoSplit</span>
               <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.2)", color: "var(--eco-text-on-primary)" }}>{t("phReceiptView")}</span>
             </div>
             <div className="text-center">
@@ -654,7 +654,7 @@ function ReceiptSampleView() {
             <div className="mt-4 flex items-center justify-center gap-1.5 text-center">
               <Shield size={10} style={{ color: "var(--eco-text-tertiary)" }} />
               <span className="text-[10px]" style={{ color: "var(--eco-text-tertiary)" }}>
-                {t("phReceiptGenerated")}: {new Date().toLocaleString("ru-KZ")} · EcoPay does not store full card data
+                {t("phReceiptGenerated")}: {new Date().toLocaleString("ru-KZ")} · EcoSplit does not store full card data
               </span>
             </div>
           </div>

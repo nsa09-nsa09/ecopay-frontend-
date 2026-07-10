@@ -4,17 +4,21 @@ import { BrandLogo } from "./brand-logo";
 import { useI18n, type Language } from "./i18n-provider";
 
 // ─── Wave SVG ───
+// The flipped variant uses a mirrored path instead of CSS scaleY(-1): negative
+// scale on a stretched SVG wedges Chrome's compositor capture on some GPUs.
 export function WaveDivider({ flip, className }: { flip?: boolean; className?: string }) {
   return (
     <svg
       viewBox="0 0 1440 80"
       fill="none"
       className={className}
-      style={{ transform: flip ? "scaleY(-1)" : undefined, display: "block", width: "100%" }}
+      style={{ display: "block", width: "100%" }}
       preserveAspectRatio="none"
     >
       <path
-        d="M0 40C240 80 480 0 720 40C960 80 1200 0 1440 40V80H0V40Z"
+        d={flip
+          ? "M0 40C240 0 480 80 720 40C960 0 1200 80 1440 40V0H0V40Z"
+          : "M0 40C240 80 480 0 720 40C960 80 1200 0 1440 40V80H0V40Z"}
         fill="var(--eco-surface)"
       />
     </svg>

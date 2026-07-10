@@ -55,7 +55,7 @@
 @keyframes ecopayFadeInUp {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -64,10 +64,122 @@
 }
 
 .animate-eco-fade-in {
-  animation: ecopayFadeInUp 360ms ease-out both;
+  animation: ecopayFadeInUp 480ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hero background blobs: transform/opacity only, so they stay on the
+   compositor and never touch layout (60fps, no blur filters) */
+@keyframes ecoBlobFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-20px);
+    opacity: 0.6;
+  }
+}
+
+@keyframes ecoBlobDrift {
+  0%,
+  100% {
+    transform: translateX(-50px) translateY(0);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateX(50px) translateY(20px);
+    opacity: 0.6;
+  }
+}
+
+.eco-hero-blobs {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.eco-blob {
+  position: absolute;
+  border-radius: 9999px;
+}
+
+.eco-blob-1 {
+  width: 420px;
+  height: 420px;
+  left: -120px;
+  top: -80px;
+  background: radial-gradient(circle, rgba(255, 140, 66, 0.22), transparent 70%);
+  animation: ecoBlobDrift 10s ease-in-out infinite;
+}
+
+.eco-blob-2 {
+  width: 360px;
+  height: 360px;
+  right: -100px;
+  top: 25%;
+  background: radial-gradient(circle, rgba(255, 174, 117, 0.2), transparent 70%);
+  animation: ecoBlobFloat 8s ease-in-out infinite;
+  animation-delay: -2s;
+}
+
+.eco-blob-3 {
+  width: 320px;
+  height: 320px;
+  left: 32%;
+  bottom: -140px;
+  background: radial-gradient(circle, rgba(232, 70, 124, 0.12), transparent 70%);
+  animation: ecoBlobDrift 12s ease-in-out infinite reverse;
+}
+
+/* Reveal-on-scroll: starts hidden, .is-visible transitions in */
+.eco-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 600ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.eco-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Card hover: lift + stronger shadow */
+.eco-lift {
+  transition:
+    transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.eco-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(26, 26, 26, 0.1);
+}
+
+/* Category tile hover: subtle scale */
+.eco-scale-hover {
+  transition:
+    transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.eco-scale-hover:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(26, 26, 26, 0.08);
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .ecopay-reviews-track {
     animation: none;
     transform: translateX(0);
@@ -79,5 +191,28 @@
 
   .animate-eco-fade-in {
     animation: none;
+  }
+
+  .eco-blob-1,
+  .eco-blob-2,
+  .eco-blob-3 {
+    animation: none;
+    opacity: 0.4;
+  }
+
+  .eco-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .eco-lift,
+  .eco-scale-hover {
+    transition: none;
+  }
+
+  .eco-lift:hover,
+  .eco-scale-hover:hover {
+    transform: none;
   }
 }

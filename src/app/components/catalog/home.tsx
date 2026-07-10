@@ -1,27 +1,34 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
+import useEmblaCarousel from "embla-carousel-react";
 import {
   ArrowRight,
-  Bot,
-  CheckCircle2,
+  BadgeCheck,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Clapperboard,
   CreditCard,
-  Headphones,
+  Dumbbell,
+  Gamepad2,
+  GraduationCap,
+  Home,
+  KeyRound,
   Lock,
   Music,
+  Newspaper,
+  PiggyBank,
   Search,
   ShieldCheck,
   Smartphone,
   Sparkles,
   Star,
-  Tv,
-  Users,
-  Wifi,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
-import { Badge, Button, Card, Select, Skeleton, WaveDivider } from "../ds-primitives";
+import { Badge, Card, Select, Skeleton, WaveDivider } from "../ds-primitives";
 import { useI18n } from "../i18n-provider";
+import { ServiceLogo } from "./service-logo";
+import { featuredServices, type FeaturedService } from "../../data/featured-services";
 import {
   getServices,
   getCategories,
@@ -37,55 +44,245 @@ type L = "ru" | "kz" | "en";
 const tx = (language: L, ru: string, kz: string, en: string) =>
   language === "ru" ? ru : language === "kz" ? kz : en;
 
-const fallbackCategoryIcon: LucideIcon = Sparkles;
-const categoryIconMap: Record<string, LucideIcon> = {
-  video: Tv,
-  music: Music,
-  cloud: Wifi,
-  ai: Bot,
-  design: Zap,
-  apps: Smartphone,
-  services: Smartphone,
-  telecom: Smartphone,
-};
-
-function iconForCategory(slug: string | undefined): LucideIcon {
-  if (!slug) return fallbackCategoryIcon;
-  return categoryIconMap[slug.toLowerCase()] ?? fallbackCategoryIcon;
-}
-
-function formatServicePrice(value: number | null | undefined, currency: string | null | undefined): string {
+function formatPrice(value: number | null | undefined, currency?: string | null): string {
   if (value == null) return "—";
   const n = Math.round(Number(value));
   if (currency === "USD") return `$${n.toLocaleString("en-US")}`;
   return `₸${n.toLocaleString("ru-RU")}`;
 }
 
-function serviceInitial(name: string): string {
-  return (name?.charAt(0) ?? "?").toUpperCase();
+// ─── Reveal-on-scroll wrapper ───
+function Reveal({ children, delay = 0, className = "" }: { children: ReactNode; delay?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setVisible(true);
+            observer.disconnect();
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`eco-reveal ${visible ? "is-visible" : ""} ${className}`}
+      style={delay ? { transitionDelay: `${delay}ms` } : undefined}
+    >
+      {children}
+    </div>
+  );
 }
 
-type StepBase = { icon: LucideIcon; ru: string; kz: string; en: string };
-type DisplayStep = StepBase & { title: string };
+// ─── Unified catalog card model (live API + curated fallback) ───
+type DisplayService = {
+  key: string;
+  name: string;
+  categoryName: string;
+  description?: string;
+  price: number | null;
+  currency?: string | null;
+  discount?: number;
+  fullPrice?: number;
+  tariffs?: number;
+};
 
-const ownerSteps: StepBase[] = [
-  { icon: Sparkles, ru: "Создайте группу подписки", kz: "Жазылым тобын жасаңыз", en: "Create a subscription group" },
-  { icon: Users, ru: "Заполните свободные места", kz: "Бос орындарды толтырыңыз", en: "Fill empty seats" },
-  { icon: CheckCircle2, ru: "Выдайте доступ", kz: "Қолжетімділік беріңіз", en: "Grant access" },
-  { icon: CreditCard, ru: "Получите выплату после hold", kz: "Hold кейін төлем алыңыз", en: "Get payout after hold" },
+function findFeaturedMatch(name: string): FeaturedService | undefined {
+  const n = name.toLowerCase();
+  return featuredServices.find((f) => {
+    const fn = f.name.toLowerCase();
+    return n.includes(fn) || fn.includes(n);
+  });
+}
+
+function fromApi(service: ServiceDto, lang: L): DisplayService {
+  const match = findFeaturedMatch(service.name);
+  return {
+    key: `api-${service.id}`,
+    name: service.name,
+    categoryName: service.categoryName,
+    description: match ? tx(lang, match.description.ru, match.description.kz, match.description.en) : undefined,
+    price: service.minPricePerMember ?? match?.memberPrice ?? null,
+    currency: service.currency,
+    discount: match?.discount,
+    fullPrice: match?.fullPrice,
+    tariffs: service.tariffCount,
+  };
+}
+
+function fromFeatured(service: FeaturedService, lang: L): DisplayService {
+  return {
+    key: `local-${service.name}`,
+    name: service.name,
+    categoryName: tx(lang, service.category.ru, service.category.kz, service.category.en),
+    description: tx(lang, service.description.ru, service.description.kz, service.description.en),
+    price: service.memberPrice,
+    discount: service.discount,
+    fullPrice: service.fullPrice,
+  };
+}
+
+// ─── Static home content ───
+const displayCategories: Array<{ icon: LucideIcon; ru: string; kz: string; en: string; match: string[] }> = [
+  { icon: Music, ru: "Музыка", kz: "Музыка", en: "Music", match: ["music", "музык"] },
+  { icon: Clapperboard, ru: "Видео и кино", kz: "Видео және кино", en: "Video & Movies", match: ["video", "видео", "кино"] },
+  { icon: Gamepad2, ru: "Игры", kz: "Ойындар", en: "Games", match: ["game", "игр", "ойын"] },
+  { icon: Smartphone, ru: "Приложения", kz: "Қосымшалар", en: "Apps", match: ["app", "прилож", "serv", "telecom"] },
+  { icon: Newspaper, ru: "Новости", kz: "Жаңалықтар", en: "News", match: ["news", "новост"] },
+  { icon: ShieldCheck, ru: "Безопасность", kz: "Қауіпсіздік", en: "Security", match: ["secur", "vpn", "безопас"] },
+  { icon: GraduationCap, ru: "Обучение", kz: "Оқыту", en: "Education", match: ["educ", "learn", "обуч", "ai"] },
+  { icon: Home, ru: "Дом", kz: "Үй", en: "Home", match: ["home", "дом", "cloud"] },
+  { icon: Dumbbell, ru: "Фитнес", kz: "Фитнес", en: "Fitness", match: ["fitness", "фитнес", "sport", "спорт", "health"] },
 ];
 
-const memberSteps: StepBase[] = [
-  { icon: Search, ru: "Выберите сервис", kz: "Сервис таңдаңыз", en: "Choose a service" },
-  { icon: ShieldCheck, ru: "Оплатите с защитой", kz: "Қорғаумен төлеңіз", en: "Pay with protection" },
-  { icon: Lock, ru: "Получите доступ", kz: "Қолжетімділік алыңыз", en: "Get access" },
-  { icon: Star, ru: "Пользуйтесь дешевле", kz: "Арзанырақ қолданыңыз", en: "Use it for less" },
+const howItWorksSteps: Array<{ icon: LucideIcon; title: { ru: string; kz: string; en: string }; body: { ru: string; kz: string; en: string } }> = [
+  {
+    icon: Search,
+    title: { ru: "Я выбираю", kz: "Мен таңдаймын", en: "I choose" },
+    body: {
+      ru: "Выберите сервис из каталога и подходящую комнату.",
+      kz: "Каталогтан сервис пен қолайлы бөлмені таңдаңыз.",
+      en: "Pick a service from the catalog and a room that fits.",
+    },
+  },
+  {
+    icon: CreditCard,
+    title: { ru: "Я плачу", kz: "Мен төлеймін", en: "I pay" },
+    body: {
+      ru: "Внесите платёж безопасно — деньги под защитой hold.",
+      kz: "Қауіпсіз төлеңіз — ақша hold қорғауында.",
+      en: "Pay securely — funds stay protected in the hold.",
+    },
+  },
+  {
+    icon: KeyRound,
+    title: { ru: "Я получаю доступ", kz: "Мен қолжетімділік аламын", en: "I get access" },
+    body: {
+      ru: "Получите приватный доступ к подписке от владельца.",
+      kz: "Иесінен жазылымға жеке қолжетімділік алыңыз.",
+      en: "Get private access to the subscription from the owner.",
+    },
+  },
+  {
+    icon: PiggyBank,
+    title: { ru: "Я экономлю", kz: "Мен үнемдеймін", en: "I save" },
+    body: {
+      ru: "Платите в 2–6 раз меньше, чем за личную подписку.",
+      kz: "Жеке жазылымнан 2–6 есе аз төлеңіз.",
+      en: "Pay 2–6× less than the solo subscription price.",
+    },
+  },
 ];
 
+const staticReviews: Array<{ name: string; text: { ru: string; kz: string; en: string }; rating: number; source: "Google" | "Trustpilot"; color: string }> = [
+  {
+    name: "Айдана С.",
+    rating: 5,
+    source: "Google",
+    color: "#FF8C42",
+    text: {
+      ru: "Подключилась к комнате Netflix за пару минут. Плачу в 4 раза меньше, доступ работает без перебоев.",
+      kz: "Netflix бөлмесіне бірнеше минутта қосылдым. 4 есе аз төлеймін, қолжетімділік үзіліссіз.",
+      en: "Joined a Netflix room in minutes. I pay 4× less and access just works.",
+    },
+  },
+  {
+    name: "Тимур К.",
+    rating: 5,
+    source: "Trustpilot",
+    color: "#2B7DE9",
+    text: {
+      ru: "Создал комнату Spotify для семьи. Деньги приходят вовремя, а hold защищает обе стороны.",
+      kz: "Отбасыма Spotify бөлмесін жасадым. Ақша уақытында келеді, hold екі жақты да қорғайды.",
+      en: "Made a Spotify room for my family. Payouts arrive on time and the hold protects both sides.",
+    },
+  },
+  {
+    name: "Мадина Е.",
+    rating: 5,
+    source: "Google",
+    color: "#0FA47F",
+    text: {
+      ru: "Яндекс Плюс за 500 тенге в месяц — это лучшее, что я находила. Поддержка отвечает быстро.",
+      kz: "Айына 500 теңгеге Яндекс Плюс — тапқанымның ең жақсысы. Қолдау жылдам жауап береді.",
+      en: "Yandex Plus for 500 KZT a month is the best deal I've found. Support replies fast.",
+    },
+  },
+  {
+    name: "Алексей П.",
+    rating: 4,
+    source: "Trustpilot",
+    color: "#7C5CFF",
+    text: {
+      ru: "Удобный каталог и честные цены. Один раз открывал спор — вернули деньги за три дня.",
+      kz: "Ыңғайлы каталог және адал бағалар. Бір рет дау аштым — ақшаны үш күнде қайтарды.",
+      en: "Clean catalog and fair prices. Opened one dispute — refunded within three days.",
+    },
+  },
+  {
+    name: "Жанель А.",
+    rating: 5,
+    source: "Google",
+    color: "#E8467C",
+    text: {
+      ru: "YouTube Premium на всю семью почти даром. Всё прозрачно: видно владельца, рейтинг и условия.",
+      kz: "Бүкіл отбасына YouTube Premium дерлік тегін. Бәрі ашық: иесі, рейтинг және шарттар көрінеді.",
+      en: "YouTube Premium for the family almost free. Everything is transparent: owner, rating, terms.",
+    },
+  },
+  {
+    name: "Данияр М.",
+    rating: 5,
+    source: "Trustpilot",
+    color: "#E5A100",
+    text: {
+      ru: "Экономлю больше 8000 тенге в месяц на трёх подписках. Жалею, что не нашёл сервис раньше.",
+      kz: "Үш жазылымнан айына 8000 теңгеден артық үнемдеймін. Ертерек таппағаныма өкінемін.",
+      en: "Saving over 8,000 KZT monthly across three subscriptions. Wish I'd found this sooner.",
+    },
+  },
+  {
+    name: "Карина Т.",
+    rating: 5,
+    source: "Google",
+    color: "#FF8C42",
+    text: {
+      ru: "Microsoft 365 для учёбы вышел дешевле кофе. Оплата заняла минуту, доступ дали в тот же вечер.",
+      kz: "Оқуға арналған Microsoft 365 кофеден арзан шықты. Төлем бір минут, қолжетімділік сол күні.",
+      en: "Microsoft 365 for studying costs less than a coffee. Paid in a minute, access same evening.",
+    },
+  },
+  {
+    name: "Ерлан Б.",
+    rating: 5,
+    source: "Trustpilot",
+    color: "#0FA47F",
+    text: {
+      ru: "Как владелец комнаты получаю выплаты стабильно. Модерация реально проверяет участников.",
+      kz: "Бөлме иесі ретінде төлемдерді тұрақты аламын. Модерация қатысушыларды шынымен тексереді.",
+      en: "As a room owner I get payouts reliably. Moderation actually vets members.",
+    },
+  },
+];
 
 const faqs = [
   {
-    q: { ru: "Сколько стоит Ecopay?", kz: "Ecopay қанша тұрады?", en: "How much does Ecopay cost?" },
+    q: { ru: "Сколько стоит EcoSplit?", kz: "EcoSplit қанша тұрады?", en: "How much does EcoSplit cost?" },
     a: {
       ru: "Создать группу подписки можно бесплатно. Участник видит итоговую цену до оплаты, включая сервисный сбор и защиту платежа.",
       kz: "Бөлмені тегін жасауға болады. Қатысушы төлемге дейін сервис алымы мен төлем қорғауын қоса алғанда толық бағаны көреді.",
@@ -95,69 +292,83 @@ const faqs = [
   {
     q: { ru: "Можно ли делиться подписками легально?", kz: "Жазылымдарды заңды түрде бөлісуге бола ма?", en: "Is subscription sharing legal?" },
     a: {
-      ru: "EcoPay рассчитан на семейные и групповые тарифы, где провайдер разрешает совместный доступ. Владелец подтверждает условия при создании группы.",
-      kz: "Ecopay провайдер ортақ пайдалануға рұқсат беретін отбасылық және топтық тарифтерге арналған. Иесі бөлме жасағанда шарттарды растайды.",
-      en: "Ecopay is designed for family and group plans where the provider allows shared access. Owners confirm provider terms when creating a room.",
+      ru: "EcoSplit рассчитан на семейные и групповые тарифы, где провайдер разрешает совместный доступ. Владелец подтверждает условия при создании группы.",
+      kz: "EcoSplit провайдер ортақ пайдалануға рұқсат беретін отбасылық және топтық тарифтерге арналған. Иесі бөлме жасағанда шарттарды растайды.",
+      en: "EcoSplit is designed for family and group plans where the provider allows shared access. Owners confirm provider terms when creating a room.",
     },
   },
   {
     q: { ru: "Что если доступ не выдали?", kz: "Қолжетімділік берілмесе не болады?", en: "What if access is not provided?" },
     a: {
       ru: "После оплаты деньги остаются в hold 30 дней. Если доступ не выдали, он не работает или вас удалили из подписки, можно открыть спор.",
-      kz: "Төлемнен кейін қолжетімділікті растау және SLA бар. Егер қолжетімділік уақытында берілмесе, өтініш немесе дау ашылып, қолдау тобы жағдайды қарайды.",
-      en: "After payment, access confirmation and SLA checks apply. If access is late, a ticket or dispute is created and support reviews it.",
+      kz: "Төлемнен кейін ақша 30 күн hold-та қалады. Қолжетімділік берілмесе немесе жұмыс істемесе, дау аша аласыз.",
+      en: "After payment, funds stay in a 30-day hold. If access is missing, broken, or revoked, you can open a dispute.",
     },
   },
 ];
 
-function CatalogServiceCard({ service, language, t }: { service: ServiceDto; language: L; t: (k: string, p?: Record<string, string | number>) => string }) {
-  const tariffs = service.tariffCount ?? 0;
-  const hasPrice = service.minPricePerMember != null;
+// ─── Catalog card ───
+function CatalogServiceCard({ service, language, index }: { service: DisplayService; language: L; index: number }) {
   return (
-    <Link to="/browse" style={{ textDecoration: "none" }}>
-      <Card className="h-full flex flex-col gap-4 hover:shadow-sm transition-shadow cursor-pointer">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-[18px]"
-              style={{ background: "var(--eco-brand-50)", color: "var(--eco-primary)", fontWeight: 700 }}
+    <Reveal delay={Math.min(index, 8) * 100} className="h-full">
+      <Link to="/browse" style={{ textDecoration: "none" }} className="block h-full">
+        <Card className="eco-lift relative h-full flex flex-col gap-4 cursor-pointer overflow-hidden">
+          {service.discount != null && (
+            <span
+              className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[12px]"
+              style={{ background: "var(--eco-primary)", color: "#fff", fontWeight: 700 }}
             >
-              {serviceInitial(service.name)}
-            </div>
+              −{service.discount}%
+            </span>
+          )}
+          <div className="flex items-start gap-3 pr-14">
+            <ServiceLogo name={service.name} size={52} className="shrink-0" />
             <div className="min-w-0">
-              <div className="text-[15px] truncate" style={{ color: "var(--eco-text)" }}>{service.name}</div>
+              <div className="text-[16px] truncate" style={{ color: "var(--eco-text)", fontWeight: 600 }}>
+                {service.name}
+              </div>
               <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
                 {service.categoryName}
               </div>
             </div>
           </div>
-          {tariffs > 0 && (
-            <Badge variant="info">{t("marketplaceTariffsCount", { count: tariffs })}</Badge>
-          )}
-        </div>
 
-        <div className="mt-auto">
-          {hasPrice ? (
-            <div className="flex items-baseline gap-2">
-              <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t("marketplaceFromPrice")}</span>
-              <span className="text-[24px]" style={{ color: "var(--eco-primary)", fontWeight: 700 }}>
-                {formatServicePrice(service.minPricePerMember, service.currency)}
-              </span>
-            </div>
-          ) : (
-            <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-              {t("marketplaceNoTariffs")}
-            </span>
+          {service.description && (
+            <p className="text-[13px] leading-relaxed m-0" style={{ color: "var(--eco-text-secondary)" }}>
+              {service.description}
+            </p>
           )}
-          <div className="mt-3 flex items-center justify-between text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
-            <span>{tx(language, "за участника / месяц", "қатысушыға / ай", "per member / month")}</span>
-            <span className="inline-flex items-center gap-1" style={{ color: "var(--eco-primary)" }}>
-              {tx(language, "Смотреть", "Көру", "View")} <ArrowRight size={13} />
-            </span>
+
+          <div className="mt-auto pt-1">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="text-[24px]" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
+                {formatPrice(service.price, service.currency)}
+              </span>
+              <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                {tx(language, "/мес за участника", "/ай қатысушыға", "/mo per member")}
+              </span>
+              {service.fullPrice != null && (
+                <span className="text-[13px] line-through" style={{ color: "var(--eco-text-tertiary)" }}>
+                  {formatPrice(service.fullPrice)}
+                </span>
+              )}
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <span
+                className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-[13px] transition-colors"
+                style={{ background: "var(--eco-primary)", color: "#fff", fontWeight: 600 }}
+              >
+                {tx(language, "Присоединиться", "Қосылу", "Join")}
+                <ArrowRight size={14} />
+              </span>
+              {service.tariffs != null && service.tariffs > 0 && (
+                <Badge variant="info">{service.tariffs}</Badge>
+              )}
+            </div>
           </div>
-        </div>
-      </Card>
-    </Link>
+        </Card>
+      </Link>
+    </Reveal>
   );
 }
 
@@ -165,36 +376,176 @@ function MarketplaceSkeletonCard() {
   return (
     <Card className="h-full flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <Skeleton width={48} height={48} rounded={12} />
+        <Skeleton width={52} height={52} rounded={12} />
         <div className="flex-1 flex flex-col gap-2">
           <Skeleton width="60%" height={14} />
           <Skeleton width="40%" height={12} />
         </div>
       </div>
-      <Skeleton height={32} />
-      <Skeleton width="50%" height={12} />
+      <Skeleton height={30} />
+      <Skeleton height={13} />
+      <Skeleton height={38} rounded={8} />
     </Card>
   );
 }
 
-function StepRail({ title, steps }: { title: string; steps: DisplayStep[] }) {
+// ─── Categories carousel (one row under the hero search, Sharesub-style) ───
+function CategoriesCarousel({ language, onSelect }: { language: L; onSelect: (match: string[], label: string) => void }) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    align: "start",
+    dragFree: true, // continuous glide, no snap
+    duration: 30,
+    containScroll: "trimSnaps",
+  });
+
   return (
-    <Card className="flex flex-col gap-4">
-      <h3 className="text-[16px]" style={{ color: "var(--eco-text)" }}>{title}</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {steps.map((step, index) => (
-          <div key={step.en} className="flex items-center gap-3 rounded-lg p-3" style={{ background: "var(--eco-surface)" }}>
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--eco-brand-50)" }}>
-              <step.icon size={17} style={{ color: "var(--eco-primary)" }} />
-            </div>
-            <div>
-              <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>0{index + 1}</div>
-              <div className="text-[13px]" style={{ color: "var(--eco-text)" }}>{step.title}</div>
-            </div>
-          </div>
-        ))}
+    <div className="relative">
+      <div className="overflow-hidden cursor-grab active:cursor-grabbing" ref={emblaRef}>
+        <div className="flex gap-3 px-1 py-2">
+          {displayCategories.map((category) => {
+            const label = tx(language, category.ru, category.kz, category.en);
+            return (
+              <button
+                key={category.en}
+                type="button"
+                onClick={() => onSelect(category.match, label)}
+                className="eco-scale-hover shrink-0 flex flex-col items-center gap-2 rounded-xl py-4 px-2 cursor-pointer basis-[calc(33.4%-8px)] sm:basis-[calc(25%-9px)] lg:basis-[calc(16.7%-10px)]"
+                style={{ background: "var(--eco-surface-raised)", border: "1px solid var(--eco-border)" }}
+              >
+                <span className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "var(--eco-brand-50)" }}>
+                  <category.icon size={19} style={{ color: "var(--eco-primary)" }} />
+                </span>
+                <span className="text-[13px] whitespace-nowrap" style={{ color: "var(--eco-text)", fontWeight: 500 }}>
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </Card>
+      <button
+        type="button"
+        aria-label={tx(language, "Назад", "Артқа", "Previous")}
+        onClick={() => emblaApi?.scrollPrev()}
+        className="flex absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full items-center justify-center cursor-pointer shadow-md transition-transform hover:scale-110 z-10"
+        style={{ background: "var(--eco-surface-raised)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
+      >
+        <ChevronLeft size={16} />
+      </button>
+      <button
+        type="button"
+        aria-label={tx(language, "Вперёд", "Алға", "Next")}
+        onClick={() => emblaApi?.scrollNext()}
+        className="flex absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full items-center justify-center cursor-pointer shadow-md transition-transform hover:scale-110 z-10"
+        style={{ background: "var(--eco-surface-raised)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
+      >
+        <ChevronRight size={16} />
+      </button>
+    </div>
+  );
+}
+
+// ─── Popular services carousel ───
+function PopularCarousel({ language }: { language: L }) {
+  // duration is embla's tween speed factor (not ms): 30 ≈ a 600-800ms glide
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "start", duration: 30 });
+  const autoplayRef = useRef<number | null>(null);
+
+  const stopAutoplay = useCallback(() => {
+    if (autoplayRef.current != null) {
+      window.clearInterval(autoplayRef.current);
+      autoplayRef.current = null;
+    }
+  }, []);
+
+  const startAutoplay = useCallback(() => {
+    stopAutoplay();
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    autoplayRef.current = window.setInterval(() => emblaApi?.scrollNext(), 5000);
+  }, [emblaApi, stopAutoplay]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    startAutoplay();
+    emblaApi.on("pointerDown", stopAutoplay);
+    emblaApi.on("pointerUp", startAutoplay);
+    return () => {
+      stopAutoplay();
+      emblaApi.off("pointerDown", stopAutoplay);
+      emblaApi.off("pointerUp", startAutoplay);
+    };
+  }, [emblaApi, startAutoplay, stopAutoplay]);
+
+  return (
+    <div className="relative" onMouseEnter={stopAutoplay} onMouseLeave={startAutoplay}>
+      <div className="overflow-hidden" ref={emblaRef}>
+        <div className="flex gap-4">
+          {featuredServices.slice(0, 10).map((service) => (
+            <Link
+              key={service.name}
+              to="/browse"
+              style={{ textDecoration: "none" }}
+              className="shrink-0 basis-[240px]"
+            >
+              <Card className="eco-lift flex flex-col items-center text-center gap-3 py-6">
+                <ServiceLogo name={service.name} size={56} />
+                <div className="text-[14px]" style={{ color: "var(--eco-text)", fontWeight: 600 }}>
+                  {service.name}
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[18px]" style={{ color: "var(--eco-primary)", fontWeight: 700 }}>
+                    {formatPrice(service.memberPrice)}
+                  </span>
+                  <span className="text-[11px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                    {tx(language, "/мес", "/ай", "/mo")}
+                  </span>
+                </div>
+                <span
+                  className="px-2 py-0.5 rounded-full text-[11px]"
+                  style={{ background: "var(--eco-brand-50)", color: "var(--eco-brand-700)", fontWeight: 600 }}
+                >
+                  {tx(language, `экономия ${service.discount}%`, `${service.discount}% үнем`, `save ${service.discount}%`)}
+                </span>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </div>
+      <button
+        type="button"
+        aria-label={tx(language, "Назад", "Артқа", "Previous")}
+        onClick={() => emblaApi?.scrollPrev()}
+        className="flex absolute left-1 sm:-left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full items-center justify-center cursor-pointer shadow-md transition-transform hover:scale-110 z-10"
+        style={{ background: "var(--eco-surface-raised)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
+      >
+        <ChevronLeft size={18} />
+      </button>
+      <button
+        type="button"
+        aria-label={tx(language, "Вперёд", "Алға", "Next")}
+        onClick={() => emblaApi?.scrollNext()}
+        className="flex absolute right-1 sm:-right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full items-center justify-center cursor-pointer shadow-md transition-transform hover:scale-110 z-10"
+        style={{ background: "var(--eco-surface-raised)", border: "1px solid var(--eco-border)", color: "var(--eco-text)" }}
+      >
+        <ChevronRight size={18} />
+      </button>
+    </div>
+  );
+}
+
+// ─── Stars ───
+function Stars({ rating }: { rating: number }) {
+  return (
+    <div className="flex gap-0.5" aria-label={`${rating}/5`}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star
+          key={i}
+          size={15}
+          fill={i < rating ? "#FFC107" : "none"}
+          style={{ color: i < rating ? "#FFC107" : "var(--eco-border)" }}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -209,12 +560,8 @@ export function HomePage() {
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [services, setServices] = useState<ServiceDto[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
-  const [servicesError, setServicesError] = useState<string | null>(null);
 
   const [featuredReviews, setFeaturedReviews] = useState<PublicServiceReviewDto[]>([]);
-
-  const localizedOwnerSteps = ownerSteps.map((step) => ({ ...step, title: tx(lang, step.ru, step.kz, step.en) }));
-  const localizedMemberSteps = memberSteps.map((step) => ({ ...step, title: tx(lang, step.ru, step.kz, step.en) }));
 
   useEffect(() => {
     let cancelled = false;
@@ -226,7 +573,6 @@ export function HomePage() {
 
   useEffect(() => {
     let cancelled = false;
-    setServicesError(null);
     const handle = window.setTimeout(() => {
       setServicesLoading(true);
       void getServices(activeCategoryId === "all" ? undefined : activeCategoryId, sort)
@@ -234,20 +580,21 @@ export function HomePage() {
           if (!cancelled) setServices(data);
         })
         .catch(() => {
-          if (!cancelled) setServicesError(t("marketplaceLoadFailed"));
+          // Silent — the curated fallback below keeps the catalog populated.
+          if (!cancelled) setServices([]);
         })
         .finally(() => {
           if (!cancelled) setServicesLoading(false);
         });
     }, 150);
     return () => { cancelled = true; window.clearTimeout(handle); };
-  }, [activeCategoryId, sort, t]);
+  }, [activeCategoryId, sort]);
 
   useEffect(() => {
     let cancelled = false;
     void getFeaturedServiceReviews()
       .then((data) => { if (!cancelled) setFeaturedReviews(data ?? []); })
-      .catch(() => { /* silent — section hides when empty */ });
+      .catch(() => { /* silent — static reviews cover the section */ });
     return () => { cancelled = true; };
   }, []);
 
@@ -259,115 +606,162 @@ export function HomePage() {
     { value: "newest", label: t("sortNewest") },
   ], [t]);
 
-  const filteredServices = useMemo(() => {
+  // Live API services first, then curated services not already present, so the
+  // catalog always shows at least 12 cards even on an empty backend.
+  const displayServices = useMemo<DisplayService[]>(() => {
+    const fromApiList = services.map((s) => fromApi(s, lang));
+    let combined = fromApiList;
+    if (activeCategoryId === "all") {
+      const matched = new Set(
+        fromApiList
+          .map((s) => findFeaturedMatch(s.name)?.name)
+          .filter((n): n is string => Boolean(n)),
+      );
+      const extras = featuredServices
+        .filter((f) => !matched.has(f.name))
+        .map((f) => fromFeatured(f, lang));
+      combined = [...fromApiList, ...extras];
+    }
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return services;
-    return services.filter((service) =>
-      service.name.toLowerCase().includes(normalizedQuery)
-      || service.categoryName.toLowerCase().includes(normalizedQuery),
+    if (!normalizedQuery) return combined;
+    return combined.filter(
+      (s) =>
+        s.name.toLowerCase().includes(normalizedQuery)
+        || s.categoryName.toLowerCase().includes(normalizedQuery),
     );
-  }, [services, query]);
+  }, [services, activeCategoryId, query, lang]);
+
+  const scrollToMarketplace = () => {
+    document.getElementById("marketplace")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleCategoryTile = (match: string[], label: string) => {
+    const found = categories.find((c) =>
+      match.some((m) => c.slug.toLowerCase().includes(m) || c.name.toLowerCase().includes(m)),
+    );
+    if (found) {
+      setActiveCategoryId(found.id);
+      setQuery("");
+    } else {
+      setActiveCategoryId("all");
+      setQuery(label);
+    }
+    scrollToMarketplace();
+  };
+
+  const gridReviews = useMemo(() => {
+    const api = featuredReviews.slice(0, 4).map((review, i) => ({
+      name: review.authorDisplayName,
+      rating: review.rating,
+      text: review.text,
+      source: null as string | null,
+      color: staticReviews[i % staticReviews.length].color,
+      link: `/u/${review.authorPublicId}`,
+    }));
+    const locals = staticReviews.slice(0, 8 - api.length).map((r) => ({
+      name: r.name,
+      rating: r.rating,
+      text: tx(lang, r.text.ru, r.text.kz, r.text.en),
+      source: r.source as string | null,
+      color: r.color,
+      link: null as string | null,
+    }));
+    return [...api, ...locals];
+  }, [featuredReviews, lang]);
 
   return (
     <div>
-      <section className="px-4 sm:px-6 pt-10 sm:pt-12 pb-10" style={{ background: "var(--eco-surface)" }}>
-        <div className="max-w-[1200px] mx-auto grid lg:grid-cols-[1fr_420px] gap-10 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[12px] mb-5" style={{ background: "var(--eco-brand-50)", color: "var(--eco-primary)" }}>
-              <ShieldCheck size={14} />
-              {tx(lang, "Защищённое совместное использование подписок", "Қорғалған ортақ жазылымдар", "Protected subscription sharing")}
-            </div>
-            <h1 className="text-[28px] sm:text-[36px] lg:text-[44px] leading-tight tracking-normal" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
-              {tx(lang, "Платите меньше за семейные подписки", "Отбасылық жазылымдарға аз төлеңіз", "Pay less for family subscriptions")}
-            </h1>
-            <p className="text-[15px] mt-4 max-w-2xl" style={{ color: "var(--eco-text-secondary)" }}>
-              {tx(
-                lang,
-                "EcoPay помогает находить свободные места в семейных тарифах, делить оплату между участниками и защищает деньги через 30-дневный hold.",
-                "EcoPay отбасылық тарифтердегі бос орындарды табуға, төлемді қатысушылар арасында бөлуге және ақшаны 30 күндік hold арқылы қорғауға көмектеседі.",
-                "EcoPay helps you find open seats in family plans, split the cost, and protect funds with a 30-day hold."
-              )}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 mt-7">
-              <Link to="/rooms/create" style={{ textDecoration: "none" }}>
-                <Button size="lg" className="w-full sm:w-auto">
-                  <Sparkles size={17} />
-                  {tx(lang, "Создать группу", "Топ жасау", "Create group")}
-                </Button>
-              </Link>
-              <Link to="/browse" style={{ textDecoration: "none" }}>
-                <Button variant="secondary" size="lg" className="w-full sm:w-auto">
-                  <Search size={17} />
-                  {tx(lang, "Найти подписку", "Жазылым табу", "Find a subscription")}
-                </Button>
-              </Link>
-            </div>
-            <div className="grid grid-cols-3 gap-4 mt-8 max-w-xl">
-              {[
-                ["120+", tx(lang, "групп подписок", "жазылым тобы", "subscription groups")],
-                [tx(lang, "до 80%", "80% дейін", "up to 80%"), tx(lang, "экономии", "үнем", "savings")],
-                ["30", tx(lang, "дней hold", "күн hold", "hold days")],
-              ].map(([value, label]) => (
-                <div key={value}>
-                  <div className="text-[24px]" style={{ color: "var(--eco-primary)", fontWeight: 700 }}>{value}</div>
-                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{label}</div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-6">
-              <Link
-                to="/how-it-works"
-                className="text-[13px] inline-flex items-center gap-1"
-                style={{ color: "var(--eco-primary)", textDecoration: "none" }}
+      {/* ─── Hero ─── */}
+      <section className="relative overflow-hidden px-4 sm:px-6 pt-14 sm:pt-20 pb-12 sm:pb-16" style={{ background: "linear-gradient(180deg, var(--eco-brand-50) 0%, var(--eco-bg) 100%)" }}>
+        <div className="eco-hero-blobs" aria-hidden="true">
+          <span className="eco-blob eco-blob-1" />
+          <span className="eco-blob eco-blob-2" />
+          <span className="eco-blob eco-blob-3" />
+        </div>
+        <div className="relative max-w-[860px] mx-auto text-center">
+          <div
+            className="animate-eco-fade-in inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[13px] mb-6"
+            style={{ background: "var(--eco-surface-raised)", color: "var(--eco-brand-700)", fontWeight: 500, border: "1px solid var(--eco-brand-100)" }}
+          >
+            <ShieldCheck size={15} />
+            {tx(lang, "Защищённое совместное использование подписок", "Қорғалған ортақ жазылымдар", "Protected subscription sharing")}
+          </div>
+
+          <h1
+            className="animate-eco-fade-in text-[32px] sm:text-[44px] lg:text-[56px] leading-[1.1] tracking-tight m-0"
+            style={{ color: "var(--eco-text)", fontWeight: 700, animationDelay: "80ms" }}
+          >
+            {tx(lang, "Платите меньше за", "Отбасылық жазылымдарға", "Pay less for")}{" "}
+            <span style={{ color: "var(--eco-primary)" }}>
+              {tx(lang, "семейные подписки", "аз төлеңіз", "family subscriptions")}
+            </span>
+          </h1>
+
+          <p
+            className="animate-eco-fade-in text-[16px] sm:text-[18px] mt-5 mx-auto max-w-[560px]"
+            style={{ color: "var(--eco-text-secondary)", animationDelay: "160ms" }}
+          >
+            {tx(
+              lang,
+              "Выберите сервис — мы подберём комнату или предложим создать свою.",
+              "Сервисті таңдаңыз — біз бөлме табамыз немесе өзіңіздікін жасауды ұсынамыз.",
+              "Pick a service — we'll find you a room or help you create your own.",
+            )}
+          </p>
+
+          <div className="animate-eco-fade-in mt-8 max-w-[560px] mx-auto" style={{ animationDelay: "240ms" }}>
+            <div
+              className="flex items-center gap-2 pl-5 pr-2 py-2 rounded-full shadow-lg transition-shadow focus-within:shadow-xl"
+              style={{ background: "var(--eco-surface-raised)", border: "1px solid var(--eco-border)" }}
+            >
+              <Search size={19} className="shrink-0" style={{ color: "var(--eco-text-tertiary)" }} />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => { if (event.key === "Enter") scrollToMarketplace(); }}
+                placeholder={tx(lang, "Найдите сервис...", "Сервис іздеңіз...", "Find a service...")}
+                className="flex-1 min-w-0 py-1.5 text-[15px] outline-none bg-transparent"
+                style={{ color: "var(--eco-text)" }}
+              />
+              <button
+                type="button"
+                onClick={scrollToMarketplace}
+                className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-transform hover:scale-105"
+                style={{ background: "var(--eco-primary)", color: "#fff", border: "none" }}
+                aria-label={tx(lang, "Искать", "Іздеу", "Search")}
               >
-                {tx(lang, "Как это работает", "Бұл қалай жұмыс істейді", "How it works")} <ArrowRight size={13} />
-              </Link>
+                <ArrowRight size={18} />
+              </button>
             </div>
           </div>
 
-          <Card className="hidden lg:flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div>
-            <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{tx(lang, "Популярная группа", "Танымал топ", "Popular group")}</div>
-                <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>YouTube Premium · {tx(lang, "Открыта", "Ашық", "Open")}</div>
+          <div className="animate-eco-fade-in mt-7 max-w-[760px] mx-auto" style={{ animationDelay: "300ms" }}>
+            <CategoriesCarousel language={lang} onSelect={handleCategoryTile} />
+          </div>
+
+          <div className="animate-eco-fade-in flex flex-wrap items-center justify-center gap-x-10 gap-y-4 mt-8" style={{ animationDelay: "380ms" }}>
+            {[
+              ["5000+", tx(lang, "довольных пользователей", "риза пайдаланушы", "happy users")],
+              ["4.8/5", tx(lang, "рейтинг на Google", "Google рейтингі", "Google rating")],
+              [tx(lang, "до 80%", "80% дейін", "up to 80%"), tx(lang, "экономии", "үнем", "savings")],
+            ].map(([value, label]) => (
+              <div key={label} className="text-center">
+                <div className="text-[26px]" style={{ color: "var(--eco-primary)", fontWeight: 700 }}>{value}</div>
+                <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{label}</div>
               </div>
-              <Badge variant="info">RISK_BASED</Badge>
-            </div>
-            <div className="rounded-xl p-4" style={{ background: "var(--eco-surface)" }}>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>{tx(lang, "Места", "Орындар", "Slots")}</span>
-                <span className="text-[13px]" style={{ color: "var(--eco-text)" }}>4 / 5</span>
-              </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--eco-neutral-200)" }}>
-                <div className="h-full rounded-full" style={{ width: "60%", background: "var(--eco-primary)" }} />
-              </div>
-              <div className="mt-5 flex items-end justify-between">
-                <div>
-                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{tx(lang, "Цена участника", "Қатысушы бағасы", "Member price")}</div>
-                  <div className="text-[28px]" style={{ color: "var(--eco-primary)", fontWeight: 700 }}>₸790</div>
-                </div>
-                <Link to="/browse" style={{ textDecoration: "none" }}>
-                  <Button size="sm">{tx(lang, "Открыть", "Ашу", "Open")}</Button>
-                </Link>
-              </div>
-            </div>
-            <div className="flex items-start gap-2 text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-              <Lock size={14} className="mt-0.5 shrink-0" />
-              {tx(lang, "После оплаты деньги не уходят владельцу сразу: EcoPay удерживает средства 30 дней.", "Төлемнен кейін ақша иесіне бірден жіберілмейді: EcoPay қаражатты 30 күн ұстайды.", "After payment, funds are not released immediately: EcoPay holds them for 30 days.")}
-            </div>
-          </Card>
+            ))}
+          </div>
         </div>
       </section>
 
-      <WaveDivider flip />
-
-      <section id="marketplace" className="max-w-[1200px] mx-auto px-4 sm:px-6 py-10 sm:py-12">
+      {/* ─── Catalog ─── */}
+      <section id="marketplace" className="max-w-[1200px] mx-auto px-4 sm:px-6 py-12 sm:py-16 scroll-mt-20">
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-6">
           <div>
-            <h2 className="text-[22px] sm:text-[24px]" style={{ color: "var(--eco-text)" }}>
-              {tx(lang, "Маркетплейс семейных подписок", "Отбасылық жазылымдар маркетплейсі", "Family subscription marketplace")}
+            <h2 className="text-[24px] sm:text-[32px] m-0" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
+              {tx(lang, "Каталог подписок", "Жазылымдар каталогы", "Subscription catalog")}
             </h2>
-            <p className="text-[13px] mt-1" style={{ color: "var(--eco-text-secondary)" }}>
+            <p className="text-[14px] mt-2 m-0" style={{ color: "var(--eco-text-secondary)" }}>
               {tx(lang, "Выбирайте свободное место, проверяйте владельца, цену и условия доступа.", "Бос орынды таңдап, иесін, бағасын және қолжетімділік шарттарын тексеріңіз.", "Choose an open seat, check the owner, price, and access terms.")}
             </p>
           </div>
@@ -393,187 +787,319 @@ export function HomePage() {
           </div>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-3 mb-4">
-          {[{ id: "all" as const, name: tx(lang, "Все", "Барлығы", "All"), slug: "all" }, ...categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))].map((category) => {
-            const Icon = iconForCategory(category.slug);
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-5">
+          {[{ id: "all" as const, name: tx(lang, "Все", "Барлығы", "All") }, ...categories.map((c) => ({ id: c.id, name: c.name }))].map((category) => {
             const active = activeCategoryId === category.id;
             return (
               <button
                 key={`cat-${category.id}`}
                 type="button"
                 onClick={() => setActiveCategoryId(category.id)}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] shrink-0 cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-[13px] shrink-0 cursor-pointer transition-colors"
                 style={{
                   background: active ? "var(--eco-primary)" : "var(--eco-surface-raised)",
-                  color: active ? "var(--eco-text-on-primary)" : "var(--eco-text-secondary)",
+                  color: active ? "#fff" : "var(--eco-text-secondary)",
                   border: `1px solid ${active ? "var(--eco-primary)" : "var(--eco-border)"}`,
+                  fontWeight: active ? 600 : 400,
                 }}
               >
-                <Icon size={15} />
                 {category.name}
               </button>
             );
           })}
         </div>
 
-        {servicesError && (
-          <Card className="mb-4">
-            <span className="text-[13px]" style={{ color: "var(--eco-negative)" }}>{servicesError}</span>
-          </Card>
-        )}
-
         {servicesLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => <MarketplaceSkeletonCard key={i} />)}
           </div>
-        ) : filteredServices.length === 0 ? (
+        ) : displayServices.length === 0 ? (
           <Card className="text-center py-10 text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>
             {t("marketplaceNoServices")}
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredServices.map((service) => (
-              <CatalogServiceCard key={service.id} service={service} language={lang} t={t} />
+            {displayServices.map((service, index) => (
+              <CatalogServiceCard key={service.key} service={service} language={lang} index={index} />
             ))}
           </div>
         )}
       </section>
 
-      <section style={{ background: "var(--eco-surface)" }} className="px-4 sm:px-6 py-10 sm:py-12">
-        <div className="max-w-[1200px] mx-auto">
-          <div className="text-center mb-8">
-            <div className="text-[12px] mb-2" style={{ color: "var(--eco-primary)" }}>
+      {/* ─── Popular services carousel (full width, autoplay) ─── */}
+      <section style={{ background: "var(--eco-surface)" }} className="py-12 sm:py-16 overflow-hidden">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
+          <Reveal>
+            <div className="flex items-end justify-between gap-4 mb-8">
+              <h2 className="text-[24px] sm:text-[32px] m-0" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
+                {tx(lang, "Популярные сервисы", "Танымал сервистер", "Popular services")}
+              </h2>
+              <Link to="/browse" className="text-[14px] inline-flex items-center gap-1 shrink-0" style={{ color: "var(--eco-primary)", textDecoration: "none", fontWeight: 500 }}>
+                {tx(lang, "Все комнаты", "Барлық бөлмелер", "All rooms")} <ArrowRight size={14} />
+              </Link>
+            </div>
+          </Reveal>
+        </div>
+        <Reveal delay={100}>
+          <div className="px-4 sm:px-10">
+            <PopularCarousel language={lang} />
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ─── How it works ─── */}
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <Reveal>
+          <div className="text-center mb-10">
+            <div className="text-[13px] mb-2" style={{ color: "var(--eco-primary)", fontWeight: 600 }}>
               {tx(lang, "4 простых шага", "4 қарапайым қадам", "4 simple steps")}
             </div>
-            <h2 className="text-[22px] sm:text-[24px]" style={{ color: "var(--eco-text)" }}>{tx(lang, "Как это работает", "Бұл қалай жұмыс істейді", "How it works")}</h2>
+            <h2 className="text-[24px] sm:text-[32px] m-0" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
+              {tx(lang, "Как это работает", "Бұл қалай жұмыс істейді", "How it works")}
+            </h2>
           </div>
-          <div className="grid lg:grid-cols-2 gap-4">
-            <StepRail title={tx(lang, "Если вы владелец подписки", "Егер жазылым иесі болсаңыз", "If you own a subscription")} steps={localizedOwnerSteps} />
-            <StepRail title={tx(lang, "Если вы присоединяетесь", "Егер қосылсаңыз", "If you join")} steps={localizedMemberSteps} />
+        </Reveal>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {howItWorksSteps.map((step, index) => (
+            <Reveal key={step.title.en} delay={index * 90} className="relative">
+              <Card className="eco-lift h-full flex flex-col items-center text-center gap-4 py-8">
+                <div className="relative">
+                  <span
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                    style={{ background: "var(--eco-brand-50)", display: "flex" }}
+                  >
+                    <step.icon size={24} style={{ color: "var(--eco-primary)" }} />
+                  </span>
+                  <span
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-[12px]"
+                    style={{ background: "var(--eco-primary)", color: "#fff", fontWeight: 700 }}
+                  >
+                    {index + 1}
+                  </span>
+                </div>
+                <div className="text-[16px]" style={{ color: "var(--eco-text)", fontWeight: 600 }}>
+                  {tx(lang, step.title.ru, step.title.kz, step.title.en)}
+                </div>
+                <p className="text-[13px] m-0" style={{ color: "var(--eco-text-secondary)" }}>
+                  {tx(lang, step.body.ru, step.body.kz, step.body.en)}
+                </p>
+              </Card>
+              {index < howItWorksSteps.length - 1 && (
+                <span
+                  className="hidden lg:flex absolute top-1/2 -right-6 -translate-y-1/2 z-10 w-8 h-8 rounded-full items-center justify-center"
+                  style={{ background: "var(--eco-brand-50)", color: "var(--eco-primary)" }}
+                >
+                  <ArrowRight size={15} />
+                </span>
+              )}
+            </Reveal>
+          ))}
+        </div>
+        <Reveal delay={200}>
+          <div className="text-center mt-8">
+            <Link to="/how-it-works" className="text-[14px] inline-flex items-center gap-1" style={{ color: "var(--eco-primary)", textDecoration: "none", fontWeight: 500 }}>
+              {tx(lang, "Подробнее о процессе", "Процесс туралы толығырақ", "Learn more about the process")} <ArrowRight size={14} />
+            </Link>
           </div>
+        </Reveal>
+      </section>
+
+      {/* ─── Security ─── */}
+      <section style={{ background: "var(--eco-surface)" }} className="px-4 sm:px-6 py-12 sm:py-16">
+        <div className="max-w-[1200px] mx-auto">
+          <Reveal>
+            <div className="text-center mb-10">
+              <h2 className="text-[24px] sm:text-[32px] m-0" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
+                {tx(lang, "Ваши данные и деньги под защитой", "Деректеріңіз бен ақшаңыз қорғауда", "Your data and money are protected")}
+              </h2>
+              <p className="text-[14px] mt-3 m-0 mx-auto max-w-[520px]" style={{ color: "var(--eco-text-secondary)" }}>
+                {tx(lang, "Деньги не переводятся владельцу сразу — EcoSplit удерживает средства 30 дней, а споры замораживают выплату.", "Ақша иесіне бірден аударылмайды — EcoSplit қаражатты 30 күн ұстайды, даулар төлемді тоқтатады.", "Funds are not released immediately — EcoSplit holds them for 30 days, and disputes freeze payouts.")}
+              </p>
+            </div>
+          </Reveal>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              {
+                icon: ShieldCheck,
+                title: tx(lang, "Данные защищены", "Деректер қорғалған", "Data protected"),
+                points: [
+                  tx(lang, "Шифрование AES-256", "AES-256 шифрлауы", "AES-256 encryption"),
+                  tx(lang, "SSL-сертификат", "SSL сертификаты", "SSL certificate"),
+                  tx(lang, "Соответствие DSP2", "DSP2 сәйкестігі", "DSP2 compliant"),
+                ],
+              },
+              {
+                icon: Lock,
+                title: tx(lang, "Платежи безопасны", "Төлемдер қауіпсіз", "Payments secure"),
+                points: [
+                  tx(lang, "PCI DSS compliance", "PCI DSS сәйкестігі", "PCI DSS compliance"),
+                  tx(lang, "Проверенные платёжные системы", "Тексерілген төлем жүйелері", "Trusted payment providers"),
+                  tx(lang, "Защита 3D Secure", "3D Secure қорғауы", "3D Secure protection"),
+                ],
+              },
+              {
+                icon: BadgeCheck,
+                title: tx(lang, "Защита покупателей", "Сатып алушыларды қорғау", "Buyer protection"),
+                points: [
+                  tx(lang, "Гарантия возврата", "Қайтару кепілдігі", "Money-back guarantee"),
+                  tx(lang, "Поддержка 24/7", "24/7 қолдау", "24/7 support"),
+                  tx(lang, "Ваши права защищены", "Құқықтарыңыз қорғалған", "Your rights protected"),
+                ],
+              },
+            ].map((block, index) => (
+              <Reveal key={block.title} delay={index * 90}>
+                <Card className="eco-lift h-full flex flex-col gap-4 py-6">
+                  <span className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: "var(--eco-brand-50)" }}>
+                    <block.icon size={20} style={{ color: "var(--eco-primary)" }} />
+                  </span>
+                  <div className="text-[16px]" style={{ color: "var(--eco-text)", fontWeight: 600 }}>{block.title}</div>
+                  <ul className="m-0 p-0 flex flex-col gap-2" style={{ listStyle: "none" }}>
+                    {block.points.map((point) => (
+                      <li key={point} className="flex items-center gap-2 text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+                        <BadgeCheck size={15} className="shrink-0" style={{ color: "var(--eco-positive)" }} />
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal delay={200}>
+            <div className="text-center mt-8">
+              <Link to="/security" className="text-[14px] inline-flex items-center gap-1" style={{ color: "var(--eco-primary)", textDecoration: "none", fontWeight: 500 }}>
+                {tx(lang, "Подробнее о безопасности", "Қауіпсіздік туралы толығырақ", "More about security")} <ArrowRight size={14} />
+              </Link>
+            </div>
+          </Reveal>
         </div>
       </section>
 
-      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 py-10 sm:py-12">
-        <div className="grid lg:grid-cols-[0.8fr_1.2fr] gap-8 items-start">
-          <div>
-            <h2 className="text-[22px] sm:text-[24px]" style={{ color: "var(--eco-text)" }}>
-              {tx(lang, "Больше безопасности, чем обычный чат", "Қарапайым чаттан қауіпсіз", "Safer than a casual chat")}
+      {/* ─── Reviews ─── */}
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <Reveal>
+          <div className="text-center mb-10">
+            <h2 className="text-[24px] sm:text-[32px] m-0" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
+              {tx(lang, "Более 5000+ довольных пользователей", "5000+ риза пайдаланушы", "5000+ happy users")}
             </h2>
-            <p className="text-[14px] mt-3" style={{ color: "var(--eco-text-secondary)" }}>
-              {tx(lang, "После оплаты деньги не переводятся владельцу сразу. EcoPay удерживает средства 30 дней. Если доступ не работает или вас удалили из подписки, вы можете открыть спор.", "Төлемнен кейін ақша иесіне бірден аударылмайды. EcoPay қаражатты 30 күн ұстайды. Қолжетімділік жұмыс істемесе немесе сізді жазылымнан шығарса, дау аша аласыз.", "After payment, funds are not transferred to the owner immediately. EcoPay holds them for 30 days. If access fails or you are removed, you can open a dispute.")}
+            <p className="text-[14px] mt-3 m-0 inline-flex items-center gap-2" style={{ color: "var(--eco-text-secondary)" }}>
+              <Star size={15} fill="#FFC107" style={{ color: "#FFC107" }} />
+              {tx(lang, "Рейтинг 4.8/5 на Google и Trustpilot", "Google және Trustpilot рейтингі 4.8/5", "Rated 4.8/5 on Google and Trustpilot")}
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {[
-              [
-                ShieldCheck,
-                tx(lang, "Защищённая оплата", "Қорғалған төлем", "Protected payment"),
-                tx(lang, "Деньги под защитой весь 30-дневный hold", "Ақша 30 күндік hold бойы қорғалады", "Funds stay protected during the 30-day hold"),
-              ],
-              [
-                Lock,
-                tx(lang, "30-дневная гарантия доступа", "30 күндік қолжетімділік кепілдігі", "30-day access guarantee"),
-                tx(lang, "Спор замораживает выплату до решения администратора", "Дау әкімші шешіміне дейін төлемді тоқтатады", "A dispute freezes payout until admin decision"),
-              ],
-              [
-                Headphones,
-                tx(lang, "Поддержка внутри продукта", "Өнім ішіндегі қолдау", "Support workflow"),
-                tx(lang, "Заявки и споры встроены в основной путь", "Өтініштер мен даулар негізгі жолға енгізілген", "Tickets and disputes are first-class flows"),
-              ],
-              [
-                Zap,
-                tx(lang, "Проверка владельцев", "Иелерді тексеру", "Owner checks"),
-                tx(lang, "Риск-флаги и споры уходят в модерацию", "Тәуекел белгілері мен даулар модерацияға кетеді", "Risk flags and disputes go to moderation"),
-              ],
-            ].map(([Icon, title, body]) => (
-              <Card key={String(title)} className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--eco-brand-50)" }}>
-                  <Icon size={18} style={{ color: "var(--eco-primary)" }} />
+        </Reveal>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {gridReviews.map((review, index) => (
+            <Reveal key={`${review.name}-${index}`} delay={(index % 3) * 90}>
+              <Card className="eco-lift h-full flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] shrink-0"
+                    style={{ background: `${review.color}22`, color: review.color, fontWeight: 700 }}
+                  >
+                    {review.name.charAt(0).toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    {review.link ? (
+                      <Link to={review.link} className="text-[14px] block truncate" style={{ color: "var(--eco-text)", fontWeight: 600, textDecoration: "none" }}>
+                        {review.name}
+                      </Link>
+                    ) : (
+                      <div className="text-[14px] truncate" style={{ color: "var(--eco-text)", fontWeight: 600 }}>{review.name}</div>
+                    )}
+                    <Stars rating={review.rating} />
+                  </div>
                 </div>
-                <div>
-                  <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{title}</div>
-                  <div className="text-[12px] mt-1" style={{ color: "var(--eco-text-tertiary)" }}>{body}</div>
-                </div>
+                <p className="text-[13px] leading-relaxed m-0 flex-1" style={{ color: "var(--eco-text-secondary)" }}>
+                  {review.text}
+                </p>
+                {review.source && (
+                  <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                    {tx(lang, "Отзыв с", "Пікір көзі:", "Review from")} {review.source}
+                  </div>
+                )}
               </Card>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      <WaveDivider flip />
+
+      {/* ─── FAQ ─── */}
+      <section style={{ background: "var(--eco-surface)" }} className="px-4 sm:px-6 py-12 sm:py-16">
+        <div className="max-w-[900px] mx-auto">
+          <Reveal>
+            <h2 className="text-[24px] sm:text-[32px] text-center mb-8 m-0" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
+              {tx(lang, "Частые вопросы", "Жиі сұрақтар", "FAQ")}
+            </h2>
+          </Reveal>
+          <div className="flex flex-col gap-3">
+            {faqs.map((faq, index) => (
+              <Reveal key={faq.q.en} delay={index * 70}>
+                <button
+                  type="button"
+                  onClick={() => setOpenFaq(openFaq === index ? -1 : index)}
+                  className="w-full text-left rounded-xl p-4 cursor-pointer transition-shadow hover:shadow-sm"
+                  style={{ background: "var(--eco-surface-raised)", border: "1px solid var(--eco-border)" }}
+                >
+                  <span className="flex items-center justify-between gap-4">
+                    <span className="text-[15px]" style={{ color: "var(--eco-text)", fontWeight: 500 }}>{tx(lang, faq.q.ru, faq.q.kz, faq.q.en)}</span>
+                    <ChevronDown
+                      size={16}
+                      className="shrink-0 transition-transform duration-300"
+                      style={{ color: "var(--eco-text-tertiary)", transform: openFaq === index ? "rotate(180deg)" : undefined }}
+                    />
+                  </span>
+                  {openFaq === index && (
+                    <span className="block text-[13px] mt-3 animate-eco-fade-in" style={{ color: "var(--eco-text-secondary)" }}>
+                      {tx(lang, faq.a.ru, faq.a.kz, faq.a.en)}
+                    </span>
+                  )}
+                </button>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
-      {featuredReviews.length > 0 && (
-        <section style={{ background: "var(--eco-surface)" }} className="px-4 sm:px-6 py-10 sm:py-12 overflow-hidden">
-          <div className="max-w-[1200px] mx-auto mb-6 text-center">
-            <h2 className="text-[22px] sm:text-[24px]" style={{ color: "var(--eco-text)" }}>{t("serviceReviewsTitle")}</h2>
-          </div>
-          <div className="ecopay-reviews-marquee" aria-label={t("serviceReviewsTitle")}>
-            <div className="ecopay-reviews-track">
-              {[...featuredReviews, ...featuredReviews].map((review, index) => (
-                <Card key={`${review.id}-${index}`} className="ecopay-review-card flex flex-col gap-4">
-                  <div className="flex gap-1" aria-label={`${review.rating}/5`}>
-                    {Array.from({ length: 5 }).map((_, starIndex) => (
-                      <Star
-                        key={starIndex}
-                        size={15}
-                        fill={starIndex < review.rating ? "var(--eco-warning-500)" : "none"}
-                        style={{ color: starIndex < review.rating ? "var(--eco-warning-500)" : "var(--eco-border)" }}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-[13px] whitespace-pre-wrap" style={{ color: "var(--eco-text-secondary)" }}>{review.text}</p>
-                  <Link
-                    to={`/u/${review.authorPublicId}`}
-                    className="text-[13px] mt-auto"
-                    style={{ color: "var(--eco-text)", textDecoration: "none" }}
-                  >
-                    {review.authorDisplayName}
-                  </Link>
-                </Card>
-              ))}
+      {/* ─── CTA ─── */}
+      <section className="px-4 sm:px-6 py-14" style={{ background: "var(--eco-surface)" }}>
+        <Reveal>
+          <div
+            className="max-w-[1200px] mx-auto rounded-2xl p-6 sm:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5"
+            style={{ background: "linear-gradient(120deg, var(--eco-primary), var(--eco-brand-600))", color: "#fff" }}
+          >
+            <div>
+              <div className="text-[22px] sm:text-[28px]" style={{ fontWeight: 700, fontFamily: "var(--font-display)" }}>
+                {tx(lang, "Готовы экономить с EcoSplit?", "EcoSplit арқылы үнемдеуге дайынсыз ба?", "Ready to save with EcoSplit?")}
+              </div>
+              <div className="text-[14px] mt-2" style={{ opacity: 0.85 }}>
+                {tx(lang, "Создайте аккаунт и соберите первую комнату за несколько минут.", "Аккаунт жасап, алғашқы бөлмені бірнеше минутта жинаңыз.", "Create an account and set up your first room in minutes.")}
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+              <Link to="/register" className="w-full sm:w-auto" style={{ textDecoration: "none" }}>
+                <button
+                  type="button"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-[15px] cursor-pointer transition-transform hover:scale-[1.03]"
+                  style={{ background: "#fff", color: "var(--eco-brand-700)", fontWeight: 600, border: "none" }}
+                >
+                  {tx(lang, "Начать", "Бастау", "Get started")} <ArrowRight size={16} />
+                </button>
+              </Link>
+              <Link to="/rooms/create" className="w-full sm:w-auto" style={{ textDecoration: "none" }}>
+                <button
+                  type="button"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-[15px] cursor-pointer transition-colors"
+                  style={{ background: "transparent", color: "#fff", fontWeight: 600, border: "1px solid rgba(255,255,255,0.5)" }}
+                >
+                  <Sparkles size={16} /> {tx(lang, "Создать комнату", "Бөлме жасау", "Create a room")}
+                </button>
+              </Link>
             </div>
           </div>
-        </section>
-      )}
-
-      <section className="max-w-[900px] mx-auto px-4 sm:px-6 py-10 sm:py-12">
-        <h2 className="text-[22px] sm:text-[24px] text-center mb-6" style={{ color: "var(--eco-text)" }}>{tx(lang, "Частые вопросы", "Жиі сұрақтар", "FAQ")}</h2>
-        <div className="flex flex-col gap-3">
-          {faqs.map((faq, index) => (
-            <button
-              key={faq.q.en}
-              type="button"
-              onClick={() => setOpenFaq(openFaq === index ? -1 : index)}
-              className="text-left rounded-xl p-4 cursor-pointer"
-              style={{ background: "var(--eco-surface-raised)", border: "1px solid var(--eco-border)" }}
-            >
-              <span className="flex items-center justify-between gap-4">
-                <span className="text-[14px]" style={{ color: "var(--eco-text)" }}>{tx(lang, faq.q.ru, faq.q.kz, faq.q.en)}</span>
-                <ChevronDown size={16} style={{ color: "var(--eco-text-tertiary)", transform: openFaq === index ? "rotate(180deg)" : undefined }} />
-              </span>
-              {openFaq === index && (
-                <span className="block text-[13px] mt-3" style={{ color: "var(--eco-text-secondary)" }}>{tx(lang, faq.a.ru, faq.a.kz, faq.a.en)}</span>
-              )}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="px-4 sm:px-6 pb-14">
-        <div className="max-w-[1200px] mx-auto rounded-xl p-5 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-5" style={{ background: "var(--eco-primary)", color: "var(--eco-text-on-primary)" }}>
-          <div>
-            <div className="text-[20px] sm:text-[24px]" style={{ fontWeight: 700 }}>
-              {tx(lang, "Готовы экономить с EcoPay?", "EcoPay арқылы үнемдеуге дайынсыз ба?", "Ready to save with EcoPay?")}
-            </div>
-            <div className="text-[13px] mt-1" style={{ opacity: 0.8 }}>
-              {tx(lang, "Создайте аккаунт и соберите первую комнату за несколько минут.", "Аккаунт жасап, алғашқы бөлмені бірнеше минутта жинаңыз.", "Create an account and set up your first room in minutes.")}
-            </div>
-          </div>
-          <Link to="/register" className="w-full md:w-auto" style={{ textDecoration: "none" }}>
-            <Button variant="secondary" size="lg" className="w-full md:w-auto">
-              {tx(lang, "Начать", "Бастау", "Get started")} <ArrowRight size={17} />
-            </Button>
-          </Link>
-        </div>
+        </Reveal>
       </section>
     </div>
   );

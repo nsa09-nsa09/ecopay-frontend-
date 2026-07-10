@@ -70,7 +70,7 @@ function makeDefaults(): NotifCategory[] {
       id: "marketing", titleKey: "npCatMarketing", icon: Newspaper, color: "var(--eco-text-tertiary)",
       events: [
         { id: "mkt_newplans", label: "New plans available", desc: "Operators add new shareable plans", inApp: true, push: false, email: false },
-        { id: "mkt_promo", label: "Promotions & offers", desc: "Special deals from EcoPay", inApp: false, push: false, email: false },
+        { id: "mkt_promo", label: "Promotions & offers", desc: "Special deals from EcoSplit", inApp: false, push: false, email: false },
         { id: "mkt_tips", label: "Tips & guides", desc: "How to save more with sharing", inApp: false, push: false, email: false },
       ],
     },

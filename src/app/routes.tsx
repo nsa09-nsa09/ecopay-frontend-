@@ -21,6 +21,7 @@ import { AboutPage } from "./components/static/about";
 import { TermsPage } from "./components/static/terms";
 import { PrivacyPage } from "./components/static/privacy";
 import { HowItWorksPage } from "./components/static/how-it-works";
+import { SecurityPage } from "./components/static/security";
 import { AdminLoginPage } from "./components/admin/admin-login";
 import { AdminDashboardPage } from "./components/admin/admin-dashboard";
 import { AdminModerationPage } from "./components/admin/admin-moderation";
@@ -94,6 +95,7 @@ export const router = createBrowserRouter([
       { path: "terms", Component: TermsPage },
       { path: "privacy", Component: PrivacyPage },
       { path: "how-it-works", Component: HowItWorksPage },
+      { path: "security", Component: SecurityPage },
       { path: "payment/room", Component: PaymentRoomDetailsPage },
       { path: "payment/checkout", Component: PaymentCheckoutPage },
       // Freedom Pay redirect-back targets (success_url / failure_url) — wired to

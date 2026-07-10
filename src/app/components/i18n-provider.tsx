@@ -36,10 +36,11 @@ const translations: Translations = {
   terms: { ru: "Условия", kz: "Шарттар", en: "Terms" },
   privacy: { ru: "Конфиденциальность", kz: "Құпиялылық", en: "Privacy" },
   forOwners: { ru: "Для владельцев", kz: "Иелерге", en: "For Owners" },
+  paymentMethods: { ru: "Платёжные системы", kz: "Төлем жүйелері", en: "Payment methods" },
   createTicket: { ru: "Создать заявку", kz: "Өтінім жасау", en: "Create Ticket" },
   ticketStatus: { ru: "Статус заявки", kz: "Өтінім мәртебесі", en: "Ticket Status" },
   developedBy: { ru: "Разработано Apex Digital", kz: "Apex Digital әзірлеген", en: "Developed by Apex Digital" },
-  copyright: { ru: "© 2026 EcoPay · Астана, Казахстан", kz: "© 2026 EcoPay · Астана, Қазақстан", en: "© 2026 EcoPay · Astana, Kazakhstan" },
+  copyright: { ru: "© 2026 EcoSplit · Астана, Казахстан", kz: "© 2026 EcoSplit · Астана, Қазақстан", en: "© 2026 EcoSplit · Astana, Kazakhstan" },
   
   // ===== Auth Pages =====
   createAccount: { ru: "Создать аккаунт", kz: "Тіркелгі жасау", en: "Create Account" }, 
@@ -52,8 +53,8 @@ const translations: Translations = {
   exampleName: { ru: "например, Айдар", kz: "мысалы, Айдар", en: "e.g. Aidar" },
   alreadyHaveAccount: { ru: "Уже есть аккаунт?", kz: "Тіркелгіңіз бар ма?", en: "Already have an account?" },
   dontHaveAccount: { ru: "Нет аккаунта?", kz: "Тіркелгіңіз жоқ па?", en: "Don't have an account?" },
-  welcomeBack: { ru: "Добро пожаловать в EcoPay", kz: "EcoPay-ке қайта келіңіз", en: "Welcome back to EcoPay" },
-  joinEcoPay: { ru: "Присоединяйтесь к EcoPay и начните экономить", kz: "EcoPay-ке қосылып, үнемдеуді бастаңыз", en: "Join EcoPay and start saving today" },
+  welcomeBack: { ru: "Добро пожаловать в EcoSplit", kz: "EcoSplit-ке қайта келіңіз", en: "Welcome back to EcoSplit" },
+  joinEcoSplit: { ru: "Присоединяйтесь к EcoSplit и начните экономить", kz: "EcoSplit-ке қосылып, үнемдеуді бастаңыз", en: "Join EcoSplit and start saving today" },
   rememberMe: { ru: "Запомнить меня", kz: "Мені есте сақта", en: "Remember me" },
   forgotPassword: { ru: "Забыли пароль?", kz: "Құпия сөзді ұмыттыңыз ба?", en: "Forgot password?" },
   resetPassword: { ru: "Сбросить пароль", kz: "Құпия сөзді қалпына келтіру", en: "Reset Password" },
@@ -245,7 +246,7 @@ const translations: Translations = {
   familySharing: { ru: "Семейный доступ", kz: "Отбасылық қатынас", en: "Family Sharing" },
   
   // ===== Static Pages =====
-  aboutEcoPay: { ru: "О EcoPay", kz: "EcoPay туралы", en: "About EcoPay" },
+  aboutEcoSplit: { ru: "О EcoSplit", kz: "EcoSplit туралы", en: "About EcoSplit" },
   ourMission: { ru: "Наша миссия", kz: "Біздің миссия", en: "Our Mission" },
   aboutSubtitle: {
     ru: "Надёжная платформа Казахстана для совместных тарифов связи",
@@ -253,9 +254,9 @@ const translations: Translations = {
     en: "Kazakhstan's trusted platform for shared telecom plans",
   },
   missionText: {
-    ru: "EcoPay делает семейные тарифы операторов связи доступными для всех в Казахстане. Присоединяйтесь к общей комнате, разделяйте оплату и экономьте до 70% от ежемесячного счёта — без контрактов и лишних хлопот.",
-    kz: "EcoPay Қазақстандағы отбасылық тарифтерді барлығына қолжетімді етеді. Ортақ бөлмеге қосылып, төлемді бөлісіп, ай сайынғы төлемнен 70%-ға дейін үнемдеңіз — келісімшарттар мен қиындықтар жоқ.",
-    en: "EcoPay makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly bill — no contracts, no hassle.",
+    ru: "EcoSplit делает семейные тарифы операторов связи доступными для всех в Казахстане. Присоединяйтесь к общей комнате, разделяйте оплату и экономьте до 70% от ежемесячного счёта — без контрактов и лишних хлопот.",
+    kz: "EcoSplit Қазақстандағы отбасылық тарифтерді барлығына қолжетімді етеді. Ортақ бөлмеге қосылып, төлемді бөлісіп, ай сайынғы төлемнен 70%-ға дейін үнемдеңіз — келісімшарттар мен қиындықтар жоқ.",
+    en: "EcoSplit makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly bill — no contracts, no hassle.",
   },
   trustPrivacyTitle: { ru: "Доверие и приватность прежде всего", kz: "Сенімділік және құпиялылық бірінші орында", en: "Trust & Privacy First" },
   trustPrivacyText: {
@@ -275,7 +276,7 @@ const translations: Translations = {
   contactGetInTouch: { ru: "Связаться с нами", kz: "Бізбен байланысыңыз", en: "Get in Touch" },
   contactPhoneNote: { ru: "(Деловой контакт, может измениться до запуска)", kz: "(Іскерлік байланыс, іске қосылғанға дейін өзгеруі мүмкін)", en: "(Business contact, subject to change before launch)" },
   contactPhoneNumber: { ru: "+7 747 226 6885", kz: "+7 747 226 6885", en: "+7 747 226 6885" },
-  contactEmail: { ru: "support@ecopay.kz", kz: "support@ecopay.kz", en: "support@ecopay.kz" },
+  contactEmail: { ru: "support@ecosplit.kz", kz: "support@ecosplit.kz", en: "support@ecosplit.kz" },
   contactLocation: { ru: "Алматы, Казахстан", kz: "Алматы, Қазақстан", en: "Almaty, Kazakhstan" },
   buildingTrust: { ru: "Создаём доверие с помощью технологий", kz: "Технология арқылы сенімділікті құру", en: "Building trust through technology" },
   howItWorksTitle: { ru: "Как это работает", kz: "Қалай жұмыс істейді", en: "How It Works" },
@@ -506,7 +507,7 @@ const translations: Translations = {
   auditBlockedMember: { ru: "Заблокировал участника", kz: "Қатысушыны бұғаттады", en: "Blocked member" },
   auditApprovedRefund: { ru: "Одобрил возврат", kz: "Қайтаруды мақұлдады", en: "Approved refund" },
   noDirectContactsTitle: { ru: "Прямые контакты запрещены", kz: "Тікелей байланыстарға тыйым салынған", en: "Direct contacts prohibited" },
-  noDirectContactsDesc: { ru: "EcoPay не раскрывает личные данные участников друг другу. Все взаимодействия происходят через платформу.", kz: "EcoPay қатысушылардың жеке деректерін бір-біріне ашпайды. Барлық өзара әрекеттер платформа арқылы жүреді.", en: "EcoPay does not expose members' personal data to each other. All interactions happen through the platform." },
+  noDirectContactsDesc: { ru: "EcoSplit не раскрывает личные данные участников друг другу. Все взаимодействия происходят через платформу.", kz: "EcoSplit қатысушылардың жеке деректерін бір-біріне ашпайды. Барлық өзара әрекеттер платформа арқылы жүреді.", en: "EcoSplit does not expose members' personal data to each other. All interactions happen through the platform." },
   noDirectContactsRule1: { ru: "Телефоны, email и реальные имена скрыты от других участников", kz: "Телефондар, email және нақты аттар басқа қатысушылардан жасырылған", en: "Phone numbers, emails, and real names hidden from other members" },
   noDirectContactsRule2: { ru: "Владелец видит маскированный телефон только после оплаты", kz: "Иесі маскаланған телефонды тек төлемнен кейін көреді", en: "Owner sees masked phone only after payment" },
   noDirectContactsRule3: { ru: "Полные данные доступны только через аудитируемый запрос", kz: "Толық деректер тек аудиттелетін сұрау арқылы қолжетімді", en: "Full data accessible only via audited request" },
@@ -1397,7 +1398,7 @@ const translations: Translations = {
 
   // ===== Service reviews =====
   serviceReviewsTitle: { ru: "Отзывы участников", kz: "Қатысушылар пікірлері", en: "Member reviews" },
-  serviceReviewMyTitle: { ru: "Мой отзыв о EcoPay", kz: "EcoPay туралы пікірім", en: "My EcoPay review" },
+  serviceReviewMyTitle: { ru: "Мой отзыв о EcoSplit", kz: "EcoSplit туралы пікірім", en: "My EcoSplit review" },
   serviceReviewLeavePrompt: { ru: "Оставьте отзыв о сервисе", kz: "Сервис туралы пікір қалдырыңыз", en: "Leave a review about the service" },
   serviceReviewModerationNote: { ru: "Отзыв проходит модерацию перед показом на главной.", kz: "Пікір басты бетке шығу алдында модерациядан өтеді.", en: "Your review is moderated before appearing on the homepage." },
   serviceReviewSubmit: { ru: "Отправить отзыв", kz: "Пікір жіберу", en: "Submit review" },
