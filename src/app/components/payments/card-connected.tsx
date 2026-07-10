@@ -172,9 +172,9 @@ export function CardConnectedPage() {
             >
               {tx(
                 language,
-                'Ваша карта для выплат сохранена. Теперь вы можете создавать комнаты — выплаты будут приходить на эту карту.',
-                'Төлем картаңыз сақталды. Енді бөлме жасай аласыз — төлемдер осы картаға түседі.',
-                'Your payout card is saved. You can now create rooms — payouts will be sent to this card.',
+                'Ваша карта для выплат сохранена. Теперь вы можете создавать комнаты: выплаты будут приходить на эту карту.',
+                'Төлем картаңыз сақталды. Енді бөлме жасай аласыз: төлемдер осы картаға түседі.',
+                'Your payout card is saved. You can now create rooms: payouts will be sent to this card.',
               )}
             </p>
           </div>

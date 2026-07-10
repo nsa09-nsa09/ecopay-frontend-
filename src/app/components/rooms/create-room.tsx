@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { Card, Button, Input, Select, Stepper } from '../ds-primitives';
-import { AlertTriangle, ArrowLeft, Lock, Check, Shield, CreditCard } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Lock, Check, CreditCard, Users } from 'lucide-react';
 import {
   ApiError,
   createRoomRequest,
@@ -33,14 +33,6 @@ const CURRENCY_SYMBOLS: Record<SupportedCurrency, string> = {
   KGS: 'сом',
 };
 
-function defaultStartDate() {
-  const d = new Date();
-  d.setDate(d.getDate() + 14);
-  d.setMinutes(0, 0, 0);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 interface CreateRoomLocationState {
   serviceId?: number;
   reason?: 'no-free-rooms' | string;
@@ -56,26 +48,8 @@ export function CreateRoomPage() {
   const stepLabels = [
     tx(language, 'Оператор и тариф', 'Оператор және тариф', 'Operator & Plan'),
     tx(language, 'Настройки комнаты', 'Бөлме баптаулары', 'Room Settings'),
-    tx(language, 'Способ доступа', 'Қатынас тәсілі', 'Access Method'),
+    tx(language, 'Подтверждение оператора', 'Оператор растауы', 'Operator confirmation'),
     tx(language, 'Проверка', 'Тексеру', 'Review'),
-  ];
-
-  const CONNECTION_OPTIONS = [
-    { value: 'ESIM', label: tx(language, 'Активация eSIM', 'eSIM белсендіру', 'eSIM activation') },
-    {
-      value: 'SIM',
-      label: tx(language, 'Физическая SIM-карта', 'Физикалық SIM-карта', 'Physical SIM card'),
-    },
-    {
-      value: 'ACCOUNT_LINK',
-      label: tx(
-        language,
-        'Приглашение в аккаунт оператора',
-        'Оператор тіркелгісіне шақыру',
-        'Operator account invite',
-      ),
-    },
-    { value: 'OTHER', label: tx(language, 'Другое', 'Басқа', 'Other') },
   ];
 
   const PERIOD_OPTIONS = [
@@ -95,9 +69,7 @@ export function CreateRoomPage() {
 
   const [serviceId, setServiceId] = useState<string>('');
   const [tariffPlanId, setTariffPlanId] = useState<string>('');
-  const [roomType, setRoomType] = useState('TELECOM');
   const [title, setTitle] = useState('');
-  const [startDate, setStartDate] = useState(defaultStartDate());
   const [connectionType, setConnectionType] = useState('ESIM');
   const [restrictions, setRestrictions] = useState('');
   const [confirmed, setConfirmed] = useState(false);
@@ -196,6 +168,27 @@ export function CreateRoomPage() {
     [services, serviceId],
   );
 
+  // Room type is derived from the selected service, not chosen by the owner.
+  const isTelecom = selectedService ? selectedService.providerType !== 'DIGITAL' : false;
+  const roomType = isTelecom ? 'TELECOM' : 'DIGITAL';
+
+  const serviceGroups = useMemo(() => {
+    const telecom = services.filter(
+      (s) => s.providerType === 'OPERATOR' || s.providerType === 'ISP',
+    );
+    const digital = services.filter((s) => s.providerType === 'DIGITAL');
+    return [
+      {
+        label: tx(language, 'Связь', 'Байланыс', 'Telecom'),
+        options: telecom.map((s) => ({ value: String(s.id), label: s.name })),
+      },
+      {
+        label: tx(language, 'Цифровые подписки', 'Цифрлық жазылымдар', 'Digital subscriptions'),
+        options: digital.map((s) => ({ value: String(s.id), label: s.name })),
+      },
+    ];
+  }, [services, language]);
+
   useEffect(() => {
     if (!serviceId) {
       setTariffs([]);
@@ -243,8 +236,6 @@ export function CreateRoomPage() {
   const perMemberDerived = seatCount > 0 ? Math.round(totalNumeric / seatCount) : 0;
   const periodType = selectedTariff?.periodType ?? 'MONTHLY';
   const currency = (selectedTariff?.currency ?? 'KZT') as SupportedCurrency;
-
-  const isTelecom = roomType === 'TELECOM';
 
   // FX rates: 1 unit of `code` = N tenge. For KZT (base) the rate is 1.
   const rateToKzt = (code: SupportedCurrency): number | null => {
@@ -408,7 +399,6 @@ export function CreateRoomPage() {
             tariffPlanId,
             roomType,
             title: title.trim(),
-            startDate: startDate.length === 16 ? `${startDate}:00` : startDate,
             providerName: selectedService?.name ?? null,
             tariffNameSnapshot: selectedTariff?.name ?? null,
             connectionType: isTelecom ? connectionType : null,
@@ -594,13 +584,13 @@ export function CreateRoomPage() {
             border: '1px solid var(--eco-border)',
           }}
         >
-          <Shield size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--eco-primary)' }} />
+          <Users size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--eco-primary)' }} />
           <span>
             {tx(
               language,
-              'Сейчас нет свободных комнат по этой подписке — создайте свою.',
-              'Бұл жазылым бойынша бос бөлме әзірге жоқ — өзіңіздікін жасаңыз.',
-              'There are no open rooms for this subscription right now — create your own.',
+              'Свободных комнат по этой подписке пока нет. Создайте свою и пригласите участников.',
+              'Бұл жазылым бойынша бос бөлме әзірге жоқ. Өзіңіздікін жасап, қатысушыларды шақырыңыз.',
+              'No open rooms for this subscription yet. Create one and invite members.',
             )}
           </span>
         </div>
@@ -631,83 +621,11 @@ export function CreateRoomPage() {
         </div>
       )}
 
-      <div
-        className="p-4 rounded-lg flex items-start gap-3 mb-6"
-        style={{ background: 'var(--eco-warning-100)' }}
-      >
-        <Lock size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--eco-warning)' }} />
-        <div>
-          <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
-            {tx(
-              language,
-              'Критические поля блокируются после старта',
-              'Маңызды өрістер басталу күнінен кейін құлыпталады',
-              'Critical fields lock after start date',
-            )}
-          </div>
-          <div className="text-[13px] mt-0.5" style={{ color: 'var(--eco-text-secondary)' }}>
-            {tx(
-              language,
-              'Оператор, тариф, число мест и цена нельзя изменить после даты старта. Чтобы поправить — отмените и создайте комнату заново.',
-              'Оператор, тариф, орын саны және баға басталу күнінен кейін өзгертілмейді. Өзгерту үшін бөлмені тоқтатып, қайта жасаңыз.',
-              'Operator, plan, seats, and price cannot be changed once the start date has passed. Editing requires cancelling and re-creating the room.',
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        <div
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] sm:text-[13px]"
-          style={{
-            background: 'var(--eco-surface)',
-            color: 'var(--eco-text-secondary)',
-            border: '1px solid var(--eco-border)',
-          }}
-        >
-          <Shield size={13} style={{ color: 'var(--eco-primary)' }} />
-          {tx(
-            language,
-            'Режим верификации: по риску (по умолчанию)',
-            'Растау режимі: тәуекелге қарай (әдепкі)',
-            'Verification mode: Risk-based (default)',
-          )}
-        </div>
-        <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-          {tx(language, 'Задаётся бэкендом', 'Бэкенд анықтайды', 'Set by backend')}
-        </div>
-      </div>
-
       <Stepper steps={stepLabels} current={step} />
 
       <div className="mt-8">
         {step === 0 && (
           <Card className="flex flex-col gap-4">
-            <Select
-              label={tx(language, 'Тип комнаты', 'Бөлме түрі', 'Room Type')}
-              options={[
-                {
-                  value: 'TELECOM',
-                  label: tx(
-                    language,
-                    'Связь (SIM / eSIM / тариф оператора)',
-                    'Байланыс (SIM / eSIM / оператор тарифі)',
-                    'Telecom (SIM / eSIM / operator plan)',
-                  ),
-                },
-                {
-                  value: 'DIGITAL',
-                  label: tx(
-                    language,
-                    'Цифровая подписка',
-                    'Цифрлық жазылым',
-                    'Digital subscription',
-                  ),
-                },
-              ]}
-              value={roomType}
-              onChange={(e) => setRoomType(e.target.value)}
-            />
             <Select
               label={tx(
                 language,
@@ -715,18 +633,23 @@ export function CreateRoomPage() {
                 'Оператор / Провайдер',
                 'Operator / Provider',
               )}
-              options={
+              groups={
                 services.length > 0
-                  ? services.map((s) => ({ value: String(s.id), label: s.name }))
+                  ? serviceGroups
                   : [
                       {
-                        value: '',
-                        label: tx(
-                          language,
-                          'Загрузка сервисов...',
-                          'Сервистер жүктелуде...',
-                          'Loading services...',
-                        ),
+                        label: tx(language, 'Загрузка', 'Жүктелуде', 'Loading'),
+                        options: [
+                          {
+                            value: '',
+                            label: tx(
+                              language,
+                              'Загрузка сервисов...',
+                              'Сервистер жүктелуде...',
+                              'Loading services...',
+                            ),
+                          },
+                        ],
                       },
                     ]
               }
@@ -745,7 +668,7 @@ export function CreateRoomPage() {
                 },
                 ...tariffs.map((t) => ({
                   value: String(t.id),
-                  label: `${t.name} — ${CURRENCY_SYMBOLS[(t.currency ?? 'KZT') as SupportedCurrency] ?? t.currency}${Number(t.basePriceTotal).toLocaleString()} / ${periodLabel(t.periodType)}`,
+                  label: `${t.name} · ${CURRENCY_SYMBOLS[(t.currency ?? 'KZT') as SupportedCurrency] ?? t.currency}${Number(t.basePriceTotal).toLocaleString()} / ${periodLabel(t.periodType)}`,
                 })),
               ]}
               value={tariffPlanId}
@@ -865,18 +788,6 @@ export function CreateRoomPage() {
                 </span>
               )}
             </div>
-            <Input
-              label={tx(language, 'Дата старта', 'Басталу күні', 'Start Date')}
-              type="datetime-local"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              hint={tx(
-                language,
-                'Должна быть в будущем',
-                'Болашақта болуы керек',
-                'Must be in the future',
-              )}
-            />
             <div className="flex gap-3">
               <Button variant="ghost" onClick={() => setStep(0)}>
                 {tx(language, 'Назад', 'Артқа', 'Back')}
@@ -892,12 +803,6 @@ export function CreateRoomPage() {
           <Card className="flex flex-col gap-4">
             {isTelecom ? (
               <>
-                <Select
-                  label={tx(language, 'Способ доступа', 'Қатынас тәсілі', 'Access Method')}
-                  options={CONNECTION_OPTIONS}
-                  value={connectionType}
-                  onChange={(e) => setConnectionType(e.target.value)}
-                />
                 <Input
                   label={tx(
                     language,
@@ -924,9 +829,9 @@ export function CreateRoomPage() {
                   <span className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
                     {tx(
                       language,
-                      'Подтверждаю, что оператор поддерживает семейные/групповые тарифы и я — владелец аккаунта либо имею право делиться им.',
-                      'Оператордың отбасылық/топтық тарифтерді қолдайтынын және мен тіркелгінің иесі немесе бөлісуге құқылы екенімді растаймын.',
-                      'I confirm that this operator supports family/group plans and I am the account holder or authorized to share.',
+                      'Подтверждаю, что оператор поддерживает семейные или групповые тарифы, и я являюсь владельцем аккаунта либо имею право делиться им.',
+                      'Оператордың отбасылық немесе топтық тарифтерді қолдайтынын және мен тіркелгінің иесі немесе бөлісуге құқылы екенімді растаймын.',
+                      'I confirm that this operator supports family or group plans and I am the account holder or authorized to share.',
                     )}
                   </span>
                 </label>
@@ -987,20 +892,6 @@ export function CreateRoomPage() {
                     ? ` (≈ ₸${moneyFmt(perMemberKztEquivalent)})`
                     : ''),
               },
-              {
-                label: tx(language, 'Дата старта', 'Басталу күні', 'Start date'),
-                value: startDate.replace('T', ' '),
-              },
-              ...(isTelecom
-                ? [
-                    {
-                      label: tx(language, 'Доступ', 'Қатынас', 'Access'),
-                      value:
-                        CONNECTION_OPTIONS.find((o) => o.value === connectionType)?.label ??
-                        connectionType,
-                    },
-                  ]
-                : []),
             ].map((row) => (
               <div key={row.label} className="flex justify-between text-[13px]">
                 <span style={{ color: 'var(--eco-text-secondary)' }}>{row.label}</span>

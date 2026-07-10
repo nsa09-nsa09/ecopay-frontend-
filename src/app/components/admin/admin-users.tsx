@@ -316,12 +316,10 @@ export function AdminUsersPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap mb-4">
-          {(
-            [
-              { key: 'USERS' as const, label: t('usersSegmentUsers'), count: usersCount },
-              { key: 'ADMINS' as const, label: t('usersSegmentAdmins'), count: adminsCount },
-            ]
-          ).map((s) => {
+          {[
+            { key: 'USERS' as const, label: t('usersSegmentUsers'), count: usersCount },
+            { key: 'ADMINS' as const, label: t('usersSegmentAdmins'), count: adminsCount },
+          ].map((s) => {
             const active = segment === s.key;
             return (
               <button
@@ -685,7 +683,7 @@ export function AdminUsersPage() {
               </>
             ) : null
           }
-          subjectLabel={banModal ? `U-${banModal.user.id} — ${banModal.user.displayName}` : null}
+          subjectLabel={banModal ? `U-${banModal.user.id} · ${banModal.user.displayName}` : null}
           destructive={banModal?.action === 'BAN'}
           submitLabel={banModal ? (banModal.action === 'BAN' ? t('banUser') : t('unbanUser')) : ''}
           submitting={banSubmitting}
@@ -770,7 +768,7 @@ function RoleChangeModal({
             className="p-3 rounded-lg text-[12px]"
             style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
           >
-            U-{user.id} — {user.displayName}{' '}
+            U-{user.id} · {user.displayName}{' '}
             <span style={{ color: 'var(--eco-text-tertiary)' }}>
               · {tx(language, 'сейчас', 'қазір', 'currently')}: {user.role ?? '—'}
             </span>
@@ -871,7 +869,7 @@ function OwnerVerifyModal({
             className="p-3 rounded-lg text-[12px]"
             style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
           >
-            U-{user.id} — {user.displayName}
+            U-{user.id} · {user.displayName}
           </div>
         )}
         <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>

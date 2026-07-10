@@ -121,12 +121,19 @@ export function Input({ label, error, hint, className = '', ...props }: InputPro
 }
 
 // ─── Select ───
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string;
+interface SelectOptionGroup {
+  label: string;
   options: { value: string; label: string }[];
 }
 
-export function Select({ label, options, className = '', ...props }: SelectProps) {
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string;
+  options?: { value: string; label: string }[];
+  groups?: SelectOptionGroup[];
+}
+
+export function Select({ label, options, groups, className = '', ...props }: SelectProps) {
+  const nonEmptyGroups = groups?.filter((g) => g.options.length > 0);
   return (
     <div className="flex flex-col gap-1.5">
       {label && <label style={{ color: 'var(--eco-text)', fontSize: 14 }}>{label}</label>}
@@ -141,11 +148,21 @@ export function Select({ label, options, className = '', ...props }: SelectProps
           }}
           {...props}
         >
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
+          {nonEmptyGroups && nonEmptyGroups.length > 0
+            ? nonEmptyGroups.map((g) => (
+                <optgroup key={g.label} label={g.label}>
+                  {g.options.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))
+            : (options ?? []).map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
         </select>
         <ChevronDown
           size={16}

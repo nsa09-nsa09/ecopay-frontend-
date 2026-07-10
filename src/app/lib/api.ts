@@ -721,7 +721,7 @@ export interface CreateRoomPayload {
   roomType: string;
   title: string;
   description?: string | null;
-  startDate: string;
+  startDate?: string | null;
   cancellationPolicy?: string | null;
   providerName?: string | null;
   tariffNameSnapshot?: string | null;
@@ -2321,6 +2321,7 @@ export interface SiteAboutContent {
   description_en?: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
+  apexLink?: string | null;
   updatedAt: string | null;
 }
 
@@ -2340,6 +2341,7 @@ export interface UpdateSiteAboutPayload {
   description_en?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
+  apexLink?: string | null;
 }
 
 export function getSiteAboutRequest() {
@@ -2628,12 +2630,7 @@ export type PricingExtractionType = 'AUTO' | 'JSON_LD' | 'META' | 'CSS' | 'REGEX
 export type PricingProviderStatus = 'OK' | 'STALE' | 'FAILING' | 'BLOCKED' | 'PENDING';
 
 export type PricingSnapshotOutcome =
-  | 'SUCCESS'
-  | 'OK'
-  | 'UNCHANGED'
-  | 'PARSE_FAILED'
-  | 'FETCH_FAILED'
-  | 'BLOCKED';
+  'SUCCESS' | 'OK' | 'UNCHANGED' | 'PARSE_FAILED' | 'FETCH_FAILED' | 'BLOCKED';
 
 export type PricingTestOutcome = 'SUCCESS' | 'PARSE_FAILED' | 'FETCH_FAILED' | 'BLOCKED';
 
@@ -2799,11 +2796,7 @@ export function adminUpdatePricingProvider(
 }
 
 export function adminDeletePricingProvider(id: string, accessToken: string) {
-  return requestJson<void>(
-    `/admin/pricing/providers/${id}`,
-    { method: 'DELETE' },
-    accessToken,
-  );
+  return requestJson<void>(`/admin/pricing/providers/${id}`, { method: 'DELETE' }, accessToken);
 }
 
 export function adminCheckPricingProvider(id: string, accessToken: string) {

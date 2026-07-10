@@ -605,9 +605,9 @@ export function DigitalSubscriptionsAvailable() {
         <h2 className="text-[20px]" style={{ color: 'var(--eco-text)' }}>
           {t(
             lang,
-            'Цифровые подписки — Доступно',
-            'Цифрлық жазылымдар — Қолжетімді',
-            'Digital Subscriptions — Available',
+            'Цифровые подписки · Доступно',
+            'Цифрлық жазылымдар · Қолжетімді',
+            'Digital Subscriptions · Available',
           )}
         </h2>
         <Badge variant="info">Beta</Badge>

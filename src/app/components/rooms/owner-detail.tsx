@@ -70,21 +70,6 @@ function rebaseInviteUrl(raw: string): string {
   }
 }
 
-const verificationModeI18nKey: Record<string, string> = {
-  RISK_BASED: 'verificationModeRiskBased',
-  AUTO: 'verificationModeAuto',
-  ADMIN_REQUIRED: 'verificationModeAdminRequired',
-};
-
-function localizeVerificationMode(
-  mode: string | null | undefined,
-  t: (k: string) => string,
-): string {
-  if (!mode) return '—';
-  const key = verificationModeI18nKey[mode];
-  return key ? t(key) : mode;
-}
-
 export function OwnerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { language, t } = useI18n();
@@ -272,7 +257,6 @@ export function OwnerDetailPage() {
   }
 
   const isTelecom = room.roomType === 'TELECOM';
-  const isLocked = room.startDate ? new Date(room.startDate) <= new Date() : false;
   const occupied = Math.min(
     room.maxMembers,
     1 + members.filter((m) => POST_PAYMENT.has(m.status)).length,
@@ -500,32 +484,11 @@ export function OwnerDetailPage() {
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <Lock
-                size={15}
-                style={{ color: isLocked ? 'var(--eco-warning)' : 'var(--eco-text-tertiary)' }}
-              />
+              <Lock size={15} style={{ color: 'var(--eco-text-tertiary)' }} />
               <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
                 {tx(language, 'Правила комнаты', 'Бөлме ережелері', 'Room Rules')}
               </h3>
             </div>
-            {isLocked && (
-              <div
-                className="p-3 rounded-lg text-[12px] flex items-start gap-2"
-                style={{ background: 'var(--eco-warning-100)', color: 'var(--eco-text-secondary)' }}
-              >
-                <Lock
-                  size={13}
-                  className="mt-0.5 shrink-0"
-                  style={{ color: 'var(--eco-warning)' }}
-                />
-                {tx(
-                  language,
-                  `Поля заблокированы — дата старта (${formatDate(room.startDate, language)}) прошла.`,
-                  `Өрістер құлыпталған — басталу күні (${formatDate(room.startDate, language)}) өтті.`,
-                  `Fields locked since start date (${formatDate(room.startDate, language)}) has passed.`,
-                )}
-              </div>
-            )}
             {[
               {
                 label: tx(language, 'Оператор', 'Оператор', 'Operator'),
@@ -539,10 +502,6 @@ export function OwnerDetailPage() {
               {
                 label: tx(language, 'Цена / участник', 'Бағасы / қатысушы', 'Price / member'),
                 value: `${formatMoney(room.pricePerMember)}/${(room.periodType ?? '').toLowerCase()}`,
-              },
-              {
-                label: tx(language, 'Дата старта', 'Басталу күні', 'Start date'),
-                value: formatDate(room.startDate, language),
               },
               ...(isTelecom
                 ? [
@@ -561,31 +520,6 @@ export function OwnerDetailPage() {
           </Card>
 
           <InviteLinkCard roomId={roomId} language={language} t={t} />
-
-          <Card className="flex flex-col gap-3">
-            <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
-              {tx(language, 'Верификация', 'Растау', 'Verification')}
-            </h3>
-            <div
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px]"
-              style={{
-                background: 'var(--eco-surface)',
-                color: 'var(--eco-text-secondary)',
-                border: '1px solid var(--eco-border)',
-              }}
-            >
-              <Shield size={13} />
-              {localizeVerificationMode(room.verificationMode, t)}
-            </div>
-            <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {tx(
-                language,
-                'Режим верификации задаётся бэкендом и не меняется здесь.',
-                'Растау режимі бэкендте автоматты түрде анықталады, өзгертілмейді.',
-                'Verification mode is determined automatically by the backend and cannot be changed.',
-              )}
-            </div>
-          </Card>
 
           <Card className="flex flex-col gap-3">
             <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>

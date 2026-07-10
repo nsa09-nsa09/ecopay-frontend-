@@ -252,7 +252,7 @@ export function AdminServiceReviewsPage() {
                 className="p-3 rounded-lg text-[12px]"
                 style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
               >
-                {deleting.authorDisplayName} — {deleting.rating}/5
+                {deleting.authorDisplayName} · {deleting.rating}/5
               </div>
             )}
             <Button variant="destructive" onClick={() => void handleDelete()}>

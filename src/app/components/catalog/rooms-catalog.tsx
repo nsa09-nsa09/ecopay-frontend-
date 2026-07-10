@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Card, Select, RoomStatusBadge, Pill, EmptyState, Button } from '../ds-primitives';
-import { Users, Calendar, Filter, Search, LayoutGrid } from 'lucide-react';
+import { Users, Filter, Search, LayoutGrid } from 'lucide-react';
 import { useI18n, type Language } from '../i18n-provider';
-import { formatDate as formatAlmatyDate } from '../../lib/datetime';
 import { getRooms, type RoomSummaryDto } from '../../lib/api';
 
 const moneyFormatter = new Intl.NumberFormat('ru-RU');
@@ -60,11 +59,6 @@ export function RoomsCatalogPage() {
   const [operatorFilter, setOperatorFilter] = useState('ALL');
   const [priceFilter, setPriceFilter] = useState('all');
   const [sort, setSort] = useState('newest');
-
-  const formatDate = (v: string | undefined) => {
-    if (!v) return tx(language, '—', '—', 'TBD');
-    return formatAlmatyDate(v, language);
-  };
 
   const TYPE_OPTIONS = [
     { value: 'ALL', label: tx(language, 'Все типы', 'Барлық түрлері', 'All types') },
@@ -165,7 +159,9 @@ export function RoomsCatalogPage() {
       default:
         // Newest first. Ids are 64-bit numeric strings (roughly time-ordered), so
         // compare them numerically-as-strings — b.id - a.id would corrupt them.
-        sorted.sort((a, b) => String(b.id).localeCompare(String(a.id), undefined, { numeric: true }));
+        sorted.sort((a, b) =>
+          String(b.id).localeCompare(String(a.id), undefined, { numeric: true }),
+        );
     }
     return sorted;
   }, [rooms, query, typeFilter, operatorFilter, priceFilter, sort]);
@@ -334,7 +330,7 @@ export function RoomsCatalogPage() {
               : tx(
                   language,
                   'Измените фильтры или сбросьте их, чтобы увидеть все открытые комнаты.',
-                  'Сүзгілерді өзгертіңіз немесе тазалаңыз — барлық ашық бөлмелерді көресіз.',
+                  'Сүзгілерді өзгертіңіз немесе тазалаңыз, сонда барлық ашық бөлмелерді көресіз.',
                   'Try adjusting the filters or clearing them to see all open rooms.',
                 )
           }
@@ -379,12 +375,6 @@ export function RoomsCatalogPage() {
                 <div className="flex items-center justify-between text-[12px]">
                   <span style={{ color: 'var(--eco-text-tertiary)' }}>
                     {tx(language, 'Владелец', 'Иесі', 'Owner')}: {room.ownerDisplayName}
-                  </span>
-                  <span
-                    className="inline-flex items-center gap-1"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    <Calendar size={12} /> {formatDate(room.startDate)}
                   </span>
                 </div>
               </Card>

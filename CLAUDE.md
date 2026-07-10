@@ -2,13 +2,13 @@
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Backend | Spring Boot (Java), PostgreSQL, Redis |
-| API Style | REST JSON, WebSocket (wss:// only) |
-| Web Frontend | React + TypeScript |
-| Mobile | React Native (web-payment via link for MVP) |
-| DevOps | Docker, CI/CD, dev/stage/prod envs |
+| Layer        | Technology                                  |
+| ------------ | ------------------------------------------- |
+| Backend      | Spring Boot (Java), PostgreSQL, Redis       |
+| API Style    | REST JSON, WebSocket (wss:// only)          |
+| Web Frontend | React + TypeScript                          |
+| Mobile       | React Native (web-payment via link for MVP) |
+| DevOps       | Docker, CI/CD, dev/stage/prod envs          |
 
 ---
 
@@ -53,6 +53,7 @@ moderation_queue
 ```
 
 **Required indexes:**
+
 ```sql
 rooms(status, start_date)
 room_members(room_id, status)
@@ -67,12 +68,12 @@ All entity deletions → soft delete (`deleted_at`). Audit/payment/admin logs �
 
 ## Roles
 
-| Role | Scope |
-|------|-------|
-| USER | Global |
-| OWNER | Contextual — per room_id only (checked in service layer) |
-| SUPPORT | Global |
-| ADMIN | Global |
+| Role    | Scope                                                    |
+| ------- | -------------------------------------------------------- |
+| USER    | Global                                                   |
+| OWNER   | Contextual — per room_id only (checked in service layer) |
+| SUPPORT | Global                                                   |
+| ADMIN   | Global                                                   |
 
 ---
 
@@ -94,6 +95,7 @@ Phone/identifier is **NOT** stored in user profile. Lives only in `room_member` 
 ## Room
 
 ### Fields
+
 ```
 id, service_id, owner_id,
 title, description,
@@ -108,6 +110,7 @@ created_at, updated_at (optimistic locking / version column)
 ```
 
 ### Status Transitions
+
 ```
 OPEN → IN_VERIFICATION   (at start_date automatically, or owner triggers "ready")
 IN_VERIFICATION → ACTIVE (auto-verify conditions met, or admin confirms)
@@ -117,6 +120,7 @@ ACTIVE → COMPLETED       (period ends)
 ```
 
 ### Business Rules
+
 - `max_members` must be ≥ 2
 - Cannot edit critical fields after `start_date` (except via Admin)
 - Join allowed only while `now < start_date` AND `(PENDING + ACTIVE) < max_members`
@@ -124,11 +128,13 @@ ACTIVE → COMPLETED       (period ends)
 - `APPLIED` / `CANCELLED_BEFORE_PAYMENT` / `REJECTED` do NOT occupy a slot
 
 ### Default verification_mode (MVP)
+
 - TELECOM rooms → RISK_BASED
 - DIGITAL rooms → RISK_BASED
 - ADMIN_REQUIRED only when flagged by system or set manually by Admin
 
 ### TELECOM Room Extra Fields (owner sets at creation)
+
 ```
 operator_id (Beeline, Tele2, Kcell, Activ, Altel, Kazakhtelecom, Izi, ...)
 tariff_type
@@ -142,6 +148,7 @@ operator_terms_confirmed: boolean (required checkbox)
 ## Room Member
 
 ### Fields
+
 ```
 id, room_id, user_id,
 status: APPLIED | PENDING | ACTIVE | REJECTED | CANCELLED_BEFORE_PAYMENT | BLOCKED_BY_ADMIN,
@@ -155,6 +162,7 @@ created_at
 ```
 
 ### Member Status Transitions
+
 ```
 APPLIED  → PENDING                  (PaymentTransaction = SUCCESS)
 PENDING  → ACTIVE                   (auto-verify or admin confirm)
@@ -164,6 +172,7 @@ PENDING/ACTIVE → BLOCKED_BY_ADMIN   (admin only, via Dispute)
 ```
 
 ### Join Flow
+
 1. User selects room
 2. TELECOM: user enters phone/identifier + gives consent
 3. PaymentIntent created → user pays
@@ -174,6 +183,7 @@ PENDING/ACTIVE → BLOCKED_BY_ADMIN   (admin only, via Dispute)
 8. Member does not confirm in time → SupportTicket/Dispute created (idempotent), `requires_admin_review = true`
 
 ### Auto-Verify Conditions (all must be true)
+
 - PaymentTransaction = SUCCESS
 - Owner marked "access granted"
 - TELECOM: connection_identifier filled and format-valid
@@ -182,12 +192,14 @@ PENDING/ACTIVE → BLOCKED_BY_ADMIN   (admin only, via Dispute)
 - `requires_admin_review = false`
 
 ### Identifier Reveal Rule
+
 - `connection_identifier` exposed to Owner **only** via backend endpoint
 - Condition: `PaymentTransaction = SUCCESS` + caller role = OWNER of that room
 - Every access logged: `actor_id, room_id, member_id, timestamp, reason`
 - Admin access: only during moderation/dispute, also logged
 
 ### Owner Cannot
+
 - Remove/reject member after `PaymentTransaction = SUCCESS`
 - Any post-payment member status changes → Admin only (via Dispute flow)
 
@@ -196,10 +208,12 @@ PENDING/ACTIVE → BLOCKED_BY_ADMIN   (admin only, via Dispute)
 ## Auto-Verification & Moderation Queue
 
 ### SLA
+
 - AUTO / RISK_BASED (no flags): auto-verify within ≤ 1 minute of conditions met
 - ADMIN_REQUIRED: target ≤ 24h; on timeout → reminder sent; second timeout → Dispute created (idempotent)
 
 ### Red Flags (trigger `requires_admin_review = true` → ModerationQueue)
+
 - High `user_risk_score` on owner or member
 - Owner reputation below threshold OR account age < N days
 - Abnormally high price or many slots
@@ -209,6 +223,7 @@ PENDING/ACTIVE → BLOCKED_BY_ADMIN   (admin only, via Dispute)
 - Repeated REJECTED history for this owner
 
 ### ModerationQueue contains only
+
 - Rooms with `verification_mode = ADMIN_REQUIRED`
 - Members with `requires_admin_review = true`
 - Disputes/tickets linked to a room
@@ -218,6 +233,7 @@ PENDING/ACTIVE → BLOCKED_BY_ADMIN   (admin only, via Dispute)
 ## Payments
 
 ### Entities
+
 ```
 PaymentIntent       { id, room_member_id, amount, currency, idempotency_key, status: PENDING|SUCCESS|FAILED }
 PaymentTransaction  { id, intent_id, provider_ref, status, created_at }
@@ -225,6 +241,7 @@ RefundTransaction   { id, transaction_id, amount, reason, initiated_by, status, 
 ```
 
 ### Rules
+
 - Abstract payment layer — pluggable provider, no business logic rewrite needed
 - All operations must carry `idempotency_key`
 - Refund is idempotent
@@ -232,6 +249,7 @@ RefundTransaction   { id, transaction_id, amount, reason, initiated_by, status, 
 - All payment events: append-only log with `actor_id, room_id, reason, amount, timestamp`
 
 ### Status Flow
+
 ```
 PaymentIntent:      PENDING → SUCCESS | FAILED
 PaymentTransaction: SUCCESS → REFUNDED (partial | full)
@@ -242,6 +260,7 @@ PaymentTransaction: SUCCESS → REFUNDED (partial | full)
 ## Dispute / Support
 
 ### SupportTicket
+
 ```
 id, user_id, room_id (nullable), room_member_id (nullable),
 subject, status: OPEN | IN_PROGRESS | CLOSED,
@@ -249,6 +268,7 @@ created_at
 ```
 
 ### Dispute
+
 ```
 id, ticket_id, room_id, room_member_id,
 status: OPEN | RESOLVED | REJECTED,
@@ -258,15 +278,18 @@ created_at, resolved_at
 ```
 
 ### Flow
+
 1. User creates ticket → Support Agent processes → escalates to Admin as Dispute if payment/room related
 2. Admin resolves Dispute → optionally triggers Refund + sanctions
 
 ### TELECOM Dispute Reasons
+
 - Phone not connected
 - Tariff differs from advertised
 - Member disconnected early
 
 ### Refund Calculation
+
 - Proportional to unused period
 - Account for operator minimum billing period if applicable
 
@@ -275,6 +298,7 @@ created_at, resolved_at
 ## Reputation & Reviews
 
 ### Review Fields
+
 ```
 id, author_id, recipient_id, room_id,
 rating (1–5), text,
@@ -282,11 +306,13 @@ created_at, hidden_by_admin: boolean
 ```
 
 ### Rules
+
 - Only users who shared a room may review each other
 - Only after period ends or participation closes
 - Admin can hide a review (logged)
 
 ### Reputation Score Inputs
+
 - Average rating from reviews
 - Count of successfully completed periods
 - Count of confirmed disputes/complaints
@@ -297,6 +323,7 @@ created_at, hidden_by_admin: boolean
 ## Notifications
 
 ### Events to Notify
+
 - Member joined room
 - Owner marked "access granted"
 - Member confirmed / did not confirm access
@@ -307,11 +334,13 @@ created_at, hidden_by_admin: boolean
 - SLA timeout warning
 
 ### Channels
+
 - Web: in-app + WebSocket (auth required at handshake, rate-limited)
 - Mobile: push notifications
 - Email: minimum — password reset; optionally other events
 
 ### Implementation
+
 - **Outbox pattern required** — notifications must NOT block user-facing API
 - All background jobs (risk scoring, SLA reminders, auto-escalation) run async
 
@@ -320,6 +349,7 @@ created_at, hidden_by_admin: boolean
 ## Admin Panel
 
 ### Sections
+
 - Users (view, ban/unban)
 - Rooms (view, block, batch-confirm members without red flags)
 - Categories / Services (CRUD, `is_active` toggle)
@@ -329,6 +359,7 @@ created_at, hidden_by_admin: boolean
 - AdminActionLog (read-only)
 
 ### Admin Actions on Room Member
+
 - Confirm access → member → ACTIVE
 - Reject access → triggers Dispute/Refund
 - Block room / Ban owner
@@ -336,6 +367,7 @@ created_at, hidden_by_admin: boolean
 - Batch confirm: allowed only when no red flags; each individual action must be logged
 
 ### Triggers Required for Admin to Act
+
 Dispute / SupportTicket / `requires_admin_review` / SLA timeout / fraud anomaly signal
 
 Admin does **NOT** participate in happy-path activation.
@@ -347,22 +379,27 @@ Admin does **NOT** participate in happy-path activation.
 **Enforced at DB role level — no UPDATE/DELETE permitted on log tables.**
 
 ### AdminActionLog
+
 ```
 id, actor_id, role, action, entity_type, entity_id,
 old_state, new_state, comment, ip, user_agent, timestamp
 ```
 
 ### RoomEventLog
+
 ```
 event_id (UUID), correlation_id, idempotency_key,
 room_id, actor_id, event_type, payload, timestamp
 ```
+
 Event types: `room_created`, `member_joined`, `payment_intent_created`, `payment_success`, `owner_access_granted`, `member_confirmed`, `admin_confirmed`, `admin_rejected`, `room_blocked`, `room_completed`
 
 ### AuthLog
+
 `login_success`, `login_fail`, `refresh_rotated`, `suspicious_activity`
 
 ### Retention
+
 - Audit logs: ≥ 180 days
 - Payment logs: ≥ 3 years
 - Support tickets: ≥ 1 year
@@ -372,6 +409,7 @@ Event types: `room_created`, `member_joined`, `payment_intent_created`, `payment
 ## Auth
 
 ### Mechanism
+
 - JWT access + refresh token
 - Access token: RS256 or ES256, TTL ≤ 15 min
 - **Algorithm `none` is forbidden**
@@ -380,6 +418,7 @@ Event types: `room_created`, `member_joined`, `payment_intent_created`, `payment
 - Logout = revoke refresh token
 
 ### Registration / Login
+
 - Email + password (min 8 chars, unique email)
 - Google Sign-In (validate issuer/audience)
 - Password reset via email
@@ -387,6 +426,7 @@ Event types: `room_created`, `member_joined`, `payment_intent_created`, `payment
 - Temporary lockout after N failed attempts
 
 ### Admin Session
+
 - 2FA required (TOTP)
 - Session timeout: 15 min inactivity
 - All logins logged
@@ -396,21 +436,25 @@ Event types: `room_created`, `member_joined`, `payment_intent_created`, `payment
 ## Security Hard Rules
 
 ### RBAC
+
 - All admin endpoints: log to AdminActionLog
 - **IDOR protection**: ownership check in service layer for every `entity_id` param
 - Unit/integration tests for IDOR required
 
 ### Input Validation
+
 - Server-side only (Spring Validation on all DTOs)
 - Parameterized queries only (no raw SQL)
 - Sanitize user text fields (descriptions, reviews, ticket messages) on backend
 - React default escaping; `dangerouslySetInnerHTML` **forbidden**
 
 ### Cookies / CSRF
+
 - If refresh token in cookie: `SameSite` + `HttpOnly` + `Secure` + CSRF token
 - If JWT only in `Authorization` header: still validate
 
 ### File Uploads (ticket attachments)
+
 - Allowlist: `png`, `jpg`, `pdf`
 - Check MIME type + magic bytes
 - Size limit enforced
@@ -418,6 +462,7 @@ Event types: `room_created`, `member_joined`, `payment_intent_created`, `payment
 - Serve only via pre-signed URLs with expiry
 
 ### Race Conditions
+
 - Optimistic locking (version column) on `rooms` and `room_members`
 - Join must be atomic — cannot exceed `max_members` under parallel requests
 - ACTIVE transition: one-time only
@@ -425,12 +470,14 @@ Event types: `room_created`, `member_joined`, `payment_intent_created`, `payment
 - Payment operations: `idempotency_key` required
 
 ### Encryption
+
 - In transit: HTTPS/TLS 1.2+ (prefer 1.3), WSS only
 - At rest: disk/volume encryption at infra level
 - `connection_identifier` (TELECOM phone): application-level encryption or strict infra ACL
 - Secrets (JWT keys, OAuth): Secret Manager only — **never in git or env files in repo**
 
 ### Rate Limiting
+
 - Auth endpoints
 - Room creation
 - Room join
@@ -438,6 +485,7 @@ Event types: `room_created`, `member_joined`, `payment_intent_created`, `payment
 - WebSocket message rate limit + forced disconnect on flood
 
 ### Browser Security Headers (required)
+
 ```
 Content-Security-Policy (no inline scripts)
 X-Content-Type-Options: nosniff
@@ -447,6 +495,7 @@ Referrer-Policy
 ```
 
 ### DB Security
+
 - App uses least-privilege DB user (no superuser)
 - Migrations run as separate user/process
 - Backups + restore test required
@@ -474,6 +523,7 @@ Referrer-Policy
 ```
 
 ### API Standards
+
 - Swagger / OpenAPI required
 - Unified error format: `{ code, message, details }`
 - All list endpoints: pagination (limit/offset or cursor)
@@ -485,6 +535,7 @@ Referrer-Policy
 ## Fraud / Risk Score (`user_risk_score`)
 
 Increases on:
+
 - Frequent disputes
 - Mass room creation
 - Exceeding join limits
@@ -495,6 +546,7 @@ High-risk users → manual moderation queue.
 ---
 
 ## Geolocation Module (MVP, minimal)
+
 - Request user location (with consent)
 - Display operator list with signal quality rating (approximate)
 - Show disclaimer about approximate data
@@ -503,6 +555,7 @@ High-risk users → manual moderation queue.
 ---
 
 ## i18n
+
 - **RU**: required for MVP
 - KZ + EN: i18n structure and key files ready, translations can be added later
 - Backend: no locale-specific business logic

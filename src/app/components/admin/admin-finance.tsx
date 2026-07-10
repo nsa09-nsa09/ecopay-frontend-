@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { AdminLayout } from './admin-layout';
 import { Badge, Button, Card, Input, Select } from '../ds-primitives';
@@ -39,7 +46,9 @@ function formatMoney(amount: number | string | null | undefined, currency: strin
 // Colour a transaction/refund status badge according to the intent it conveys.
 // Kept in sync with the enum values on the backend (see PaymentTransactionStatus,
 // RefundStatus). Unknown values fall through to a neutral default.
-function statusVariant(status: string | null): 'default' | 'success' | 'warning' | 'danger' | 'info' {
+function statusVariant(
+  status: string | null,
+): 'default' | 'success' | 'warning' | 'danger' | 'info' {
   if (!status) return 'default';
   switch (status) {
     case 'SUCCESS':
@@ -60,13 +69,7 @@ function statusVariant(status: string | null): 'default' | 'success' | 'warning'
 // Renders a user reference as a link into /admin/users?selected=<id> so the
 // operator can jump straight to the profile panel — mirrors the pattern
 // used in admin-users detail deep-links.
-function UserRef({
-  id,
-  name,
-}: {
-  id: number | null;
-  name: string | null;
-}) {
+function UserRef({ id, name }: { id: number | null; name: string | null }) {
   if (id == null) return <span style={{ color: 'var(--eco-text-tertiary)' }}>—</span>;
   const label = name ?? `U-${id}`;
   return (
@@ -79,13 +82,7 @@ function UserRef({
   );
 }
 
-function RoomRef({
-  id,
-  title,
-}: {
-  id: number | null;
-  title: string | null;
-}) {
+function RoomRef({ id, title }: { id: number | null; title: string | null }) {
   if (id == null) return <span style={{ color: 'var(--eco-text-tertiary)' }}>—</span>;
   const label = title ? `R-${id} · ${title}` : `R-${id}`;
   return (
@@ -219,7 +216,10 @@ export function AdminFinancePage() {
 
   const statusOptions = useMemo(() => {
     const values = tab === 'revenue' ? TX_STATUS_OPTIONS : REFUND_STATUS_OPTIONS;
-    return [{ value: '', label: t('financeFilterAll') }, ...values.map((v) => ({ value: v, label: v }))];
+    return [
+      { value: '', label: t('financeFilterAll') },
+      ...values.map((v) => ({ value: v, label: v })),
+    ];
   }, [tab, t]);
 
   const typeOptions = useMemo(
@@ -610,9 +610,7 @@ function RefundsTable({
                 </Td>
                 <Td>
                   {r.disputeId != null ? (
-                    <span
-                      style={{ color: 'var(--eco-text-secondary)', fontFamily: 'monospace' }}
-                    >
+                    <span style={{ color: 'var(--eco-text-secondary)', fontFamily: 'monospace' }}>
                       D-{r.disputeId}
                     </span>
                   ) : (
@@ -628,13 +626,7 @@ function RefundsTable({
   );
 }
 
-function Th({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+function Th({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <th
       className={`px-3 py-2 text-left text-[11px] uppercase ${className ?? ''}`}

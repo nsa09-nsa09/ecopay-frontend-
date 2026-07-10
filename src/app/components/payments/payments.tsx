@@ -494,7 +494,7 @@ export function PaymentCheckoutPage() {
       )}
 
       <Button variant="primary" size="lg" className="w-full">
-        <Lock size={15} /> {tx(l, 'Оплатить безопасно', 'Қауіпсіз төлеу', 'Pay securely')} — ₸
+        <Lock size={15} /> {tx(l, 'Оплатить безопасно', 'Қауіпсіз төлеу', 'Pay securely')} · ₸
         {total.toLocaleString()}
       </Button>
 
@@ -617,9 +617,9 @@ export function PaymentConfirmationPage() {
               >
                 {tx(
                   l,
-                  'Произошла ошибка при обработке платежа. Вы можете безопасно повторить попытку — двойного списания не будет.',
-                  'Төлемді өңдеу кезінде қате орын алды. Қайта әрекет жасау қауіпсіз — қос есептен шығару болмайды.',
-                  'An error occurred processing your payment. You can safely retry — idempotent processing ensures no double charge.',
+                  'Произошла ошибка при обработке платежа. Вы можете безопасно повторить попытку: двойного списания не будет.',
+                  'Төлемді өңдеу кезінде қате орын алды. Қайта әрекет жасау қауіпсіз: қос есептен шығару болмайды.',
+                  'An error occurred processing your payment. You can safely retry: idempotent processing ensures no double charge.',
                 )}
               </p>
             </div>

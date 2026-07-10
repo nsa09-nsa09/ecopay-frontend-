@@ -26,16 +26,16 @@ const translations: Translations = {
     en: 'Invite off-platform',
   },
   inviteOffPlatformDesc: {
-    ru: 'Поделитесь этой ссылкой — открывший её человек войдёт или зарегистрируется и попадёт в комнату.',
-    kz: 'Бұл сілтемемен бөлісіңіз — оны ашқан адам кіреді немесе тіркеліп, бөлмеге қосылады.',
-    en: 'Share this link — opening it will let someone sign in or register and land directly in your room.',
+    ru: 'Поделитесь этой ссылкой. Открывший её человек войдёт или зарегистрируется и попадёт в комнату.',
+    kz: 'Бұл сілтемемен бөлісіңіз. Оны ашқан адам кіреді немесе тіркеліп, бөлмеге қосылады.',
+    en: 'Share this link. Opening it will let someone sign in or register and land directly in your room.',
   },
   inviteLinkCopy: { ru: 'Скопировать ссылку', kz: 'Сілтемені көшіру', en: 'Copy link' },
   inviteLinkCopiedToast: { ru: 'Ссылка скопирована', kz: 'Сілтеме көшірілді', en: 'Link copied' },
   inviteLinkCopyFailed: {
-    ru: 'Не удалось скопировать автоматически — скопируйте вручную.',
-    kz: 'Автоматты түрде көшіру мүмкін болмады — қолмен көшіріңіз.',
-    en: 'Could not copy automatically — copy it manually.',
+    ru: 'Не удалось скопировать автоматически. Скопируйте вручную.',
+    kz: 'Автоматты түрде көшіру мүмкін болмады. Қолмен көшіріңіз.',
+    en: 'Could not copy automatically. Copy it manually.',
   },
   browseRooms: { ru: 'Открытые комнаты', kz: 'Ашық бөлмелер', en: 'Open Rooms' },
   myRooms: { ru: 'Мои комнаты', kz: 'Менің бөлмелерім', en: 'My Rooms' },
@@ -371,9 +371,9 @@ const translations: Translations = {
 
   // ===== Digital Subscriptions =====
   digitalSubscriptionsAvailable: {
-    ru: 'Цифровые подписки — Доступно',
-    kz: 'Цифрлық жазылымдар — Қолжетімді',
-    en: 'Digital Subscriptions — Available',
+    ru: 'Цифровые подписки · Доступно',
+    kz: 'Цифрлық жазылымдар · Қолжетімді',
+    en: 'Digital Subscriptions · Available',
   },
   shareDigitalServices: {
     ru: 'Делитесь премиум-сервисами',
@@ -396,13 +396,13 @@ const translations: Translations = {
   ourMission: { ru: 'Наша миссия', kz: 'Біздің миссия', en: 'Our Mission' },
   aboutSubtitle: {
     ru: 'Надёжная платформа Казахстана для совместных тарифов связи',
-    kz: 'Қазақстанның сенімді платформасы — бірлескен байланыс тарифтері үшін',
+    kz: 'Бірлескен байланыс тарифтеріне арналған Қазақстанның сенімді платформасы',
     en: "Kazakhstan's trusted platform for shared telecom plans",
   },
   missionText: {
-    ru: 'EcoPay делает семейные тарифы операторов связи доступными для всех в Казахстане. Присоединяйтесь к общей комнате, разделяйте оплату и экономьте до 70% от ежемесячного счёта — без контрактов и лишних хлопот.',
-    kz: 'EcoPay Қазақстандағы отбасылық тарифтерді барлығына қолжетімді етеді. Ортақ бөлмеге қосылып, төлемді бөлісіп, ай сайынғы төлемнен 70%-ға дейін үнемдеңіз — келісімшарттар мен қиындықтар жоқ.',
-    en: 'EcoPay makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly bill — no contracts, no hassle.',
+    ru: 'EcoPay делает семейные тарифы операторов связи доступными для всех в Казахстане. Присоединяйтесь к общей комнате, разделяйте оплату и экономьте до 70% от ежемесячного счёта. Без контрактов и лишних хлопот.',
+    kz: 'EcoPay Қазақстандағы отбасылық тарифтерді барлығына қолжетімді етеді. Ортақ бөлмеге қосылып, төлемді бөлісіп, ай сайынғы төлемнен 70%-ға дейін үнемдеңіз. Келісімшарттар мен қиындықтар жоқ.',
+    en: 'EcoPay makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly bill. No contracts, no hassle.',
   },
   trustPrivacyTitle: {
     ru: 'Доверие и приватность прежде всего',
@@ -410,9 +410,9 @@ const translations: Translations = {
     en: 'Trust & Privacy First',
   },
   trustPrivacyText: {
-    ru: 'Ваша личная информация никогда не передаётся между пользователями. Все транзакции защищены, а общение происходит через нашу службу поддержки — без прямого контакта между пользователями.',
-    kz: 'Жеке ақпаратыңыз пайдаланушылар арасында бөлінбейді. Барлық транзакциялар қорғалған, ал барлық байланыс біздің қолдау қызметі арқылы жүреді — пайдаланушылар арасында тікелей контакт жоқ.',
-    en: 'Your personal information is never shared between users. All transactions are secure, and all communication happens through our support system — no direct user-to-user contact.',
+    ru: 'Ваша личная информация никогда не передаётся между пользователями. Все транзакции защищены, а общение происходит через нашу службу поддержки. Прямого контакта между пользователями нет.',
+    kz: 'Жеке ақпаратыңыз пайдаланушылар арасында бөлінбейді. Барлық транзакциялар қорғалған, ал барлық байланыс біздің қолдау қызметі арқылы жүреді. Пайдаланушылар арасында тікелей контакт жоқ.',
+    en: 'Your personal information is never shared between users. All transactions are secure, and all communication happens through our support system. No direct user-to-user contact.',
   },
   bulletVerifiedPayments: {
     ru: 'Проверенная обработка платежей',
@@ -432,7 +432,7 @@ const translations: Translations = {
   howWeHelpTitle: { ru: 'Как мы помогаем', kz: 'Біз қалай көмектесеміз', en: 'How We Help' },
   howWeHelpText: {
     ru: 'Мы соединяем людей, желающих разделить семейные тарифы ведущих операторов Казахстана: Beeline, Activ, Altel, Tele2 и Kcell. Наша платформа обеспечивает обработку платежей, верификацию и поддержку, чтобы вы могли сосредоточиться на экономии.',
-    kz: 'Біз Қазақстанның негізгі операторлары — Beeline, Activ, Altel, Tele2 және Kcell — бойынша отбасылық тарифтерді бөлісуді қалайтын адамдарды біріктіреміз. Біздің платформа төлемдерді, тексеруді және қолдауды қамтамасыз етеді, сонда сіз үнемдеуге назар аударасыз.',
+    kz: 'Біз Қазақстанның негізгі операторлары (Beeline, Activ, Altel, Tele2 және Kcell) бойынша отбасылық тарифтерді бөлісуді қалайтын адамдарды біріктіреміз. Біздің платформа төлемдерді, тексеруді және қолдауды қамтамасыз етеді, сонда сіз үнемдеуге назар аударасыз.',
     en: "We connect people who want to share family plans from Kazakhstan's major telecom operators: Beeline, Activ, Altel, Tele2, and Kcell. Our platform handles payments, verification, and support so you can focus on savings.",
   },
   contactGetInTouch: { ru: 'Связаться с нами', kz: 'Бізбен байланысыңыз', en: 'Get in Touch' },
@@ -442,8 +442,53 @@ const translations: Translations = {
     en: '(Business contact, subject to change before launch)',
   },
   contactPhoneNumber: { ru: '+7 747 226 6885', kz: '+7 747 226 6885', en: '+7 747 226 6885' },
-  contactEmail: { ru: 'support@ecopay.kz', kz: 'support@ecopay.kz', en: 'support@ecopay.kz' },
-  contactLocation: { ru: 'Алматы, Казахстан', kz: 'Алматы, Қазақстан', en: 'Almaty, Kazakhstan' },
+  contactEmail: {
+    ru: 'apexdigitalservices3@gmail.com',
+    kz: 'apexdigitalservices3@gmail.com',
+    en: 'apexdigitalservices3@gmail.com',
+  },
+  contactLocation: { ru: 'Астана, Казахстан', kz: 'Астана, Қазақстан', en: 'Astana, Kazakhstan' },
+  aboutCtaCatalog: { ru: 'Открыть каталог', kz: 'Каталогты ашу', en: 'Open catalog' },
+  aboutCtaCreateRoom: { ru: 'Создать комнату', kz: 'Бөлме құру', en: 'Create a room' },
+  aboutFactSavingsValue: { ru: 'до 70%', kz: '70%-ға дейін', en: 'up to 70%' },
+  aboutFactSavingsLabel: {
+    ru: 'экономии на семейных тарифах',
+    kz: 'отбасылық тарифтерде үнемдеу',
+    en: 'savings on family plans',
+  },
+  aboutFactOperatorsValue: { ru: '5 операторов', kz: '5 оператор', en: '5 operators' },
+  aboutFactOperatorsLabel: {
+    ru: 'Beeline · Activ · Altel · Tele2 · Kcell',
+    kz: 'Beeline · Activ · Altel · Tele2 · Kcell',
+    en: 'Beeline · Activ · Altel · Tele2 · Kcell',
+  },
+  aboutFactSecureValue: { ru: 'Оплата защищена', kz: 'Төлем қорғалған', en: 'Payments secured' },
+  aboutFactSecureLabel: {
+    ru: 'Через проверенных провайдеров',
+    kz: 'Сенімді провайдерлер арқылы',
+    en: 'Via verified providers',
+  },
+  aboutFactSupportValue: { ru: 'Поддержка 24/7', kz: '24/7 қолдау', en: '24/7 support' },
+  aboutFactSupportLabel: {
+    ru: 'Общение через нашу поддержку',
+    kz: 'Тек қолдау арқылы байланыс',
+    en: 'Communication through our support',
+  },
+  aboutQrTitle: {
+    ru: 'Откройте EcoPay на телефоне',
+    kz: 'Телефоныңызда EcoPay-ды ашыңыз',
+    en: 'Open EcoPay on your phone',
+  },
+  aboutQrCaption: {
+    ru: 'Отсканируйте, чтобы открыть EcoPay на телефоне',
+    kz: 'Телефонда EcoPay-ды ашу үшін сканерлеңіз',
+    en: 'Scan to open EcoPay on your phone',
+  },
+  adminAboutApexLink: {
+    ru: 'Ссылка Apex Digital',
+    kz: 'Apex Digital сілтемесі',
+    en: 'Apex Digital link',
+  },
   buildingTrust: {
     ru: 'Создаём доверие с помощью технологий',
     kz: 'Технология арқылы сенімділікті құру',
@@ -2795,9 +2840,9 @@ const translations: Translations = {
     en: 'Unable to load the live catalog right now.',
   },
   splitDigitalServicesTeaser: {
-    ru: 'Делитесь стримингом, музыкой и AI-инструментами — запуск позже в 2026 году',
-    kz: 'Стриминг, музыка және AI құралдарын бөлісіңіз — 2026 жылы кейінірек іске қосылады',
-    en: 'Split streaming, music, AI tools — launching later in 2026',
+    ru: 'Делитесь стримингом, музыкой и AI-инструментами. Запуск позже в 2026 году.',
+    kz: 'Стриминг, музыка және AI құралдарын бөлісіңіз. 2026 жылы кейінірек іске қосылады.',
+    en: 'Split streaming, music, AI tools. Launching later in 2026.',
   },
   bundleIncludesInternet: {
     ru: 'Пакет включает домашний интернет',
@@ -2917,9 +2962,9 @@ const translations: Translations = {
     en: 'Create Your Own Room',
   },
   paymentCouldNotProcess: {
-    ru: 'Ваш платёж не удалось обработать. Ваша заявка ещё активна — вы можете повторить с тем же платёжным намерением.',
-    kz: 'Төлеміңізді өңдеу мүмкін болмады. Өтініміңіз әлі белсенді — сол төлем ниетімен қайталай аласыз.',
-    en: 'Your payment could not be processed. Your application is still active — you can retry using the same payment intent.',
+    ru: 'Ваш платёж не удалось обработать. Ваша заявка ещё активна: можно повторить с тем же платёжным намерением.',
+    kz: 'Төлеміңізді өңдеу мүмкін болмады. Өтініміңіз әлі белсенді: сол төлем ниетімен қайталай аласыз.',
+    en: 'Your payment could not be processed. Your application is still active: you can retry using the same payment intent.',
   },
   paymentDetails: { ru: 'Детали платежа', kz: 'Төлем деректері', en: 'Payment details' },
   insufficientFunds: {
@@ -2942,9 +2987,9 @@ const translations: Translations = {
   detailsLabel: { ru: 'Детали', kz: 'Мәліметтер', en: 'Details' },
   blockedOn: { ru: 'Заблокировано', kz: 'Бұғатталды', en: 'Blocked on' },
   adminDecisionPendingReview: {
-    ru: 'Решение администратора — на рассмотрении',
-    kz: 'Әкімші шешімі — қарастырылуда',
-    en: 'Admin decision — pending review',
+    ru: 'Решение администратора · на рассмотрении',
+    kz: 'Әкімші шешімі · қарастырылуда',
+    en: 'Admin decision · pending review',
   },
   roomBlockedSupportNote: {
     ru: 'Если вы считаете это ошибкой, обратитесь в поддержку. Возвраты активным участникам обрабатываются в течение 5–7 рабочих дней.',
@@ -3230,9 +3275,9 @@ const translations: Translations = {
   // ===== Feedback (user) =====
   feedbackTitle: { ru: 'Обратная связь', kz: 'Кері байланыс', en: 'Feedback' },
   feedbackIntro: {
-    ru: 'Поделитесь жалобой, идеей или просьбой — мы прочитаем каждое обращение.',
-    kz: 'Шағым, идея немесе өтінішпен бөлісіңіз — біз әрбір өтінімді оқимыз.',
-    en: 'Share a complaint, idea, or request — we read every submission.',
+    ru: 'Поделитесь жалобой, идеей или просьбой. Мы прочитаем каждое обращение.',
+    kz: 'Шағым, идея немесе өтінішпен бөлісіңіз. Біз әрбір өтінімді оқимыз.',
+    en: 'Share a complaint, idea, or request. We read every submission.',
   },
   feedbackTypeLabel: { ru: 'Тип обращения', kz: 'Өтініш түрі', en: 'Type' },
   feedbackTypeComplaint: { ru: 'Жалоба', kz: 'Шағым', en: 'Complaint' },
@@ -3244,9 +3289,9 @@ const translations: Translations = {
     en: 'Subject (optional)',
   },
   feedbackSubjectPlaceholder: {
-    ru: 'Кратко — о чём',
-    kz: 'Қысқаша — не туралы',
-    en: 'Briefly — what about',
+    ru: 'Кратко · о чём',
+    kz: 'Қысқаша · не туралы',
+    en: 'Briefly · what about',
   },
   feedbackMessageLabel: { ru: 'Сообщение', kz: 'Хабарлама', en: 'Message' },
   feedbackMessagePlaceholder: {
@@ -3589,14 +3634,14 @@ const translations: Translations = {
   // ===== News (home + admin) =====
   newsSectionTitle: { ru: 'Новости', kz: 'Жаңалықтар', en: 'News' },
   newsSectionSubtitle: {
-    ru: 'Свежие обновления EcoPay — релизы, изменения и истории сообщества.',
-    kz: 'EcoPay жаңартулары — релиздер, өзгерістер және қауымдастық оқиғалары.',
-    en: 'Latest EcoPay updates — releases, changes, and community stories.',
+    ru: 'Свежие обновления EcoPay: релизы, изменения и истории сообщества.',
+    kz: 'EcoPay жаңартулары: релиздер, өзгерістер және қауымдастық оқиғалары.',
+    en: 'Latest EcoPay updates: releases, changes, and community stories.',
   },
   newsReadMore: { ru: 'Читать', kz: 'Оқу', en: 'Read' },
   newsEmptyTitle: { ru: 'Новостей пока нет', kz: 'Әзірге жаңалықтар жоқ', en: 'No news yet' },
   newsEmptyDesc: {
-    ru: 'Как только мы что-то опубликуем — оно появится здесь.',
+    ru: 'Как только мы что-то опубликуем, оно появится здесь.',
     kz: 'Жариялаған кезде осында пайда болады.',
     en: 'When we publish something, it will appear here.',
   },
@@ -3613,9 +3658,9 @@ const translations: Translations = {
   adminNewsNav: { ru: 'Новости', kz: 'Жаңалықтар', en: 'News' },
   adminNewsTitle: { ru: 'Новости', kz: 'Жаңалықтар', en: 'News' },
   adminNewsHint: {
-    ru: 'Управляйте новостями, видимыми на главной. Заполняйте все три языка — пустые откатываются на русский.',
-    kz: 'Басты беттегі жаңалықтарды басқарыңыз. Барлық үш тілді толтырыңыз — бос өрістер орысшаға қайтады.',
-    en: 'Manage news visible on the home page. Fill all three languages — empty ones fall back to Russian.',
+    ru: 'Управляйте новостями, видимыми на главной. Заполняйте все три языка: пустые откатываются на русский.',
+    kz: 'Басты беттегі жаңалықтарды басқарыңыз. Барлық үш тілді толтырыңыз: бос өрістер орысшаға қайтады.',
+    en: 'Manage news visible on the home page. Fill all three languages: empty ones fall back to Russian.',
   },
   adminNewsCreate: { ru: 'Новая новость', kz: 'Жаңа жаңалық', en: 'New post' },
   adminNewsEdit: { ru: 'Редактировать', kz: 'Өңдеу', en: 'Edit' },
@@ -3664,8 +3709,8 @@ const translations: Translations = {
   adminNewsSaveSuccess: { ru: 'Сохранено', kz: 'Сақталды', en: 'Saved' },
   adminNewsDeleteSuccess: { ru: 'Удалено', kz: 'Жойылды', en: 'Deleted' },
   adminNewsImageRequired: {
-    ru: 'Сначала сохраните новость — потом можно загрузить картинку.',
-    kz: 'Алдымен жаңалықты сақтаңыз — содан кейін суретті жүктеуге болады.',
+    ru: 'Сначала сохраните новость, затем можно загрузить картинку.',
+    kz: 'Алдымен жаңалықты сақтаңыз, содан кейін суретті жүктеуге болады.',
     en: 'Save the post first, then you can upload an image.',
   },
   adminNewsImageAtCreateHint: {
@@ -3679,9 +3724,9 @@ const translations: Translations = {
     en: 'Only PNG, JPG and WebP are supported.',
   },
   adminNewsImageTooBig: {
-    ru: 'Файл больше 5 МБ — выберите поменьше.',
-    kz: 'Файл 5 МБ-тан үлкен — кішірек таңдаңыз.',
-    en: 'File is larger than 5 MB — please pick a smaller one.',
+    ru: 'Файл больше 5 МБ. Выберите поменьше.',
+    kz: 'Файл 5 МБ-тан үлкен. Кішірек таңдаңыз.',
+    en: 'File is larger than 5 MB. Please pick a smaller one.',
   },
 
   // ===== Admin catalog — service logo =====
@@ -3704,9 +3749,9 @@ const translations: Translations = {
     en: 'Only PNG and JPG are supported.',
   },
   catalogLogoTooBig: {
-    ru: 'Файл больше 5 МБ — выберите поменьше.',
-    kz: 'Файл 5 МБ-тан үлкен — кішірек таңдаңыз.',
-    en: 'File is larger than 5 MB — please pick a smaller one.',
+    ru: 'Файл больше 5 МБ. Выберите поменьше.',
+    kz: 'Файл 5 МБ-тан үлкен. Кішірек таңдаңыз.',
+    en: 'File is larger than 5 MB. Please pick a smaller one.',
   },
 
   // ===== FAQ extra (8–12 questions) =====
@@ -3724,8 +3769,8 @@ const translations: Translations = {
 
   // ===== /privacy =====
   privacyHeroSubtitle: {
-    ru: 'Конфиденциальность — наш приоритет. Вот как мы защищаем ваши данные.',
-    kz: 'Құпиялылық — біздің басымдығымыз. Сіздің деректеріңізді қалай қорғайтынымызды осында оқыңыз.',
+    ru: 'Конфиденциальность в приоритете. Вот как мы защищаем ваши данные.',
+    kz: 'Құпиялылық басты орында. Сіздің деректеріңізді қалай қорғайтынымызды осында оқыңыз.',
     en: "Your privacy is our priority. Here's how we protect your data.",
   },
   privacyLastUpdatedDate: {
@@ -3754,7 +3799,7 @@ const translations: Translations = {
     en: 'No Contact Sharing',
   },
   privacyPrincipleNoContactDesc: {
-    ru: 'Мы никогда не передаём ваш номер, e-mail или личные данные другим пользователям. Всё взаимодействие — через платформу.',
+    ru: 'Мы никогда не передаём ваш номер, e-mail или личные данные другим пользователям. Всё взаимодействие происходит через платформу.',
     kz: 'Біз сіздің телефон нөміріңізді, e-mail-ыңызды немесе жеке мәліметтеріңізді басқа пайдаланушыларға бермейміз. Барлық үйлестіру платформа арқылы өтеді.',
     en: 'We never share your phone number, email, or personal details with other users. All coordination happens through our platform.',
   },
@@ -3935,7 +3980,7 @@ const translations: Translations = {
     en: 'Create or Join a Room',
   },
   howItWorksStep1Desc: {
-    ru: 'Изучите доступные общие тарифы по оператору (Beeline, Activ, Altel, Tele2, Kcell) и присоединитесь к существующей комнате — или создайте свою, если у вас есть семейный тариф, которым можно поделиться.',
+    ru: 'Изучите доступные общие тарифы по оператору (Beeline, Activ, Altel, Tele2, Kcell) и присоединитесь к существующей комнате. Или создайте свою, если у вас есть семейный тариф, которым можно поделиться.',
     kz: 'Оператор бойынша қолжетімді ортақ тарифтерді (Beeline, Activ, Altel, Tele2, Kcell) қараңыз да, бар бөлмеге қосылыңыз немесе бөлісуге болатын отбасылық тарифіңіз болса, өзіңіздің бөлмеңізді құрыңыз.',
     en: 'Browse available shared plans by operator (Beeline, Activ, Altel, Tele2, Kcell) and join an existing room, or create your own if you have a family plan to share.',
   },
@@ -3961,9 +4006,9 @@ const translations: Translations = {
     en: 'Enter Your Identifier',
   },
   howItWorksStep2Desc: {
-    ru: 'Укажите телеком-идентификатор (номер телефона или ID аккаунта), чтобы владелец тарифа смог добавить вас. Контактные данные остаются приватными — передаются только проверенные идентификаторы.',
-    kz: 'Телеком идентификаторыңызды (телефон нөмірі немесе тіркелгі ID-сі) енгізіңіз — иесі сізді тарифіне қоса алады. Байланыс деректеріңіз құпия қалады, тек тексерілген идентификаторлар ғана беріледі.',
-    en: 'Provide your telecom identifier (phone number or account ID) so the plan owner can add you to their family plan. Your contact info stays private—only verified identifiers are shared.',
+    ru: 'Укажите телеком-идентификатор (номер телефона или ID аккаунта), чтобы владелец тарифа смог добавить вас. Контактные данные остаются приватными: передаются только проверенные идентификаторы.',
+    kz: 'Телеком идентификаторыңызды (телефон нөмірі немесе тіркелгі ID-сі) енгізіңіз, сонда иесі сізді тарифіне қоса алады. Байланыс деректеріңіз құпия қалады, тек тексерілген идентификаторлар ғана беріледі.',
+    en: 'Provide your telecom identifier (phone number or account ID) so the plan owner can add you to their family plan. Your contact info stays private: only verified identifiers are shared.',
   },
   howItWorksStep2Detail1: {
     ru: 'Безопасная отправка идентификатора',
@@ -4009,9 +4054,9 @@ const translations: Translations = {
     en: 'Verify & Activate',
   },
   howItWorksStep4Desc: {
-    ru: 'Владелец комнаты добавляет вас в тариф. После проверки услуга активируется, и вы начинаете экономить. Все вопросы — только через заявки в поддержку, без прямого общения.',
+    ru: 'Владелец комнаты добавляет вас в тариф. После проверки услуга активируется, и вы начинаете экономить. Все вопросы решаются через заявки в поддержку, без прямого общения.',
     kz: 'Бөлме иесі сізді тарифіне қосады. Тексеруден кейін қызмет белсендіріледі, ал сіз үнемдеуді бастайсыз. Барлық үйлестіру тікелей емес, қолдау өтінімдері арқылы өтеді.',
-    en: 'The room owner adds you to their plan. Once verified, your service activates and you start saving. All coordination happens through support tickets—no direct user contact needed.',
+    en: 'The room owner adds you to their plan. Once verified, your service activates and you start saving. All coordination happens through support tickets, no direct user contact needed.',
   },
   howItWorksStep4Detail1: {
     ru: 'Владелец добавляет вас в тариф',
@@ -4231,9 +4276,9 @@ const translations: Translations = {
     en: 'Test URL',
   },
   adminPricingTestHint: {
-    ru: 'Запустит парсер по текущим настройкам без сохранения — увидите цену до создания источника.',
-    kz: 'Ағымдағы параметрлер бойынша талдағышты сақтаусыз жібереді — көзді жасаудан бұрын бағаны көресіз.',
-    en: 'Runs the extractor with the current settings, without saving — see the price before creating the source.',
+    ru: 'Запустит парсер по текущим настройкам без сохранения: увидите цену до создания источника.',
+    kz: 'Ағымдағы параметрлер бойынша талдағышты сақтаусыз жібереді: көзді жасаудан бұрын бағаны көресіз.',
+    en: 'Runs the extractor with the current settings, without saving, so you can see the price before creating the source.',
   },
   adminPricingTestRunning: {
     ru: 'Проверка…',
@@ -4264,9 +4309,9 @@ const translations: Translations = {
   // ===== Admin Finance drill-down (/admin/finance) =====
   financePageTitle: { ru: 'Финансы', kz: 'Қаржы', en: 'Finance' },
   financePageHint: {
-    ru: 'Кто платил, кому и когда — построчный разрез по 4 KPI финансов.',
-    kz: 'Кім, кімге және қашан төледі — 4 қаржы KPI бойынша жолдық көрініс.',
-    en: 'Who paid what and when — row-level view behind the 4 finance KPIs.',
+    ru: 'Кто платил, кому и когда: построчный разрез по 4 KPI финансов.',
+    kz: 'Кім, кімге және қашан төледі: 4 қаржы KPI бойынша жолдық көрініс.',
+    en: 'Who paid what and when: row-level view behind the 4 finance KPIs.',
   },
   financeTabRevenue: { ru: 'Доход', kz: 'Табыс', en: 'Revenue' },
   financeTabRefunds: { ru: 'Возвраты', kz: 'Қайтарулар', en: 'Refunds' },

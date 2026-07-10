@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
 import { Card, Pill, Select, RoomStatusBadge, EmptyState, Tabs } from '../ds-primitives';
-import { ArrowLeft, Users, Filter, Calendar } from 'lucide-react';
-import { useI18n, type Language } from '../i18n-provider';
-import { formatDate as formatAlmatyDate } from '../../lib/datetime';
+import { ArrowLeft, Users, Filter } from 'lucide-react';
+import { useI18n } from '../i18n-provider';
 import {
   getRooms,
   getService,
@@ -35,16 +34,8 @@ function formatMoney(value: number | null | undefined) {
   return `₸${moneyFormatter.format(Number(value ?? 0))}`;
 }
 
-function formatDate(value: string | undefined, language?: Language) {
-  if (!value) {
-    return 'TBD';
-  }
-
-  return formatAlmatyDate(value, language);
-}
-
 export function OperatorPage() {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const { id } = useParams<{ id: string }>();
   // Keep the id as a string: service ids are 64-bit and Number() would corrupt them.
   // (Must match room.serviceId, which the backend now serializes as a string.)
@@ -315,12 +306,6 @@ export function OperatorPage() {
                         <div className="flex items-center justify-between text-[12px]">
                           <span style={{ color: 'var(--eco-text-tertiary)' }}>
                             {t('ownerColon', { name: room.ownerDisplayName })}
-                          </span>
-                          <span
-                            className="inline-flex items-center gap-1"
-                            style={{ color: 'var(--eco-text-tertiary)' }}
-                          >
-                            <Calendar size={12} /> {formatDate(room.startDate, language)}
                           </span>
                         </div>
                       </Card>

@@ -184,13 +184,7 @@ function formatPrice(price: number | null, currency: string | null, lang: Langua
   }
 }
 
-function ChangeArrow({
-  current,
-  previous,
-}: {
-  current: number | null;
-  previous: number | null;
-}) {
+function ChangeArrow({ current, previous }: { current: number | null; previous: number | null }) {
   if (current == null || previous == null || current === previous) {
     return <Minus size={14} style={{ color: 'var(--eco-text-tertiary)' }} />;
   }
@@ -435,7 +429,9 @@ export function AdminPricingPage() {
           }}
           onSaved={(saved, mode) => {
             setProviders((prev) =>
-              mode === 'create' ? [saved, ...prev] : prev.map((p) => (p.id === saved.id ? saved : p)),
+              mode === 'create'
+                ? [saved, ...prev]
+                : prev.map((p) => (p.id === saved.id ? saved : p)),
             );
             setCreating(false);
             setEditing(null);
@@ -548,7 +544,10 @@ function RecentChangesBlock({
               style={{ background: 'var(--eco-surface)' }}
             >
               <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-2 text-[13px]" style={{ color: 'var(--eco-text)' }}>
+                <div
+                  className="flex items-center gap-2 text-[13px]"
+                  style={{ color: 'var(--eco-text)' }}
+                >
                   <ChangeArrow current={c.newPrice} previous={c.oldPrice} />
                   <span className="truncate">
                     {c.providerName} · {c.planName}
@@ -697,8 +696,7 @@ function UpsertProviderModal({
     setError(null);
     const config = buildExtractorConfig();
     const trimmedName = displayName.trim() || platformCode.trim();
-    const parsedManualPrice =
-      showManual && manualPrice.trim() ? Number(manualPrice) : null;
+    const parsedManualPrice = showManual && manualPrice.trim() ? Number(manualPrice) : null;
 
     try {
       let saved: PricingProviderDto;
@@ -846,11 +844,7 @@ function UpsertProviderModal({
             className="flex items-center gap-2 text-[13px] cursor-pointer"
             style={{ color: 'var(--eco-text)' }}
           >
-            <input
-              type="checkbox"
-              checked={active}
-              onChange={(e) => setActive(e.target.checked)}
-            />
+            <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
             {t('adminPricingActive')}
           </label>
           <label
@@ -930,7 +924,8 @@ function TestExtractionPanel({
           disabled={!canTest}
           onClick={() => void onTest()}
         >
-          <RefreshCw size={12} /> {testing ? t('adminPricingTestRunning') : t('adminPricingTestUrl')}
+          <RefreshCw size={12} />{' '}
+          {testing ? t('adminPricingTestRunning') : t('adminPricingTestUrl')}
         </Button>
       </div>
       {error && (
@@ -995,9 +990,7 @@ function HistoryDrawer({
     setError(null);
     void (async () => {
       try {
-        const data = await authorizedRequest((token) =>
-          adminGetPricingHistory(provider.id, token),
-        );
+        const data = await authorizedRequest((token) => adminGetPricingHistory(provider.id, token));
         if (!cancelled) setSnapshots(data);
       } catch (err) {
         if (!cancelled) setError(formatAdminApiError(err, t));
@@ -1037,9 +1030,7 @@ function HistoryDrawer({
       )}
       {!loading && !error && provider && (
         <div className="flex flex-col gap-3">
-          {priceSeries.length >= 2 && (
-            <Sparkline points={priceSeries} />
-          )}
+          {priceSeries.length >= 2 && <Sparkline points={priceSeries} />}
           {snapshots.length === 0 ? (
             <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
               {t('adminPricingHistoryEmpty')}
@@ -1095,11 +1086,7 @@ function Sparkline({ points }: { points: number[] }) {
     })
     .join(' ');
   return (
-    <div
-      className="p-3 rounded-lg"
-      style={{ background: 'var(--eco-surface)' }}
-      aria-hidden
-    >
+    <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }} aria-hidden>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none">
         <path
           d={path}

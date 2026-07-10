@@ -1,6 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Card, WaveDivider } from '../ds-primitives';
-import { Mail, Phone, MapPin, Shield, Star, Users, Zap } from 'lucide-react';
+import { Link } from 'react-router';
+import { QRCodeSVG } from 'qrcode.react';
+import { Button, Card, WaveDivider } from '../ds-primitives';
+import {
+  Clock,
+  Coins,
+  Mail,
+  MapPin,
+  Phone,
+  Shield,
+  ShieldCheck,
+  Signal,
+  Star,
+  Users,
+  Zap,
+} from 'lucide-react';
 import { useI18n, type Language } from '../i18n-provider';
 import {
   getFeaturedServiceReviews,
@@ -77,122 +91,167 @@ export function AboutPage() {
     pickLocalized(content, 'description', language)?.trim() || t('howWeHelpText');
   const contactEmail = content?.contactEmail?.trim() || t('contactEmail');
   const contactPhone = content?.contactPhone?.trim() || t('contactPhoneNumber');
+  const apexUrl = content?.apexLink?.trim() || 'https://apex-digital.kz';
+  const apexIsHttp = apexUrl.startsWith('http');
+
+  // QR points at the current origin so a phone scan lands on the same host
+  // the visitor is browsing. Strip the Vite dev port (:5173) so a QR scanned
+  // from a laptop dev session still opens on the phone. SSR falls back to a
+  // sensible default so the render doesn't crash.
+  const qrUrl = (() => {
+    const origin =
+      typeof window !== 'undefined' ? window.location.origin : 'https://dev.apex-digital.kz';
+    return origin.replace(/:5173(?=\/|$)/, '');
+  })();
 
   return (
     <div>
       {/* Hero */}
-      <div className="py-12 sm:py-16 px-4 sm:px-6" style={{ background: 'var(--eco-surface)' }}>
-        <div className="max-w-[800px] mx-auto">
+      <div className="py-14 sm:py-20 px-4 sm:px-6" style={{ background: 'var(--eco-surface)' }}>
+        <div className="max-w-[960px] mx-auto text-center sm:text-left">
           <h1
-            className="text-[26px] sm:text-[40px] tracking-tight mb-4"
+            className="text-[30px] sm:text-[46px] leading-tight tracking-tight mb-4"
             style={{ color: 'var(--eco-text)' }}
           >
             {heroTitle}
           </h1>
-          <p className="text-[16px]" style={{ color: 'var(--eco-text-secondary)' }}>
+          <p
+            className="text-[16px] sm:text-[18px] max-w-[680px] mx-auto sm:mx-0"
+            style={{ color: 'var(--eco-text-secondary)' }}
+          >
             {t('aboutSubtitle')}
           </p>
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-start justify-center">
+            <Link to="/">
+              <Button variant="primary" size="lg">
+                {t('aboutCtaCatalog')}
+              </Button>
+            </Link>
+            <Link to="/rooms/create">
+              <Button variant="secondary" size="lg">
+                {t('aboutCtaCreateRoom')}
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
       <WaveDivider flip />
 
       {/* Content */}
-      <div className="max-w-[800px] mx-auto px-4 sm:px-6 py-12">
-        {/* Mission */}
-        <section className="mb-12">
-          <div className="flex items-start gap-4 mb-4">
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: 'var(--eco-brand-50)' }}
-            >
-              <Zap size={20} style={{ color: 'var(--eco-primary)' }} />
-            </div>
-            <div>
-              <h2 className="text-[20px] mb-2" style={{ color: 'var(--eco-text)' }}>
-                {t('ourMission')}
-              </h2>
-              <p
-                className="text-[14px] leading-relaxed whitespace-pre-line"
-                style={{ color: 'var(--eco-text-secondary)' }}
-              >
-                {missionText}
-              </p>
-            </div>
+      <div className="max-w-[960px] mx-auto px-4 sm:px-6 py-12">
+        {/* Facts strip */}
+        <section className="mb-14">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <FactTile
+              icon={<Coins size={20} style={{ color: 'var(--eco-primary)' }} />}
+              value={t('aboutFactSavingsValue')}
+              label={t('aboutFactSavingsLabel')}
+            />
+            <FactTile
+              icon={<Signal size={20} style={{ color: 'var(--eco-primary)' }} />}
+              value={t('aboutFactOperatorsValue')}
+              label={t('aboutFactOperatorsLabel')}
+            />
+            <FactTile
+              icon={<ShieldCheck size={20} style={{ color: 'var(--eco-primary)' }} />}
+              value={t('aboutFactSecureValue')}
+              label={t('aboutFactSecureLabel')}
+            />
+            <FactTile
+              icon={<Clock size={20} style={{ color: 'var(--eco-primary)' }} />}
+              value={t('aboutFactSupportValue')}
+              label={t('aboutFactSupportLabel')}
+            />
           </div>
         </section>
 
-        {/* Trust & Privacy */}
-        <section className="mb-12">
-          <div className="flex items-start gap-4 mb-4">
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: 'var(--eco-brand-50)' }}
+        {/* Mission / Trust / How We Help — 2-column landing grid */}
+        <section className="mb-14 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+          <FeatureCard
+            icon={<Zap size={20} style={{ color: 'var(--eco-primary)' }} />}
+            title={t('ourMission')}
+          >
+            <p
+              className="text-[14px] leading-relaxed whitespace-pre-line"
+              style={{ color: 'var(--eco-text-secondary)' }}
             >
-              <Shield size={20} style={{ color: 'var(--eco-primary)' }} />
-            </div>
-            <div>
-              <h2 className="text-[20px] mb-2" style={{ color: 'var(--eco-text)' }}>
-                {t('trustPrivacyTitle')}
-              </h2>
-              <p
-                className="text-[14px] leading-relaxed mb-3"
-                style={{ color: 'var(--eco-text-secondary)' }}
-              >
-                {t('trustPrivacyText')}
-              </p>
-              <ul className="space-y-2">
-                <li
-                  className="flex items-start gap-2 text-[13px]"
-                  style={{ color: 'var(--eco-text-secondary)' }}
-                >
-                  <span className="shrink-0">•</span>
-                  <span>{t('bulletVerifiedPayments')}</span>
-                </li>
-                <li
-                  className="flex items-start gap-2 text-[13px]"
-                  style={{ color: 'var(--eco-text-secondary)' }}
-                >
-                  <span className="shrink-0">•</span>
-                  <span>{t('bulletNoPersonalContact')}</span>
-                </li>
-                <li
-                  className="flex items-start gap-2 text-[13px]"
-                  style={{ color: 'var(--eco-text-secondary)' }}
-                >
-                  <span className="shrink-0">•</span>
-                  <span>{t('bulletSupportOnly')}</span>
-                </li>
-              </ul>
-            </div>
-          </div>
+              {missionText}
+            </p>
+          </FeatureCard>
+
+          <FeatureCard
+            icon={<Shield size={20} style={{ color: 'var(--eco-primary)' }} />}
+            title={t('trustPrivacyTitle')}
+          >
+            <p
+              className="text-[14px] leading-relaxed mb-3"
+              style={{ color: 'var(--eco-text-secondary)' }}
+            >
+              {t('trustPrivacyText')}
+            </p>
+            <ul className="space-y-2">
+              <TrustBullet text={t('bulletVerifiedPayments')} />
+              <TrustBullet text={t('bulletNoPersonalContact')} />
+              <TrustBullet text={t('bulletSupportOnly')} />
+            </ul>
+          </FeatureCard>
+
+          <FeatureCard
+            className="md:col-span-2"
+            icon={<Users size={20} style={{ color: 'var(--eco-primary)' }} />}
+            title={t('howWeHelpTitle')}
+          >
+            <p
+              className="text-[14px] leading-relaxed whitespace-pre-line"
+              style={{ color: 'var(--eco-text-secondary)' }}
+            >
+              {descriptionText}
+            </p>
+          </FeatureCard>
         </section>
 
-        {/* How We Help */}
-        <section className="mb-12">
-          <div className="flex items-start gap-4 mb-4">
+        {/* QR block */}
+        <section className="mb-14">
+          <Card className="flex flex-col items-center text-center gap-4 py-8">
+            <h2 className="text-[20px] sm:text-[24px]" style={{ color: 'var(--eco-text)' }}>
+              {t('aboutQrTitle')}
+            </h2>
             <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: 'var(--eco-brand-50)' }}
+              className="p-4 rounded-2xl"
+              style={{ background: '#ffffff', border: '1px solid var(--eco-border)' }}
             >
-              <Users size={20} style={{ color: 'var(--eco-primary)' }} />
+              <QRCodeSVG
+                value={qrUrl}
+                size={220}
+                level="H"
+                marginSize={4}
+                bgColor="#ffffff"
+                fgColor="#111111"
+                imageSettings={{
+                  src: '/ecopay-logo-transparent.png',
+                  height: 40,
+                  width: 40,
+                  excavate: true,
+                }}
+              />
             </div>
-            <div>
-              <h2 className="text-[20px] mb-2" style={{ color: 'var(--eco-text)' }}>
-                {t('howWeHelpTitle')}
-              </h2>
-              <p
-                className="text-[14px] leading-relaxed whitespace-pre-line"
-                style={{ color: 'var(--eco-text-secondary)' }}
-              >
-                {descriptionText}
-              </p>
-            </div>
-          </div>
+            <p className="text-[14px] max-w-[420px]" style={{ color: 'var(--eco-text-secondary)' }}>
+              {t('aboutQrCaption')}
+            </p>
+            <a
+              href={qrUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--eco-primary)', fontSize: 13, wordBreak: 'break-all' }}
+            >
+              {qrUrl}
+            </a>
+          </Card>
         </section>
 
         {/* Member reviews — hides itself when there are none */}
         {reviews.length > 0 && (
-          <section className="mb-12">
+          <section className="mb-14">
             <h2 className="text-[20px] mb-4" style={{ color: 'var(--eco-text)' }}>
               {t('memberReviewsTitle')}
             </h2>
@@ -208,56 +267,123 @@ export function AboutPage() {
           <h2 className="text-[20px] mb-6" style={{ color: 'var(--eco-text)' }}>
             {t('contactGetInTouch')}
           </h2>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <Phone
-                size={18}
-                className="mt-0.5 shrink-0"
-                style={{ color: 'var(--eco-primary)' }}
-              />
-              <div>
-                <p className="text-[14px] mb-1" style={{ color: 'var(--eco-text)' }}>
-                  {contactPhone}
-                </p>
-                <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {t('contactPhoneNote')}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <Mail size={18} className="mt-0.5 shrink-0" style={{ color: 'var(--eco-primary)' }} />
-              <div>
-                <p className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
-                  {contactEmail}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <MapPin
-                size={18}
-                className="mt-0.5 shrink-0"
-                style={{ color: 'var(--eco-primary)' }}
-              />
-              <div>
-                <p className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
-                  {t('contactLocation')}
-                </p>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <ContactTile
+              icon={<Mail size={18} style={{ color: 'var(--eco-primary)' }} />}
+              text={contactEmail}
+            />
+            <ContactTile
+              icon={<Phone size={18} style={{ color: 'var(--eco-primary)' }} />}
+              text={contactPhone}
+            />
+            <ContactTile
+              icon={<MapPin size={18} style={{ color: 'var(--eco-primary)' }} />}
+              text={t('contactLocation')}
+            />
           </div>
 
           {/* Developer Credit */}
-          <div className="mt-8 p-4 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+          <div
+            className="mt-8 p-4 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+            style={{ background: 'var(--eco-surface)' }}
+          >
             <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-              <strong style={{ color: 'var(--eco-text)' }}>{t('developedBy')}</strong>
-              <br />
-              {t('buildingTrust')}
+              {apexIsHttp ? (
+                <a
+                  href={apexUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--eco-primary)', fontWeight: 600 }}
+                >
+                  {t('developedBy')}
+                </a>
+              ) : (
+                <strong style={{ color: 'var(--eco-text)' }}>{t('developedBy')}</strong>
+              )}
             </p>
+            <span className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+              {t('buildingTrust')}
+            </span>
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function FactTile({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+  return (
+    <div
+      className="p-4 rounded-xl flex flex-col gap-2"
+      style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
+    >
+      <div
+        className="w-9 h-9 rounded-lg flex items-center justify-center"
+        style={{ background: 'var(--eco-brand-50)' }}
+      >
+        {icon}
+      </div>
+      <div className="text-[16px] leading-tight" style={{ color: 'var(--eco-text)' }}>
+        {value}
+      </div>
+      <div className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function FeatureCard({
+  icon,
+  title,
+  children,
+  className = '',
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Card className={`flex flex-col gap-3 ${className}`}>
+      <div className="flex items-center gap-3">
+        <div
+          className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: 'var(--eco-brand-50)' }}
+        >
+          {icon}
+        </div>
+        <h2 className="text-[18px]" style={{ color: 'var(--eco-text)' }}>
+          {title}
+        </h2>
+      </div>
+      <div>{children}</div>
+    </Card>
+  );
+}
+
+function TrustBullet({ text }: { text: string }) {
+  return (
+    <li
+      className="flex items-start gap-2 text-[13px]"
+      style={{ color: 'var(--eco-text-secondary)' }}
+    >
+      <span className="shrink-0">•</span>
+      <span>{text}</span>
+    </li>
+  );
+}
+
+function ContactTile({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return (
+    <div
+      className="p-4 rounded-lg flex items-start gap-3"
+      style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
+    >
+      <span className="mt-0.5 shrink-0">{icon}</span>
+      <span className="text-[14px] break-all" style={{ color: 'var(--eco-text)' }}>
+        {text}
+      </span>
     </div>
   );
 }

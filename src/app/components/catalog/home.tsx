@@ -56,9 +56,9 @@ const faqs: {
       en: 'What if access is not provided?',
     },
     a: {
-      ru: 'После оплаты деньги остаются в hold 30 дней. Если доступ не выдали, он не работает или вас удалили из подписки, можно открыть спор — модератор проверит и при необходимости вернёт деньги.',
-      kz: 'Төлемнен кейін ақша 30 күн hold-та болады. Егер қолжетімділік берілмесе, жұмыс істемесе немесе сізді жазылымнан шығарса, дау ашуға болады — модератор тексеріп, қажет болса ақшаны қайтарады.',
-      en: "After payment, the money stays on a 30-day hold. If access isn't granted, doesn't work, or you're removed, you can open a dispute — a moderator will review and refund if needed.",
+      ru: 'После оплаты деньги остаются в hold 30 дней. Если доступ не выдали, он не работает или вас удалили из подписки, можно открыть спор. Модератор проверит и при необходимости вернёт деньги.',
+      kz: 'Төлемнен кейін ақша 30 күн hold-та болады. Егер қолжетімділік берілмесе, жұмыс істемесе немесе сізді жазылымнан шығарса, дау ашуға болады. Модератор тексеріп, қажет болса ақшаны қайтарады.',
+      en: "After payment, the money stays on a 30-day hold. If access isn't granted, doesn't work, or you're removed, you can open a dispute. A moderator will review and refund if needed.",
     },
   },
   {
@@ -80,9 +80,9 @@ const faqs: {
       en: 'How is the payment split between members?',
     },
     a: {
-      ru: 'Каждый участник платит свою долю отдельно, прямо EcoPay. Владелец не собирает деньги вручную — мы сами разводим транзакции и держим их под защитой.',
-      kz: 'Әр қатысушы өз үлесін бөлек, тікелей EcoPay-ге төлейді. Иесі ақшаны қолмен жинамайды — біз транзакцияларды бөліп, қорғауда ұстаймыз.',
-      en: "Each member pays their share separately, directly to EcoPay. The owner doesn't collect money manually — we route the transactions and keep them protected.",
+      ru: 'Каждый участник платит свою долю отдельно, прямо EcoPay. Владелец не собирает деньги вручную: мы сами разводим транзакции и держим их под защитой.',
+      kz: 'Әр қатысушы өз үлесін бөлек, тікелей EcoPay-ге төлейді. Иесі ақшаны қолмен жинамайды: транзакцияларды біз бөліп, қорғауда ұстаймыз.',
+      en: "Each member pays their share separately, directly to EcoPay. The owner doesn't collect money manually: we route the transactions and keep them protected.",
     },
   },
   {
@@ -92,8 +92,8 @@ const faqs: {
       en: 'What about refunds and disputes?',
     },
     a: {
-      ru: 'Если что-то пошло не так — кнопка «Открыть спор» в комнате. Возврат может быть полным или частичным (пропорционально оставшемуся периоду). Решение принимает администратор и логирует его.',
-      kz: 'Бір нәрсе дұрыс болмаса — бөлмедегі «Дау ашу» түймесін басыңыз. Қайтару толық немесе ішінара болуы мүмкін (қалған кезеңге сай). Шешімді әкімші қабылдайды және оны журналға жазады.',
+      ru: 'Если что-то пошло не так, воспользуйтесь кнопкой «Открыть спор» в комнате. Возврат может быть полным или частичным (пропорционально оставшемуся периоду). Решение принимает администратор и логирует его.',
+      kz: 'Бір нәрсе дұрыс болмаса, бөлмедегі «Дау ашу» түймесін басыңыз. Қайтару толық немесе ішінара болуы мүмкін (қалған кезеңге сай). Шешімді әкімші қабылдайды және оны журналға жазады.',
       en: 'If something goes wrong, use the Open Dispute button inside the room. Refunds can be full or partial (pro-rated to the remaining period). An admin reviews the decision and logs it.',
     },
   },
@@ -130,7 +130,7 @@ const faqs: {
     a: {
       ru: 'Да: пока статус OPEN и дата старта не наступила, владелец и участники могут отменять заявки без штрафа. После старта работают правила hold и споров.',
       kz: 'Иә: статус OPEN болғанша және басталу күні келмегенше иесі мен қатысушылар өтінімдерді айыппұлсыз болдырмай алады. Басталғаннан кейін hold пен дау ережелері қолданылады.',
-      en: "Yes — while the status is OPEN and the start date hasn't passed, the owner and members can cancel without penalty. After it starts, hold and dispute rules apply.",
+      en: "Yes. While the status is OPEN and the start date hasn't passed, the owner and members can cancel without penalty. After it starts, hold and dispute rules apply.",
     },
   },
 ];
@@ -472,9 +472,9 @@ export function HomePage() {
           >
             {tx(
               lang,
-              'Выберите сервис — мы подберём комнату или предложим создать свою.',
-              'Сервисті таңдаңыз — біз бөлме табамыз немесе өзіңіздікін жасауды ұсынамыз.',
-              "Pick a service — we'll match a room or help you create one.",
+              'Выберите сервис: мы подберём комнату или предложим создать свою.',
+              'Сервисті таңдаңыз: біз бөлме табамыз немесе өзіңіздікін жасауды ұсынамыз.',
+              "Pick a service: we'll match a room or help you create one.",
             )}
           </p>
         </header>

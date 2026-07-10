@@ -550,9 +550,9 @@ function CreateTicketView({
           <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
             {tx(
               language,
-              'Пожалуйста, не отправляйте дубли — поддержка ответит в течение 24 часов.',
-              'Қайталанған хабарларды жібермеңіз — қолдау 24 сағат ішінде жауап береді.',
-              'Please avoid repeated messages — our support team will respond within 24 hours.',
+              'Пожалуйста, не отправляйте дубли: поддержка ответит в течение 24 часов.',
+              'Қайталанған хабарларды жібермеңіз: қолдау 24 сағат ішінде жауап береді.',
+              'Please avoid repeated messages: our support team will respond within 24 hours.',
             )}
           </div>
         </div>
@@ -969,7 +969,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
             <CheckCircle2 size={14} />
             {tx(
               language,
-              'Эта заявка закрыта. Если нужна помощь — создайте новую заявку.',
+              'Эта заявка закрыта. Если нужна помощь, создайте новую заявку.',
               'Бұл өтінім жабылды. Көмек қажет болса, жаңа өтінім жасаңыз.',
               'This ticket is closed. Create a new ticket if you need further assistance.',
             )}
@@ -1039,8 +1039,8 @@ function NoTicketsEmpty({ onCreate }: { onCreate: () => void }) {
       <div className="text-[14px] max-w-sm mb-6" style={{ color: 'var(--eco-text-secondary)' }}>
         {tx(
           language,
-          'Вы пока не создавали обращений. Если есть проблема с комнатой, оплатой или доступом — поддержка поможет.',
-          'Әзірге өтінім жасамадыңыз. Бөлмемен, төлеммен немесе қатынаспен мәселе болса — қолдау көмектеседі.',
+          'Вы пока не создавали обращений. Если есть проблема с комнатой, оплатой или доступом, поддержка поможет.',
+          'Әзірге өтінім жасамадыңыз. Бөлмемен, төлеммен немесе қатынаспен мәселе болса, қолдау көмектеседі.',
           "You haven't created any support tickets yet. If you're experiencing an issue with a room, payment, or access, our team is here to help.",
         )}
       </div>

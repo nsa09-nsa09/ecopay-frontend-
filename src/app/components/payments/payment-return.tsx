@@ -197,7 +197,7 @@ export function PaymentReturnPage() {
                 style={{ color: 'var(--eco-text-secondary)' }}
               >
                 {intent?.failureMessage ??
-                  'The payment did not complete. You can safely retry — idempotent processing means no double charge.'}
+                  'The payment did not complete. You can safely retry: idempotent processing means no double charge.'}
               </p>
             </div>
             {intent?.failureCode && (
@@ -228,7 +228,7 @@ export function PaymentReturnPage() {
                 style={{ color: 'var(--eco-text-secondary)' }}
               >
                 Your payment is still being confirmed. You can check the status on your membership
-                page — it will update automatically once settled.
+                page; it will update automatically once settled.
               </p>
             </div>
             <Button variant="primary" size="lg" onClick={goToMembership}>
