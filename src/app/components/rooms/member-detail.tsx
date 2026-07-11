@@ -21,15 +21,11 @@ import {
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
-<<<<<<< HEAD
 import {
   formatDate as formatAlmatyDate,
   formatDateTime as formatAlmatyDateTime,
 } from '../../lib/datetime';
 import { RoomChat } from './room-chat';
-=======
-import { formatDateTime as formatAlmatyDateTime } from '../../lib/datetime';
->>>>>>> cde1d071dc7023c6740c4bade8fb8c2d8928188f
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
