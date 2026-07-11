@@ -21,21 +21,21 @@ import {
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
+<<<<<<< HEAD
 import {
   formatDate as formatAlmatyDate,
   formatDateTime as formatAlmatyDateTime,
 } from '../../lib/datetime';
 import { RoomChat } from './room-chat';
+=======
+import { formatDateTime as formatAlmatyDateTime } from '../../lib/datetime';
+>>>>>>> cde1d071dc7023c6740c4bade8fb8c2d8928188f
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
 
 const moneyFormatter = new Intl.NumberFormat('ru-RU');
 const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
-const formatDate = (v: string | null | undefined, l: Language) => {
-  if (!v) return tx(l, '—', '—', 'TBD');
-  return formatAlmatyDate(v, l);
-};
 const formatDateTime = (v: string | null | undefined, l: Language) =>
   v ? formatAlmatyDateTime(v, l) : null;
 
@@ -419,13 +419,13 @@ export function MemberDetailPage() {
                   ? tx(
                       language,
                       'Проверьте, что тариф вам доступен, и подтвердите ниже, чтобы активировать участие.',
-                      'Тарифке кіре алатыныңызды тексеріп, төменде растаңыз — қатысуыңыз белсендіріледі.',
+                      'Тарифке кіре алатыныңызды тексеріп, төменде растаңыз, сонда қатысуыңыз белсендіріледі.',
                       'Verify you can use the plan, then confirm below to activate your membership.',
                     )
                   : tx(
                       language,
-                      `Владелец предоставит доступ${membership.accessMethod ? ` (${membership.accessMethod})` : ''}. Если задерживается — откройте заявку в поддержку.`,
-                      `Иесі қатынас береді${membership.accessMethod ? ` (${membership.accessMethod})` : ''}. Кешігіп жатса — қолдауға өтінім ашыңыз.`,
+                      `Владелец предоставит доступ${membership.accessMethod ? ` (${membership.accessMethod})` : ''}. Если задерживается, откройте заявку в поддержку.`,
+                      `Иесі қатынас береді${membership.accessMethod ? ` (${membership.accessMethod})` : ''}. Кешігіп жатса, қолдауға өтінім ашыңыз.`,
                       `The room owner will provide access${membership.accessMethod ? ` via ${membership.accessMethod}` : ''}. If it takes too long, you can open a support ticket.`,
                     )}
               </div>
@@ -483,7 +483,7 @@ export function MemberDetailPage() {
                 {tx(
                   language,
                   'Комната заблокирована администратором. Активные участники получат инструкции по возврату на email. Для подробностей обратитесь в поддержку.',
-                  'Бөлме әкімші тарапынан бұғатталған. Белсенді қатысушыларға қайтару нұсқаулары email-ге жіберіледі. Толығырақ — қолдау қызметіне.',
+                  'Бөлме әкімші тарапынан бұғатталған. Белсенді қатысушыларға қайтару нұсқаулары email-ге жіберіледі. Толығырақ ақпарат үшін қолдау қызметіне хабарласыңыз.',
                   'This room has been blocked by an administrator. Active members will receive refund instructions via email. Contact support for more information.',
                 )}
               </div>
@@ -543,10 +543,6 @@ export function MemberDetailPage() {
             {
               label: tx(language, 'Ваша доля', 'Сіздің үлесіңіз', 'Your share'),
               value: `${formatMoney(room.pricePerMember)}/${(room.periodType ?? '').toLowerCase()}`,
-            },
-            {
-              label: tx(language, 'Дата старта', 'Басталу күні', 'Start date'),
-              value: formatDate(room.startDate, language),
             },
             { label: tx(language, 'Места', 'Орындар', 'Seats'), value: `${room.maxMembers}` },
             ...(isTelecom

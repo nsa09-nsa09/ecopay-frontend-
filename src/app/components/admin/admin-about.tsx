@@ -31,6 +31,7 @@ interface FormState {
   companyName: string;
   contactEmail: string;
   contactPhone: string;
+  apexLink: string;
   langs: LangBag;
 }
 
@@ -44,6 +45,7 @@ const EMPTY: FormState = {
   companyName: '',
   contactEmail: '',
   contactPhone: '',
+  apexLink: '',
   langs: EMPTY_LANGS,
 };
 
@@ -60,6 +62,7 @@ function toForm(content: SiteAboutContent): FormState {
     companyName: content.companyName ?? '',
     contactEmail: content.contactEmail ?? '',
     contactPhone: content.contactPhone ?? '',
+    apexLink: content.apexLink ?? '',
     langs: {
       kz: {
         title: content.title_kz ?? '',
@@ -98,6 +101,7 @@ function buildPayload(form: FormState): UpdateSiteAboutPayload {
     description_en: form.langs.en.description.trim() || null,
     contactEmail: form.contactEmail.trim() || null,
     contactPhone: form.contactPhone.trim() || null,
+    apexLink: form.apexLink.trim() || null,
   };
 }
 
@@ -149,6 +153,7 @@ export function AdminAboutPage() {
   const setCompanyName = (value: string) => setForm((prev) => ({ ...prev, companyName: value }));
   const setContactEmail = (value: string) => setForm((prev) => ({ ...prev, contactEmail: value }));
   const setContactPhone = (value: string) => setForm((prev) => ({ ...prev, contactPhone: value }));
+  const setApexLink = (value: string) => setForm((prev) => ({ ...prev, apexLink: value }));
 
   const setLangField = (lang: AboutLang, field: keyof LangFields, value: string) => {
     setForm((prev) => ({
@@ -300,6 +305,14 @@ export function AdminAboutPage() {
                   value={form.contactPhone}
                   onChange={(e) => setContactPhone(e.target.value)}
                   placeholder="+7 ..."
+                />
+              </FormRow>
+
+              <FormRow label={t('adminAboutApexLink')}>
+                <Input
+                  value={form.apexLink}
+                  onChange={(e) => setApexLink(e.target.value)}
+                  placeholder="https://apex-digital.kz"
                 />
               </FormRow>
 

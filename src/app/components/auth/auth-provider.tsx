@@ -56,9 +56,11 @@ function persistBanEvent(reason: string | null, bannedAt: string | null) {
   }
 }
 
+// Access token lives in memory only. Refresh token lives in an httpOnly cookie
+// set by the backend — never in JS-visible storage — so an XSS payload can't
+// exfiltrate long-lived credentials.
 interface SessionState {
   accessToken: string;
-  refreshToken: string;
   user: User | null;
 }
 
@@ -89,49 +91,42 @@ interface AuthContextType {
   authorizedRequest: <T>(operation: (accessToken: string) => Promise<T>) => Promise<T>;
 }
 
-const STORAGE_KEY = 'ecosplit.session';
+// Non-sensitive "were you signed in?" hint so anonymous visitors don't pay a
+// pointless /auth/refresh round-trip on every reload. The real credential is
+// the httpOnly cookie; this flag just says "try refreshing on boot".
+const SESSION_HINT_KEY = 'ecosplit.session';
 const AuthContext = createContext<AuthContextType>(null!);
 
-function loadStoredSession(): SessionState | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-
-  if (!raw) {
-    return null;
-  }
-
+function readSessionHint(): { user: User | null } | null {
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem(SESSION_HINT_KEY);
+  if (!raw) return null;
   try {
-    return JSON.parse(raw) as SessionState;
+    const parsed = JSON.parse(raw) as { user?: User | null };
+    return { user: parsed.user ?? null };
   } catch {
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(SESSION_HINT_KEY);
     return null;
   }
 }
 
-function persistSession(session: SessionState | null) {
-  if (typeof window === 'undefined') {
+function writeSessionHint(user: User | null) {
+  if (typeof window === 'undefined') return;
+  if (!user) {
+    window.localStorage.removeItem(SESSION_HINT_KEY);
     return;
   }
-
-  if (!session) {
-    window.localStorage.removeItem(STORAGE_KEY);
-    return;
-  }
-
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  window.localStorage.setItem(SESSION_HINT_KEY, JSON.stringify({ user }));
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<SessionState | null>(() => loadStoredSession());
+  const [session, setSession] = useState<SessionState | null>(null);
   const [isReady, setIsReady] = useState(false);
   const banClientRef = useRef<Client | null>(null);
 
   const commitSession = (nextSession: SessionState | null) => {
     setSession(nextSession);
-    persistSession(nextSession);
+    writeSessionHint(nextSession?.user ?? null);
   };
 
   // Realtime ban listener — when a user is banned by an admin, the backend
@@ -202,48 +197,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [session?.user?.id, session?.accessToken]);
 
+  // On mount: if we have a "was signed in" hint, ask the backend to mint a
+  // new access token from the httpOnly refresh cookie. If it 401s (cookie
+  // expired / revoked), fall back to anonymous.
   useEffect(() => {
     let isCancelled = false;
 
     async function restoreSession() {
-      if (!session) {
-        if (!isCancelled) {
-          setIsReady(true);
-        }
+      const hint = readSessionHint();
+      if (!hint) {
+        if (!isCancelled) setIsReady(true);
         return;
       }
 
       try {
-        const user = await getCurrentUser(session.accessToken);
-
-        if (!isCancelled) {
-          commitSession({ ...session, user });
-        }
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 401) {
-          try {
-            const refreshed = await refreshRequest(session.refreshToken);
-            const nextSession = {
-              accessToken: refreshed.accessToken,
-              refreshToken: refreshed.refreshToken,
-              user: refreshed.user ?? session.user,
-            };
-
-            if (!isCancelled) {
-              commitSession(nextSession);
-            }
-          } catch {
-            if (!isCancelled) {
-              commitSession(null);
-            }
-          }
-        } else if (!isCancelled) {
-          commitSession(null);
-        }
+        const refreshed = await refreshRequest();
+        if (isCancelled) return;
+        commitSession({
+          accessToken: refreshed.accessToken,
+          user: refreshed.user ?? hint.user,
+        });
+      } catch {
+        if (!isCancelled) commitSession(null);
       } finally {
-        if (!isCancelled) {
-          setIsReady(true);
-        }
+        if (!isCancelled) setIsReady(true);
       }
     }
 
@@ -256,13 +233,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const response = await loginRequest(email, password);
-    const nextSession = {
+    commitSession({
       accessToken: response.accessToken,
-      refreshToken: response.refreshToken,
       user: response.user,
-    };
-
-    commitSession(nextSession);
+    });
     return response.user;
   };
 
@@ -276,7 +250,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     commitSession({
       accessToken: response.accessToken,
-      refreshToken: response.refreshToken,
       user: response.user,
     });
     return response.user;
@@ -318,23 +291,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       acceptedTermsVersion,
       acceptedPrivacyVersion,
     );
-    const nextSession = {
+    commitSession({
       accessToken: response.accessToken,
-      refreshToken: response.refreshToken,
       user: response.user,
-    };
-
-    commitSession(nextSession);
+    });
     return response.user;
   };
 
   const logout = async () => {
-    const refreshToken = session?.refreshToken;
-
     try {
-      if (refreshToken) {
-        await logoutRequest(refreshToken);
-      }
+      // Cookie carries the refresh token — no argument needed. Best-effort;
+      // we drop local state either way.
+      await logoutRequest();
+    } catch {
+      /* ignore — server-side revoke is best-effort */
     } finally {
       commitSession(null);
       // Drop staff-only caches on sign-out so a fresh login (possibly as a
@@ -364,10 +334,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const refreshed = await refreshRequest(session.refreshToken);
+        const refreshed = await refreshRequest();
         const nextSession = {
           accessToken: refreshed.accessToken,
-          refreshToken: refreshed.refreshToken,
           user: refreshed.user ?? session.user,
         };
 
@@ -385,16 +354,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setSession((currentSession) => {
       if (!currentSession) {
-        persistSession(null);
+        writeSessionHint(null);
         return null;
       }
 
-      const nextSession = {
-        ...currentSession,
-        user,
-      };
-
-      persistSession(nextSession);
+      const nextSession = { ...currentSession, user };
+      writeSessionHint(user);
       return nextSession;
     });
 
@@ -407,12 +372,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setSession((currentSession) => {
       if (!currentSession) {
-        persistSession(null);
+        writeSessionHint(null);
         return null;
       }
 
       const nextSession = { ...currentSession, user };
-      persistSession(nextSession);
+      writeSessionHint(user);
       return nextSession;
     });
 

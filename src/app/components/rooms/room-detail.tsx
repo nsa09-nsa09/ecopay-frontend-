@@ -10,7 +10,7 @@ import {
   Stepper,
   Select,
 } from '../ds-primitives';
-import { ArrowLeft, Users, Calendar, Shield, AlertTriangle, Check, Star } from 'lucide-react';
+import { ArrowLeft, Users, Shield, AlertTriangle, Check, Star } from 'lucide-react';
 import {
   ApiError,
   getRoom,
@@ -21,7 +21,6 @@ import {
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
-import { formatDate as formatAlmatyDate } from '../../lib/datetime';
 import { LeaveReviewModal } from '../reputation/leave-review-modal';
 import { ReputationLevelBadge } from '../reputation/level-badge';
 
@@ -34,29 +33,9 @@ function formatMoney(value: number | null | undefined) {
   return `₸${moneyFormatter.format(Number(value ?? 0))}`;
 }
 
-function formatDate(value: string | undefined, l: Language) {
-  if (!value) return tx(l, '—', '—', 'TBD');
-  return formatAlmatyDate(value, l);
-}
-
-const verificationModeI18nKey: Record<string, string> = {
-  RISK_BASED: 'verificationModeRiskBased',
-  AUTO: 'verificationModeAuto',
-  ADMIN_REQUIRED: 'verificationModeAdminRequired',
-};
-
-function localizeVerificationMode(
-  mode: string | null | undefined,
-  t: (k: string) => string,
-): string {
-  if (!mode) return '—';
-  const key = verificationModeI18nKey[mode];
-  return key ? t(key) : mode;
-}
-
 export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { language, t } = useI18n();
+  const { language } = useI18n();
   // Keep the id as a string: room ids are 64-bit and Number() would corrupt them.
   const roomId = id ?? '';
   const location = useLocation();
@@ -291,11 +270,6 @@ export function RoomDetailPage() {
                   value: `${formatMoney(room.pricePerMember)}${tx(language, '/период', '/кезең', '/period')}`,
                   highlight: true,
                 },
-                {
-                  label: tx(language, 'Дата старта', 'Басталу күні', 'Start date'),
-                  value: formatDate(room.startDate, language),
-                  icon: Calendar,
-                },
               ].map((item) => (
                 <div key={item.label}>
                   <div className="text-[12px] mb-1" style={{ color: 'var(--eco-text-tertiary)' }}>
@@ -401,10 +375,6 @@ export function RoomDetailPage() {
                     score={summary?.ownerReputation}
                     size="sm"
                   />
-                </div>
-                <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {tx(language, 'Верификация', 'Растау', 'Verification')}:{' '}
-                  {localizeVerificationMode(room.verificationMode, t)}
                 </div>
               </div>
             </div>

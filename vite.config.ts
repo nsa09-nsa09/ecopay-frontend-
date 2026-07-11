@@ -42,5 +42,18 @@ export default defineConfig(({ mode }) => {
       },
     },
     assetsInclude: ['**/*.svg', '**/*.csv'],
+    build: {
+      chunkSizeWarningLimit: 900,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ['react', 'react-dom', 'react-router'],
+            charts: ['recharts'],
+            ui: ['lucide-react', 'motion'],
+            utils: ['date-fns', 'clsx', 'tailwind-merge'],
+          },
+        },
+      },
+    },
   };
 });

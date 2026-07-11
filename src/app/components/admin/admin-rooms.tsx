@@ -314,7 +314,7 @@ export function AdminRoomsPage() {
           onClose={closeBlockModal}
           title={blockModal ? t('blockRoom') : ''}
           description={t('blockRoomConfirm')}
-          subjectLabel={blockModal ? `R-${blockModal.id} — ${blockModal.title}` : null}
+          subjectLabel={blockModal ? `R-${blockModal.id} · ${blockModal.title}` : null}
           destructive
           submitLabel={t('blockRoom')}
           submitting={blockSubmitting}
@@ -327,7 +327,7 @@ export function AdminRoomsPage() {
           onClose={closeUnblockModal}
           title={unblockModal ? t('unblockRoom') : ''}
           description={t('unblockRoomConfirm')}
-          subjectLabel={unblockModal ? `R-${unblockModal.id} — ${unblockModal.title}` : null}
+          subjectLabel={unblockModal ? `R-${unblockModal.id} · ${unblockModal.title}` : null}
           submitLabel={t('unblockRoom')}
           submitting={unblockSubmitting}
           errorMessage={unblockError}

@@ -1,6 +1,7 @@
 import {
   type ReactNode,
   type ButtonHTMLAttributes,
+  type CSSProperties,
   type InputHTMLAttributes,
   type SelectHTMLAttributes,
   useState,
@@ -121,12 +122,19 @@ export function Input({ label, error, hint, className = '', ...props }: InputPro
 }
 
 // ─── Select ───
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string;
+interface SelectOptionGroup {
+  label: string;
   options: { value: string; label: string }[];
 }
 
-export function Select({ label, options, className = '', ...props }: SelectProps) {
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string;
+  options?: { value: string; label: string }[];
+  groups?: SelectOptionGroup[];
+}
+
+export function Select({ label, options, groups, className = '', ...props }: SelectProps) {
+  const nonEmptyGroups = groups?.filter((g) => g.options.length > 0);
   return (
     <div className="flex flex-col gap-1.5">
       {label && <label style={{ color: 'var(--eco-text)', fontSize: 14 }}>{label}</label>}
@@ -141,11 +149,21 @@ export function Select({ label, options, className = '', ...props }: SelectProps
           }}
           {...props}
         >
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
+          {nonEmptyGroups && nonEmptyGroups.length > 0
+            ? nonEmptyGroups.map((g) => (
+                <optgroup key={g.label} label={g.label}>
+                  {g.options.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))
+            : (options ?? []).map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
         </select>
         <ChevronDown
           size={16}
@@ -212,15 +230,17 @@ const badgeColors: Record<BadgeVariant, { bg: string; text: string }> = {
 export function Badge({
   children,
   variant = 'default',
+  style,
 }: {
   children: ReactNode;
   variant?: BadgeVariant;
+  style?: CSSProperties;
 }) {
   const c = badgeColors[variant];
   return (
     <span
       className="inline-flex items-center px-2 py-0.5 rounded text-[12px]"
-      style={{ background: c.bg, color: c.text }}
+      style={{ background: c.bg, color: c.text, ...style }}
     >
       {children}
     </span>

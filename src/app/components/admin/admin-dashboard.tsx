@@ -136,8 +136,7 @@ const KPI_CARD_CLASS =
   'shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-16px_rgba(0,0,0,0.16)] ' +
   'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_20px_36px_-20px_rgba(0,0,0,0.24)]';
 
-const PANEL_CARD_CLASS =
-  'shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-16px_rgba(0,0,0,0.14)]';
+const PANEL_CARD_CLASS = 'shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-16px_rgba(0,0,0,0.14)]';
 
 const PANEL_TITLE_STYLE: CSSProperties = {
   color: 'var(--eco-text)',
@@ -502,9 +501,7 @@ export function AdminDashboardPage() {
     const gradientId = `eco-kpi-spark-${k.key}`;
 
     const card = (
-      <Card
-        className={`${KPI_CARD_CLASS}${k.linkTo ? ' cursor-pointer' : ''}`}
-      >
+      <Card className={`${KPI_CARD_CLASS}${k.linkTo ? ' cursor-pointer' : ''}`}>
         <div className="flex items-start justify-between gap-3">
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center"
@@ -694,10 +691,7 @@ export function AdminDashboardPage() {
               ) : (
                 <div style={{ width: '100%', height: 280 }}>
                   <ResponsiveContainer>
-                    <AreaChart
-                      data={chartData}
-                      margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
-                    >
+                    <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="eco-grad-signups" x1="0" y1="0" x2="0" y2="1">
                           <stop
@@ -738,15 +732,8 @@ export function AdminDashboardPage() {
                         axisLine={false}
                         tickLine={false}
                       />
-                      <Tooltip
-                        contentStyle={CHART_TOOLTIP_STYLE}
-                        cursor={CHART_HOVER_LINE}
-                      />
-                      <Legend
-                        wrapperStyle={CHART_LEGEND_STYLE}
-                        iconType="circle"
-                        iconSize={8}
-                      />
+                      <Tooltip contentStyle={CHART_TOOLTIP_STYLE} cursor={CHART_HOVER_LINE} />
+                      <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
                       <Area
                         type="monotone"
                         dataKey={t('dashboardSignups')}
@@ -835,15 +822,8 @@ export function AdminDashboardPage() {
                           axisLine={false}
                           tickLine={false}
                         />
-                        <Tooltip
-                          contentStyle={CHART_TOOLTIP_STYLE}
-                          cursor={CHART_HOVER_LINE}
-                        />
-                        <Legend
-                          wrapperStyle={CHART_LEGEND_STYLE}
-                          iconType="circle"
-                          iconSize={8}
-                        />
+                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} cursor={CHART_HOVER_LINE} />
+                        <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
                         <Area
                           type="monotone"
                           dataKey={t('dashboardMetricUniqueVisitors')}
@@ -911,15 +891,8 @@ export function AdminDashboardPage() {
                           axisLine={false}
                           tickLine={false}
                         />
-                        <Tooltip
-                          contentStyle={CHART_TOOLTIP_STYLE}
-                          cursor={CHART_HOVER_LINE}
-                        />
-                        <Legend
-                          wrapperStyle={CHART_LEGEND_STYLE}
-                          iconType="circle"
-                          iconSize={8}
-                        />
+                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} cursor={CHART_HOVER_LINE} />
+                        <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
                         <Area
                           type="monotone"
                           dataKey={t('dashboardMetricNewRooms')}
@@ -978,11 +951,7 @@ export function AdminDashboardPage() {
                           cursor={CHART_HOVER_LINE}
                           formatter={(v: number | string) => formatMoney(v)}
                         />
-                        <Legend
-                          wrapperStyle={CHART_LEGEND_STYLE}
-                          iconType="circle"
-                          iconSize={8}
-                        />
+                        <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
                         <Area
                           type="monotone"
                           dataKey={t('dashboardMetricRevenue')}
@@ -1080,11 +1049,7 @@ export function AdminDashboardPage() {
                       cursor={CHART_HOVER_FILL}
                       formatter={(v: number | string) => formatCount(Number(v))}
                     />
-                    <Legend
-                      wrapperStyle={CHART_LEGEND_STYLE}
-                      iconType="circle"
-                      iconSize={8}
-                    />
+                    <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
                     <Bar
                       dataKey={t('dashboardMetricRooms')}
                       fill={CHART_PALETTE[0]}
@@ -1165,11 +1130,7 @@ export function AdminDashboardPage() {
                       contentStyle={CHART_TOOLTIP_STYLE}
                       formatter={(v: number | string) => formatCount(Number(v))}
                     />
-                    <Legend
-                      wrapperStyle={CHART_LEGEND_STYLE}
-                      iconType="circle"
-                      iconSize={8}
-                    />
+                    <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
                     <Pie
                       data={currencyChartData}
                       dataKey="value"
@@ -1180,10 +1141,7 @@ export function AdminDashboardPage() {
                       strokeWidth={2}
                     >
                       {currencyChartData.map((entry, idx) => (
-                        <Cell
-                          key={entry.name}
-                          fill={CHART_PALETTE[idx % CHART_PALETTE.length]}
-                        />
+                        <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
                       ))}
                     </Pie>
                   </PieChart>
@@ -1256,11 +1214,7 @@ export function AdminDashboardPage() {
                       contentStyle={CHART_TOOLTIP_STYLE}
                       formatter={(v: number | string) => formatCount(Number(v))}
                     />
-                    <Legend
-                      wrapperStyle={CHART_LEGEND_STYLE}
-                      iconType="circle"
-                      iconSize={8}
-                    />
+                    <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
                     <Pie
                       data={roomStatusChartData}
                       dataKey="value"
@@ -1271,10 +1225,7 @@ export function AdminDashboardPage() {
                       strokeWidth={2}
                     >
                       {roomStatusChartData.map((entry, idx) => (
-                        <Cell
-                          key={entry.name}
-                          fill={CHART_PALETTE[idx % CHART_PALETTE.length]}
-                        />
+                        <Cell key={entry.name} fill={CHART_PALETTE[idx % CHART_PALETTE.length]} />
                       ))}
                     </Pie>
                   </PieChart>

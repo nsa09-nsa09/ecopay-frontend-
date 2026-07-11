@@ -477,6 +477,7 @@ export function trackVisitRequest(path: string): Promise<void> {
 export function loginRequest(email: string, password: string) {
   return requestJson<AuthResponse>('/auth/login', {
     method: 'POST',
+    credentials: 'include',
     body: JSON.stringify({ email, password }),
   });
 }
@@ -502,17 +503,22 @@ export function registerRequest(
   });
 }
 
-export function refreshRequest(refreshToken: string) {
+// Refresh & logout both rely on the httpOnly `ecopay_rt` cookie set by /login
+// (or the previous /refresh call). We deliberately send no body so an
+// XSS-exfiltrated JS runtime can't smuggle a stolen refresh token here — the
+// browser attaches the cookie for us. Old backends that only read the body
+// keep working while both sides deploy.
+export function refreshRequest() {
   return requestJson<AuthResponse>('/auth/refresh', {
     method: 'POST',
-    body: JSON.stringify({ refreshToken }),
+    credentials: 'include',
   });
 }
 
-export function logoutRequest(refreshToken: string) {
+export function logoutRequest() {
   return requestJson<void>('/auth/logout', {
     method: 'POST',
-    body: JSON.stringify({ refreshToken }),
+    credentials: 'include',
   });
 }
 
@@ -721,7 +727,7 @@ export interface CreateRoomPayload {
   roomType: string;
   title: string;
   description?: string | null;
-  startDate: string;
+  startDate?: string | null;
   cancellationPolicy?: string | null;
   providerName?: string | null;
   tariffNameSnapshot?: string | null;
@@ -962,6 +968,7 @@ export function confirmPaymentSuccessRequest(
 export function staffLoginRequest(email: string, password: string) {
   return requestJson<StaffLoginResponse>('/auth/login', {
     method: 'POST',
+    credentials: 'include',
     body: JSON.stringify({ email, password }),
   });
 }
@@ -969,6 +976,7 @@ export function staffLoginRequest(email: string, password: string) {
 export function verifyStaffTwoFactorRequest(challengeId: string, code: string) {
   return requestJson<AuthResponse>('/auth/login/2fa/verify', {
     method: 'POST',
+    credentials: 'include',
     body: JSON.stringify({ challengeId, code }),
   });
 }
@@ -2321,6 +2329,7 @@ export interface SiteAboutContent {
   description_en?: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
+  apexLink?: string | null;
   updatedAt: string | null;
 }
 
@@ -2340,6 +2349,7 @@ export interface UpdateSiteAboutPayload {
   description_en?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
+  apexLink?: string | null;
 }
 
 export function getSiteAboutRequest() {
@@ -2677,12 +2687,7 @@ export type PricingExtractionType = 'AUTO' | 'JSON_LD' | 'META' | 'CSS' | 'REGEX
 export type PricingProviderStatus = 'OK' | 'STALE' | 'FAILING' | 'BLOCKED' | 'PENDING';
 
 export type PricingSnapshotOutcome =
-  | 'SUCCESS'
-  | 'OK'
-  | 'UNCHANGED'
-  | 'PARSE_FAILED'
-  | 'FETCH_FAILED'
-  | 'BLOCKED';
+  'SUCCESS' | 'OK' | 'UNCHANGED' | 'PARSE_FAILED' | 'FETCH_FAILED' | 'BLOCKED';
 
 export type PricingTestOutcome = 'SUCCESS' | 'PARSE_FAILED' | 'FETCH_FAILED' | 'BLOCKED';
 
@@ -2848,11 +2853,7 @@ export function adminUpdatePricingProvider(
 }
 
 export function adminDeletePricingProvider(id: string, accessToken: string) {
-  return requestJson<void>(
-    `/admin/pricing/providers/${id}`,
-    { method: 'DELETE' },
-    accessToken,
-  );
+  return requestJson<void>(`/admin/pricing/providers/${id}`, { method: 'DELETE' }, accessToken);
 }
 
 export function adminCheckPricingProvider(id: string, accessToken: string) {

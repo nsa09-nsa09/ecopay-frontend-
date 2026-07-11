@@ -37,8 +37,21 @@ const tx = (l: Language, ru: string, kz: string, en: string) =>
 
 type CatalogTab = 'categories' | 'services' | 'tariffs';
 
-const PROVIDER_TYPES = ['DIGITAL', 'TELECOM'];
+const PROVIDER_TYPES = ['OPERATOR', 'ISP', 'DIGITAL'];
 const PERIOD_TYPES = ['MONTHLY', 'YEARLY', 'OTHER'];
+
+function providerTypeLabel(value: string, language: Language): string {
+  switch (value) {
+    case 'OPERATOR':
+      return tx(language, 'Мобильный оператор', 'Мобильді оператор', 'Mobile operator');
+    case 'ISP':
+      return tx(language, 'Интернет-провайдер', 'Интернет-провайдер', 'Internet provider');
+    case 'DIGITAL':
+      return tx(language, 'Цифровая подписка', 'Цифрлық жазылым', 'Digital subscription');
+    default:
+      return value;
+  }
+}
 
 export function AdminCatalogPage() {
   const { t } = useI18n();
@@ -298,7 +311,7 @@ function CategoriesSection() {
               className="p-3 rounded-lg text-[12px]"
               style={{ background: 'var(--eco-surface)' }}
             >
-              C-{deleting.id} — {deleting.name}
+              C-{deleting.id} · {deleting.name}
             </div>
           )}
           <Button variant="destructive" onClick={() => void handleDelete()}>
@@ -442,10 +455,7 @@ function ServicesSection() {
       const [cats, svcs] = await Promise.all([
         authorizedRequest((token) => adminGetCategories(token)),
         authorizedRequest((token) =>
-          adminGetServices(
-            token,
-            filterCategoryId === 'ALL' ? undefined : filterCategoryId,
-          ),
+          adminGetServices(token, filterCategoryId === 'ALL' ? undefined : filterCategoryId),
         ),
       ]);
       setCategories(cats);
@@ -669,7 +679,7 @@ function ServicesSection() {
               className="p-3 rounded-lg text-[12px]"
               style={{ background: 'var(--eco-surface)' }}
             >
-              S-{deleting.id} — {deleting.name}
+              S-{deleting.id} · {deleting.name}
             </div>
           )}
           <Button variant="destructive" onClick={() => void handleDelete()}>
@@ -699,7 +709,7 @@ function ServiceFormModal({
   onClose: () => void;
   onSaved: (saved: AdminServiceDto) => void;
 }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { authorizedRequest } = useAuth();
   const [categoryId, setCategoryId] = useState<string>('');
   const [name, setName] = useState('');
@@ -902,7 +912,7 @@ function ServiceFormModal({
           label={t('catalogFieldProviderType')}
           value={providerType}
           onChange={(e) => setProviderType(e.target.value)}
-          options={PROVIDER_TYPES.map((p) => ({ value: p, label: p }))}
+          options={PROVIDER_TYPES.map((p) => ({ value: p, label: providerTypeLabel(p, language) }))}
         />
         <label className="flex items-center gap-2 text-[13px]" style={{ color: 'var(--eco-text)' }}>
           <input
@@ -1073,7 +1083,7 @@ function TariffsSection() {
             onChange={(e) => setServiceId(e.target.value)}
             options={services.map((s) => ({
               value: String(s.id),
-              label: `${s.name} — ${s.categoryName}`,
+              label: `${s.name} · ${s.categoryName}`,
             }))}
           />
         </div>
@@ -1267,7 +1277,7 @@ function TariffsSection() {
               className="p-3 rounded-lg text-[12px]"
               style={{ background: 'var(--eco-surface)' }}
             >
-              T-{deleting.id} — {deleting.name}
+              T-{deleting.id} · {deleting.name}
             </div>
           )}
           <Button variant="destructive" onClick={() => void handleDelete()}>

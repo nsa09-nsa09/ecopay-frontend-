@@ -504,8 +504,8 @@ function OwnerViolationButton({
         <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
           <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
             {tx(
-              'Зафиксировать нарушение со стороны владельца по этому спору. Опционально — инициировать возврат участнику.',
-              'Осы дау бойынша иесінің бұзушылығын тіркеу. Қаласаңыз — қатысушыға қайтаруды бастау.',
+              'Зафиксировать нарушение со стороны владельца по этому спору. Опционально: инициировать возврат участнику.',
+              'Осы дау бойынша иесінің бұзушылығын тіркеу. Қаласаңыз, қатысушыға қайтаруды бастаңыз.',
               'Record an owner violation on this dispute. Optionally start a refund to the member.',
             )}
           </div>
