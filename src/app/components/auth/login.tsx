@@ -81,7 +81,7 @@ export function LoginPage() {
           setFieldErrors(err.errors);
         }
       } else {
-        setError("Unable to sign in right now.");
+        setError(t("unableToSignIn"));
       }
     } finally {
       setLoading(false);
@@ -92,7 +92,7 @@ export function LoginPage() {
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("signIn")}</h1>
+          <h1 className="text-[26px]" style={{ color: "var(--eco-text)", fontWeight: 700 }}>{t("signIn")}</h1>
           <p className="text-[13px] mt-2" style={{ color: "var(--eco-text-secondary)" }}>
             {t("welcomeBack")}
           </p>

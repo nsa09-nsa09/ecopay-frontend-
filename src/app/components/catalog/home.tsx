@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import useEmblaCarousel from "embla-carousel-react";
+import AutoScroll from "embla-carousel-auto-scroll";
 import {
   ArrowRight,
   BadgeCheck,
@@ -391,34 +392,36 @@ function MarketplaceSkeletonCard() {
 
 // ─── Categories carousel (one row under the hero search, Sharesub-style) ───
 function CategoriesCarousel({ language, onSelect }: { language: L; onSelect: (match: string[], label: string) => void }) {
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    align: "start",
-    dragFree: true, // continuous glide, no snap
-    duration: 30,
-    containScroll: "trimSnaps",
-  });
+  // Same always-on drift as the popular-services carousel, just slower so the
+  // tiles stay easy to click. Pauses on hover, resumes after drag.
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    { loop: true, align: "start", dragFree: true },
+    [AutoScroll({ speed: 0.6, startDelay: 0, stopOnInteraction: false, stopOnMouseEnter: true, stopOnFocusIn: false })],
+  );
 
   return (
     <div className="relative">
       <div className="overflow-hidden cursor-grab active:cursor-grabbing" ref={emblaRef}>
-        <div className="flex gap-3 px-1 py-2">
+        {/* spacing via slide padding (not flex gap): embla's loop clones miscalculate with gap */}
+        <div className="flex -ml-3 py-2">
           {displayCategories.map((category) => {
             const label = tx(language, category.ru, category.kz, category.en);
             return (
-              <button
-                key={category.en}
-                type="button"
-                onClick={() => onSelect(category.match, label)}
-                className="eco-scale-hover shrink-0 flex flex-col items-center gap-2 rounded-xl py-4 px-2 cursor-pointer basis-[calc(33.4%-8px)] sm:basis-[calc(25%-9px)] lg:basis-[calc(16.7%-10px)]"
-                style={{ background: "var(--eco-surface-raised)", border: "1px solid var(--eco-border)" }}
-              >
-                <span className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "var(--eco-brand-50)" }}>
-                  <category.icon size={19} style={{ color: "var(--eco-primary)" }} />
-                </span>
-                <span className="text-[13px] whitespace-nowrap" style={{ color: "var(--eco-text)", fontWeight: 500 }}>
-                  {label}
-                </span>
-              </button>
+              <div key={category.en} className="shrink-0 min-w-0 pl-3 basis-1/3 sm:basis-1/4 lg:basis-[16.7%]">
+                <button
+                  type="button"
+                  onClick={() => onSelect(category.match, label)}
+                  className="eco-scale-hover w-full flex flex-col items-center gap-2 rounded-xl py-4 px-2 cursor-pointer"
+                  style={{ background: "var(--eco-surface-raised)", border: "1px solid var(--eco-border)" }}
+                >
+                  <span className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "var(--eco-brand-50)" }}>
+                    <category.icon size={19} style={{ color: "var(--eco-primary)" }} />
+                  </span>
+                  <span className="text-[13px] whitespace-nowrap" style={{ color: "var(--eco-text)", fontWeight: 500 }}>
+                    {label}
+                  </span>
+                </button>
+              </div>
             );
           })}
         </div>
@@ -446,46 +449,26 @@ function CategoriesCarousel({ language, onSelect }: { language: L; onSelect: (ma
 }
 
 // ─── Popular services carousel ───
+// Continuous marquee-style glide: the track always drifts, pauses on hover,
+// and resumes after the user drags. Owner explicitly wants motion always on,
+// so this carousel intentionally ignores prefers-reduced-motion.
 function PopularCarousel({ language }: { language: L }) {
-  // duration is embla's tween speed factor (not ms): 30 ≈ a 600-800ms glide
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "start", duration: 30 });
-  const autoplayRef = useRef<number | null>(null);
-
-  const stopAutoplay = useCallback(() => {
-    if (autoplayRef.current != null) {
-      window.clearInterval(autoplayRef.current);
-      autoplayRef.current = null;
-    }
-  }, []);
-
-  const startAutoplay = useCallback(() => {
-    stopAutoplay();
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    autoplayRef.current = window.setInterval(() => emblaApi?.scrollNext(), 5000);
-  }, [emblaApi, stopAutoplay]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    startAutoplay();
-    emblaApi.on("pointerDown", stopAutoplay);
-    emblaApi.on("pointerUp", startAutoplay);
-    return () => {
-      stopAutoplay();
-      emblaApi.off("pointerDown", stopAutoplay);
-      emblaApi.off("pointerUp", startAutoplay);
-    };
-  }, [emblaApi, startAutoplay, stopAutoplay]);
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    { loop: true, align: "start" },
+    [AutoScroll({ speed: 0.9, startDelay: 0, stopOnInteraction: false, stopOnMouseEnter: true, stopOnFocusIn: false })],
+  );
 
   return (
-    <div className="relative" onMouseEnter={stopAutoplay} onMouseLeave={startAutoplay}>
+    <div className="relative">
       <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex gap-4">
+        {/* spacing via slide padding (not flex gap): embla's loop clones miscalculate with gap */}
+        <div className="flex -ml-4">
           {featuredServices.slice(0, 10).map((service) => (
             <Link
               key={service.name}
               to="/browse"
               style={{ textDecoration: "none" }}
-              className="shrink-0 basis-[240px]"
+              className="shrink-0 min-w-0 pl-4 basis-[256px]"
             >
               <Card className="eco-lift flex flex-col items-center text-center gap-3 py-6">
                 <ServiceLogo name={service.name} size={56} />

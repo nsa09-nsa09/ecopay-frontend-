@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Card, Select, RoomStatusBadge, Pill, EmptyState, Button } from "../ds-primitives";
+import { Card, Select, RoomStatusBadge, Pill, EmptyState, Button, Skeleton } from "../ds-primitives";
 import { Users, Calendar, Filter, Search, LayoutGrid } from "lucide-react";
+import { ServiceLogo } from "./service-logo";
 import { useI18n, type Language } from "../i18n-provider";
 import { formatDate as formatAlmatyDate } from "../../lib/datetime";
 import { getRooms, type RoomSummaryDto } from "../../lib/api";
@@ -134,7 +135,7 @@ export function RoomsCatalogPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <LayoutGrid size={20} style={{ color: "var(--eco-primary)" }} />
-            <h1 className="text-[22px] sm:text-[26px]" style={{ color: "var(--eco-text)" }}>
+            <h1 className="text-[24px] sm:text-[30px]" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
               {tx(language, "Открытые комнаты", "Ашық бөлмелер", "Open Rooms")}
             </h1>
           </div>
@@ -191,9 +192,15 @@ export function RoomsCatalogPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="flex flex-col gap-3">
-              <div className="h-4 rounded animate-pulse" style={{ background: "var(--eco-surface)" }} />
-              <div className="h-3 rounded w-2/3 animate-pulse" style={{ background: "var(--eco-surface)" }} />
-              <div className="h-3 rounded w-1/2 animate-pulse" style={{ background: "var(--eco-surface)" }} />
+              <div className="flex items-center gap-3">
+                <Skeleton width={44} height={44} rounded={12} />
+                <div className="flex-1 flex flex-col gap-2">
+                  <Skeleton width="70%" height={14} />
+                  <Skeleton width="45%" height={12} />
+                </div>
+              </div>
+              <Skeleton height={12} />
+              <Skeleton width="60%" height={12} />
             </Card>
           ))}
         </div>
@@ -224,36 +231,47 @@ export function RoomsCatalogPage() {
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {visibleRooms.map((room) => (
+          {visibleRooms.map((room, index) => (
             <Link key={room.id} to={`/room/${room.id}`} style={{ textDecoration: "none" }}>
-              <Card className="flex flex-col gap-3 h-full hover:shadow-sm transition-shadow cursor-pointer">
+              <Card
+                className="eco-lift animate-eco-fade-in flex flex-col gap-3.5 h-full cursor-pointer"
+                style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
+              >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-[15px] truncate" style={{ color: "var(--eco-text)" }}>{room.title}</div>
-                    <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{room.serviceName}</div>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <ServiceLogo name={room.serviceName} size={44} className="shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-[15px] truncate" style={{ color: "var(--eco-text)", fontWeight: 600 }}>{room.title}</div>
+                      <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{room.serviceName}</div>
+                    </div>
                   </div>
                   <RoomStatusBadge status={room.status} />
                 </div>
 
+                <div className="flex items-baseline gap-1.5 mt-auto">
+                  <span className="text-[22px]" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
+                    {formatMoney(room.pricePerMember)}
+                  </span>
+                  <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
+                    {tx(language, "/период за участника", "/кезең қатысушыға", "/period per member")}
+                  </span>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <Pill variant="info">{room.roomType}</Pill>
-                </div>
-
-                <div className="flex items-center justify-between text-[13px] mt-auto">
-                  <span className="inline-flex items-center gap-1.5" style={{ color: "var(--eco-text-secondary)" }}>
-                    <Users size={13} /> {tx(language, "Макс.", "Макс.", "Max")} {room.maxMembers}
-                  </span>
-                  <span style={{ color: "var(--eco-primary)" }}>
-                    {formatMoney(room.pricePerMember)}
-                    {tx(language, "/период", "/кезең", "/period")}
+                  <span className="inline-flex items-center gap-1.5 text-[12px]" style={{ color: "var(--eco-text-secondary)" }}>
+                    <Users size={13} /> {tx(language, "до", "дейін", "up to")} {room.maxMembers}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-[12px]">
-                  <span style={{ color: "var(--eco-text-tertiary)" }}>
+                <div
+                  className="flex items-center justify-between text-[12px] pt-3"
+                  style={{ borderTop: "1px solid var(--eco-border)", color: "var(--eco-text-tertiary)" }}
+                >
+                  <span className="truncate">
                     {tx(language, "Владелец", "Иесі", "Owner")}: {room.ownerDisplayName}
                   </span>
-                  <span className="inline-flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}>
+                  <span className="inline-flex items-center gap-1 shrink-0">
                     <Calendar size={12} /> {formatDate(room.startDate)}
                   </span>
                 </div>

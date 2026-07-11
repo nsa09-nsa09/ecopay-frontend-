@@ -66,7 +66,7 @@ export function RegisterPage() {
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("createAccount")}</h1>
+          <h1 className="text-[26px]" style={{ color: "var(--eco-text)", fontWeight: 700 }}>{t("createAccount")}</h1>
           <p className="text-[13px] mt-2" style={{ color: "var(--eco-text-secondary)" }}>
             {t("joinEcoSplit")}
           </p>

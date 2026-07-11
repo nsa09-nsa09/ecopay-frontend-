@@ -26,34 +26,23 @@ export function WaveDivider({ flip, className }: { flip?: boolean; className?: s
 }
 
 // ─── Buttons ───
+// Visual states (hover/active/disabled/focus-visible) live in index.css under
+// the .eco-btn-* classes so every consumer gets them for free.
 type BtnVariant = "primary" | "secondary" | "ghost" | "destructive";
 type BtnSize = "sm" | "md" | "lg";
 
-const btnBase = "inline-flex items-center justify-center gap-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
+const btnBase = "eco-btn inline-flex items-center justify-center gap-2 rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
 const btnVariants: Record<BtnVariant, string> = {
-  primary: "",
-  secondary: "",
-  ghost: "",
-  destructive: "",
+  primary: "eco-btn-primary",
+  secondary: "eco-btn-secondary",
+  ghost: "eco-btn-ghost",
+  destructive: "eco-btn-destructive",
 };
 const btnSizes: Record<BtnSize, string> = {
   sm: "px-3 py-1.5 text-[13px]",
   md: "px-4 py-2 text-[14px]",
   lg: "px-6 py-3 text-[15px]",
 };
-
-function getBtnStyle(variant: BtnVariant): React.CSSProperties {
-  switch (variant) {
-    case "primary":
-      return { background: "var(--eco-primary)", color: "var(--eco-text-on-primary)" };
-    case "secondary":
-      return { background: "transparent", color: "var(--eco-text)", border: "1px solid var(--eco-border-strong)" };
-    case "ghost":
-      return { background: "transparent", color: "var(--eco-text-secondary)" };
-    case "destructive":
-      return { background: "var(--eco-negative)", color: "#fff" };
-  }
-}
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: BtnVariant;
@@ -65,7 +54,6 @@ export function Button({ variant = "primary", size = "md", loading, children, cl
   return (
     <button
       className={`${btnBase} ${btnVariants[variant]} ${btnSizes[size]} ${className}`}
-      style={getBtnStyle(variant)}
       disabled={loading || props.disabled}
       {...props}
     >
@@ -87,13 +75,8 @@ export function Input({ label, error, hint, className = "", ...props }: InputPro
     <div className="flex flex-col gap-1.5">
       {label && <label style={{ color: "var(--eco-text)", fontSize: 14 }}>{label}</label>}
       <input
-        className={`px-3 py-2 rounded-lg outline-none transition-colors ${className}`}
-        style={{
-          background: "var(--eco-surface)",
-          border: `1px solid ${error ? "var(--eco-negative)" : "var(--eco-border)"}`,
-          color: "var(--eco-text)",
-          fontSize: 14,
-        }}
+        className={`eco-input ${error ? "eco-input-error" : ""} px-3 py-2 rounded-lg outline-none ${className}`}
+        style={{ fontSize: 14 }}
         {...props}
       />
       {error && <span style={{ color: "var(--eco-negative)", fontSize: 12 }}>{error}</span>}
@@ -114,13 +97,8 @@ export function Select({ label, options, className = "", ...props }: SelectProps
       {label && <label style={{ color: "var(--eco-text)", fontSize: 14 }}>{label}</label>}
       <div className="relative">
         <select
-          className={`w-full appearance-none px-3 py-2 pr-8 rounded-lg outline-none ${className}`}
-          style={{
-            background: "var(--eco-surface)",
-            border: "1px solid var(--eco-border)",
-            color: "var(--eco-text)",
-            fontSize: 14,
-          }}
+          className={`eco-input w-full appearance-none px-3 py-2 pr-8 rounded-lg outline-none cursor-pointer ${className}`}
+          style={{ fontSize: 14 }}
           {...props}
         >
           {options.map((o) => (
@@ -243,13 +221,14 @@ export function RoomStatusBadge({ status }: { status: string }) {
 }
 
 // ─── Cards ───
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function Card({ children, className = "", style }: { children: ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
     <div
-      className={`rounded-xl p-5 ${className}`}
+      className={`eco-card rounded-xl p-5 ${className}`}
       style={{
         background: "var(--eco-surface-raised)",
         border: "1px solid var(--eco-border)",
+        ...style,
       }}
     >
       {children}

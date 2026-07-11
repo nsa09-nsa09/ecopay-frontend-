@@ -66,8 +66,8 @@ export function AppLayout() {
   return (
     <div style={{ background: "var(--eco-bg)", color: "var(--eco-text)", minHeight: "100vh" }}>
       <nav
-        className="sticky top-0 z-40 border-b"
-        style={{ background: "var(--eco-bg)", borderColor: "var(--eco-border)" }}
+        className="eco-nav sticky top-0 z-40 border-b"
+        style={{ borderColor: "var(--eco-border)" }}
       >
         <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 sm:gap-6 h-16">
           <div className="flex items-center gap-4 lg:gap-8 min-w-0">
@@ -77,10 +77,11 @@ export function AppLayout() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className="px-3.5 py-1.5 rounded-lg text-[14px] whitespace-nowrap transition-colors"
+                  className={`px-3.5 py-1.5 rounded-lg text-[14px] whitespace-nowrap transition-colors ${location.pathname === item.path ? "" : "eco-nav-link"}`}
                   style={{
                     color: location.pathname === item.path ? "var(--eco-primary)" : "var(--eco-text-secondary)",
                     background: location.pathname === item.path ? "var(--eco-brand-50)" : "transparent",
+                    fontWeight: location.pathname === item.path ? 600 : 400,
                     textDecoration: "none",
                   }}
                 >

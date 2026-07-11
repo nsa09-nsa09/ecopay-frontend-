@@ -1291,6 +1291,7 @@ const translations: Translations = {
   pwUppercase: { ru: "Одна заглавная буква", kz: "Бір бас әріп", en: "One uppercase letter" },
   pwOneNumber: { ru: "Одна цифра", kz: "Бір сан", en: "One number" },
   unableToCreateAccount: { ru: "Не удалось создать аккаунт. Попробуйте позже.", kz: "Тіркелгі жасау мүмкін болмады. Кейінірек көріңіз.", en: "Unable to create the account right now." },
+  unableToSignIn: { ru: "Не удалось войти. Попробуйте позже.", kz: "Кіру мүмкін болмады. Кейінірек көріңіз.", en: "Unable to sign in right now." },
 
   // ===== Catalog: home =====
   unableToLoadCatalog: { ru: "Не удалось загрузить каталог.", kz: "Каталогты жүктеу мүмкін болмады.", en: "Unable to load the live catalog right now." },

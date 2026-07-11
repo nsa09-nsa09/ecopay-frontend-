@@ -57,10 +57,18 @@ import { BuildChecklistPage } from "./components/static/build-checklist";
 import { AnalyticsEventTrackingPage } from "./components/static/analytics-event-tracking";
 
 function ErrorFallback() {
+  // The error boundary can render outside the i18n provider, so read the
+  // persisted language directly instead of using the hook.
+  let lang = "ru";
+  try {
+    lang = localStorage.getItem("ecopay-language") ?? "ru";
+  } catch { /* storage unavailable — keep default */ }
+  const title = lang === "kz" ? "Бірдеңе дұрыс болмады" : lang === "en" ? "Something went wrong" : "Что-то пошло не так";
+  const body = lang === "kz" ? "Қайталап көріңіз немесе артқа оралыңыз." : lang === "en" ? "Please try again or go back." : "Попробуйте ещё раз или вернитесь назад.";
   return (
     <div style={{ padding: 40, textAlign: "center", color: "var(--eco-text)" }}>
-      <h2>Something went wrong</h2>
-      <p style={{ color: "var(--eco-text-secondary)" }}>Please try again or go back.</p>
+      <h2>{title}</h2>
+      <p style={{ color: "var(--eco-text-secondary)" }}>{body}</p>
     </div>
   );
 }
