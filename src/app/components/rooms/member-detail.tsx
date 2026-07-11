@@ -25,6 +25,7 @@ import {
   formatDate as formatAlmatyDate,
   formatDateTime as formatAlmatyDateTime,
 } from '../../lib/datetime';
+import { RoomChat } from './room-chat';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -563,6 +564,8 @@ export function MemberDetailPage() {
             </div>
           ))}
         </Card>
+
+        {paid && <RoomChat roomId={roomId} />}
       </div>
 
       {canConfirm && (

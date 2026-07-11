@@ -40,6 +40,7 @@ import {
 } from '../../lib/datetime';
 import { LeaveReviewModal } from '../reputation/leave-review-modal';
 import { ReputationLevelBadge } from '../reputation/level-badge';
+import { RoomChat } from './room-chat';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -627,6 +628,13 @@ export function OwnerDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Chat opens once at least one guest has paid (owner + PENDING/ACTIVE member). */}
+      {occupied > 1 && (
+        <div className="mt-6">
+          <RoomChat roomId={roomId} />
+        </div>
+      )}
 
       <Modal
         open={!!revealTarget}
