@@ -1,84 +1,65 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { Card, Button, Input, Select, Stepper } from "../ds-primitives";
-import { ArrowLeft, Lock, Check, Shield } from "lucide-react";
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router';
+import { Card, Button, Input, Select, Stepper } from '../ds-primitives';
+import { AlertTriangle, ArrowLeft, Lock, Check, CreditCard, Users } from 'lucide-react';
 import {
   ApiError,
   createRoomRequest,
   getFxRatesRequest,
+  getPayoutMethodsRequest,
   getServices,
   getTariffs,
+  initPayoutCardBindingRequest,
   type FxRatesResponse,
   type RoomResponseDto,
   type ServiceDto,
   type SupportedCurrency,
   type TariffPlanDto,
-} from "../../lib/api";
-import { useAuth } from "../auth/auth-provider";
-import { useI18n, type Language } from "../i18n-provider";
-import { formatDateTime } from "../../lib/datetime";
+} from '../../lib/api';
+import { useAuth } from '../auth/auth-provider';
+import { useI18n, type Language } from '../i18n-provider';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
-  l === "ru" ? ru : l === "kz" ? kz : en;
-
-const SUPPORTED_CURRENCY_CODES: readonly SupportedCurrency[] = [
-  "KZT", "UZS", "KGS", "USD", "EUR", "CNY", "GBP", "RUB",
-] as const;
+  l === 'ru' ? ru : l === 'kz' ? kz : en;
 
 const CURRENCY_SYMBOLS: Record<SupportedCurrency, string> = {
-  KZT: "₸",
-  USD: "$",
-  EUR: "€",
-  CNY: "¥",
-  GBP: "£",
-  RUB: "₽",
-  UZS: "сум",
-  KGS: "сом",
+  KZT: '₸',
+  USD: '$',
+  EUR: '€',
+  CNY: '¥',
+  GBP: '£',
+  RUB: '₽',
+  UZS: 'сум',
+  KGS: 'сом',
 };
 
-const CURRENCY_LABEL_KEY: Record<SupportedCurrency, string> = {
-  KZT: "currencyKzt",
-  USD: "currencyUsd",
-  EUR: "currencyEur",
-  CNY: "currencyCny",
-  GBP: "currencyGbp",
-  RUB: "currencyRub",
-  UZS: "currencyUzs",
-  KGS: "currencyKgs",
-};
-
-function defaultStartDate() {
-  const d = new Date();
-  d.setDate(d.getDate() + 14);
-  d.setMinutes(0, 0, 0);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+interface CreateRoomLocationState {
+  serviceId?: number;
+  reason?: 'no-free-rooms' | string;
 }
 
 export function CreateRoomPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, isReady, authorizedRequest } = useAuth();
+  const location = useLocation();
+  const navState = (location.state as CreateRoomLocationState | null) ?? null;
+  const { isAuthenticated, isReady, authorizedRequest, user } = useAuth();
   const { language, t } = useI18n();
 
   const stepLabels = [
-    tx(language, "Оператор и тариф", "Оператор және тариф", "Operator & Plan"),
-    tx(language, "Настройки комнаты", "Бөлме баптаулары", "Room Settings"),
-    tx(language, "Способ доступа", "Қатынас тәсілі", "Access Method"),
-    tx(language, "Проверка", "Тексеру", "Review"),
-  ];
-
-  const CONNECTION_OPTIONS = [
-    { value: "ESIM", label: tx(language, "Активация eSIM", "eSIM белсендіру", "eSIM activation") },
-    { value: "SIM", label: tx(language, "Физическая SIM-карта", "Физикалық SIM-карта", "Physical SIM card") },
-    { value: "ACCOUNT_LINK", label: tx(language, "Приглашение в аккаунт оператора", "Оператор тіркелгісіне шақыру", "Operator account invite") },
-    { value: "OTHER", label: tx(language, "Другое", "Басқа", "Other") },
+    tx(language, 'Оператор и тариф', 'Оператор және тариф', 'Operator & Plan'),
+    tx(language, 'Настройки комнаты', 'Бөлме баптаулары', 'Room Settings'),
+    tx(language, 'Подтверждение оператора', 'Оператор растауы', 'Operator confirmation'),
+    tx(language, 'Проверка', 'Тексеру', 'Review'),
   ];
 
   const PERIOD_OPTIONS = [
-    { value: "MONTHLY", label: tx(language, "Ежемесячно", "Айлық", "Monthly") },
-    { value: "YEARLY", label: tx(language, "Ежегодно", "Жылдық", "Yearly") },
-    { value: "OTHER", label: tx(language, "Другое", "Басқа", "Other") },
+    { value: 'MONTHLY', label: tx(language, 'Ежемесячно', 'Айлық', 'Monthly') },
+    { value: 'YEARLY', label: tx(language, 'Ежегодно', 'Жылдық', 'Yearly') },
+    { value: 'OTHER', label: tx(language, 'Другое', 'Басқа', 'Other') },
   ];
+
+  const periodLabel = (p: string | null | undefined) =>
+    PERIOD_OPTIONS.find((o) => o.value === p)?.label ?? (p ?? '').toLowerCase();
 
   const [step, setStep] = useState(0);
 
@@ -86,37 +67,51 @@ export function CreateRoomPage() {
   const [tariffs, setTariffs] = useState<TariffPlanDto[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
 
-  const [serviceId, setServiceId] = useState<string>("");
-  const [tariffPlanId, setTariffPlanId] = useState<string>("");
-  const [roomType, setRoomType] = useState("TELECOM");
-  const [title, setTitle] = useState("");
-  const [seats, setSeats] = useState("4");
-  const [priceModel, setPriceModel] = useState("total");
-  const [totalPrice, setTotalPrice] = useState("19999");
-  const [perMemberPrice, setPerMemberPrice] = useState("5000");
-  const [periodType, setPeriodType] = useState("MONTHLY");
-  const [startDate, setStartDate] = useState(defaultStartDate());
-  const [connectionType, setConnectionType] = useState("ESIM");
-  const [restrictions, setRestrictions] = useState("");
+  const [serviceId, setServiceId] = useState<string>('');
+  const [tariffPlanId, setTariffPlanId] = useState<string>('');
+  const [title, setTitle] = useState('');
+  const [connectionType, setConnectionType] = useState('ESIM');
+  const [restrictions, setRestrictions] = useState('');
   const [confirmed, setConfirmed] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [published, setPublished] = useState<RoomResponseDto | null>(null);
 
-  // Currency state + FX rates. We default to KZT (base currency). The
-  // selected currency is what the owner enters in the price field; the live
-  // KZT equivalent is shown directly below it so the owner can sanity-check
-  // the conversion before publishing.
-  const [currency, setCurrency] = useState<SupportedCurrency>("KZT");
+  // FX rates: the tariff's currency is fixed (admin-set); we still fetch live
+  // rates so non-KZT plans can show their KZT equivalent in the review step.
   const [fxRates, setFxRates] = useState<FxRatesResponse | null>(null);
   const [fxError, setFxError] = useState<string | null>(null);
 
+  // Owners are paid out monthly to a connected card, so the backend rejects room
+  // creation without one. null = still checking; false = no active default card yet.
+  const [hasPayoutCard, setHasPayoutCard] = useState<boolean | null>(null);
+  const [connectingCard, setConnectingCard] = useState(false);
+  const [awaitingCard, setAwaitingCard] = useState(false);
+  const [cardError, setCardError] = useState<string | null>(null);
+
   useEffect(() => {
     if (isReady && !isAuthenticated) {
-      navigate("/login?redirect=/rooms/create");
+      navigate('/login?redirect=/rooms/create');
     }
   }, [isReady, isAuthenticated, navigate]);
+
+  // Mirror the backend gate (an active default payout method must exist).
+  useEffect(() => {
+    if (!isReady || !isAuthenticated) return;
+    let cancelled = false;
+    authorizedRequest((token) => getPayoutMethodsRequest(token))
+      .then((methods) => {
+        if (cancelled) return;
+        setHasPayoutCard((methods ?? []).some((m) => m.isDefault && m.status === 'ACTIVE'));
+      })
+      .catch(() => {
+        if (!cancelled) setHasPayoutCard(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isReady, isAuthenticated, authorizedRequest]);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,7 +122,7 @@ export function CreateRoomPage() {
         setFxError(null);
       })
       .catch(() => {
-        if (!cancelled) setFxError(t("priceFxUnavailable"));
+        if (!cancelled) setFxError(t('priceFxUnavailable'));
       });
     return () => {
       cancelled = true;
@@ -140,16 +135,32 @@ export function CreateRoomPage() {
       .then((list) => {
         if (cancelled) return;
         setServices(list);
-        if (list.length > 0) {
+        const preferred =
+          navState?.serviceId != null
+            ? list.find((s) => String(s.id) === String(navState.serviceId))
+            : undefined;
+        if (preferred) {
+          setServiceId(String(preferred.id));
+        } else if (list.length > 0) {
           setServiceId(String(list[0].id));
         }
       })
       .catch(() => {
-        if (!cancelled) setCatalogError(tx(language, "Не удалось загрузить каталог сервисов.", "Сервистер каталогын жүктеу мүмкін болмады.", "Unable to load the service catalog right now."));
+        if (!cancelled)
+          setCatalogError(
+            tx(
+              language,
+              'Не удалось загрузить каталог сервисов.',
+              'Сервистер каталогын жүктеу мүмкін болмады.',
+              'Unable to load the service catalog right now.',
+            ),
+          );
       });
     return () => {
       cancelled = true;
     };
+    // navState.serviceId is read once at mount; further changes don't reseed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
   const selectedService = useMemo(
@@ -157,18 +168,39 @@ export function CreateRoomPage() {
     [services, serviceId],
   );
 
+  // Room type is derived from the selected service, not chosen by the owner.
+  const isTelecom = selectedService ? selectedService.providerType !== 'DIGITAL' : false;
+  const roomType = isTelecom ? 'TELECOM' : 'DIGITAL';
+
+  const serviceGroups = useMemo(() => {
+    const telecom = services.filter(
+      (s) => s.providerType === 'OPERATOR' || s.providerType === 'ISP',
+    );
+    const digital = services.filter((s) => s.providerType === 'DIGITAL');
+    return [
+      {
+        label: tx(language, 'Связь', 'Байланыс', 'Telecom'),
+        options: telecom.map((s) => ({ value: String(s.id), label: s.name })),
+      },
+      {
+        label: tx(language, 'Цифровые подписки', 'Цифрлық жазылымдар', 'Digital subscriptions'),
+        options: digital.map((s) => ({ value: String(s.id), label: s.name })),
+      },
+    ];
+  }, [services, language]);
+
   useEffect(() => {
     if (!serviceId) {
       setTariffs([]);
-      setTariffPlanId("");
+      setTariffPlanId('');
       return;
     }
     let cancelled = false;
-    getTariffs(Number(serviceId))
+    getTariffs(serviceId)
       .then((list) => {
         if (cancelled) return;
         setTariffs(list);
-        setTariffPlanId("");
+        setTariffPlanId('');
       })
       .catch(() => {
         if (!cancelled) setTariffs([]);
@@ -187,36 +219,29 @@ export function CreateRoomPage() {
     setTariffPlanId(id);
     const tariff = tariffs.find((t) => String(t.id) === id);
     if (tariff) {
-      setSeats(String(tariff.maxMembers));
-      setTotalPrice(String(tariff.basePriceTotal));
-      if (tariff.maxMembers > 0) {
-        setPerMemberPrice(String(Math.round(Number(tariff.basePriceTotal) / tariff.maxMembers)));
-      }
+      // Price, seats, currency and period are owned by the tariff (admin-set) —
+      // we only mirror the plan's connection type and prefill the title here.
       if (tariff.connectionType) {
         setConnectionType(tariff.connectionType);
       }
-      if (tariff.periodType) {
-        setPeriodType(tariff.periodType);
-      }
       if (!title) {
-        setTitle(`${selectedService?.name ?? ""} ${tariff.name}`.trim());
+        setTitle(`${selectedService?.name ?? ''} ${tariff.name}`.trim());
       }
     }
   };
 
-  const seatCount = Math.max(parseInt(seats || "0", 10) || 0, 0);
-  const perMemberDerived =
-    priceModel === "total" && seatCount > 0
-      ? Math.round((parseInt(totalPrice || "0", 10) || 0) / seatCount)
-      : parseInt(perMemberPrice || "0", 10) || 0;
-
-  const isTelecom = roomType === "TELECOM";
+  // Pricing fields are derived from the selected tariff — never editable here.
+  const seatCount = selectedTariff?.maxMembers ?? 0;
+  const totalNumeric = Number(selectedTariff?.basePriceTotal ?? 0) || 0;
+  const perMemberDerived = seatCount > 0 ? Math.round(totalNumeric / seatCount) : 0;
+  const periodType = selectedTariff?.periodType ?? 'MONTHLY';
+  const currency = (selectedTariff?.currency ?? 'KZT') as SupportedCurrency;
 
   // FX rates: 1 unit of `code` = N tenge. For KZT (base) the rate is 1.
   const rateToKzt = (code: SupportedCurrency): number | null => {
-    if (code === "KZT") return 1;
+    if (code === 'KZT') return 1;
     const rate = fxRates?.rates?.[code];
-    return typeof rate === "number" && rate > 0 ? rate : null;
+    return typeof rate === 'number' && rate > 0 ? rate : null;
   };
 
   const currentRate = rateToKzt(currency);
@@ -227,47 +252,139 @@ export function CreateRoomPage() {
     return Math.round(amount * currentRate);
   };
 
-  const totalNumeric = Number(totalPrice || "0") || 0;
-  const perMemberNumeric = Number(perMemberPrice || "0") || 0;
-  const totalKztEquivalent = convertToKzt(totalNumeric);
-  const perMemberKztEquivalent = convertToKzt(perMemberNumeric);
+  const perMemberKztEquivalent = convertToKzt(perMemberDerived);
 
-  const moneyFmt = (n: number) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(n);
+  const moneyFmt = (n: number) =>
+    new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n);
 
-  const currencyOptions = SUPPORTED_CURRENCY_CODES.map((code) => ({
-    value: code,
-    label: t(CURRENCY_LABEL_KEY[code]),
-  }));
+  const currencySymbol = CURRENCY_SYMBOLS[currency] ?? currency;
 
-  const currencySymbol = CURRENCY_SYMBOLS[currency];
+  // Re-check whether a payout card is now connected (used after the owner finishes in the
+  // FreedomPay tab). Returns true once an active default method exists.
+  const recheckPayoutCard = async (): Promise<boolean> => {
+    try {
+      const methods = await authorizedRequest((token) => getPayoutMethodsRequest(token));
+      const ok = (methods ?? []).some((m) => m.isDefault && m.status === 'ACTIVE');
+      if (ok) {
+        setHasPayoutCard(true);
+        setAwaitingCard(false);
+      }
+      return ok;
+    } catch {
+      return false;
+    }
+  };
 
-  // Show the KZT equivalent hint under price inputs (only for non-KZT).
-  const renderKztHint = (kztValue: number | null): string | undefined => {
-    if (currency === "KZT") return undefined;
-    if (kztValue == null) return t("priceFxUnavailable");
-    return t("priceKztEquivalent", { amount: `₸${moneyFmt(kztValue)}` });
+  // Connect a payout card through the FreedomPay hosted page. We open it in a NEW TAB so this
+  // half-filled room form is preserved, then poll for the card to appear once the owner finishes.
+  const handleConnectCard = async () => {
+    setConnectingCard(true);
+    setCardError(null);
+    // Must open the tab synchronously inside the click to avoid the popup blocker; we set its
+    // URL after the binding is created.
+    const tab = window.open('', '_blank');
+    try {
+      const res = await authorizedRequest((token) =>
+        initPayoutCardBindingRequest(
+          { returnUrl: `${window.location.origin}/payment/card-connected` },
+          token,
+        ),
+      );
+      if (res.paymentUrl) {
+        window.localStorage.setItem('ecopay.pendingCardBinding', String(res.bindingId));
+        if (tab) {
+          tab.location.href = res.paymentUrl;
+          setConnectingCard(false);
+          setAwaitingCard(true);
+          // Auto-poll for ~2 min so the banner clears itself once the card is connected.
+          let attempts = 0;
+          const poll = async () => {
+            attempts += 1;
+            const done = await recheckPayoutCard();
+            if (!done && attempts < 30) setTimeout(() => void poll(), 4000);
+          };
+          setTimeout(() => void poll(), 4000);
+        } else {
+          // Popup blocked — fall back to a same-tab redirect (room draft will be lost).
+          window.location.href = res.paymentUrl;
+        }
+        return;
+      }
+      if (tab) tab.close();
+      setConnectingCard(false);
+      setCardError(
+        res.failureMessage ??
+          tx(
+            language,
+            'Не удалось начать подключение карты. Попробуйте снова.',
+            'Картаны қосуды бастау мүмкін болмады. Қайта көріңіз.',
+            "Couldn't start the card connection. Please try again.",
+          ),
+      );
+    } catch (err) {
+      if (tab) tab.close();
+      setConnectingCard(false);
+      setCardError(
+        err instanceof ApiError
+          ? err.message
+          : tx(
+              language,
+              'Не удалось подключить карту. Попробуйте снова.',
+              'Картаны қосу мүмкін болмады. Қайта көріңіз.',
+              "Couldn't connect the card. Please try again.",
+            ),
+      );
+    }
   };
 
   const handlePublish = async () => {
     setSubmitError(null);
 
+    if (hasPayoutCard === false) {
+      setSubmitError(
+        tx(
+          language,
+          'Подключите карту для выплат перед созданием комнаты.',
+          'Бөлме жасамас бұрын төлем картасын қосыңыз.',
+          'Connect a payout card before creating a room.',
+        ),
+      );
+      setConnectingCard(true);
+      return;
+    }
     if (!serviceId) {
-      setSubmitError(tx(language, "Выберите оператора.", "Операторды таңдаңыз.", "Please select a service."));
+      setSubmitError(
+        tx(language, 'Выберите оператора.', 'Операторды таңдаңыз.', 'Please select a service.'),
+      );
+      setStep(0);
+      return;
+    }
+    if (!tariffPlanId) {
+      setSubmitError(tx(language, 'Выберите тариф.', 'Тарифті таңдаңыз.', 'Please select a plan.'));
       setStep(0);
       return;
     }
     if (!title.trim()) {
-      setSubmitError(tx(language, "Укажите название комнаты.", "Бөлме атауын көрсетіңіз.", "Please enter a room title."));
-      setStep(1);
-      return;
-    }
-    if (seatCount < 2) {
-      setSubmitError(tx(language, "В комнате должно быть минимум 2 места.", "Бөлмеде кемінде 2 орын болуы керек.", "A room needs at least 2 seats."));
+      setSubmitError(
+        tx(
+          language,
+          'Укажите название комнаты.',
+          'Бөлме атауын көрсетіңіз.',
+          'Please enter a room title.',
+        ),
+      );
       setStep(1);
       return;
     }
     if (isTelecom && !confirmed) {
-      setSubmitError(tx(language, "Подтвердите условия оператора.", "Оператор шарттарын растаңыз.", "You must confirm operator terms for a telecom room."));
+      setSubmitError(
+        tx(
+          language,
+          'Подтвердите условия оператора.',
+          'Оператор шарттарын растаңыз.',
+          'You must confirm operator terms for a telecom room.',
+        ),
+      );
       setStep(2);
       return;
     }
@@ -278,16 +395,10 @@ export function CreateRoomPage() {
         createRoomRequest(
           {
             categoryId: selectedService?.categoryId ?? null,
-            serviceId: Number(serviceId),
-            tariffPlanId: tariffPlanId ? Number(tariffPlanId) : null,
+            serviceId,
+            tariffPlanId,
             roomType,
             title: title.trim(),
-            maxMembers: seatCount,
-            priceTotal: priceModel === "total" ? Number(totalPrice) : null,
-            pricePerMember: priceModel === "per_member" ? Number(perMemberPrice) : null,
-            currency,
-            periodType,
-            startDate: startDate.length === 16 ? `${startDate}:00` : startDate,
             providerName: selectedService?.name ?? null,
             tariffNameSnapshot: selectedTariff?.name ?? null,
             connectionType: isTelecom ? connectionType : null,
@@ -302,7 +413,14 @@ export function CreateRoomPage() {
       if (err instanceof ApiError) {
         setSubmitError(err.message);
       } else {
-        setSubmitError(tx(language, "Не удалось опубликовать комнату. Попробуйте снова.", "Бөлмені жариялау мүмкін болмады. Қайта көріңіз.", "Unable to publish the room right now. Please try again."));
+        setSubmitError(
+          tx(
+            language,
+            'Не удалось опубликовать комнату. Попробуйте снова.',
+            'Бөлмені жариялау мүмкін болмады. Қайта көріңіз.',
+            'Unable to publish the room right now. Please try again.',
+          ),
+        );
       }
     } finally {
       setSubmitting(false);
@@ -312,13 +430,16 @@ export function CreateRoomPage() {
   if (published) {
     return (
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-12 sm:py-16 text-center">
-        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: "var(--eco-success-100)" }}>
-          <Check size={24} style={{ color: "var(--eco-positive)" }} />
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6"
+          style={{ background: 'var(--eco-success-100)' }}
+        >
+          <Check size={24} style={{ color: 'var(--eco-positive)' }} />
         </div>
-        <h1 className="text-[24px] mb-2" style={{ color: "var(--eco-text)" }}>
-          {tx(language, "Комната опубликована", "Бөлме жарияланды", "Room Published")}
+        <h1 className="text-[24px] mb-2" style={{ color: 'var(--eco-text)' }}>
+          {tx(language, 'Комната опубликована', 'Бөлме жарияланды', 'Room Published')}
         </h1>
-        <p className="text-[13px] mb-6" style={{ color: "var(--eco-text-secondary)" }}>
+        <p className="text-[13px] mb-6" style={{ color: 'var(--eco-text-secondary)' }}>
           {tx(
             language,
             `Ваша комната «${published.title}» появилась в каталоге. Участники могут подавать заявки.`,
@@ -327,11 +448,23 @@ export function CreateRoomPage() {
           )}
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link to={`/rooms/owner/${published.id}`} className="w-full sm:w-auto" style={{ textDecoration: "none" }}>
-            <Button variant="secondary" className="w-full sm:w-auto">{tx(language, "Управлять комнатой", "Бөлмені басқару", "Manage Room")}</Button>
+          <Link
+            to={`/rooms/owner/${published.id}`}
+            className="w-full sm:w-auto"
+            style={{ textDecoration: 'none' }}
+          >
+            <Button variant="secondary" className="w-full sm:w-auto">
+              {tx(language, 'Управлять комнатой', 'Бөлмені басқару', 'Manage Room')}
+            </Button>
           </Link>
-          <Link to={`/room/${published.id}`} className="w-full sm:w-auto" style={{ textDecoration: "none" }}>
-            <Button variant="primary" className="w-full sm:w-auto">{tx(language, "Открыть в каталоге", "Каталогтан көру", "View in Catalog")}</Button>
+          <Link
+            to={`/room/${published.id}`}
+            className="w-full sm:w-auto"
+            style={{ textDecoration: 'none' }}
+          >
+            <Button variant="primary" className="w-full sm:w-auto">
+              {tx(language, 'Открыть в каталоге', 'Каталогтан көру', 'View in Catalog')}
+            </Button>
           </Link>
         </div>
       </div>
@@ -340,49 +473,153 @@ export function CreateRoomPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-      <Link to="/rooms" className="inline-flex items-center gap-1 text-[13px] mb-6" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
-        <ArrowLeft size={14} /> {tx(language, "Мои комнаты", "Менің бөлмелерім", "My Rooms")}
+      <Link
+        to="/rooms"
+        className="inline-flex items-center gap-1 text-[13px] mb-6"
+        style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+      >
+        <ArrowLeft size={14} /> {tx(language, 'Мои комнаты', 'Менің бөлмелерім', 'My Rooms')}
       </Link>
 
-      <h1 className="text-[22px] sm:text-[26px] mb-6" style={{ color: "var(--eco-text)" }}>
-        {tx(language, "Создать комнату", "Бөлме жасау", "Create Room")}
+      <h1 className="text-[22px] sm:text-[26px] mb-6" style={{ color: 'var(--eco-text)' }}>
+        {tx(language, 'Создать комнату', 'Бөлме жасау', 'Create Room')}
       </h1>
 
       {catalogError && (
-        <div className="p-4 rounded-lg mb-6 text-[13px]" style={{ background: "var(--eco-danger-100, #fde8e8)", color: "var(--eco-negative)" }}>
+        <div
+          className="p-4 rounded-lg mb-6 text-[13px]"
+          style={{ background: 'var(--eco-danger-100, #fde8e8)', color: 'var(--eco-negative)' }}
+        >
           {catalogError}
         </div>
       )}
 
-      <div className="p-4 rounded-lg flex items-start gap-3 mb-6" style={{ background: "var(--eco-warning-100)" }}>
-        <Lock size={16} className="mt-0.5 shrink-0" style={{ color: "var(--eco-warning)" }} />
-        <div>
-          <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>
-            {tx(language, "Критические поля блокируются после старта", "Маңызды өрістер басталу күнінен кейін құлыпталады", "Critical fields lock after start date")}
+      {hasPayoutCard === false && (
+        <div className="p-4 rounded-lg mb-6" style={{ background: 'var(--eco-warning-100)' }}>
+          <div className="flex items-start gap-3">
+            <CreditCard
+              size={16}
+              className="mt-0.5 shrink-0"
+              style={{ color: 'var(--eco-warning)' }}
+            />
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+                {tx(
+                  language,
+                  'Нужна карта для выплат',
+                  'Төлем картасы қажет',
+                  'Payout card required',
+                )}
+              </div>
+              <div className="text-[13px] mt-0.5" style={{ color: 'var(--eco-text-secondary)' }}>
+                {tx(
+                  language,
+                  'Платежи участников зачисляются владельцу ежемесячно, поэтому для создания комнаты нужно подключить карту. Деньги удерживаются 30 дней после оплаты, затем переводятся на эту карту.',
+                  'Қатысушылардың төлемдері иесіне ай сайын аударылады, сондықтан бөлме жасау үшін карта қосу қажет. Ақша төлемнен кейін 30 күн ұсталып, сосын осы картаға аударылады.',
+                  'Member payments are paid out to you monthly, so you need a connected card to create a room. Funds are held for 30 days after payment, then sent to this card.',
+                )}
+              </div>
+              {awaitingCard ? (
+                <>
+                  <div className="text-[13px] mt-3" style={{ color: 'var(--eco-text)' }}>
+                    {tx(
+                      language,
+                      'Завершите ввод карты в новой вкладке, затем нажмите «Проверить». Эта форма сохранена.',
+                      'Жаңа қойындыда картаны енгізуді аяқтап, «Тексеру» түймесін басыңыз. Бұл форма сақталды.',
+                      'Finish entering your card in the new tab, then click “Re-check”. This form is kept.',
+                    )}
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <Button variant="primary" size="sm" onClick={() => void recheckPayoutCard()}>
+                      {tx(language, 'Проверить', 'Тексеру', 'Re-check')}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => void handleConnectCard()}>
+                      {tx(language, 'Открыть снова', 'Қайта ашу', 'Open again')}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="mt-3"
+                    loading={connectingCard}
+                    onClick={() => void handleConnectCard()}
+                  >
+                    <CreditCard size={13} />{' '}
+                    {tx(
+                      language,
+                      'Подключить карту через FreedomPay',
+                      'FreedomPay арқылы картаны қосу',
+                      'Connect card via FreedomPay',
+                    )}
+                  </Button>
+                  <div className="text-[12px] mt-2" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {tx(
+                      language,
+                      'Откроется защищённая страница FreedomPay в новой вкладке. Мы не храним номер карты.',
+                      'Жаңа қойындыда қорғалған FreedomPay беті ашылады. Біз карта нөмірін сақтамаймыз.',
+                      "FreedomPay's secure page opens in a new tab. We never store the card number.",
+                    )}
+                  </div>
+                </>
+              )}
+              {cardError && (
+                <div className="text-[12px] mt-2" style={{ color: 'var(--eco-negative)' }}>
+                  {cardError}
+                </div>
+              )}
+            </div>
           </div>
-          <div className="text-[13px] mt-0.5" style={{ color: "var(--eco-text-secondary)" }}>
+        </div>
+      )}
+
+      {navState?.reason === 'no-free-rooms' && (
+        <div
+          className="p-3 rounded-lg mb-4 text-[13px] flex items-start gap-2"
+          style={{
+            background: 'var(--eco-brand-50)',
+            color: 'var(--eco-text-secondary)',
+            border: '1px solid var(--eco-border)',
+          }}
+        >
+          <Users size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--eco-primary)' }} />
+          <span>
             {tx(
               language,
-              "Оператор, тариф, число мест и цена нельзя изменить после даты старта. Чтобы поправить — отмените и создайте комнату заново.",
-              "Оператор, тариф, орын саны және баға басталу күнінен кейін өзгертілмейді. Өзгерту үшін бөлмені тоқтатып, қайта жасаңыз.",
-              "Operator, plan, seats, and price cannot be changed once the start date has passed. Editing requires cancelling and re-creating the room.",
+              'Свободных комнат по этой подписке пока нет. Создайте свою и пригласите участников.',
+              'Бұл жазылым бойынша бос бөлме әзірге жоқ. Өзіңіздікін жасап, қатысушыларды шақырыңыз.',
+              'No open rooms for this subscription yet. Create one and invite members.',
             )}
-          </div>
+          </span>
         </div>
-      </div>
+      )}
 
-      <div className="flex flex-wrap items-center gap-2 mb-6">
+      {isAuthenticated && user && !user.phoneVerified && (
         <div
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] sm:text-[13px]"
-          style={{ background: "var(--eco-surface)", color: "var(--eco-text-secondary)", border: "1px solid var(--eco-border)" }}
+          className="p-3 rounded-lg mb-4 text-[13px] flex items-start gap-2"
+          style={{ background: 'var(--eco-warning-100)', color: 'var(--eco-text-secondary)' }}
         >
-          <Shield size={13} style={{ color: "var(--eco-primary)" }} />
-          {tx(language, "Режим верификации: по риску (по умолчанию)", "Растау режимі: тәуекелге қарай (әдепкі)", "Verification mode: Risk-based (default)")}
+          <AlertTriangle
+            size={14}
+            className="mt-0.5 shrink-0"
+            style={{ color: 'var(--eco-warning)' }}
+          />
+          <span>
+            {tx(
+              language,
+              'Подтвердите номер телефона перед созданием комнаты.',
+              'Бөлме жасамас бұрын телефон нөміріңізді растаңыз.',
+              'Verify your phone number before creating a room.',
+            )}{' '}
+            <Link to="/profile" style={{ color: 'var(--eco-primary)' }}>
+              {tx(language, 'Перейти в профиль', 'Профильге өту', 'Go to profile')}
+            </Link>
+            .
+          </span>
         </div>
-        <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>
-          {tx(language, "Задаётся бэкендом", "Бэкенд анықтайды", "Set by backend")}
-        </div>
-      </div>
+      )}
 
       <Stepper steps={stepLabels} current={step} />
 
@@ -390,51 +627,102 @@ export function CreateRoomPage() {
         {step === 0 && (
           <Card className="flex flex-col gap-4">
             <Select
-              label={tx(language, "Тип комнаты", "Бөлме түрі", "Room Type")}
-              options={[
-                { value: "TELECOM", label: tx(language, "Связь (SIM / eSIM / тариф оператора)", "Байланыс (SIM / eSIM / оператор тарифі)", "Telecom (SIM / eSIM / operator plan)") },
-                { value: "DIGITAL", label: tx(language, "Цифровая подписка", "Цифрлық жазылым", "Digital subscription") },
-              ]}
-              value={roomType}
-              onChange={(e) => setRoomType(e.target.value)}
-            />
-            <Select
-              label={tx(language, "Оператор / Провайдер", "Оператор / Провайдер", "Operator / Provider")}
-              options={
+              label={tx(
+                language,
+                'Оператор / Провайдер',
+                'Оператор / Провайдер',
+                'Operator / Provider',
+              )}
+              groups={
                 services.length > 0
-                  ? services.map((s) => ({ value: String(s.id), label: s.name }))
-                  : [{ value: "", label: tx(language, "Загрузка сервисов...", "Сервистер жүктелуде...", "Loading services...") }]
+                  ? serviceGroups
+                  : [
+                      {
+                        label: tx(language, 'Загрузка', 'Жүктелуде', 'Loading'),
+                        options: [
+                          {
+                            value: '',
+                            label: tx(
+                              language,
+                              'Загрузка сервисов...',
+                              'Сервистер жүктелуде...',
+                              'Loading services...',
+                            ),
+                          },
+                        ],
+                      },
+                    ]
               }
               value={serviceId}
               onChange={(e) => setServiceId(e.target.value)}
             />
             <Select
-              label={tx(language, "Тариф (опционально)", "Тариф (міндетті емес)", "Plan (optional)")}
+              label={tx(language, 'Тариф', 'Тариф', 'Plan')}
               options={[
                 {
-                  value: "",
-                  label: tariffs.length > 0
-                    ? tx(language, "Без тарифа — своя цена", "Тарифсіз — өз бағаңыз", "No plan — custom pricing")
-                    : tx(language, "Тарифов нет", "Тарифтер жоқ", "No plans available"),
+                  value: '',
+                  label:
+                    tariffs.length > 0
+                      ? tx(language, 'Выберите тариф', 'Тарифті таңдаңыз', 'Select a plan')
+                      : tx(language, 'Тарифов нет', 'Тарифтер жоқ', 'No plans available'),
                 },
                 ...tariffs.map((t) => ({
                   value: String(t.id),
-                  label: `${t.name} — ₸${Number(t.basePriceTotal).toLocaleString()} / ${t.periodType.toLowerCase()}`,
+                  label: `${t.name} · ${CURRENCY_SYMBOLS[(t.currency ?? 'KZT') as SupportedCurrency] ?? t.currency}${Number(t.basePriceTotal).toLocaleString()} / ${periodLabel(t.periodType)}`,
                 })),
               ]}
               value={tariffPlanId}
               onChange={(e) => applyTariff(e.target.value)}
             />
-            <div className="text-[12px] p-3 rounded-lg" style={{ background: "var(--eco-brand-50)", color: "var(--eco-text-secondary)" }}>
-              {tx(
-                language,
-                "Подсказка: выбор тарифа подставит число мест и цену из каталога — их можно поправить.",
-                "Кеңес: тариф таңдалса, орын саны мен баға каталогтан толтырылады — оларды өзгертуге болады.",
-                "Tip: Selecting a plan prefills seats and price from the operator's catalog. You can still adjust them.",
-              )}
-            </div>
-            <Button variant="primary" className="w-full" disabled={!serviceId} onClick={() => setStep(1)}>
-              {tx(language, "Продолжить", "Жалғастыру", "Continue")}
+            {selectedTariff && (
+              <div
+                className="rounded-lg p-3 flex flex-col gap-2"
+                style={{ background: 'var(--eco-brand-50)', border: '1px solid var(--eco-border)' }}
+              >
+                <div
+                  className="flex items-center gap-1.5 text-[12px]"
+                  style={{ color: 'var(--eco-text-secondary)' }}
+                >
+                  <Lock size={12} style={{ color: 'var(--eco-primary)' }} />
+                  {tx(
+                    language,
+                    'Цена, валюта, период и число мест заданы тарифом',
+                    'Баға, валюта, кезең және орын саны тарифпен анықталады',
+                    'Price, currency, period and seats are set by the plan',
+                  )}
+                </div>
+                {[
+                  {
+                    label: tx(language, 'Число мест', 'Орын саны', 'Seats'),
+                    value: String(selectedTariff.maxMembers),
+                  },
+                  {
+                    label: tx(language, 'Общая цена', 'Жалпы баға', 'Total price'),
+                    value: `${currencySymbol}${moneyFmt(totalNumeric)}`,
+                  },
+                  {
+                    label: tx(language, 'За участника', 'Қатысушы үшін', 'Per member'),
+                    value: `${currencySymbol}${moneyFmt(perMemberDerived)}`,
+                  },
+                  {
+                    label: tx(language, 'Период', 'Кезең', 'Period'),
+                    value: periodLabel(periodType),
+                  },
+                ].map((row) => (
+                  <div key={row.label} className="flex justify-between text-[13px]">
+                    <span style={{ color: 'var(--eco-text-secondary)' }}>{row.label}</span>
+                    <span style={{ color: 'var(--eco-text)' }}>{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button
+              variant="primary"
+              className="w-full"
+              disabled={!serviceId || !tariffPlanId}
+              onClick={() => setStep(1)}
+            >
+              {tx(language, 'Продолжить', 'Жалғастыру', 'Continue')}
             </Button>
           </Card>
         )}
@@ -442,84 +730,71 @@ export function CreateRoomPage() {
         {step === 1 && (
           <Card className="flex flex-col gap-4">
             <Input
-              label={tx(language, "Название комнаты", "Бөлме атауы", "Room Title")}
+              label={tx(language, 'Название комнаты', 'Бөлме атауы', 'Room Title')}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={tx(language, "напр. Beeline Family 4", "мысалы Beeline Family 4", "e.g. Beeline Family 4")}
+              placeholder={tx(
+                language,
+                'напр. Beeline Family 4',
+                'мысалы Beeline Family 4',
+                'e.g. Beeline Family 4',
+              )}
             />
-            <Input
-              label={tx(language, "Число мест", "Орын саны", "Number of Seats")}
-              type="number"
-              value={seats}
-              onChange={(e) => setSeats(e.target.value)}
-              hint={tx(language, "Минимум 2, включая вас", "Кемінде 2, өзіңізді қоса", "Minimum 2 members including you")}
-            />
-            <div className="flex flex-col gap-1">
-              <Select
-                label={t("currencyLabel")}
-                options={currencyOptions}
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value as SupportedCurrency)}
-              />
-              <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-                {fxRates?.updatedAt && (
-                  <span className="text-[11px] break-words" style={{ color: "var(--eco-text-tertiary)" }}>
-                    {t("priceFxUpdatedAt", { time: formatDateTime(fxRates.updatedAt, language) })}
-                  </span>
-                )}
-                {fxError && (
-                  <span className="text-[11px] break-words" style={{ color: "var(--eco-warning-500)" }}>{fxError}</span>
-                )}
+            <div
+              className="rounded-lg p-3 flex flex-col gap-2"
+              style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
+            >
+              <div
+                className="flex items-center gap-1.5 text-[12px]"
+                style={{ color: 'var(--eco-text-secondary)' }}
+              >
+                <Lock size={12} style={{ color: 'var(--eco-primary)' }} />
+                {tx(language, 'Условия тарифа', 'Тариф шарттары', 'Plan terms')} ·{' '}
+                {selectedTariff?.name ?? '—'}
               </div>
+              {[
+                {
+                  label: tx(language, 'Число мест', 'Орын саны', 'Seats'),
+                  value: String(seatCount),
+                },
+                {
+                  label: tx(language, 'Общая цена', 'Жалпы баға', 'Total price'),
+                  value: `${currencySymbol}${moneyFmt(totalNumeric)}`,
+                },
+                {
+                  label: tx(language, 'За участника', 'Қатысушы үшін', 'Per member'),
+                  value:
+                    `${currencySymbol}${moneyFmt(perMemberDerived)}/${periodLabel(periodType)}` +
+                    (currency !== 'KZT' && perMemberKztEquivalent != null
+                      ? ` (≈ ₸${moneyFmt(perMemberKztEquivalent)})`
+                      : ''),
+                },
+                {
+                  label: tx(language, 'Период', 'Кезең', 'Period'),
+                  value: periodLabel(periodType),
+                },
+              ].map((row) => (
+                <div key={row.label} className="flex justify-between text-[13px]">
+                  <span style={{ color: 'var(--eco-text-secondary)' }}>{row.label}</span>
+                  <span style={{ color: 'var(--eco-text)' }}>{row.value}</span>
+                </div>
+              ))}
+              {currency !== 'KZT' && fxError && (
+                <span
+                  className="text-[11px] break-words"
+                  style={{ color: 'var(--eco-warning-500)' }}
+                >
+                  {fxError}
+                </span>
+              )}
             </div>
-            <Select
-              label={tx(language, "Модель цены", "Баға моделі", "Price Model")}
-              options={[
-                { value: "total", label: tx(language, "Общая стоимость (делится поровну)", "Жалпы құн (тең бөлінеді)", "Total plan cost (split equally)") },
-                { value: "per_member", label: tx(language, "Фиксированная цена за участника", "Қатысушы үшін бекітілген баға", "Fixed price per member") },
-              ]}
-              value={priceModel}
-              onChange={(e) => setPriceModel(e.target.value)}
-            />
-            {priceModel === "total" ? (
-              <Input
-                label={`${tx(language, "Общая цена", "Жалпы баға", "Total Price")} (${currencySymbol})`}
-                type="number"
-                value={totalPrice}
-                onChange={(e) => setTotalPrice(e.target.value)}
-                hint={
-                  currency === "KZT"
-                    ? seatCount > 0
-                      ? tx(language, `≈ ₸${perMemberDerived.toLocaleString()} за участника`, `≈ ₸${perMemberDerived.toLocaleString()} қатысушыға`, `≈ ₸${perMemberDerived.toLocaleString()} per member`)
-                      : undefined
-                    : renderKztHint(totalKztEquivalent)
-                }
-              />
-            ) : (
-              <Input
-                label={`${tx(language, "Цена за участника", "Қатысушы үшін баға", "Price per Member")} (${currencySymbol})`}
-                type="number"
-                value={perMemberPrice}
-                onChange={(e) => setPerMemberPrice(e.target.value)}
-                hint={renderKztHint(perMemberKztEquivalent)}
-              />
-            )}
-            <Select
-              label={tx(language, "Период оплаты", "Төлем кезеңі", "Billing Period")}
-              options={PERIOD_OPTIONS}
-              value={periodType}
-              onChange={(e) => setPeriodType(e.target.value)}
-            />
-            <Input
-              label={tx(language, "Дата старта", "Басталу күні", "Start Date")}
-              type="datetime-local"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              hint={tx(language, "Должна быть в будущем", "Болашақта болуы керек", "Must be in the future")}
-            />
             <div className="flex gap-3">
-              <Button variant="ghost" onClick={() => setStep(0)}>{tx(language, "Назад", "Артқа", "Back")}</Button>
-              <Button variant="primary" className="flex-1" onClick={() => setStep(2)}>{tx(language, "Продолжить", "Жалғастыру", "Continue")}</Button>
+              <Button variant="ghost" onClick={() => setStep(0)}>
+                {tx(language, 'Назад', 'Артқа', 'Back')}
+              </Button>
+              <Button variant="primary" className="flex-1" onClick={() => setStep(2)}>
+                {tx(language, 'Продолжить', 'Жалғастыру', 'Continue')}
+              </Button>
             </div>
           </Card>
         )}
@@ -528,49 +803,60 @@ export function CreateRoomPage() {
           <Card className="flex flex-col gap-4">
             {isTelecom ? (
               <>
-                <Select
-                  label={tx(language, "Способ доступа", "Қатынас тәсілі", "Access Method")}
-                  options={CONNECTION_OPTIONS}
-                  value={connectionType}
-                  onChange={(e) => setConnectionType(e.target.value)}
-                />
                 <Input
-                  label={tx(language, "Ограничения оператора (опционально)", "Оператор шектеулері (міндетті емес)", "Operator Restrictions (optional)")}
+                  label={tx(
+                    language,
+                    'Ограничения оператора (опционально)',
+                    'Оператор шектеулері (міндетті емес)',
+                    'Operator Restrictions (optional)',
+                  )}
                   value={restrictions}
                   onChange={(e) => setRestrictions(e.target.value)}
-                  placeholder={tx(language, "напр. только номера KZ", "мысалы тек KZ нөмірлері", "e.g. KZ numbers only")}
+                  placeholder={tx(
+                    language,
+                    'напр. только номера KZ',
+                    'мысалы тек KZ нөмірлері',
+                    'e.g. KZ numbers only',
+                  )}
                 />
                 <label className="flex items-start gap-2 cursor-pointer">
-                  <input type="checkbox" className="mt-0.5" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
-                  <span className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={confirmed}
+                    onChange={(e) => setConfirmed(e.target.checked)}
+                  />
+                  <span className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
                     {tx(
                       language,
-                      "Подтверждаю, что оператор поддерживает семейные/групповые тарифы и я — владелец аккаунта либо имею право делиться им.",
-                      "Оператордың отбасылық/топтық тарифтерді қолдайтынын және мен тіркелгінің иесі немесе бөлісуге құқылы екенімді растаймын.",
-                      "I confirm that this operator supports family/group plans and I am the account holder or authorized to share.",
+                      'Подтверждаю, что оператор поддерживает семейные или групповые тарифы, и я являюсь владельцем аккаунта либо имею право делиться им.',
+                      'Оператордың отбасылық немесе топтық тарифтерді қолдайтынын және мен тіркелгінің иесі немесе бөлісуге құқылы екенімді растаймын.',
+                      'I confirm that this operator supports family or group plans and I am the account holder or authorized to share.',
                     )}
                   </span>
                 </label>
               </>
             ) : (
-              <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+              <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
                 {tx(
                   language,
-                  "Цифровые подписки расшариваются приглашением в аккаунт после оплаты. Идентификатор связи не требуется.",
-                  "Цифрлық жазылымдар төлемнен кейін тіркелгіге шақыру арқылы бөлісіледі. Байланыс идентификаторы қажет емес.",
-                  "Digital subscriptions are shared via an account invite once members join and pay. No telecom identifier required.",
+                  'Цифровые подписки расшариваются приглашением в аккаунт после оплаты. Идентификатор связи не требуется.',
+                  'Цифрлық жазылымдар төлемнен кейін тіркелгіге шақыру арқылы бөлісіледі. Байланыс идентификаторы қажет емес.',
+                  'Digital subscriptions are shared via an account invite once members join and pay. No telecom identifier required.',
                 )}
               </div>
             )}
             <div className="flex gap-3">
-              <Button variant="ghost" onClick={() => setStep(1)}>{tx(language, "Назад", "Артқа", "Back")}</Button>
+              <Button variant="ghost" onClick={() => setStep(1)}>
+                {tx(language, 'Назад', 'Артқа', 'Back')}
+              </Button>
               <Button
                 variant="primary"
                 className="flex-1"
                 disabled={isTelecom && !confirmed}
                 onClick={() => setStep(3)}
               >
-                {tx(language, "Продолжить", "Жалғастыру", "Continue")}
+                {tx(language, 'Продолжить', 'Жалғастыру', 'Continue')}
               </Button>
             </div>
           </Card>
@@ -578,42 +864,68 @@ export function CreateRoomPage() {
 
         {step === 3 && (
           <Card className="flex flex-col gap-4">
-            <h3 className="text-[14px]" style={{ color: "var(--eco-text)" }}>
-              {tx(language, "Проверка и публикация", "Тексеру және жариялау", "Review & Publish")}
+            <h3 className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+              {tx(language, 'Проверка и публикация', 'Тексеру және жариялау', 'Review & Publish')}
             </h3>
             {[
-              { label: tx(language, "Тип комнаты", "Бөлме түрі", "Room type"), value: isTelecom ? tx(language, "Связь", "Телеком", "Telecom") : tx(language, "Цифровая", "Цифрлық", "Digital") },
-              { label: tx(language, "Оператор", "Оператор", "Operator"), value: selectedService?.name ?? "—" },
-              { label: tx(language, "Тариф", "Тариф", "Plan"), value: selectedTariff?.name ?? tx(language, "Свой", "Өзіндік", "Custom") },
-              { label: tx(language, "Название", "Атауы", "Title"), value: title || "—" },
-              { label: tx(language, "Места", "Орындар", "Seats"), value: String(seatCount) },
               {
-                label: tx(language, "За участника", "Қатысушы үшін", "Per member"),
-                value:
-                  currency === "KZT"
-                    ? `₸${perMemberDerived.toLocaleString()}/${periodType.toLowerCase()}`
-                    : `${currencySymbol}${perMemberDerived.toLocaleString()}/${periodType.toLowerCase()}${
-                        perMemberKztEquivalent != null ? ` (≈ ₸${moneyFmt(perMemberKztEquivalent)})` : ""
-                      }`,
+                label: tx(language, 'Тип комнаты', 'Бөлме түрі', 'Room type'),
+                value: isTelecom
+                  ? tx(language, 'Связь', 'Телеком', 'Telecom')
+                  : tx(language, 'Цифровая', 'Цифрлық', 'Digital'),
               },
-              { label: tx(language, "Дата старта", "Басталу күні", "Start date"), value: startDate.replace("T", " ") },
-              ...(isTelecom
-                ? [{ label: tx(language, "Доступ", "Қатынас", "Access"), value: CONNECTION_OPTIONS.find((o) => o.value === connectionType)?.label ?? connectionType }]
-                : []),
+              {
+                label: tx(language, 'Оператор', 'Оператор', 'Operator'),
+                value: selectedService?.name ?? '—',
+              },
+              {
+                label: tx(language, 'Тариф', 'Тариф', 'Plan'),
+                value: selectedTariff?.name ?? tx(language, 'Свой', 'Өзіндік', 'Custom'),
+              },
+              { label: tx(language, 'Название', 'Атауы', 'Title'), value: title || '—' },
+              { label: tx(language, 'Места', 'Орындар', 'Seats'), value: String(seatCount) },
+              {
+                label: tx(language, 'За участника', 'Қатысушы үшін', 'Per member'),
+                value:
+                  `${currencySymbol}${moneyFmt(perMemberDerived)}/${periodLabel(periodType)}` +
+                  (currency !== 'KZT' && perMemberKztEquivalent != null
+                    ? ` (≈ ₸${moneyFmt(perMemberKztEquivalent)})`
+                    : ''),
+              },
             ].map((row) => (
               <div key={row.label} className="flex justify-between text-[13px]">
-                <span style={{ color: "var(--eco-text-secondary)" }}>{row.label}</span>
-                <span style={{ color: "var(--eco-text)" }}>{row.value}</span>
+                <span style={{ color: 'var(--eco-text-secondary)' }}>{row.label}</span>
+                <span style={{ color: 'var(--eco-text)' }}>{row.value}</span>
               </div>
             ))}
             {submitError && (
-              <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>{submitError}</p>
+              <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
+                {submitError}
+              </p>
             )}
-            <div className="border-t pt-3" style={{ borderColor: "var(--eco-border)" }} />
+            <div className="border-t pt-3" style={{ borderColor: 'var(--eco-border)' }} />
+            {hasPayoutCard === false && (
+              <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                {tx(
+                  language,
+                  'Подключите карту для выплат выше, чтобы опубликовать.',
+                  'Жариялау үшін жоғарыда төлем картасын қосыңыз.',
+                  'Connect a payout card above to publish.',
+                )}
+              </p>
+            )}
             <div className="flex gap-3">
-              <Button variant="ghost" onClick={() => setStep(2)}>{tx(language, "Назад", "Артқа", "Back")}</Button>
-              <Button variant="primary" className="flex-1" loading={submitting} onClick={handlePublish}>
-                {tx(language, "Опубликовать комнату", "Бөлмені жариялау", "Publish Room")}
+              <Button variant="ghost" onClick={() => setStep(2)}>
+                {tx(language, 'Назад', 'Артқа', 'Back')}
+              </Button>
+              <Button
+                variant="primary"
+                className="flex-1"
+                loading={submitting}
+                disabled={hasPayoutCard === false || (!!user && !user.phoneVerified)}
+                onClick={handlePublish}
+              >
+                {tx(language, 'Опубликовать комнату', 'Бөлмені жариялау', 'Publish Room')}
               </Button>
             </div>
           </Card>

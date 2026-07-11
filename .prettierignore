@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+_design_reference
+guidelines
+*.patch
+*.diff

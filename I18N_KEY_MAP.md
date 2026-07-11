@@ -11,7 +11,7 @@ import { useI18n } from './i18n-provider';
 
 function MyComponent() {
   const { language, setLanguage, t } = useI18n();
-  
+
   return (
     <div>
       <h1>{t('heroTitle')}</h1>
@@ -26,6 +26,7 @@ function MyComponent() {
 ## 🗂️ Categories
 
 ### Navigation & Header
+
 - `catalog` - Каталог / Каталог / Catalog
 - `myRooms` - Мои комнаты / Менің бөлмелерім / My Rooms
 - `support` - Поддержка / Қолдау / Support
@@ -39,6 +40,7 @@ function MyComponent() {
 - `menu` - Меню / Мәзір / Menu
 
 ### Footer
+
 - `product` - Продукт / Өнім / Product
 - `company` - Компания / Компания / Company
 - `howItWorks` - Как это работает / Қалай жұмыс істейді / How it Works
@@ -54,6 +56,7 @@ function MyComponent() {
 - `copyright` - © 2026 EcoPay · Астана, Казахстан / © 2026 EcoPay · Астана, Қазақстан / © 2026 EcoPay · Astana, Kazakhstan
 
 ### Authentication
+
 - `createAccount` - Создать аккаунт / Тіркелгі жасау / Create Account
 - `joinEcoSplit` - Присоединяйтесь к EcoSplit... / EcoSplit-ке қосылыңыз... / Join EcoSplit to share...
 - `displayName` - Отображаемое имя / Көрсетілетін ат / Display Name
@@ -79,6 +82,7 @@ function MyComponent() {
 - `hide` - Скрыть / Жасыру / Hide
 
 ### Home/Catalog
+
 - `heroTitle` - Делитесь тарифами. / Тарифтерді бөлісіңіз. / Share plans.
 - `heroTitleHighlight` - Экономьте. / Үнемдеңіз. / Split costs.
 - `heroSubtitle` - Находите или создавайте... / Байланыс операторларының... / Find or create shared...
@@ -100,6 +104,7 @@ function MyComponent() {
 - `viewAll` - Смотреть все / Барлығын көру / View All
 
 ### Operator Detail
+
 - `familyPlansFor` - Семейные тарифы {{operator}} / {{operator}} отбасылық тарифтері / {{operator}} Family Plans
 - `selectPlanToJoin` - Выберите тариф... / Бөлмеге қосылу... / Select a plan to join...
 - `gb` - ГБ / ГБ / GB
@@ -113,6 +118,7 @@ function MyComponent() {
 - `createNewRoom` - Создать новую комнату / Жаңа бөлме жасау / Create New Room
 
 ### Rooms Module
+
 - `activeRooms` - Активные комнаты / Белсенді бөлмелер / Active Rooms
 - `pendingInvites` - Ожидающие приглашения / Күтіп тұрған шақырулар / Pending Invites
 - `completedRooms` - Завершённые комнаты / Аяқталған бөлмелер / Completed Rooms
@@ -147,6 +153,7 @@ function MyComponent() {
 - `maxMembers` - Макс. участников / Макс. қатысушылар / Max Members
 
 ### Room Detail
+
 - `roomDetails` - Детали комнаты / Бөлме деректері / Room Details
 - `members` - Участники / Қатысушылар / Members
 - `payments` - Платежи / Төлемдер / Payments
@@ -167,6 +174,7 @@ function MyComponent() {
 - `viewProfile` - Профиль / Профиль / View Profile
 
 ### Support/Tickets
+
 - `tickets` - Заявки / Өтінімдер / Tickets
 - `myTickets` - Мои заявки / Менің өтінімдерім / My Tickets
 - `createNewTicket` - Создать заявку / Өтінім жасау / Create New Ticket
@@ -191,6 +199,7 @@ function MyComponent() {
 - `reopenTicket` - Открыть заново / Қайта ашу / Reopen Ticket
 
 ### Payments
+
 - `checkout` - Оформление оплаты / Төлемді рәсімдеу / Checkout
 - `paymentMethod` - Способ оплаты / Төлем әдісі / Payment Method
 - `cardNumber` - Номер карты / Карта нөмірі / Card Number
@@ -217,6 +226,7 @@ function MyComponent() {
 - `requestPayout` - Запросить выплату / Төлемге өтінім беру / Request Payout
 
 ### Profile
+
 - `myProfile` - Мой профиль / Менің профилім / My Profile
 - `editProfile` - Редактировать / Өңдеу / Edit Profile
 - `reputation` - Репутация / Беделі / Reputation
@@ -233,6 +243,7 @@ function MyComponent() {
 - `save` - Сохранить / Сақтау / Save
 
 ### Admin Portal
+
 - `adminDashboard` - Панель администратора / Әкімші панелі / Admin Dashboard
 - `moderationQueue` - Очередь модерации / Модерация кезегі / Moderation Queue
 - `users` - Пользователи / Пайдаланушылар / Users
@@ -250,6 +261,7 @@ function MyComponent() {
 - `viewDetails` - Подробнее / Толығырақ / View Details
 
 ### Digital Subscriptions
+
 - `digitalSubscriptionsAvailable` - Цифровые подписки — Доступно / Цифрлық жазылымдар — Қолжетімді / Digital Subscriptions — Available
 - `shareDigitalServices` - Делитесь премиум-сервисами / Премиум қызметтерді бөлісіңіз / Share premium services
 - `googleOneFamily` - Google One Семейная / Google One Отбасылық / Google One Family
@@ -260,6 +272,7 @@ function MyComponent() {
 - `familySharing` - Семейный доступ / Отбасылық қатынас / Family Sharing
 
 ### Common UI
+
 - `loading` - Загрузка... / Жүктеу... / Loading...
 - `error` - Ошибка / Қате / Error
 - `success` - Успешно / Сәтті / Success
@@ -292,6 +305,7 @@ function MyComponent() {
 - `na` - Н/Д / Қ/Ж / N/A
 
 ### Time & Dates
+
 - `today` - Сегодня / Бүгін / Today
 - `yesterday` - Вчера / Кеше / Yesterday
 - `tomorrow` - Завтра / Ертең / Tomorrow
@@ -300,12 +314,14 @@ function MyComponent() {
 - `thisYear` - В этом году / Биыл / This Year
 
 ### Validation
+
 - `fieldRequired` - Это поле обязательно / Бұл өріс міндетті / This field is required
 - `invalidEmail` - Неверный email / Дұрыс емес email / Invalid email
 - `passwordTooShort` - Пароль слишком короткий / Құпия сөз тым қысқа / Password too short
 - `passwordsDoNotMatch` - Пароли не совпадают / Құпия сөздер сәйкес келмейді / Passwords do not match
 
 ### Empty States
+
 - `noRoomsYet` - Пока нет комнат / Әлі бөлмелер жоқ / No rooms yet
 - `noTicketsYet` - Пока нет заявок / Әлі өтінімдер жоқ / No tickets yet
 - `noResultsFound` - Результаты не найдены / Нәтижелер табылмады / No results found
@@ -317,7 +333,7 @@ function MyComponent() {
 
 1. **Typography Scale Updated**: Base font size changed from 18px to 16px with improved readability scale
 2. **Mobile Navbar**: Compact design with language selector moved to mobile menu
-3. **Language Labels**: 
+3. **Language Labels**:
    - Russian: "Рус"
    - Kazakh: "Қаз"
    - English: "Eng"

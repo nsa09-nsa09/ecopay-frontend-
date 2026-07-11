@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Button, Modal } from "../ds-primitives";
-import { useI18n } from "../i18n-provider";
-import { Shield, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { ApiError } from "../../lib/api";
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Button, Modal } from '../ds-primitives';
+import { useI18n } from '../i18n-provider';
+import { Shield, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ApiError } from '../../lib/api';
 
 export const REASON_MIN_LENGTH = 10;
 
@@ -18,22 +18,22 @@ export function formatAdminApiError(
 ): string {
   if (err instanceof ApiError) {
     switch (err.code) {
-      case "sessionExpired":
-        return t("sessionExpiredError");
-      case "noAccess":
-        return t("noStaffAccessError");
-      case "notAvailable":
-        return t("errSectionUnavailable");
-      case "serverError":
-        return t("serverErrorTitle");
-      case "network":
-        return t("networkError");
-      case "generic":
+      case 'sessionExpired':
+        return t('sessionExpiredError');
+      case 'noAccess':
+        return t('noStaffAccessError');
+      case 'notAvailable':
+        return t('errSectionUnavailable');
+      case 'serverError':
+        return t('serverErrorTitle');
+      case 'network':
+        return t('networkError');
+      case 'generic':
       default:
-        return t("loadFailedTitle");
+        return t('loadFailedTitle');
     }
   }
-  return t("loadFailedTitle");
+  return t('loadFailedTitle');
 }
 
 interface ConfirmActionModalProps {
@@ -69,11 +69,11 @@ export function ConfirmActionModal({
   minReasonLength = REASON_MIN_LENGTH,
 }: ConfirmActionModalProps) {
   const { t } = useI18n();
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState('');
 
   // Reset on close so a stale value never leaks into the next destructive flow.
   useEffect(() => {
-    if (!open) setReason("");
+    if (!open) setReason('');
   }, [open]);
 
   const trimmed = reason.trim();
@@ -83,48 +83,54 @@ export function ConfirmActionModal({
     <Modal open={open} onClose={onClose} title={title}>
       <div className="flex flex-col gap-4">
         {description && (
-          <div className="text-[13px]" style={{ color: "var(--eco-text-secondary)" }}>
+          <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
             {description}
           </div>
         )}
         {subjectLabel && (
           <div
             className="p-3 rounded-lg text-[12px]"
-            style={{ background: "var(--eco-surface)", color: "var(--eco-text)" }}
+            style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
           >
             {subjectLabel}
           </div>
         )}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[13px]" style={{ color: "var(--eco-text)" }}>
-            {t("reason")} <span style={{ color: "var(--eco-negative)" }}>*</span>
+          <label className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+            {t('reason')} <span style={{ color: 'var(--eco-negative)' }}>*</span>
           </label>
           <textarea
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder={t("mandatoryAuditLogged")}
+            placeholder={t('mandatoryAuditLogged')}
             className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
             style={{
-              background: "var(--eco-surface)",
-              border: "1px solid var(--eco-border)",
-              color: "var(--eco-text)",
+              background: 'var(--eco-surface)',
+              border: '1px solid var(--eco-border)',
+              color: 'var(--eco-text)',
             }}
           />
-          <span className="text-[11px]" style={{ color: tooShort ? "var(--eco-text-tertiary)" : "var(--eco-positive)" }}>
-            {t("reasonMinLength", { n: minReasonLength })}
+          <span
+            className="text-[11px]"
+            style={{ color: tooShort ? 'var(--eco-text-tertiary)' : 'var(--eco-positive)' }}
+          >
+            {t('reasonMinLength', { n: minReasonLength })}
           </span>
         </div>
         {errorMessage && (
-          <div className="text-[13px]" role="alert" style={{ color: "var(--eco-negative)" }}>
+          <div className="text-[13px]" role="alert" style={{ color: 'var(--eco-negative)' }}>
             {errorMessage}
           </div>
         )}
-        <div className="text-[11px] flex items-center gap-1" style={{ color: "var(--eco-text-tertiary)" }}>
-          <Shield size={11} /> {t("auditLoggedShort")}
+        <div
+          className="text-[11px] flex items-center gap-1"
+          style={{ color: 'var(--eco-text-tertiary)' }}
+        >
+          <Shield size={11} /> {t('auditLoggedShort')}
         </div>
         <Button
-          variant={destructive ? "destructive" : "primary"}
+          variant={destructive ? 'destructive' : 'primary'}
           disabled={tooShort}
           loading={submitting}
           onClick={() => void onConfirm(trimmed)}
@@ -142,7 +148,7 @@ export function ConfirmActionModal({
  * still giving destructive actions a visible "Action completed and logged."
  * confirmation.
  */
-export type FlashKind = "success" | "error";
+export type FlashKind = 'success' | 'error';
 
 export interface FlashState {
   kind: FlashKind;
@@ -167,16 +173,22 @@ export function useFlash(timeoutMs = 3500) {
   return { flash, show, clear };
 }
 
-export function FlashBanner({ flash, onClose }: { flash: FlashState | null; onClose?: () => void }) {
+export function FlashBanner({
+  flash,
+  onClose,
+}: {
+  flash: FlashState | null;
+  onClose?: () => void;
+}) {
   if (!flash) return null;
-  const isSuccess = flash.kind === "success";
+  const isSuccess = flash.kind === 'success';
   return (
     <div
       role="status"
       className="flex items-center gap-2 px-3 py-2 mb-4 rounded-lg text-[13px]"
       style={{
-        background: isSuccess ? "var(--eco-success-100)" : "var(--eco-danger-100)",
-        color: isSuccess ? "var(--eco-success-500)" : "var(--eco-danger-500)",
+        background: isSuccess ? 'var(--eco-success-100)' : 'var(--eco-danger-100)',
+        color: isSuccess ? 'var(--eco-success-500)' : 'var(--eco-danger-500)',
       }}
       onClick={onClose}
     >

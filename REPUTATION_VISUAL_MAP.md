@@ -345,6 +345,7 @@ PublicUserProfilePage (Main Component)
 ## Color & Icon Reference
 
 ### Cards & Surfaces
+
 ```
 Background:       var(--eco-bg)       #ffffff (light)
 Surface:          var(--eco-surface)  #f8f8f8 (light gray)
@@ -352,6 +353,7 @@ Card:             white with border
 ```
 
 ### Text Colors
+
 ```
 Primary Text:     var(--eco-text)           #1a1a1a (dark)
 Secondary Text:   var(--eco-text-secondary) #6b6b6b (gray)
@@ -359,6 +361,7 @@ Tertiary Text:    var(--eco-text-tertiary)  #9b9b9b (light gray)
 ```
 
 ### Accent Colors
+
 ```
 Primary:          var(--eco-primary)        #FF5722 (coral)
 Success:          var(--eco-positive)       #4CAF50 (green)
@@ -367,6 +370,7 @@ Danger:           var(--eco-negative)       #F44336 (red)
 ```
 
 ### Icons Used
+
 ```
 Star            ⭐  Ratings, reviews
 Shield          🛡️  Verification, security
@@ -379,6 +383,7 @@ User            👤  Profile avatar placeholder
 ```
 
 ### Badges
+
 ```
 Verified:   Green background, Shield icon
 Owner:      Primary color background
@@ -391,6 +396,7 @@ Moderated:  Warning color border
 ## Interactive States
 
 ### Buttons
+
 ```
 Default:    Background + border
 Hover:      Opacity 90%
@@ -399,6 +405,7 @@ Disabled:   Opacity 50%, cursor: not-allowed
 ```
 
 ### Star Rating (Interactive)
+
 ```
 Hover:      Scale 110%, yellow fill preview
 Click:      Set rating, fill selected stars
@@ -406,6 +413,7 @@ Unhovered:  Return to current rating
 ```
 
 ### Filter Tabs
+
 ```
 Active:     Primary background, white text
 Inactive:   Surface background, gray text
@@ -413,6 +421,7 @@ Transition: 200ms ease
 ```
 
 ### Review Actions
+
 ```
 Helpful:    Hover: scale icon, Active: increment count
 Report:     Hover: scale icon, Click: show modal
@@ -462,18 +471,21 @@ Report:     Hover: scale icon, Click: show modal
 ## Accessibility Notes
 
 ### Keyboard Navigation
+
 - All buttons: Tab-navigable
 - Star rating: Arrow keys to change rating
 - Filter tabs: Arrow keys + Enter
 - Modals: Esc to close
 
 ### Screen Reader Support
+
 - Alt text for all icons
 - ARIA labels for interactive elements
 - Semantic HTML (h1, h2, section, etc.)
 - Skip links for main content
 
 ### Color Contrast
+
 - Text meets WCAG AA (4.5:1)
 - Interactive elements meet WCAG AA (3:1)
 - Focus indicators visible

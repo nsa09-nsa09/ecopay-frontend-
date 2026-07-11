@@ -1,16 +1,16 @@
-import { useState } from "react";
-import { Link } from "react-router";
-import { Button, Input, Card } from "../ds-primitives";
-import { Mail, ArrowLeft } from "lucide-react";
-import { useI18n } from "../i18n-provider";
-import { useAuth } from "./auth-provider";
-import { ApiError } from "../../lib/api";
+import { useState } from 'react';
+import { Link } from 'react-router';
+import { Button, Input, Card } from '../ds-primitives';
+import { Mail, ArrowLeft } from 'lucide-react';
+import { useI18n } from '../i18n-provider';
+import { useAuth } from './auth-provider';
+import { ApiError } from '../../lib/api';
 
 export function ForgotPasswordPage() {
   const { t } = useI18n();
   const { requestPasswordReset } = useAuth();
   const [sent, setSent] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -29,7 +29,7 @@ export function ForgotPasswordPage() {
         setError(err.message);
         setFieldErrors(err.errors);
       } else {
-        setError("Unable to send the reset email right now.");
+        setError('Unable to send the reset email right now.');
       }
     } finally {
       setLoading(false);
@@ -42,20 +42,26 @@ export function ForgotPasswordPage() {
         <div className="w-full max-w-sm text-center">
           <div
             className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ background: "var(--eco-success-100)" }}
+            style={{ background: 'var(--eco-success-100)' }}
           >
-            <Mail size={24} style={{ color: "var(--eco-positive)" }} />
+            <Mail size={24} style={{ color: 'var(--eco-positive)' }} />
           </div>
-          <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("checkYourEmail")}</h1>
-          <p className="text-[13px] mt-2 mb-6" style={{ color: "var(--eco-text-secondary)" }}>
-            {t("resetLinkSent")}
+          <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
+            {t('checkYourEmail')}
+          </h1>
+          <p className="text-[13px] mt-2 mb-6" style={{ color: 'var(--eco-text-secondary)' }}>
+            {t('resetLinkSent')}
           </p>
           <Button variant="secondary" size="md" onClick={() => setSent(false)}>
-            {t("resendEmail")}
+            {t('resendEmail')}
           </Button>
           <div className="mt-4">
-            <Link to="/login" className="text-[13px] inline-flex items-center gap-1" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
-              <ArrowLeft size={14} /> {t("backToSignIn")}
+            <Link
+              to="/login"
+              className="text-[13px] inline-flex items-center gap-1"
+              style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+            >
+              <ArrowLeft size={14} /> {t('backToSignIn')}
             </Link>
           </div>
         </div>
@@ -67,34 +73,40 @@ export function ForgotPasswordPage() {
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("resetPassword")}</h1>
-          <p className="text-[13px] mt-2" style={{ color: "var(--eco-text-secondary)" }}>
-            {t("enterEmailForReset")}
+          <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
+            {t('resetPassword')}
+          </h1>
+          <p className="text-[13px] mt-2" style={{ color: 'var(--eco-text-secondary)' }}>
+            {t('enterEmailForReset')}
           </p>
         </div>
         <Card>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <Input
-              label={t("email")}
+              label={t('email')}
               type="email"
-              placeholder={t("yourEmail")}
+              placeholder={t('yourEmail')}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               error={fieldErrors.email}
             />
             {error && (
-              <p className="text-[12px]" style={{ color: "var(--eco-negative)" }}>
+              <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
                 {error}
               </p>
             )}
             <Button type="submit" variant="primary" size="lg" className="w-full" loading={loading}>
-              {t("sendResetLink")}
+              {t('sendResetLink')}
             </Button>
           </form>
         </Card>
         <div className="text-center mt-4">
-          <Link to="/login" className="text-[13px] inline-flex items-center gap-1" style={{ color: "var(--eco-primary)", textDecoration: "none" }}>
-            <ArrowLeft size={14} /> {t("backToSignIn")}
+          <Link
+            to="/login"
+            className="text-[13px] inline-flex items-center gap-1"
+            style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+          >
+            <ArrowLeft size={14} /> {t('backToSignIn')}
           </Link>
         </div>
       </div>

@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { Client } from "@stomp/stompjs";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Client } from '@stomp/stompjs';
 import {
   ApiError,
   buildSupportWebSocketUrl,
@@ -19,16 +19,16 @@ import {
   staffLoginRequest,
   updateCurrentUser,
   verifyStaffTwoFactorRequest,
-} from "../../lib/api";
-import { clearAdminDashboardCache } from "../../lib/admin-dashboard-cache";
+} from '../../lib/api';
+import { clearAdminDashboardCache } from '../../lib/admin-dashboard-cache';
 
 interface BanEvent {
-  type: "BANNED";
+  type: 'BANNED';
   reason?: string;
   bannedAt?: string;
 }
 
-const BAN_EVENT_STORAGE_KEY = "ecosplit.banEvent";
+const BAN_EVENT_STORAGE_KEY = 'ecosplit.banEvent';
 
 export interface PersistedBanEvent {
   reason: string | null;
@@ -36,7 +36,7 @@ export interface PersistedBanEvent {
 }
 
 export function consumePersistedBanEvent(): PersistedBanEvent | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
   try {
     const raw = window.sessionStorage.getItem(BAN_EVENT_STORAGE_KEY);
     if (!raw) return null;
@@ -48,7 +48,7 @@ export function consumePersistedBanEvent(): PersistedBanEvent | null {
 }
 
 function persistBanEvent(reason: string | null, bannedAt: string | null) {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   try {
     window.sessionStorage.setItem(BAN_EVENT_STORAGE_KEY, JSON.stringify({ reason, bannedAt }));
   } catch {
@@ -56,15 +56,16 @@ function persistBanEvent(reason: string | null, bannedAt: string | null) {
   }
 }
 
+// Access token lives in memory only. Refresh token lives in an httpOnly cookie
+// set by the backend — never in JS-visible storage — so an XSS payload can't
+// exfiltrate long-lived credentials.
 interface SessionState {
   accessToken: string;
-  refreshToken: string;
   user: User | null;
 }
 
 export type StaffLoginResult =
-  | { kind: "session"; user: User }
-  | { kind: "twoFactor"; challenge: TwoFactorChallenge };
+  { kind: 'session'; user: User } | { kind: 'twoFactor'; challenge: TwoFactorChallenge };
 
 interface AuthContextType {
   user: User | null;
@@ -74,7 +75,14 @@ interface AuthContextType {
   staffLogin: (email: string, password: string) => Promise<StaffLoginResult>;
   verifyStaffTwoFactor: (challengeId: string, code: string) => Promise<User>;
   resendStaffTwoFactor: (challengeId: string) => Promise<void>;
-  register: (displayName: string, email: string, password: string, phone: string) => Promise<User>;
+  register: (
+    displayName: string,
+    email: string,
+    password: string,
+    termsAccepted: boolean,
+    acceptedTermsVersion?: number,
+    acceptedPrivacyVersion?: number,
+  ) => Promise<User>;
   logout: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
@@ -83,49 +91,42 @@ interface AuthContextType {
   authorizedRequest: <T>(operation: (accessToken: string) => Promise<T>) => Promise<T>;
 }
 
-const STORAGE_KEY = "ecosplit.session";
+// Non-sensitive "were you signed in?" hint so anonymous visitors don't pay a
+// pointless /auth/refresh round-trip on every reload. The real credential is
+// the httpOnly cookie; this flag just says "try refreshing on boot".
+const SESSION_HINT_KEY = 'ecosplit.session';
 const AuthContext = createContext<AuthContextType>(null!);
 
-function loadStoredSession(): SessionState | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-
-  if (!raw) {
-    return null;
-  }
-
+function readSessionHint(): { user: User | null } | null {
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem(SESSION_HINT_KEY);
+  if (!raw) return null;
   try {
-    return JSON.parse(raw) as SessionState;
+    const parsed = JSON.parse(raw) as { user?: User | null };
+    return { user: parsed.user ?? null };
   } catch {
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(SESSION_HINT_KEY);
     return null;
   }
 }
 
-function persistSession(session: SessionState | null) {
-  if (typeof window === "undefined") {
+function writeSessionHint(user: User | null) {
+  if (typeof window === 'undefined') return;
+  if (!user) {
+    window.localStorage.removeItem(SESSION_HINT_KEY);
     return;
   }
-
-  if (!session) {
-    window.localStorage.removeItem(STORAGE_KEY);
-    return;
-  }
-
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  window.localStorage.setItem(SESSION_HINT_KEY, JSON.stringify({ user }));
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<SessionState | null>(() => loadStoredSession());
+  const [session, setSession] = useState<SessionState | null>(null);
   const [isReady, setIsReady] = useState(false);
   const banClientRef = useRef<Client | null>(null);
 
   const commitSession = (nextSession: SessionState | null) => {
     setSession(nextSession);
-    persistSession(nextSession);
+    writeSessionHint(nextSession?.user ?? null);
   };
 
   // Realtime ban listener — when a user is banned by an admin, the backend
@@ -138,7 +139,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const client = banClientRef.current;
       banClientRef.current = null;
       if (client) {
-        try { void client.deactivate(); } catch { /* ignore */ }
+        try {
+          void client.deactivate();
+        } catch {
+          /* ignore */
+        }
       }
     };
 
@@ -158,16 +163,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         client.subscribe(`/topic/users/${userId}/account`, (message) => {
           try {
             const event = JSON.parse(message.body) as BanEvent;
-            if (event?.type !== "BANNED") return;
+            if (event?.type !== 'BANNED') return;
             persistBanEvent(event.reason ?? null, event.bannedAt ?? null);
             // Drop session locally — best-effort server logout follows.
             commitSession(null);
             tearDown();
             const params = new URLSearchParams();
-            params.set("banned", "1");
-            if (event.reason) params.set("reason", event.reason);
-            if (event.bannedAt) params.set("bannedAt", event.bannedAt);
-            if (typeof window !== "undefined") {
+            params.set('banned', '1');
+            if (event.reason) params.set('reason', event.reason);
+            if (event.bannedAt) params.set('bannedAt', event.bannedAt);
+            if (typeof window !== 'undefined') {
               window.location.replace(`/login?${params.toString()}`);
             }
           } catch {
@@ -175,8 +180,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         });
       },
-      onStompError: () => { /* swallow — ban listener is best-effort */ },
-      onWebSocketError: () => { /* swallow */ },
+      onStompError: () => {
+        /* swallow — ban listener is best-effort */
+      },
+      onWebSocketError: () => {
+        /* swallow */
+      },
     });
 
     banClientRef.current = client;
@@ -188,48 +197,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [session?.user?.id, session?.accessToken]);
 
+  // On mount: if we have a "was signed in" hint, ask the backend to mint a
+  // new access token from the httpOnly refresh cookie. If it 401s (cookie
+  // expired / revoked), fall back to anonymous.
   useEffect(() => {
     let isCancelled = false;
 
     async function restoreSession() {
-      if (!session) {
-        if (!isCancelled) {
-          setIsReady(true);
-        }
+      const hint = readSessionHint();
+      if (!hint) {
+        if (!isCancelled) setIsReady(true);
         return;
       }
 
       try {
-        const user = await getCurrentUser(session.accessToken);
-
-        if (!isCancelled) {
-          commitSession({ ...session, user });
-        }
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 401) {
-          try {
-            const refreshed = await refreshRequest(session.refreshToken);
-            const nextSession = {
-              accessToken: refreshed.accessToken,
-              refreshToken: refreshed.refreshToken,
-              user: refreshed.user ?? session.user,
-            };
-
-            if (!isCancelled) {
-              commitSession(nextSession);
-            }
-          } catch {
-            if (!isCancelled) {
-              commitSession(null);
-            }
-          }
-        } else if (!isCancelled) {
-          commitSession(null);
-        }
+        const refreshed = await refreshRequest();
+        if (isCancelled) return;
+        commitSession({
+          accessToken: refreshed.accessToken,
+          user: refreshed.user ?? hint.user,
+        });
+      } catch {
+        if (!isCancelled) commitSession(null);
       } finally {
-        if (!isCancelled) {
-          setIsReady(true);
-        }
+        if (!isCancelled) setIsReady(true);
       }
     }
 
@@ -242,27 +233,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const response = await loginRequest(email, password);
-    const nextSession = {
+    commitSession({
       accessToken: response.accessToken,
-      refreshToken: response.refreshToken,
       user: response.user,
-    };
-
-    commitSession(nextSession);
+    });
     return response.user;
   };
 
-  const isStaff = (role: string | undefined | null) => role === "ADMIN" || role === "SUPPORT";
+  const isStaff = (role: string | undefined | null) => role === 'ADMIN' || role === 'SUPPORT';
 
   const commitStaffSession = (response: AuthResponse): User => {
     if (!isStaff(response.user?.role)) {
       // Never persist a non-staff session via the admin login path.
       commitSession(null);
-      throw new ApiError(403, "This account does not have staff access.");
+      throw new ApiError(403, 'This account does not have staff access.');
     }
     commitSession({
       accessToken: response.accessToken,
-      refreshToken: response.refreshToken,
       user: response.user,
     });
     return response.user;
@@ -272,11 +259,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response: StaffLoginResponse = await staffLoginRequest(email, password);
 
     if (isTwoFactorChallenge(response)) {
-      return { kind: "twoFactor", challenge: response };
+      return { kind: 'twoFactor', challenge: response };
     }
 
     const user = commitStaffSession(response);
-    return { kind: "session", user };
+    return { kind: 'session', user };
   };
 
   const verifyStaffTwoFactor = async (challengeId: string, code: string) => {
@@ -288,25 +275,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await resendStaffTwoFactorRequest(challengeId);
   };
 
-  const register = async (displayName: string, email: string, password: string, phone: string) => {
-    const response = await registerRequest(displayName, email, password, phone);
-    const nextSession = {
+  const register = async (
+    displayName: string,
+    email: string,
+    password: string,
+    termsAccepted: boolean,
+    acceptedTermsVersion?: number,
+    acceptedPrivacyVersion?: number,
+  ) => {
+    const response = await registerRequest(
+      displayName,
+      email,
+      password,
+      termsAccepted,
+      acceptedTermsVersion,
+      acceptedPrivacyVersion,
+    );
+    commitSession({
       accessToken: response.accessToken,
-      refreshToken: response.refreshToken,
       user: response.user,
-    };
-
-    commitSession(nextSession);
+    });
     return response.user;
   };
 
   const logout = async () => {
-    const refreshToken = session?.refreshToken;
-
     try {
-      if (refreshToken) {
-        await logoutRequest(refreshToken);
-      }
+      // Cookie carries the refresh token — no argument needed. Best-effort;
+      // we drop local state either way.
+      await logoutRequest();
+    } catch {
+      /* ignore — server-side revoke is best-effort */
     } finally {
       commitSession(null);
       // Drop staff-only caches on sign-out so a fresh login (possibly as a
@@ -325,7 +323,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const authorizedRequest = async <T,>(operation: (accessToken: string) => Promise<T>) => {
     if (!session) {
-      throw new ApiError(401, "Please sign in to continue");
+      throw new ApiError(401, 'Please sign in to continue');
     }
 
     try {
@@ -336,10 +334,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const refreshed = await refreshRequest(session.refreshToken);
+        const refreshed = await refreshRequest();
         const nextSession = {
           accessToken: refreshed.accessToken,
-          refreshToken: refreshed.refreshToken,
           user: refreshed.user ?? session.user,
         };
 
@@ -357,16 +354,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setSession((currentSession) => {
       if (!currentSession) {
-        persistSession(null);
+        writeSessionHint(null);
         return null;
       }
 
-      const nextSession = {
-        ...currentSession,
-        user,
-      };
-
-      persistSession(nextSession);
+      const nextSession = { ...currentSession, user };
+      writeSessionHint(user);
       return nextSession;
     });
 
@@ -379,12 +372,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setSession((currentSession) => {
       if (!currentSession) {
-        persistSession(null);
+        writeSessionHint(null);
         return null;
       }
 
       const nextSession = { ...currentSession, user };
-      persistSession(nextSession);
+      writeSessionHint(user);
       return nextSession;
     });
 

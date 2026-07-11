@@ -22,6 +22,10 @@ jobs:
       - name: Install
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
+      - name: Typecheck (non-blocking)
+        run: npm run typecheck
+        continue-on-error: true
+
       - name: Build
         run: npm run build
 

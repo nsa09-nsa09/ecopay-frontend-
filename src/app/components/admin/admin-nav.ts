@@ -11,10 +11,16 @@ import {
   Star,
   Info,
   Inbox,
-} from "lucide-react";
-import type { UserRole } from "../../lib/api";
+  Newspaper,
+  PlusSquare,
+  ScrollText,
+  LineChart,
+  Wallet,
+  ExternalLink,
+} from 'lucide-react';
+import type { UserRole } from '../../lib/api';
 
-export type StaffRole = Extract<UserRole, "ADMIN" | "SUPPORT">;
+export type StaffRole = Extract<UserRole, 'ADMIN' | 'SUPPORT'>;
 
 export interface AdminNavItem {
   /** i18n key used for the link label. */
@@ -29,7 +35,7 @@ export interface AdminNavItem {
    * Optional KPI field name to pull a count from
    * GET /admin/dashboard/kpis. Renders as a sidebar badge when > 0.
    */
-  badgeKpi?: "pendingModeration" | "openDisputes";
+  badgeKpi?: 'pendingModeration' | 'openDisputes';
 }
 
 /**
@@ -44,23 +50,41 @@ export interface AdminNavItem {
  * and are ADMIN-only.
  */
 export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
-  { labelKey: "dashboard", path: "/admin/dashboard", icon: LayoutDashboard, roles: ["ADMIN"] },
-  { labelKey: "moderationQueue", path: "/admin/moderation", icon: ShieldCheck, roles: ["ADMIN"], badgeKpi: "pendingModeration" },
-  { labelKey: "rooms", path: "/admin/rooms", icon: Home, roles: ["ADMIN"] },
-  { labelKey: "users", path: "/admin/users", icon: Users, roles: ["ADMIN"] },
-  { labelKey: "adminCatalog", path: "/admin/catalog", icon: Layers, roles: ["ADMIN"] },
-  { labelKey: "adminServiceReviews", path: "/admin/service-reviews", icon: Star, roles: ["ADMIN"] },
-  { labelKey: "tickets", path: "/admin/tickets", icon: MessageSquare, roles: ["ADMIN", "SUPPORT"] },
-  { labelKey: "adminFeedbackNav", path: "/admin/feedback", icon: Inbox, roles: ["ADMIN"] },
-  { labelKey: "disputes", path: "/admin/disputes", icon: Scale, roles: ["ADMIN"], badgeKpi: "openDisputes" },
-  { labelKey: "refunds", path: "/admin/refunds", icon: Undo2, roles: ["ADMIN"] },
-  { labelKey: "adminLogs", path: "/admin/logs", icon: FileText, roles: ["ADMIN"] },
-  { labelKey: "adminAboutNav", path: "/admin/about", icon: Info, roles: ["ADMIN"] },
+  { labelKey: 'dashboard', path: '/admin/dashboard', icon: LayoutDashboard, roles: ['ADMIN'] },
+  {
+    labelKey: 'moderationQueue',
+    path: '/admin/moderation',
+    icon: ShieldCheck,
+    roles: ['ADMIN'],
+    badgeKpi: 'pendingModeration',
+  },
+  { labelKey: 'rooms', path: '/admin/rooms', icon: Home, roles: ['ADMIN'] },
+  { labelKey: 'adminCreateRoomNav', path: '/rooms/create', icon: PlusSquare, roles: ['ADMIN'] },
+  { labelKey: 'users', path: '/admin/users', icon: Users, roles: ['ADMIN'] },
+  { labelKey: 'adminCatalog', path: '/admin/catalog', icon: Layers, roles: ['ADMIN'] },
+  { labelKey: 'adminPricingNav', path: '/admin/pricing', icon: LineChart, roles: ['ADMIN'] },
+  { labelKey: 'adminServiceReviews', path: '/admin/service-reviews', icon: Star, roles: ['ADMIN'] },
+  { labelKey: 'tickets', path: '/admin/tickets', icon: MessageSquare, roles: ['ADMIN', 'SUPPORT'] },
+  { labelKey: 'adminFeedbackNav', path: '/admin/feedback', icon: Inbox, roles: ['ADMIN'] },
+  {
+    labelKey: 'disputes',
+    path: '/admin/disputes',
+    icon: Scale,
+    roles: ['ADMIN'],
+    badgeKpi: 'openDisputes',
+  },
+  { labelKey: 'refunds', path: '/admin/refunds', icon: Undo2, roles: ['ADMIN'] },
+  { labelKey: 'adminFinanceNav', path: '/admin/finance', icon: Wallet, roles: ['ADMIN'] },
+  { labelKey: 'adminLogs', path: '/admin/logs', icon: FileText, roles: ['ADMIN'] },
+  { labelKey: 'adminAboutNav', path: '/admin/about', icon: Info, roles: ['ADMIN'] },
+  { labelKey: 'adminNewsNav', path: '/admin/news', icon: Newspaper, roles: ['ADMIN'] },
+  { labelKey: 'adminLegalNav', path: '/admin/legal', icon: ScrollText, roles: ['ADMIN'] },
+  { labelKey: 'adminBackToSite', path: '/', icon: ExternalLink, roles: ['ADMIN', 'SUPPORT'] },
 ];
 
 export function findNavItem(pathname: string): AdminNavItem | undefined {
   // Match on exact prefix so /admin/users/123 still resolves to /admin/users.
-  return ADMIN_NAV_ITEMS.find((it) => pathname === it.path || pathname.startsWith(it.path + "/"));
+  return ADMIN_NAV_ITEMS.find((it) => pathname === it.path || pathname.startsWith(it.path + '/'));
 }
 
 export function isRoleAllowedFor(item: AdminNavItem, role: string | null | undefined): boolean {
@@ -72,6 +96,6 @@ export function isRoleAllowedFor(item: AdminNavItem, role: string | null | undef
  * SUPPORT (the only section they can actually use today).
  */
 export function defaultLandingForRole(role: string | null | undefined): string {
-  if (role === "SUPPORT") return "/admin/tickets";
-  return "/admin/dashboard";
+  if (role === 'SUPPORT') return '/admin/tickets';
+  return '/admin/dashboard';
 }

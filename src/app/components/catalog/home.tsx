@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import useEmblaCarousel from "embla-carousel-react";
 import AutoScroll from "embla-carousel-auto-scroll";
 import {
@@ -28,12 +28,15 @@ import {
 } from "lucide-react";
 import { Badge, Card, Select, Skeleton, WaveDivider } from "../ds-primitives";
 import { useI18n } from "../i18n-provider";
+import { useAuth } from "../auth/auth-provider";
 import { ServiceLogo } from "./service-logo";
 import { featuredServices, type FeaturedService } from "../../data/featured-services";
 import {
+  ApiError,
   getServices,
   getCategories,
   getFeaturedServiceReviews,
+  matchRoomForService,
   type CatalogSort,
   type CategoryDto,
   type PublicServiceReviewDto,
@@ -93,6 +96,7 @@ function Reveal({ children, delay = 0, className = "" }: { children: ReactNode; 
 // ─── Unified catalog card model (live API + curated fallback) ───
 type DisplayService = {
   key: string;
+  serviceId?: number; // present only for live API services (enables room match)
   name: string;
   categoryName: string;
   description?: string;
@@ -101,7 +105,27 @@ type DisplayService = {
   discount?: number;
   fullPrice?: number;
   tariffs?: number;
+  logoUrl?: string | null;
 };
+
+// Prefer the admin-uploaded service cover; fall back to the brand SVG mark.
+function CardLogo({ url, name, size = 52 }: { url?: string | null; name: string; size?: number }) {
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt=""
+        width={size}
+        height={size}
+        loading="lazy"
+        decoding="async"
+        className="rounded-xl shrink-0"
+        style={{ width: size, height: size, objectFit: "cover", background: "var(--eco-surface)", border: "1px solid var(--eco-border)" }}
+      />
+    );
+  }
+  return <ServiceLogo name={name} size={size} className="shrink-0" />;
+}
 
 function findFeaturedMatch(name: string): FeaturedService | undefined {
   const n = name.toLowerCase();
@@ -115,6 +139,8 @@ function fromApi(service: ServiceDto, lang: L): DisplayService {
   const match = findFeaturedMatch(service.name);
   return {
     key: `api-${service.id}`,
+    serviceId: service.id,
+    logoUrl: service.logoUrl,
     name: service.name,
     categoryName: service.categoryName,
     description: match ? tx(lang, match.description.ru, match.description.kz, match.description.en) : undefined,
@@ -309,10 +335,30 @@ const faqs = [
 ];
 
 // ─── Catalog card ───
-function CatalogServiceCard({ service, language, index }: { service: DisplayService; language: L; index: number }) {
+// Clicking picks the service: live services go through room-match (dev's
+// minimal-clicks flow), curated fallbacks route to the create-room flow.
+function CatalogServiceCard({
+  service,
+  language,
+  index,
+  onPick,
+  pending,
+}: {
+  service: DisplayService;
+  language: L;
+  index: number;
+  onPick: (service: DisplayService) => void;
+  pending: boolean;
+}) {
   return (
     <Reveal delay={Math.min(index, 8) * 100} className="h-full">
-      <Link to="/browse" style={{ textDecoration: "none" }} className="block h-full">
+      <button
+        type="button"
+        onClick={() => onPick(service)}
+        disabled={pending}
+        className="block w-full h-full text-left p-0 disabled:opacity-60"
+        style={{ background: "transparent", border: "none" }}
+      >
         <Card className="eco-lift relative h-full flex flex-col gap-4 cursor-pointer overflow-hidden">
           {service.discount != null && (
             <span
@@ -323,7 +369,7 @@ function CatalogServiceCard({ service, language, index }: { service: DisplayServ
             </span>
           )}
           <div className="flex items-start gap-3 pr-14">
-            <ServiceLogo name={service.name} size={52} className="shrink-0" />
+            <CardLogo url={service.logoUrl} name={service.name} size={52} />
             <div className="min-w-0">
               <div className="text-[16px] truncate" style={{ color: "var(--eco-text)", fontWeight: 600 }}>
                 {service.name}
@@ -359,8 +405,10 @@ function CatalogServiceCard({ service, language, index }: { service: DisplayServ
                 className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-[13px] transition-colors"
                 style={{ background: "var(--eco-primary)", color: "#fff", fontWeight: 600 }}
               >
-                {tx(language, "Присоединиться", "Қосылу", "Join")}
-                <ArrowRight size={14} />
+                {pending
+                  ? tx(language, "Подбираем комнату…", "Бөлме іздеудеміз…", "Matching a room…")
+                  : tx(language, "Присоединиться", "Қосылу", "Join")}
+                {!pending && <ArrowRight size={14} />}
               </span>
               {service.tariffs != null && service.tariffs > 0 && (
                 <Badge variant="info">{service.tariffs}</Badge>
@@ -368,7 +416,7 @@ function CatalogServiceCard({ service, language, index }: { service: DisplayServ
             </div>
           </div>
         </Card>
-      </Link>
+      </button>
     </Reveal>
   );
 }
@@ -452,7 +500,7 @@ function CategoriesCarousel({ language, onSelect }: { language: L; onSelect: (ma
 // Continuous marquee-style glide: the track always drifts, pauses on hover,
 // and resumes after the user drags. Owner explicitly wants motion always on,
 // so this carousel intentionally ignores prefers-reduced-motion.
-function PopularCarousel({ language }: { language: L }) {
+function PopularCarousel({ language, onPickName }: { language: L; onPickName: (name: string) => void }) {
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true, align: "start" },
     [AutoScroll({ speed: 0.9, startDelay: 0, stopOnInteraction: false, stopOnMouseEnter: true, stopOnFocusIn: false })],
@@ -464,11 +512,12 @@ function PopularCarousel({ language }: { language: L }) {
         {/* spacing via slide padding (not flex gap): embla's loop clones miscalculate with gap */}
         <div className="flex -ml-4">
           {featuredServices.slice(0, 10).map((service) => (
-            <Link
+            <button
               key={service.name}
-              to="/browse"
-              style={{ textDecoration: "none" }}
-              className="shrink-0 min-w-0 pl-4 basis-[256px]"
+              type="button"
+              onClick={() => onPickName(service.name)}
+              style={{ background: "transparent", border: "none" }}
+              className="shrink-0 min-w-0 pl-4 basis-[256px] cursor-pointer text-left p-0"
             >
               <Card className="eco-lift flex flex-col items-center text-center gap-3 py-6">
                 <ServiceLogo name={service.name} size={56} />
@@ -490,7 +539,7 @@ function PopularCarousel({ language }: { language: L }) {
                   {tx(language, `экономия ${service.discount}%`, `${service.discount}% үнем`, `save ${service.discount}%`)}
                 </span>
               </Card>
-            </Link>
+            </button>
           ))}
         </div>
       </div>
@@ -535,6 +584,8 @@ function Stars({ rating }: { rating: number }) {
 export function HomePage() {
   const { language, t } = useI18n();
   const lang = language as L;
+  const navigate = useNavigate();
+  const { isAuthenticated, authorizedRequest } = useAuth();
   const [activeCategoryId, setActiveCategoryId] = useState<number | "all">("all");
   const [query, setQuery] = useState("");
   const [openFaq, setOpenFaq] = useState(0);
@@ -543,6 +594,9 @@ export function HomePage() {
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [services, setServices] = useState<ServiceDto[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
+
+  const [matchingKey, setMatchingKey] = useState<string | null>(null);
+  const [matchError, setMatchError] = useState<string | null>(null);
 
   const [featuredReviews, setFeaturedReviews] = useState<PublicServiceReviewDto[]>([]);
 
@@ -630,6 +684,58 @@ export function HomePage() {
       setQuery(label);
     }
     scrollToMarketplace();
+  };
+
+  // Dev's "minimal clicks" flow: picking a live service matches an open room
+  // (JOIN → room page) or falls back to the create-room flow. Curated
+  // fallback services have no id, so they go straight to create-room.
+  const handlePickService = async (service: DisplayService) => {
+    setMatchError(null);
+    if (!isAuthenticated) {
+      navigate(`/login?redirect=${encodeURIComponent("/")}`);
+      return;
+    }
+    if (service.serviceId == null) {
+      navigate("/rooms/create", { state: { reason: "no-free-rooms" } });
+      return;
+    }
+    const serviceId = service.serviceId;
+    setMatchingKey(service.key);
+    try {
+      const result = await authorizedRequest((token) => matchRoomForService(serviceId, token));
+      if (result.action === "JOIN" && result.roomId != null) {
+        navigate(`/room/${result.roomId}`);
+      } else {
+        navigate("/rooms/create", { state: { serviceId, reason: "no-free-rooms" } });
+      }
+    } catch (err) {
+      // Fall back to the create flow — owners can always start a new room when
+      // match cannot resolve, and we never want raw server text here.
+      if (err instanceof ApiError && err.code !== "network") {
+        navigate("/rooms/create", { state: { serviceId, reason: "no-free-rooms" } });
+      } else {
+        setMatchError(t("marketplaceLoadFailed"));
+      }
+    } finally {
+      setMatchingKey(null);
+    }
+  };
+
+  // Popular-services carousel click: match by name against live services,
+  // otherwise filter the catalog to that name.
+  const handlePickName = (name: string) => {
+    const live = services.find((s) => {
+      const n = s.name.toLowerCase();
+      const f = name.toLowerCase();
+      return n.includes(f) || f.includes(n);
+    });
+    if (live) {
+      void handlePickService(fromApi(live, lang));
+    } else {
+      setActiveCategoryId("all");
+      setQuery(name);
+      scrollToMarketplace();
+    }
   };
 
   const gridReviews = useMemo(() => {
@@ -792,6 +898,12 @@ export function HomePage() {
           })}
         </div>
 
+        {matchError && (
+          <Card className="mb-4">
+            <span className="text-[13px]" style={{ color: "var(--eco-negative)" }}>{matchError}</span>
+          </Card>
+        )}
+
         {servicesLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => <MarketplaceSkeletonCard key={i} />)}
@@ -803,7 +915,14 @@ export function HomePage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {displayServices.map((service, index) => (
-              <CatalogServiceCard key={service.key} service={service} language={lang} index={index} />
+              <CatalogServiceCard
+                key={service.key}
+                service={service}
+                language={lang}
+                index={index}
+                onPick={handlePickService}
+                pending={matchingKey === service.key}
+              />
             ))}
           </div>
         )}
@@ -817,15 +936,20 @@ export function HomePage() {
               <h2 className="text-[24px] sm:text-[32px] m-0" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
                 {tx(lang, "Популярные сервисы", "Танымал сервистер", "Popular services")}
               </h2>
-              <Link to="/browse" className="text-[14px] inline-flex items-center gap-1 shrink-0" style={{ color: "var(--eco-primary)", textDecoration: "none", fontWeight: 500 }}>
-                {tx(lang, "Все комнаты", "Барлық бөлмелер", "All rooms")} <ArrowRight size={14} />
-              </Link>
+              <button
+                type="button"
+                onClick={scrollToMarketplace}
+                className="text-[14px] inline-flex items-center gap-1 shrink-0 cursor-pointer"
+                style={{ color: "var(--eco-primary)", background: "transparent", border: "none", fontWeight: 500 }}
+              >
+                {tx(lang, "Весь каталог", "Толық каталог", "Full catalog")} <ArrowRight size={14} />
+              </button>
             </div>
           </Reveal>
         </div>
         <Reveal delay={100}>
           <div className="px-4 sm:px-10">
-            <PopularCarousel language={lang} />
+            <PopularCarousel language={lang} onPickName={handlePickName} />
           </div>
         </Reveal>
       </section>
