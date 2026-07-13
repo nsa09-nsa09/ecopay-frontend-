@@ -492,6 +492,7 @@ export function registerRequest(
 ) {
   return requestJson<AuthResponse>('/auth/register', {
     method: 'POST',
+    credentials: 'include',
     body: JSON.stringify({
       displayName,
       email,
@@ -500,6 +501,20 @@ export function registerRequest(
       acceptedTermsVersion,
       acceptedPrivacyVersion,
     }),
+  });
+}
+
+/**
+ * Final registration step: confirm the 6-digit code emailed at sign-up. On success the backend
+ * marks the email verified and returns a full session (access token + httpOnly refresh cookie),
+ * so `credentials: 'include'` is required.
+ * Backend: POST /api/v1/auth/verify-email-code.
+ */
+export function verifyEmailCodeRequest(email: string, code: string) {
+  return requestJson<AuthResponse>('/auth/verify-email-code', {
+    method: 'POST',
+    credentials: 'include',
+    body: JSON.stringify({ email, code }),
   });
 }
 
