@@ -497,6 +497,7 @@ export function registerRequest(
 ) {
   return requestJson<AuthResponse>('/auth/register', {
     method: 'POST',
+    credentials: 'include',
     body: JSON.stringify({
       displayName,
       email,
@@ -505,6 +506,20 @@ export function registerRequest(
       acceptedTermsVersion,
       acceptedPrivacyVersion,
     }),
+  });
+}
+
+/**
+ * Final registration step: confirm the 6-digit code emailed at sign-up. On success the backend
+ * marks the email verified and returns a full session (access token + httpOnly refresh cookie),
+ * so `credentials: 'include'` is required.
+ * Backend: POST /api/v1/auth/verify-email-code.
+ */
+export function verifyEmailCodeRequest(email: string, code: string) {
+  return requestJson<AuthResponse>('/auth/verify-email-code', {
+    method: 'POST',
+    credentials: 'include',
+    body: JSON.stringify({ email, code }),
   });
 }
 
@@ -2613,6 +2628,55 @@ export function markNotificationReadRequest(id: number, accessToken: string) {
 
 export function markAllNotificationsReadRequest(accessToken: string) {
   return requestJson<void>('/notifications/read-all', { method: 'POST' }, accessToken);
+}
+
+// ============================================================
+// Room chat (opens once guests have paid)
+// ============================================================
+//
+// Owner + PENDING/ACTIVE members can read/write. History + send go through
+// REST; live delivery rides the STOMP topic below (same /ws socket as the
+// notifications bell, gated server-side to the room's paid participants).
+
+export interface RoomChatMessageDto {
+  id: number;
+  roomId: number;
+  senderId: number | null;
+  senderPublicId?: string | null;
+  senderName: string;
+  senderAvatar?: string | null;
+  /** True when the sender is the room owner (drives the "owner" tag in the UI). */
+  owner: boolean;
+  body: string;
+  createdAt: string;
+}
+
+export function roomChatTopic(roomId: number | string): string {
+  return `/topic/rooms/${roomId}/chat`;
+}
+
+export function getRoomChatMessagesRequest(
+  roomId: number | string,
+  accessToken: string,
+  params: { page?: number; size?: number } = {},
+) {
+  return requestJson<PagedResponse<RoomChatMessageDto>>(
+    `/rooms/${roomId}/chat/messages${toSearchParams({ page: params.page, size: params.size })}`,
+    {},
+    accessToken,
+  );
+}
+
+export function sendRoomChatMessageRequest(
+  roomId: number | string,
+  body: string,
+  accessToken: string,
+) {
+  return requestJson<RoomChatMessageDto>(
+    `/rooms/${roomId}/chat/messages`,
+    { method: 'POST', body: JSON.stringify({ body }) },
+    accessToken,
+  );
 }
 
 export type NotificationCategory =

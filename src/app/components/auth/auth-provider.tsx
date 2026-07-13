@@ -18,6 +18,7 @@ import {
   resendStaffTwoFactorRequest,
   staffLoginRequest,
   updateCurrentUser,
+  verifyEmailCodeRequest,
   verifyStaffTwoFactorRequest,
 } from '../../lib/api';
 import { clearAdminDashboardCache } from '../../lib/admin-dashboard-cache';
@@ -67,6 +68,13 @@ interface SessionState {
 export type StaffLoginResult =
   { kind: 'session'; user: User } | { kind: 'twoFactor'; challenge: TwoFactorChallenge };
 
+// Regular sign-up no longer logs the user in immediately: unless the backend
+// auto-verified the email (dev mode), the account must confirm the 6-digit
+// code emailed to them before a session is issued.
+export type RegisterResult =
+  | { kind: 'session'; user: User }
+  | { kind: 'verificationRequired'; email: string };
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -82,7 +90,8 @@ interface AuthContextType {
     termsAccepted: boolean,
     acceptedTermsVersion?: number,
     acceptedPrivacyVersion?: number,
-  ) => Promise<User>;
+  ) => Promise<RegisterResult>;
+  verifyEmailCode: (email: string, code: string) => Promise<User>;
   logout: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
@@ -291,6 +300,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       acceptedTermsVersion,
       acceptedPrivacyVersion,
     );
+    // Dev auto-verify returns a ready session; the normal flow returns only the
+    // user and expects the emailed code to be confirmed next.
+    if (response.accessToken) {
+      commitSession({
+        accessToken: response.accessToken,
+        user: response.user,
+      });
+      return { kind: 'session', user: response.user };
+    }
+    return { kind: 'verificationRequired', email };
+  };
+
+  const verifyEmailCode = async (email: string, code: string) => {
+    const response = await verifyEmailCodeRequest(email, code);
     commitSession({
       accessToken: response.accessToken,
       user: response.user,
@@ -395,6 +418,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         verifyStaffTwoFactor,
         resendStaffTwoFactor,
         register,
+        verifyEmailCode,
         logout,
         requestPasswordReset,
         confirmPasswordReset,
