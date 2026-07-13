@@ -28,6 +28,7 @@ import { useI18n, type Language } from '../i18n-provider';
 import { formatDate, formatDateTime } from '../../lib/datetime';
 import {
   ApiError,
+  checkSlugAvailable,
   deleteMyAccount,
   deleteMyAvatar,
   getMyDashboardRequest,
@@ -58,6 +59,14 @@ export function ProfilePage() {
   const { language, t } = useI18n();
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [slugStatus, setSlugStatus] = useState<
+    | { state: 'idle' }
+    | { state: 'checking' }
+    | { state: 'ok'; normalized: string }
+    | { state: 'taken' }
+    | { state: 'invalid'; reason?: string }
+  >({ state: 'idle' });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -68,7 +77,52 @@ export function ProfilePage() {
 
   useEffect(() => {
     setDisplayName(user?.displayName ?? '');
+    setSlug(user?.slug ?? '');
+    setSlugStatus({ state: 'idle' });
   }, [user]);
+
+  const originalSlug = user?.slug ?? '';
+  const trimmedSlug = slug.trim().toLowerCase();
+  const slugChanged = trimmedSlug !== originalSlug;
+  const slugFormatValid = trimmedSlug === '' || /^[a-z0-9-]{3,30}$/.test(trimmedSlug);
+
+  useEffect(() => {
+    if (!slugChanged) {
+      setSlugStatus({ state: 'idle' });
+      return;
+    }
+    if (trimmedSlug === '') {
+      setSlugStatus({ state: 'idle' });
+      return;
+    }
+    if (!slugFormatValid) {
+      setSlugStatus({ state: 'invalid' });
+      return;
+    }
+    let cancelled = false;
+    setSlugStatus({ state: 'checking' });
+    const handle = window.setTimeout(() => {
+      authorizedRequest((token) => checkSlugAvailable(trimmedSlug, token))
+        .then((res) => {
+          if (cancelled) return;
+          if (res.available) {
+            setSlugStatus({ state: 'ok', normalized: res.normalized });
+          } else if (res.reason === 'reserved' || res.reason === 'invalid') {
+            setSlugStatus({ state: 'invalid', reason: res.reason });
+          } else {
+            setSlugStatus({ state: 'taken' });
+          }
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setSlugStatus({ state: 'idle' });
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [trimmedSlug, slugChanged, slugFormatValid, authorizedRequest]);
 
   if (!isReady) {
     return (
@@ -117,9 +171,11 @@ export function ProfilePage() {
     setSaving(true);
 
     try {
-      await updateProfile({
-        displayName,
-      });
+      const payload: { displayName: string; slug?: string } = { displayName };
+      if (slugChanged && (slugStatus.state === 'ok' || trimmedSlug === '')) {
+        payload.slug = trimmedSlug;
+      }
+      await updateProfile(payload);
       setMessage(tx(language, 'Профиль обновлён.', 'Профиль жаңартылды.', 'Profile updated.'));
     } catch (err) {
       if (err instanceof ApiError) {
@@ -166,9 +222,9 @@ export function ProfilePage() {
               </span>
             </div>
             <ReputationLevelBadge level={user.reputationLevel} score={user.reputation ?? 0} />
-            {user.publicId && (
+            {(user.slug || user.publicId) && (
               <Link
-                to={`/u/${user.publicId}`}
+                to={`/u/${user.slug ?? user.publicId}`}
                 className="text-[12px]"
                 style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
               >
@@ -219,6 +275,48 @@ export function ProfilePage() {
                 onChange={(event) => setDisplayName(event.target.value)}
                 error={fieldErrors.displayName}
               />
+              <div className="flex flex-col gap-1.5">
+                <Input
+                  label={t('slugLabel')}
+                  value={slug}
+                  onChange={(event) => setSlug(event.target.value)}
+                  placeholder="my-handle"
+                  error={fieldErrors.slug}
+                />
+                <div
+                  className="text-[12px]"
+                  style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
+                >
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/u/
+                  {trimmedSlug || (user.slug ?? user.publicId ?? '')}
+                </div>
+                {slugChanged && slugStatus.state === 'checking' && (
+                  <span
+                    className="text-[12px]"
+                    style={{ color: 'var(--eco-text-tertiary)' }}
+                  >
+                    …
+                  </span>
+                )}
+                {slugChanged && slugStatus.state === 'ok' && (
+                  <span className="text-[12px]" style={{ color: 'var(--eco-positive)' }}>
+                    {t('slugAvailable')}
+                  </span>
+                )}
+                {slugChanged && slugStatus.state === 'taken' && (
+                  <span className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
+                    {t('slugTaken')}
+                  </span>
+                )}
+                {slugChanged && slugStatus.state === 'invalid' && (
+                  <span className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
+                    {slugStatus.reason === 'reserved' ? t('slugReserved') : t('slugInvalid')}
+                  </span>
+                )}
+                <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  {t('slugHint')}
+                </span>
+              </div>
               {error && (
                 <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
                   {error}
@@ -229,7 +327,18 @@ export function ProfilePage() {
                   {message}
                 </p>
               )}
-              <Button type="submit" loading={saving}>
+              <Button
+                type="submit"
+                loading={saving}
+                disabled={
+                  saving ||
+                  (slugChanged &&
+                    trimmedSlug !== '' &&
+                    (slugStatus.state === 'taken' ||
+                      slugStatus.state === 'invalid' ||
+                      slugStatus.state === 'checking'))
+                }
+              >
                 {tx(language, 'Сохранить изменения', 'Өзгерістерді сақтау', 'Save changes')}
               </Button>
             </form>
@@ -239,7 +348,12 @@ export function ProfilePage() {
 
           <EmailVerificationCard email={user.email} />
 
-          {user.publicId && <PublicLinkCard publicId={user.publicId} />}
+          {(user.slug || user.publicId) && (
+            <PublicLinkCard
+              slug={user.slug ?? null}
+              publicId={user.publicId ?? null}
+            />
+          )}
 
           <FindUserCard />
 
@@ -671,11 +785,18 @@ function AvatarUploader() {
   );
 }
 
-function PublicLinkCard({ publicId }: { publicId: string }) {
+function PublicLinkCard({
+  slug,
+  publicId,
+}: {
+  slug: string | null;
+  publicId: string | null;
+}) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
+  const handle = slug ?? publicId ?? '';
   const url =
-    typeof window !== 'undefined' ? `${window.location.origin}/u/${publicId}` : `/u/${publicId}`;
+    typeof window !== 'undefined' ? `${window.location.origin}/u/${handle}` : `/u/${handle}`;
 
   const handleCopy = async () => {
     try {
@@ -724,7 +845,7 @@ function PublicLinkCard({ publicId }: { publicId: string }) {
         </Button>
       </div>
       <Link
-        to={`/u/${publicId}`}
+        to={`/u/${handle}`}
         className="text-[12px]"
         style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
       >

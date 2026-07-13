@@ -1,8 +1,8 @@
 import { Award } from 'lucide-react';
 import { useI18n } from '../i18n-provider';
 import {
-  reputationLevelMeta,
-  resolveReputationLevel,
+  reputationBandMeta,
+  resolveReputationBand,
   type ReputationLevel,
 } from '../../lib/reputation';
 
@@ -29,8 +29,8 @@ export function ReputationLevelBadge({
   className = '',
 }: ReputationLevelBadgeProps) {
   const { t } = useI18n();
-  const resolved: ReputationLevel = resolveReputationLevel(level, score);
-  const meta = reputationLevelMeta(resolved);
+  const resolved: ReputationLevel = resolveReputationBand(level, score);
+  const meta = reputationBandMeta(resolved);
   const label = t(meta.labelKey);
 
   const iconSize = size === 'sm' ? 12 : 14;

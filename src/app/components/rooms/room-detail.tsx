@@ -129,6 +129,12 @@ export function RoomDetailPage() {
 
   const requiresIdentifier = room.roomType === 'TELECOM';
   const ownerName = summary?.ownerDisplayName ?? `User #${room.ownerUserId}`;
+  const ownerProfileHandle =
+    room.ownerSlug ??
+    room.ownerPublicId ??
+    summary?.ownerSlug ??
+    summary?.ownerPublicId ??
+    String(room.ownerUserId);
   const totalDue = Number(room.pricePerMember ?? 0);
   const ctaLabel = isAuthenticated
     ? tx(language, 'Присоединиться', 'Қосылу', 'Join Room')
@@ -356,7 +362,11 @@ export function RoomDetailPage() {
             <h3 className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
               {tx(language, 'Владелец комнаты', 'Бөлме иесі', 'Room Owner')}
             </h3>
-            <div className="flex items-center gap-3">
+            <Link
+              to={`/u/${ownerProfileHandle}`}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              style={{ color: 'inherit', textDecoration: 'none' }}
+            >
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center"
                 style={{ background: 'var(--eco-surface)' }}
@@ -377,7 +387,7 @@ export function RoomDetailPage() {
                   />
                 </div>
               </div>
-            </div>
+            </Link>
             <div
               className="flex items-center gap-1.5 text-[12px]"
               style={{ color: 'var(--eco-positive)' }}

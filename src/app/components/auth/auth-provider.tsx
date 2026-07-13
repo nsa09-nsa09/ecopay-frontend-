@@ -86,7 +86,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
-  updateProfile: (payload: { displayName: string }) => Promise<User>;
+  updateProfile: (payload: { displayName: string; slug?: string }) => Promise<User>;
   refreshUser: () => Promise<User | null>;
   authorizedRequest: <T>(operation: (accessToken: string) => Promise<T>) => Promise<T>;
 }
@@ -349,7 +349,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateProfile = async (payload: { displayName: string }) => {
+  const updateProfile = async (payload: { displayName: string; slug?: string }) => {
     const user = await authorizedRequest((accessToken) => updateCurrentUser(payload, accessToken));
 
     setSession((currentSession) => {

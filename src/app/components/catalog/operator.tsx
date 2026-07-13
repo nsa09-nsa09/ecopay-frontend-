@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link, useNavigate } from 'react-router';
 import { Card, Pill, Select, RoomStatusBadge, EmptyState, Tabs } from '../ds-primitives';
 import { ArrowLeft, Users, Filter } from 'lucide-react';
 import { useI18n } from '../i18n-provider';
@@ -36,6 +36,7 @@ function formatMoney(value: number | null | undefined) {
 
 export function OperatorPage() {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   // Keep the id as a string: service ids are 64-bit and Number() would corrupt them.
   // (Must match room.serviceId, which the backend now serializes as a string.)
@@ -305,7 +306,31 @@ export function OperatorPage() {
                         </div>
                         <div className="flex items-center justify-between text-[12px]">
                           <span style={{ color: 'var(--eco-text-tertiary)' }}>
-                            {t('ownerColon', { name: room.ownerDisplayName })}
+                            {t('owner')}:{' '}
+                            {room.ownerSlug || room.ownerPublicId ? (
+                              <span
+                                role="link"
+                                tabIndex={0}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  navigate(`/u/${room.ownerSlug ?? room.ownerPublicId}`);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    navigate(`/u/${room.ownerSlug ?? room.ownerPublicId}`);
+                                  }
+                                }}
+                                className="cursor-pointer hover:underline"
+                                style={{ color: 'var(--eco-primary)' }}
+                              >
+                                {room.ownerDisplayName}
+                              </span>
+                            ) : (
+                              room.ownerDisplayName
+                            )}
                           </span>
                         </div>
                       </Card>

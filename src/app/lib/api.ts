@@ -12,6 +12,7 @@ export interface User {
   reputation: number;
   reputationLevel?: string | null;
   publicId?: string | null;
+  slug?: string | null;
 }
 
 export interface AuthResponse {
@@ -73,6 +74,8 @@ export interface RoomSummaryDto {
   startDate: string;
   ownerUserId: number;
   ownerDisplayName: string;
+  ownerSlug?: string | null;
+  ownerPublicId?: string | null;
   ownerReputation?: number | null;
   ownerReputationLevel?: string | null;
   serviceId: number;
@@ -83,6 +86,8 @@ export interface RoomSummaryDto {
 export interface RoomResponseDto {
   id: number;
   ownerUserId: number;
+  ownerSlug?: string | null;
+  ownerPublicId?: string | null;
   categoryId: number;
   serviceId: number;
   serviceLogoUrl?: string | null;
@@ -540,13 +545,30 @@ export function getCurrentUser(accessToken: string) {
   return requestJson<User>('/users/me', {}, accessToken);
 }
 
-export function updateCurrentUser(payload: { displayName: string }, accessToken: string) {
+export function updateCurrentUser(
+  payload: { displayName: string; slug?: string },
+  accessToken: string,
+) {
   return requestJson<User>(
     '/users/me',
     {
       method: 'PATCH',
       body: JSON.stringify(payload),
     },
+    accessToken,
+  );
+}
+
+export interface SlugAvailabilityDto {
+  available: boolean;
+  normalized: string;
+  reason?: string;
+}
+
+export function checkSlugAvailable(slug: string, accessToken: string) {
+  return requestJson<SlugAvailabilityDto>(
+    `/users/me/slug-available${toSearchParams({ slug })}`,
+    {},
     accessToken,
   );
 }
@@ -1978,6 +2000,7 @@ export function resendVerificationEmailRequest(email: string) {
 export interface PublicProfileDto {
   id: number;
   publicId: string;
+  slug?: string | null;
   displayName: string;
   avatar: string | null;
   reputation: number;

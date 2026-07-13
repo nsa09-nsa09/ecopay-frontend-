@@ -1,77 +1,69 @@
-// Activity-based reputation tiers. Mirrors the backend ReputationLevel enum and its
-// score thresholds (kz.hrms.splitupauth.entity.ReputationLevel) so the UI can derive a
-// tier from a raw score when the API doesn't send `reputationLevel` explicitly.
+// Trust-band mapping for the reputation score. The score is a 0..100 integer
+// where 100 means 10.0/10. Bands mirror the backend ReputationLevel enum
+// (kz.hrms.splitupauth.entity.ReputationLevel).
 
-export type ReputationLevel = 'NEWCOMER' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
+export type ReputationLevel = 'CRITICAL' | 'LOW' | 'FAIR' | 'GOOD' | 'EXCELLENT';
 
-export interface ReputationLevelMeta {
+export interface ReputationBandMeta {
   level: ReputationLevel;
   /** Inclusive lower bound of the 0-100 composite score. */
   minScore: number;
-  /** i18n key for the tier's display name. */
+  /** i18n key for the band's display name. */
   labelKey: string;
-  /** Badge accent colour. */
+  /** Accent colour used by badges + progress bar fill. */
   color: string;
 }
 
-// Ordered low → high. Keep thresholds in sync with the backend enum.
-export const REPUTATION_LEVELS: ReputationLevelMeta[] = [
-  { level: 'NEWCOMER', minScore: 0, labelKey: 'repLevelNewcomer', color: '#94a3b8' },
-  { level: 'BRONZE', minScore: 20, labelKey: 'repLevelBronze', color: '#b45309' },
-  { level: 'SILVER', minScore: 40, labelKey: 'repLevelSilver', color: '#64748b' },
-  { level: 'GOLD', minScore: 60, labelKey: 'repLevelGold', color: '#d97706' },
-  { level: 'PLATINUM', minScore: 80, labelKey: 'repLevelPlatinum', color: '#0ea5e9' },
+// Ordered low → high.
+export const REPUTATION_BANDS: ReputationBandMeta[] = [
+  { level: 'CRITICAL', minScore: 0, labelKey: 'repBandCritical', color: '#ef4444' },
+  { level: 'LOW', minScore: 20, labelKey: 'repBandLow', color: '#f97316' },
+  { level: 'FAIR', minScore: 40, labelKey: 'repBandFair', color: '#f59e0b' },
+  { level: 'GOOD', minScore: 70, labelKey: 'repBandGood', color: '#14b8a6' },
+  { level: 'EXCELLENT', minScore: 90, labelKey: 'repBandExcellent', color: '#22c55e' },
 ];
 
-const BY_LEVEL: Record<ReputationLevel, ReputationLevelMeta> = REPUTATION_LEVELS.reduce(
+const BY_LEVEL: Record<ReputationLevel, ReputationBandMeta> = REPUTATION_BANDS.reduce(
   (acc, m) => {
     acc[m.level] = m;
     return acc;
   },
-  {} as Record<ReputationLevel, ReputationLevelMeta>,
+  {} as Record<ReputationLevel, ReputationBandMeta>,
 );
 
-export function reputationLevelFromScore(score: number | null | undefined): ReputationLevel {
+function clampScore(score: number | null | undefined): number {
   const s = typeof score === 'number' && Number.isFinite(score) ? score : 0;
-  let result: ReputationLevel = 'NEWCOMER';
-  for (const meta of REPUTATION_LEVELS) {
+  return Math.max(0, Math.min(100, s));
+}
+
+export function reputationBandFromScore(score: number | null | undefined): ReputationLevel {
+  const s = clampScore(score);
+  let result: ReputationLevel = 'CRITICAL';
+  for (const meta of REPUTATION_BANDS) {
     if (s >= meta.minScore) result = meta.level;
   }
   return result;
 }
 
-/** Resolve a level from an explicit API value, falling back to deriving it from the score. */
-export function resolveReputationLevel(
+/** Resolve a band from an explicit API value, falling back to deriving it from the score. */
+export function resolveReputationBand(
   level: string | null | undefined,
   score: number | null | undefined,
 ): ReputationLevel {
   if (level && level in BY_LEVEL) return level as ReputationLevel;
-  return reputationLevelFromScore(score);
+  return reputationBandFromScore(score);
 }
 
-export function reputationLevelMeta(level: ReputationLevel): ReputationLevelMeta {
+export function reputationBandMeta(level: ReputationLevel): ReputationBandMeta {
   return BY_LEVEL[level];
 }
 
-/**
- * Progress toward the next tier. Returns null when already at the top tier.
- * `progress` is 0..1 within the current tier's band.
- */
-export function reputationProgress(score: number | null | undefined): {
-  next: ReputationLevelMeta;
-  pointsToNext: number;
-  progress: number;
-} | null {
-  const s = typeof score === 'number' && Number.isFinite(score) ? score : 0;
-  const current = reputationLevelFromScore(s);
-  const idx = REPUTATION_LEVELS.findIndex((m) => m.level === current);
-  const next = REPUTATION_LEVELS[idx + 1];
-  if (!next) return null;
-  const floor = REPUTATION_LEVELS[idx].minScore;
-  const span = next.minScore - floor;
-  return {
-    next,
-    pointsToNext: Math.max(0, next.minScore - s),
-    progress: span > 0 ? Math.min(1, Math.max(0, (s - floor) / span)) : 1,
-  };
+/** 0..100 score → 0.0..10.0 display value with one decimal place. */
+export function reputationOutOfTen(score: number | null | undefined): number {
+  return Math.round(clampScore(score)) / 10;
+}
+
+/** Percentage (0..100) used to fill the reputation progress bar. */
+export function reputationFillPercent(score: number | null | undefined): number {
+  return clampScore(score);
 }
