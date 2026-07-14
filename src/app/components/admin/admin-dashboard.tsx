@@ -1,15 +1,23 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { Card, Button, Select, Skeleton } from "../ds-primitives";
-import { AdminLayout } from "./admin-layout";
-import { useI18n } from "../i18n-provider";
-import { useAuth } from "../auth/auth-provider";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
+import { Card, Button, Select, Skeleton } from '../ds-primitives';
+import { AdminLayout } from './admin-layout';
+import { useI18n } from '../i18n-provider';
+import { useAuth } from '../auth/auth-provider';
+import { Link } from 'react-router';
 import {
   type DashboardGranularity,
   type NamedCountDto,
   type OperatorDistributionDto,
   type PopularServiceDto,
-} from "../../lib/api";
-import type { FriendlyApiErrorCode } from "../../lib/locale";
+} from '../../lib/api';
+import type { FriendlyApiErrorCode } from '../../lib/locale';
 import {
   fetchCategoryDistribution,
   fetchCountryDistribution,
@@ -21,7 +29,7 @@ import {
   fetchRoomStatusDistribution,
   getMetricsEntry,
   useAdminDashboardCache,
-} from "../../lib/admin-dashboard-cache";
+} from '../../lib/admin-dashboard-cache';
 import {
   ShieldCheck,
   Scale,
@@ -47,47 +55,56 @@ import {
   Layers,
   AlertCircle,
   MapPin,
-} from "lucide-react";
+} from 'lucide-react';
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   Legend,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts";
+} from 'recharts';
+
+type KpiSparklineKey = 'revenue' | 'uniqueVisitors' | 'pageViews' | 'newRooms';
 
 interface KpiCardConfig {
   key: string;
   value: string | number;
   icon: typeof ShieldCheck;
-  variant: "warning" | "danger" | "info" | "success";
+  variant: 'warning' | 'danger' | 'info' | 'success';
+  sparklineKey?: KpiSparklineKey;
+  /**
+   * When set, the card renders inside a <Link>, letting the operator drill
+   * into a detail page (e.g. /admin/finance?tab=refunds). The card visual
+   * stays identical — hover-lift comes from KPI_CARD_CLASS.
+   */
+  linkTo?: string;
 }
 
 function formatCount(value: number | null | undefined): string {
-  if (value == null) return "—";
-  return new Intl.NumberFormat("ru-RU").format(value);
+  if (value == null) return '—';
+  return new Intl.NumberFormat('ru-RU').format(value);
 }
 
 function formatMoney(value: number | string | null | undefined): string {
-  if (value == null) return "—";
-  const num = typeof value === "string" ? Number(value) : value;
+  if (value == null) return '—';
+  const num = typeof value === 'string' ? Number(value) : value;
   if (Number.isNaN(num)) return String(value);
-  return `₸${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(num)}`;
+  return `₸${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(num)}`;
 }
 
 function formatPercent(value: number | string | null | undefined): string {
-  if (value == null) return "—";
-  const num = typeof value === "string" ? Number(value) : value;
+  if (value == null) return '—';
+  const num = typeof value === 'string' ? Number(value) : value;
   if (Number.isNaN(num)) return String(value);
-  return `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(num)}%`;
+  return `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 }).format(num)}%`;
 }
 
 function translateCacheError(
@@ -96,22 +113,36 @@ function translateCacheError(
 ): string | null {
   if (!code) return null;
   switch (code) {
-    case "notAvailable":
-      return t("errSectionUnavailable");
-    case "noAccess":
-      return t("noStaffAccessError");
-    case "sessionExpired":
-      return t("sessionExpiredError");
-    case "serverError":
-      return t("serverErrorTitle");
-    case "network":
-      return t("networkError");
-    case "generic":
+    case 'notAvailable':
+      return t('errSectionUnavailable');
+    case 'noAccess':
+      return t('noStaffAccessError');
+    case 'sessionExpired':
+      return t('sessionExpiredError');
+    case 'serverError':
+      return t('serverErrorTitle');
+    case 'network':
+      return t('networkError');
+    case 'generic':
     default:
-      return t("errLoadCardFailed");
+      return t('errLoadCardFailed');
   }
 }
 
+// Shared card presentation — hairline border comes from the Card primitive,
+// this className layers the premium shadow/hover-lift on top.
+const KPI_CARD_CLASS =
+  'flex flex-col gap-4 h-full transition-all duration-200 hover:-translate-y-0.5 ' +
+  'shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-16px_rgba(0,0,0,0.16)] ' +
+  'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_20px_36px_-20px_rgba(0,0,0,0.24)]';
+
+const PANEL_CARD_CLASS = 'shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-16px_rgba(0,0,0,0.14)]';
+
+const PANEL_TITLE_STYLE: CSSProperties = {
+  color: 'var(--eco-text)',
+  fontWeight: 500,
+  letterSpacing: '-0.01em',
+};
 
 export function AdminDashboardPage() {
   const { t } = useI18n();
@@ -126,8 +157,8 @@ export function AdminDashboardPage() {
   const loading = kpisEntry.loading && !kpisEntry.data;
   const error = translateCacheError(kpisEntry.error, t);
 
-  const [granularity, setGranularity] = useState<DashboardGranularity>("month");
-  const [rangeKey, setRangeKey] = useState<"12m" | "30d">("12m");
+  const [granularity, setGranularity] = useState<DashboardGranularity>('month');
+  const [rangeKey, setRangeKey] = useState<'12m' | '30d'>('12m');
   const metricsEntry = getMetricsEntry(granularity, rangeKey);
   // Subscribe to the cache so metrics re-render when fetch resolves.
   // The hook above is enough — we just read from the snapshot, but
@@ -184,8 +215,8 @@ export function AdminDashboardPage() {
     if (!metrics || !Array.isArray(metrics.series)) return [];
     return metrics.series.map((p) => ({
       period: p.period,
-      [t("dashboardSignups")]: p.registrations,
-      [t("dashboardLogins")]: p.loginsTotal,
+      [t('dashboardSignups')]: p.registrations,
+      [t('dashboardLogins')]: p.loginsTotal,
     }));
   }, [metrics, t]);
 
@@ -193,8 +224,8 @@ export function AdminDashboardPage() {
     if (!metrics || !Array.isArray(metrics.series)) return [];
     return metrics.series.map((p) => ({
       period: p.period,
-      [t("dashboardMetricUniqueVisitors")]: p.uniqueVisitors ?? 0,
-      [t("dashboardMetricPageViews")]: p.pageViews ?? 0,
+      [t('dashboardMetricUniqueVisitors')]: p.uniqueVisitors ?? 0,
+      [t('dashboardMetricPageViews')]: p.pageViews ?? 0,
     }));
   }, [metrics, t]);
 
@@ -202,7 +233,7 @@ export function AdminDashboardPage() {
     if (!metrics || !Array.isArray(metrics.series)) return [];
     return metrics.series.map((p) => ({
       period: p.period,
-      [t("dashboardMetricNewRooms")]: p.newRooms ?? 0,
+      [t('dashboardMetricNewRooms')]: p.newRooms ?? 0,
     }));
   }, [metrics, t]);
 
@@ -210,8 +241,8 @@ export function AdminDashboardPage() {
     if (!popularServices) return [];
     return popularServices.map((s) => ({
       name: s.serviceName,
-      [t("dashboardMetricRooms")]: s.roomsCount,
-      [t("dashboardMetricActiveMembers")]: s.activeMembersCount,
+      [t('dashboardMetricRooms')]: s.roomsCount,
+      [t('dashboardMetricActiveMembers')]: s.activeMembersCount,
     }));
   }, [popularServices, t]);
 
@@ -250,7 +281,8 @@ export function AdminDashboardPage() {
     if (!metrics || !Array.isArray(metrics.series)) return [];
     return metrics.series.map((p) => ({
       period: p.period,
-      [t("dashboardMetricRevenue")]: typeof p.revenue === "string" ? Number(p.revenue) : p.revenue ?? 0,
+      [t('dashboardMetricRevenue')]:
+        typeof p.revenue === 'string' ? Number(p.revenue) : (p.revenue ?? 0),
     }));
   }, [metrics, t]);
 
@@ -267,123 +299,320 @@ export function AdminDashboardPage() {
     const newUsers30d = metrics?.newUsersLast30Days ?? null;
     return [
       {
-        titleKey: "kpiSectionOperations",
+        titleKey: 'kpiSectionOperations',
         cards: [
-          { key: "pendingModerationLabel", value: formatCount(kpis.pendingModeration), icon: ShieldCheck, variant: "warning" },
-          { key: "openDisputes", value: formatCount(kpis.openDisputes), icon: Scale, variant: "danger" },
-          { key: "kpiOpenTickets", value: formatCount(kpis.openTickets ?? null), icon: MessageSquare, variant: "warning" },
-          { key: "blockedRoomsLabel", value: formatCount(kpis.blockedRooms), icon: Home, variant: "info" },
+          {
+            key: 'pendingModerationLabel',
+            value: formatCount(kpis.pendingModeration),
+            icon: ShieldCheck,
+            variant: 'warning',
+          },
+          {
+            key: 'openDisputes',
+            value: formatCount(kpis.openDisputes),
+            icon: Scale,
+            variant: 'danger',
+          },
+          {
+            key: 'kpiOpenTickets',
+            value: formatCount(kpis.openTickets ?? null),
+            icon: MessageSquare,
+            variant: 'warning',
+          },
+          {
+            key: 'blockedRoomsLabel',
+            value: formatCount(kpis.blockedRooms),
+            icon: Home,
+            variant: 'info',
+          },
         ],
       },
       {
-        titleKey: "kpiSectionFinance",
+        titleKey: 'kpiSectionFinance',
         cards: [
-          { key: "totalRevenueLabel", value: formatMoney(kpis.totalRevenue), icon: TrendingUp, variant: "success" },
-          { key: "totalRefundsLabel", value: formatMoney(kpis.totalRefunds), icon: Undo2, variant: "warning" },
-          { key: "kpiActiveSubsValue", value: formatMoney(kpis.totalActiveSubscriptionsValueKzt ?? null), icon: Wallet, variant: "success" },
-          { key: "kpiRefundRate", value: formatPercent(kpis.refundRatePercent ?? null), icon: Percent, variant: "warning" },
+          {
+            key: 'totalRevenueLabel',
+            value: formatMoney(kpis.totalRevenue),
+            icon: TrendingUp,
+            variant: 'success',
+            sparklineKey: 'revenue',
+            linkTo: '/admin/finance?tab=revenue',
+          },
+          {
+            key: 'totalRefundsLabel',
+            value: formatMoney(kpis.totalRefunds),
+            icon: Undo2,
+            variant: 'warning',
+            linkTo: '/admin/finance?tab=refunds',
+          },
+          {
+            key: 'kpiActiveSubsValue',
+            value: formatMoney(kpis.totalActiveSubscriptionsValueKzt ?? null),
+            icon: Wallet,
+            variant: 'success',
+            linkTo: '/admin/finance?tab=subscriptions',
+          },
+          {
+            key: 'kpiRefundRate',
+            value: formatPercent(kpis.refundRatePercent ?? null),
+            icon: Percent,
+            variant: 'warning',
+            linkTo: '/admin/finance?tab=refunds',
+          },
         ],
       },
       {
-        titleKey: "kpiSectionAudience",
+        titleKey: 'kpiSectionAudience',
         cards: [
-          { key: "kpiUniqueVisitorsToday", value: formatCount(kpis.uniqueVisitorsToday ?? null), icon: Eye, variant: "info" },
-          { key: "kpiUniqueVisitors30d", value: formatCount(kpis.uniqueVisitors30d ?? null), icon: Users, variant: "info" },
-          { key: "kpiPageViews30d", value: formatCount(kpis.totalPageViews30d ?? null), icon: MousePointerClick, variant: "info" },
-          { key: "kpiConversion30d", value: formatPercent(kpis.conversionVisitorToUser30d ?? null), icon: UserPlus, variant: "success" },
+          {
+            key: 'kpiUniqueVisitorsToday',
+            value: formatCount(kpis.uniqueVisitorsToday ?? null),
+            icon: Eye,
+            variant: 'info',
+          },
+          {
+            key: 'kpiUniqueVisitors30d',
+            value: formatCount(kpis.uniqueVisitors30d ?? null),
+            icon: Users,
+            variant: 'info',
+            sparklineKey: 'uniqueVisitors',
+          },
+          {
+            key: 'kpiPageViews30d',
+            value: formatCount(kpis.totalPageViews30d ?? null),
+            icon: MousePointerClick,
+            variant: 'info',
+            sparklineKey: 'pageViews',
+          },
+          {
+            key: 'kpiConversion30d',
+            value: formatPercent(kpis.conversionVisitorToUser30d ?? null),
+            icon: UserPlus,
+            variant: 'success',
+          },
         ],
       },
       {
-        titleKey: "kpiSectionRooms",
+        titleKey: 'kpiSectionRooms',
         cards: [
-          { key: "totalRoomsLabel", value: formatCount(kpis.totalRooms), icon: Home, variant: "info" },
-          { key: "activeRoomsLabel", value: formatCount(kpis.activeRooms), icon: ShieldCheck, variant: "success" },
-          { key: "kpiNewRooms30d", value: formatCount(kpis.newRoomsLast30Days ?? null), icon: PlusCircle, variant: "success" },
-          { key: "kpiAvgRoomFill", value: formatPercent(kpis.avgRoomFillRate ?? null), icon: Gauge, variant: "info" },
+          {
+            key: 'totalRoomsLabel',
+            value: formatCount(kpis.totalRooms),
+            icon: Home,
+            variant: 'info',
+          },
+          {
+            key: 'activeRoomsLabel',
+            value: formatCount(kpis.activeRooms),
+            icon: ShieldCheck,
+            variant: 'success',
+          },
+          {
+            key: 'kpiNewRooms30d',
+            value: formatCount(kpis.newRoomsLast30Days ?? null),
+            icon: PlusCircle,
+            variant: 'success',
+            sparklineKey: 'newRooms',
+          },
+          {
+            key: 'kpiAvgRoomFill',
+            value: formatPercent(kpis.avgRoomFillRate ?? null),
+            icon: Gauge,
+            variant: 'info',
+          },
         ],
       },
       {
-        titleKey: "kpiSectionUsers",
+        titleKey: 'kpiSectionUsers',
         cards: [
-          { key: "totalUsersLabel", value: formatCount(kpis.totalUsers), icon: Users, variant: "info" },
-          { key: "activeUsersLabel", value: formatCount(kpis.activeUsers), icon: UsersRound, variant: "success" },
-          { key: "bannedUsersLabel", value: formatCount(kpis.bannedUsers), icon: Ban, variant: "danger" },
-          { key: "dashboardNewLast30d", value: formatCount(newUsers30d), icon: UserPlus, variant: "info" },
+          {
+            key: 'totalUsersLabel',
+            value: formatCount(kpis.totalUsers),
+            icon: Users,
+            variant: 'info',
+          },
+          {
+            key: 'activeUsersLabel',
+            value: formatCount(kpis.activeUsers),
+            icon: UsersRound,
+            variant: 'success',
+          },
+          {
+            key: 'bannedUsersLabel',
+            value: formatCount(kpis.bannedUsers),
+            icon: Ban,
+            variant: 'danger',
+          },
+          {
+            key: 'dashboardNewLast30d',
+            value: formatCount(newUsers30d),
+            icon: UserPlus,
+            variant: 'info',
+          },
         ],
       },
     ];
   }, [kpis, metrics]);
 
+  // Compact sparkline series for KPI cards. Returns null (skip drawing) if
+  // metrics haven't loaded, the series is too short to be meaningful, or
+  // every point is zero — a flat baseline adds noise, not signal.
+  const kpiSparklineData = useCallback(
+    (sparklineKey: KpiSparklineKey): { v: number }[] | null => {
+      if (!metrics || !Array.isArray(metrics.series) || metrics.series.length < 2) return null;
+      const points = metrics.series.map((p) => {
+        const raw = (p as Record<string, unknown>)[sparklineKey];
+        const num = typeof raw === 'string' ? Number(raw) : (raw as number | null | undefined);
+        return { v: typeof num === 'number' && Number.isFinite(num) ? num : 0 };
+      });
+      if (points.every((pt) => pt.v === 0)) return null;
+      return points;
+    },
+    [metrics],
+  );
+
   const renderKpiCard = (k: KpiCardConfig) => {
     const Icon = k.icon;
-    return (
-      <Card key={k.key} className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
+    const chipBg =
+      k.variant === 'warning'
+        ? 'var(--eco-warning-100)'
+        : k.variant === 'danger'
+          ? 'var(--eco-danger-100)'
+          : k.variant === 'success'
+            ? 'var(--eco-success-100)'
+            : 'var(--eco-brand-50)';
+    const chipFg =
+      k.variant === 'warning'
+        ? 'var(--eco-warning-500)'
+        : k.variant === 'danger'
+          ? 'var(--eco-danger-500)'
+          : k.variant === 'success'
+            ? 'var(--eco-positive)'
+            : 'var(--eco-brand-600)';
+    const sparkStroke =
+      k.variant === 'warning'
+        ? 'var(--eco-warning-500)'
+        : k.variant === 'danger'
+          ? 'var(--eco-danger-500)'
+          : k.variant === 'success'
+            ? 'var(--eco-positive)'
+            : 'var(--eco-primary)';
+    const spark = k.sparklineKey ? kpiSparklineData(k.sparklineKey) : null;
+    const gradientId = `eco-kpi-spark-${k.key}`;
+
+    const card = (
+      <Card className={`${KPI_CARD_CLASS}${k.linkTo ? ' cursor-pointer' : ''}`}>
+        <div className="flex items-start justify-between gap-3">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{
-              background:
-                k.variant === "warning"
-                  ? "var(--eco-warning-100)"
-                  : k.variant === "danger"
-                  ? "var(--eco-danger-100)"
-                  : k.variant === "success"
-                  ? "var(--eco-success-100)"
-                  : "var(--eco-brand-50)",
-            }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: chipBg }}
           >
-            <Icon
-              size={15}
-              style={{
-                color:
-                  k.variant === "warning"
-                    ? "var(--eco-warning-500)"
-                    : k.variant === "danger"
-                    ? "var(--eco-danger-500)"
-                    : k.variant === "success"
-                    ? "var(--eco-positive)"
-                    : "var(--eco-brand-600)",
-              }}
-            />
+            <Icon size={16} style={{ color: chipFg }} />
           </div>
         </div>
-        <div>
-          <div className="text-[22px]" style={{ color: "var(--eco-text)" }}>{k.value}</div>
-          <div className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{t(k.key)}</div>
+        <div className="flex flex-col gap-1">
+          <div
+            className="text-[24px] leading-tight"
+            style={{
+              color: 'var(--eco-text)',
+              fontVariantNumeric: 'tabular-nums',
+              letterSpacing: '-0.01em',
+              fontWeight: 500,
+            }}
+          >
+            {k.value}
+          </div>
+          <div
+            className="text-[12px]"
+            style={{ color: 'var(--eco-text-tertiary)', letterSpacing: '0.01em' }}
+          >
+            {t(k.key)}
+          </div>
         </div>
+        {spark && (
+          <div className="mt-auto pt-1" style={{ width: '100%', height: 28 }}>
+            <ResponsiveContainer>
+              <AreaChart data={spark} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" style={{ stopColor: sparkStroke, stopOpacity: 0.4 }} />
+                    <stop offset="100%" style={{ stopColor: sparkStroke, stopOpacity: 0 }} />
+                  </linearGradient>
+                </defs>
+                <Area
+                  type="monotone"
+                  dataKey="v"
+                  stroke={sparkStroke}
+                  strokeWidth={1.5}
+                  fill={`url(#${gradientId})`}
+                  fillOpacity={1}
+                  isAnimationActive={false}
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </Card>
     );
+
+    if (k.linkTo) {
+      return (
+        <Link
+          key={k.key}
+          to={k.linkTo}
+          style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+        >
+          {card}
+        </Link>
+      );
+    }
+
+    // Card carries its own key; React needs it here too when linkTo is absent.
+    return <div key={k.key}>{card}</div>;
   };
 
   return (
     <AdminLayout>
-      <div className="max-w-[1100px]">
-        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
-          <h1 className="text-[24px]" style={{ color: "var(--eco-text)" }}>{t("dashboard")}</h1>
+      <div className="max-w-[1280px]">
+        <div
+          className="pb-5 mb-10 border-b flex items-center justify-between gap-3 flex-wrap"
+          style={{ borderColor: 'var(--eco-border)' }}
+        >
+          <h1
+            className="text-[28px]"
+            style={{ color: 'var(--eco-text)', letterSpacing: '-0.02em', fontWeight: 500 }}
+          >
+            {t('dashboard')}
+          </h1>
           <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-            <RefreshCw size={13} /> {t("retry")}
+            <RefreshCw size={13} /> {t('retry')}
           </Button>
         </div>
 
         {loading && !kpis && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-10">
             {Array.from({ length: 5 }).map((_, i) => (
               <Card key={i} className="flex flex-col gap-3">
-                <div className="w-8 h-8 rounded-lg" style={{ background: "var(--eco-surface)" }} />
-                <div className="h-6 rounded" style={{ background: "var(--eco-surface)" }} />
-                <div className="h-3 rounded" style={{ background: "var(--eco-surface)" }} />
+                <div className="w-9 h-9 rounded-xl" style={{ background: 'var(--eco-surface)' }} />
+                <div className="h-6 rounded" style={{ background: 'var(--eco-surface)' }} />
+                <div className="h-3 rounded" style={{ background: 'var(--eco-surface)' }} />
               </Card>
             ))}
           </div>
         )}
 
         {error && !loading && (
-          <Card className="flex flex-col gap-3 mb-6">
-            <div className="text-[14px]" style={{ color: "var(--eco-negative)" }}>{t("loadFailedTitle")}</div>
-            <div className="text-[13px]" style={{ color: "var(--eco-text-tertiary)" }}>{error}</div>
+          <Card className="flex flex-col gap-3 mb-10">
+            <div className="text-[14px]" style={{ color: 'var(--eco-negative)' }}>
+              {t('loadFailedTitle')}
+            </div>
+            <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+              {error}
+            </div>
             <div>
               <Button variant="primary" size="sm" onClick={() => void load()}>
-                <RefreshCw size={13} /> {t("retry")}
+                <RefreshCw size={13} /> {t('retry')}
               </Button>
             </div>
           </Card>
@@ -391,208 +620,372 @@ export function AdminDashboardPage() {
 
         {kpis && (
           <>
-            {kpiSections.map((section, idx) => (
-              <section key={section.titleKey} className={idx === 0 ? "mb-8" : "mb-8"}>
-                <h2 className="text-[14px] uppercase tracking-wide mb-3" style={{ color: "var(--eco-text-tertiary)" }}>
-                  {t(section.titleKey)}
-                </h2>
+            {kpiSections.map((section) => (
+              <section key={section.titleKey} className="mb-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <h2
+                    className="text-[11px] uppercase"
+                    style={{
+                      color: 'var(--eco-text-tertiary)',
+                      letterSpacing: '0.14em',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t(section.titleKey)}
+                  </h2>
+                  <div className="h-px flex-1" style={{ background: 'var(--eco-border)' }} />
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                   {section.cards.map(renderKpiCard)}
                 </div>
               </section>
             ))}
 
-            <Card className="flex flex-col gap-4">
+            <Card className={`flex flex-col gap-4 ${PANEL_CARD_CLASS}`}>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardChartTitle")}</div>
+                <div className="text-[15px]" style={PANEL_TITLE_STYLE}>
+                  {t('dashboardChartTitle')}
+                </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="w-32 sm:w-36">
                     <Select
-                      aria-label={t("dashboardGranularity")}
+                      aria-label={t('dashboardGranularity')}
                       value={granularity}
                       onChange={(e) => setGranularity(e.target.value as DashboardGranularity)}
                       options={[
-                        { value: "month", label: t("dashboardGranularityMonth") },
-                        { value: "day", label: t("dashboardGranularityDay") },
+                        { value: 'month', label: t('dashboardGranularityMonth') },
+                        { value: 'day', label: t('dashboardGranularityDay') },
                       ]}
                     />
                   </div>
                   <div className="w-32 sm:w-36">
                     <Select
-                      aria-label={t("dashboardRange")}
+                      aria-label={t('dashboardRange')}
                       value={rangeKey}
-                      onChange={(e) => setRangeKey(e.target.value as "12m" | "30d")}
+                      onChange={(e) => setRangeKey(e.target.value as '12m' | '30d')}
                       options={[
-                        { value: "12m", label: t("dashboardRange12m") },
-                        { value: "30d", label: t("dashboardRange30d") },
+                        { value: '12m', label: t('dashboardRange12m') },
+                        { value: '30d', label: t('dashboardRange30d') },
                       ]}
                     />
                   </div>
-                  <Button variant="secondary" size="sm" onClick={() => void loadMetrics()} disabled={metricsLoading}>
-                    <RefreshCw size={13} /> {t("retry")}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void loadMetrics()}
+                    disabled={metricsLoading}
+                  >
+                    <RefreshCw size={13} /> {t('retry')}
                   </Button>
                 </div>
               </div>
 
               {metricsError && (
-                <div className="text-[13px]" style={{ color: "var(--eco-negative)" }}>{metricsError}</div>
+                <div className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
+                  {metricsError}
+                </div>
               )}
 
               {metricsLoading && !metrics ? (
                 <Skeleton height={260} />
               ) : (
-                <div style={{ width: "100%", height: 280 }}>
+                <div style={{ width: '100%', height: 280 }}>
                   <ResponsiveContainer>
-                    <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                      <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
-                      <XAxis dataKey="period" tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
-                      <YAxis allowDecimals={false} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
-                      <Tooltip
-                        contentStyle={{
-                          background: "var(--eco-bg)",
-                          border: "1px solid var(--eco-border)",
-                          borderRadius: 8,
-                          fontSize: 12,
-                          color: "var(--eco-text)",
-                        }}
+                    <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="eco-grad-signups" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="0%"
+                            style={{ stopColor: 'var(--eco-primary)', stopOpacity: 0.28 }}
+                          />
+                          <stop
+                            offset="100%"
+                            style={{ stopColor: 'var(--eco-primary)', stopOpacity: 0 }}
+                          />
+                        </linearGradient>
+                        <linearGradient id="eco-grad-logins" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="0%"
+                            style={{ stopColor: 'var(--eco-warning-500)', stopOpacity: 0.24 }}
+                          />
+                          <stop
+                            offset="100%"
+                            style={{ stopColor: 'var(--eco-warning-500)', stopOpacity: 0 }}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        stroke="var(--eco-border)"
+                        strokeDasharray="2 4"
+                        strokeOpacity={0.6}
+                        vertical={false}
                       />
-                      <Legend wrapperStyle={{ fontSize: 12 }} />
-                      <Line
+                      <XAxis
+                        dataKey="period"
+                        tick={CHART_TICK_STYLE}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={CHART_TICK_STYLE}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip contentStyle={CHART_TOOLTIP_STYLE} cursor={CHART_HOVER_LINE} />
+                      <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
+                      <Area
                         type="monotone"
-                        dataKey={t("dashboardSignups")}
+                        dataKey={t('dashboardSignups')}
                         stroke="var(--eco-primary)"
                         strokeWidth={2}
+                        fill="url(#eco-grad-signups)"
+                        fillOpacity={1}
                         dot={false}
+                        activeDot={{
+                          r: 4,
+                          strokeWidth: 2,
+                          stroke: 'var(--eco-surface-raised)',
+                        }}
                       />
-                      <Line
+                      <Area
                         type="monotone"
-                        dataKey={t("dashboardLogins")}
+                        dataKey={t('dashboardLogins')}
                         stroke="var(--eco-warning-500)"
                         strokeWidth={2}
+                        fill="url(#eco-grad-logins)"
+                        fillOpacity={1}
                         dot={false}
+                        activeDot={{
+                          r: 4,
+                          strokeWidth: 2,
+                          stroke: 'var(--eco-surface-raised)',
+                        }}
                       />
-                    </LineChart>
+                    </AreaChart>
                   </ResponsiveContainer>
                 </div>
               )}
             </Card>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
-              <Card className="flex flex-col gap-3">
-                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardChartTrafficTitle")}</div>
+              <Card className={`flex flex-col gap-3 ${PANEL_CARD_CLASS}`}>
+                <div className="text-[15px]" style={PANEL_TITLE_STYLE}>
+                  {t('dashboardChartTrafficTitle')}
+                </div>
                 {metricsLoading && !metrics ? (
                   <Skeleton height={220} />
                 ) : (
-                  <div style={{ width: "100%", height: 240 }}>
+                  <div style={{ width: '100%', height: 240 }}>
                     <ResponsiveContainer>
-                      <LineChart data={trafficChartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
-                        <XAxis dataKey="period" tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
-                        <YAxis allowDecimals={false} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
-                        <Tooltip
-                          contentStyle={{
-                            background: "var(--eco-bg)",
-                            border: "1px solid var(--eco-border)",
-                            borderRadius: 8,
-                            fontSize: 12,
-                            color: "var(--eco-text)",
-                          }}
+                      <AreaChart
+                        data={trafficChartData}
+                        margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient id="eco-grad-traffic-a" x1="0" y1="0" x2="0" y2="1">
+                            <stop
+                              offset="0%"
+                              style={{ stopColor: 'var(--eco-primary)', stopOpacity: 0.28 }}
+                            />
+                            <stop
+                              offset="100%"
+                              style={{ stopColor: 'var(--eco-primary)', stopOpacity: 0 }}
+                            />
+                          </linearGradient>
+                          <linearGradient id="eco-grad-traffic-b" x1="0" y1="0" x2="0" y2="1">
+                            <stop
+                              offset="0%"
+                              style={{ stopColor: 'var(--eco-warning-500)', stopOpacity: 0.24 }}
+                            />
+                            <stop
+                              offset="100%"
+                              style={{ stopColor: 'var(--eco-warning-500)', stopOpacity: 0 }}
+                            />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          stroke="var(--eco-border)"
+                          strokeDasharray="2 4"
+                          strokeOpacity={0.6}
+                          vertical={false}
                         />
-                        <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Line
+                        <XAxis
+                          dataKey="period"
+                          tick={CHART_TICK_STYLE}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          allowDecimals={false}
+                          tick={CHART_TICK_STYLE}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} cursor={CHART_HOVER_LINE} />
+                        <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
+                        <Area
                           type="monotone"
-                          dataKey={t("dashboardMetricUniqueVisitors")}
+                          dataKey={t('dashboardMetricUniqueVisitors')}
                           stroke="var(--eco-primary)"
                           strokeWidth={2}
+                          fill="url(#eco-grad-traffic-a)"
+                          fillOpacity={1}
                           dot={false}
                         />
-                        <Line
+                        <Area
                           type="monotone"
-                          dataKey={t("dashboardMetricPageViews")}
+                          dataKey={t('dashboardMetricPageViews')}
                           stroke="var(--eco-warning-500)"
                           strokeWidth={2}
+                          fill="url(#eco-grad-traffic-b)"
+                          fillOpacity={1}
                           dot={false}
                         />
-                      </LineChart>
+                      </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 )}
               </Card>
 
-              <Card className="flex flex-col gap-3">
-                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardChartNewRoomsTitle")}</div>
+              <Card className={`flex flex-col gap-3 ${PANEL_CARD_CLASS}`}>
+                <div className="text-[15px]" style={PANEL_TITLE_STYLE}>
+                  {t('dashboardChartNewRoomsTitle')}
+                </div>
                 {metricsLoading && !metrics ? (
                   <Skeleton height={220} />
                 ) : (
-                  <div style={{ width: "100%", height: 240 }}>
+                  <div style={{ width: '100%', height: 240 }}>
                     <ResponsiveContainer>
-                      <LineChart data={newRoomsChartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
-                        <XAxis dataKey="period" tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
-                        <YAxis allowDecimals={false} tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
-                        <Tooltip
-                          contentStyle={{
-                            background: "var(--eco-bg)",
-                            border: "1px solid var(--eco-border)",
-                            borderRadius: 8,
-                            fontSize: 12,
-                            color: "var(--eco-text)",
-                          }}
+                      <AreaChart
+                        data={newRoomsChartData}
+                        margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient id="eco-grad-newrooms" x1="0" y1="0" x2="0" y2="1">
+                            <stop
+                              offset="0%"
+                              style={{ stopColor: 'var(--eco-positive)', stopOpacity: 0.3 }}
+                            />
+                            <stop
+                              offset="100%"
+                              style={{ stopColor: 'var(--eco-positive)', stopOpacity: 0 }}
+                            />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          stroke="var(--eco-border)"
+                          strokeDasharray="2 4"
+                          strokeOpacity={0.6}
+                          vertical={false}
                         />
-                        <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Line
+                        <XAxis
+                          dataKey="period"
+                          tick={CHART_TICK_STYLE}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          allowDecimals={false}
+                          tick={CHART_TICK_STYLE}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} cursor={CHART_HOVER_LINE} />
+                        <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
+                        <Area
                           type="monotone"
-                          dataKey={t("dashboardMetricNewRooms")}
+                          dataKey={t('dashboardMetricNewRooms')}
                           stroke="var(--eco-positive)"
                           strokeWidth={2}
+                          fill="url(#eco-grad-newrooms)"
+                          fillOpacity={1}
                           dot={false}
                         />
-                      </LineChart>
+                      </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 )}
               </Card>
 
-              <Card className="flex flex-col gap-3 xl:col-span-2">
-                <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{t("dashboardChartRevenueTitle")}</div>
+              <Card className={`flex flex-col gap-3 xl:col-span-2 ${PANEL_CARD_CLASS}`}>
+                <div className="text-[15px]" style={PANEL_TITLE_STYLE}>
+                  {t('dashboardChartRevenueTitle')}
+                </div>
                 {metricsLoading && !metrics ? (
                   <Skeleton height={220} />
                 ) : (
-                  <div style={{ width: "100%", height: 240 }}>
+                  <div style={{ width: '100%', height: 240 }}>
                     <ResponsiveContainer>
-                      <LineChart data={revenueChartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                        <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
-                        <XAxis dataKey="period" tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
-                        <YAxis tick={{ fill: "var(--eco-text-tertiary)", fontSize: 12 }} />
+                      <AreaChart
+                        data={revenueChartData}
+                        margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+                      >
+                        <defs>
+                          <linearGradient id="eco-grad-revenue" x1="0" y1="0" x2="0" y2="1">
+                            <stop
+                              offset="0%"
+                              style={{ stopColor: 'var(--eco-brand-600)', stopOpacity: 0.32 }}
+                            />
+                            <stop
+                              offset="100%"
+                              style={{ stopColor: 'var(--eco-brand-600)', stopOpacity: 0 }}
+                            />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          stroke="var(--eco-border)"
+                          strokeDasharray="2 4"
+                          strokeOpacity={0.6}
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="period"
+                          tick={CHART_TICK_STYLE}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis tick={CHART_TICK_STYLE} axisLine={false} tickLine={false} />
                         <Tooltip
-                          contentStyle={{
-                            background: "var(--eco-bg)",
-                            border: "1px solid var(--eco-border)",
-                            borderRadius: 8,
-                            fontSize: 12,
-                            color: "var(--eco-text)",
-                          }}
+                          contentStyle={CHART_TOOLTIP_STYLE}
+                          cursor={CHART_HOVER_LINE}
                           formatter={(v: number | string) => formatMoney(v)}
                         />
-                        <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Line
+                        <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
+                        <Area
                           type="monotone"
-                          dataKey={t("dashboardMetricRevenue")}
+                          dataKey={t('dashboardMetricRevenue')}
                           stroke="var(--eco-brand-600)"
                           strokeWidth={2}
+                          fill="url(#eco-grad-revenue)"
+                          fillOpacity={1}
                           dot={false}
                         />
-                      </LineChart>
+                      </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 )}
               </Card>
             </div>
 
-            <div className="mt-10 mb-4 flex items-center justify-between gap-2 flex-wrap">
+            <div
+              className="mt-14 pb-4 mb-6 border-b flex items-end justify-between gap-3 flex-wrap"
+              style={{ borderColor: 'var(--eco-border)' }}
+            >
               <div>
-                <h2 className="text-[18px]" style={{ color: "var(--eco-text)" }}>{t("dashboardSectionAudience")}</h2>
-                <p className="text-[12px] mt-0.5" style={{ color: "var(--eco-text-tertiary)" }}>{t("dashboardSectionAudienceHint")}</p>
+                <h2
+                  className="text-[18px]"
+                  style={{
+                    color: 'var(--eco-text)',
+                    fontWeight: 500,
+                    letterSpacing: '-0.015em',
+                  }}
+                >
+                  {t('dashboardSectionAudience')}
+                </h2>
+                <p className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  {t('dashboardSectionAudienceHint')}
+                </p>
               </div>
               <Button
                 variant="secondary"
@@ -606,80 +999,145 @@ export function AdminDashboardPage() {
                   void fetchCountryDistribution(authorizedRequest, true);
                 }}
               >
-                <RefreshCw size={13} /> {t("refresh")}
+                <RefreshCw size={13} /> {t('refresh')}
               </Button>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               <ChartShell
                 icon={BarChart3}
-                title={t("dashboardPopularServicesTitle")}
+                title={t('dashboardPopularServicesTitle')}
                 loading={popularEntry.loading && !popularServices}
                 error={translateCacheError(popularEntry.error, t)}
                 empty={popularServicesData.length === 0}
-                emptyLabel={t("dashboardEmptyChart")}
+                emptyLabel={t('dashboardEmptyChart')}
                 onRetry={() => void fetchPopularServices(authorizedRequest, true)}
                 placeholderShape="bars"
                 className="xl:col-span-2"
                 height={Math.max(220, popularServicesData.length * 36 + 60)}
               >
                 <ResponsiveContainer>
-                  <BarChart data={popularServicesData} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
-                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
-                    <XAxis type="number" allowDecimals={false} tick={CHART_TICK_STYLE} tickFormatter={formatCount} />
-                    <YAxis type="category" dataKey="name" width={150} tick={CHART_TICK_STYLE} />
-                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar dataKey={t("dashboardMetricRooms")} fill={CHART_PALETTE[0]} radius={[0, 4, 4, 0]} />
-                    <Bar dataKey={t("dashboardMetricActiveMembers")} fill={CHART_PALETTE[1]} radius={[0, 4, 4, 0]} />
+                  <BarChart
+                    data={popularServicesData}
+                    layout="vertical"
+                    margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      stroke="var(--eco-border)"
+                      strokeDasharray="2 4"
+                      strokeOpacity={0.6}
+                      horizontal={false}
+                    />
+                    <XAxis
+                      type="number"
+                      allowDecimals={false}
+                      tick={CHART_TICK_STYLE}
+                      tickFormatter={formatCount}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={150}
+                      tick={CHART_TICK_STYLE}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={CHART_TOOLTIP_STYLE}
+                      cursor={CHART_HOVER_FILL}
+                      formatter={(v: number | string) => formatCount(Number(v))}
+                    />
+                    <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
+                    <Bar
+                      dataKey={t('dashboardMetricRooms')}
+                      fill={CHART_PALETTE[0]}
+                      radius={[0, 6, 6, 0]}
+                    />
+                    <Bar
+                      dataKey={t('dashboardMetricActiveMembers')}
+                      fill={CHART_PALETTE[1]}
+                      radius={[0, 6, 6, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartShell>
 
               <ChartShell
                 icon={Globe}
-                title={t("dashboardOperatorDistributionTitle")}
+                title={t('dashboardOperatorDistributionTitle')}
                 loading={operatorEntry.loading && !operatorDistribution}
                 error={translateCacheError(operatorEntry.error, t)}
                 empty={operatorChartData.length === 0}
-                emptyLabel={t("dashboardEmptyChart")}
+                emptyLabel={t('dashboardEmptyChart')}
                 onRetry={() => void fetchOperatorDistribution(authorizedRequest, true)}
                 placeholderShape="bars"
                 height={280}
               >
                 <ResponsiveContainer>
-                  <BarChart data={operatorChartData} margin={{ top: 8, right: 12, left: 0, bottom: 40 }}>
-                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="name" tick={{ ...CHART_TICK_STYLE, fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
-                    <YAxis allowDecimals={false} tick={CHART_TICK_STYLE} tickFormatter={formatCount} />
-                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={CHART_PALETTE[0]} />
+                  <BarChart
+                    data={operatorChartData}
+                    margin={{ top: 8, right: 12, left: 0, bottom: 40 }}
+                  >
+                    <CartesianGrid
+                      stroke="var(--eco-border)"
+                      strokeDasharray="2 4"
+                      strokeOpacity={0.6}
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ ...CHART_TICK_STYLE, fontSize: 11 }}
+                      interval={0}
+                      angle={-25}
+                      textAnchor="end"
+                      height={50}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={CHART_TICK_STYLE}
+                      tickFormatter={formatCount}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={CHART_TOOLTIP_STYLE}
+                      cursor={CHART_HOVER_FILL}
+                      formatter={(v: number | string) => formatCount(Number(v))}
+                    />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]} fill={CHART_PALETTE[0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartShell>
 
               <ChartShell
                 icon={PieIcon}
-                title={t("dashboardCurrencyDistributionTitle")}
+                title={t('dashboardCurrencyDistributionTitle')}
                 loading={currencyEntry.loading && !currencyDistribution}
                 error={translateCacheError(currencyEntry.error, t)}
                 empty={currencyChartData.length === 0}
-                emptyLabel={t("dashboardEmptyChart")}
+                emptyLabel={t('dashboardEmptyChart')}
                 onRetry={() => void fetchCurrencyDistribution(authorizedRequest, true)}
                 placeholderShape="pie"
                 height={280}
               >
                 <ResponsiveContainer>
                   <PieChart>
-                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={CHART_TOOLTIP_STYLE}
+                      formatter={(v: number | string) => formatCount(Number(v))}
+                    />
+                    <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
                     <Pie
                       data={currencyChartData}
                       dataKey="value"
                       nameKey="name"
                       outerRadius={90}
                       label={pieLabel}
-                      stroke="var(--eco-bg)"
+                      stroke="var(--eco-surface-raised)"
                       strokeWidth={2}
                     >
                       {currencyChartData.map((entry, idx) => (
@@ -692,48 +1150,78 @@ export function AdminDashboardPage() {
 
               <ChartShell
                 icon={Layers}
-                title={t("dashboardCategoryDistributionTitle")}
+                title={t('dashboardCategoryDistributionTitle')}
                 loading={categoryEntry.loading && !categoryDistribution}
                 error={translateCacheError(categoryEntry.error, t)}
                 empty={categoryChartData.length === 0}
-                emptyLabel={t("dashboardEmptyChart")}
+                emptyLabel={t('dashboardEmptyChart')}
                 onRetry={() => void fetchCategoryDistribution(authorizedRequest, true)}
                 placeholderShape="bars"
                 height={280}
               >
                 <ResponsiveContainer>
-                  <BarChart data={categoryChartData} margin={{ top: 8, right: 12, left: 0, bottom: 40 }}>
-                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="name" tick={{ ...CHART_TICK_STYLE, fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={50} />
-                    <YAxis allowDecimals={false} tick={CHART_TICK_STYLE} tickFormatter={formatCount} />
-                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={CHART_PALETTE[1]} />
+                  <BarChart
+                    data={categoryChartData}
+                    margin={{ top: 8, right: 12, left: 0, bottom: 40 }}
+                  >
+                    <CartesianGrid
+                      stroke="var(--eco-border)"
+                      strokeDasharray="2 4"
+                      strokeOpacity={0.6}
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ ...CHART_TICK_STYLE, fontSize: 11 }}
+                      interval={0}
+                      angle={-25}
+                      textAnchor="end"
+                      height={50}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={CHART_TICK_STYLE}
+                      tickFormatter={formatCount}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={CHART_TOOLTIP_STYLE}
+                      cursor={CHART_HOVER_FILL}
+                      formatter={(v: number | string) => formatCount(Number(v))}
+                    />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]} fill={CHART_PALETTE[1]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartShell>
 
               <ChartShell
                 icon={Home}
-                title={t("dashboardRoomStatusDistributionTitle")}
+                title={t('dashboardRoomStatusDistributionTitle')}
                 loading={roomStatusEntry.loading && !roomStatusDistribution}
                 error={translateCacheError(roomStatusEntry.error, t)}
                 empty={roomStatusChartData.length === 0}
-                emptyLabel={t("dashboardEmptyChart")}
+                emptyLabel={t('dashboardEmptyChart')}
                 onRetry={() => void fetchRoomStatusDistribution(authorizedRequest, true)}
                 placeholderShape="pie"
                 height={280}
               >
                 <ResponsiveContainer>
                   <PieChart>
-                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={CHART_TOOLTIP_STYLE}
+                      formatter={(v: number | string) => formatCount(Number(v))}
+                    />
+                    <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="circle" iconSize={8} />
                     <Pie
                       data={roomStatusChartData}
                       dataKey="value"
                       nameKey="name"
                       outerRadius={90}
                       label={pieLabel}
-                      stroke="var(--eco-bg)"
+                      stroke="var(--eco-surface-raised)"
                       strokeWidth={2}
                     >
                       {roomStatusChartData.map((entry, idx) => (
@@ -746,23 +1234,50 @@ export function AdminDashboardPage() {
 
               <ChartShell
                 icon={MapPin}
-                title={t("dashboardCountryDistributionTitle")}
+                title={t('dashboardCountryDistributionTitle')}
                 loading={countryEntry.loading && !countryDistribution}
                 error={translateCacheError(countryEntry.error, t)}
                 empty={countryChartData.length === 0}
-                emptyLabel={t("dashboardEmptyChart")}
+                emptyLabel={t('dashboardEmptyChart')}
                 onRetry={() => void fetchCountryDistribution(authorizedRequest, true)}
                 placeholderShape="bars"
                 className="xl:col-span-2"
                 height={Math.max(220, countryChartData.length * 28 + 80)}
               >
                 <ResponsiveContainer>
-                  <BarChart data={countryChartData} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
-                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
-                    <XAxis type="number" allowDecimals={false} tick={CHART_TICK_STYLE} tickFormatter={formatCount} />
-                    <YAxis type="category" dataKey="name" width={150} tick={CHART_TICK_STYLE} />
-                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v: number | string) => formatCount(Number(v))} />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]} fill={CHART_PALETTE[0]} />
+                  <BarChart
+                    data={countryChartData}
+                    layout="vertical"
+                    margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      stroke="var(--eco-border)"
+                      strokeDasharray="2 4"
+                      strokeOpacity={0.6}
+                      horizontal={false}
+                    />
+                    <XAxis
+                      type="number"
+                      allowDecimals={false}
+                      tick={CHART_TICK_STYLE}
+                      tickFormatter={formatCount}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={150}
+                      tick={CHART_TICK_STYLE}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={CHART_TOOLTIP_STYLE}
+                      cursor={CHART_HOVER_FILL}
+                      formatter={(v: number | string) => formatCount(Number(v))}
+                    />
+                    <Bar dataKey="value" radius={[0, 6, 6, 0]} fill={CHART_PALETTE[0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartShell>
@@ -775,27 +1290,37 @@ export function AdminDashboardPage() {
 }
 
 const CHART_TOOLTIP_STYLE: CSSProperties = {
-  background: "var(--eco-bg)",
-  border: "1px solid var(--eco-border)",
-  borderRadius: 8,
+  background: 'var(--eco-surface-raised)',
+  border: '1px solid var(--eco-border)',
+  borderRadius: 12,
   fontSize: 12,
-  color: "var(--eco-text)",
-  boxShadow: "0 6px 16px rgba(0,0,0,0.06)",
+  color: 'var(--eco-text)',
+  boxShadow: '0 12px 32px -12px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.04)',
+  padding: '10px 12px',
 };
 
-const CHART_TICK_STYLE = { fill: "var(--eco-text-tertiary)", fontSize: 12 } as const;
+const CHART_LEGEND_STYLE: CSSProperties = { fontSize: 12, paddingTop: 8 };
+
+const CHART_TICK_STYLE = { fill: 'var(--eco-text-tertiary)', fontSize: 12 } as const;
+
+const CHART_HOVER_LINE = {
+  stroke: 'var(--eco-border-strong)',
+  strokeDasharray: '2 4',
+} as const;
+
+const CHART_HOVER_FILL = { fill: 'var(--eco-neutral-100)', opacity: 0.5 } as const;
 
 // Branded palette derived entirely from --eco-* tokens so every chart shares
 // the same visual language as the rest of the admin UI (KPI cards, badges,
 // status colors). No raw hex colors — the theme owns the source of truth.
 const CHART_PALETTE: readonly string[] = [
-  "var(--eco-primary)",
-  "var(--eco-brand-600)",
-  "var(--eco-warning-500)",
-  "var(--eco-positive)",
-  "var(--eco-danger-500)",
-  "var(--eco-warning)",
-  "var(--eco-text-tertiary)",
+  'var(--eco-primary)',
+  'var(--eco-brand-600)',
+  'var(--eco-warning-500)',
+  'var(--eco-positive)',
+  'var(--eco-danger-500)',
+  'var(--eco-warning)',
+  'var(--eco-text-tertiary)',
 ] as const;
 
 type PieLabelProps = {
@@ -805,8 +1330,8 @@ type PieLabelProps = {
 
 function pieLabel(props: unknown): string {
   const { name, percent } = (props ?? {}) as PieLabelProps;
-  if (!name) return "";
-  const pct = typeof percent === "number" ? Math.round(percent * 100) : 0;
+  if (!name) return '';
+  const pct = typeof percent === 'number' ? Math.round(percent * 100) : 0;
   return `${name} · ${pct}%`;
 }
 
@@ -837,19 +1362,24 @@ function ChartShell({
   empty: boolean;
   emptyLabel: string;
   onRetry: () => void;
-  placeholderShape: "bars" | "pie";
+  placeholderShape: 'bars' | 'pie';
   height: number;
   className?: string;
   children: ReactNode;
 }) {
   return (
-    <Card className={`flex flex-col gap-3 ${className ?? ""}`}>
+    <Card className={`flex flex-col gap-3 ${PANEL_CARD_CLASS} ${className ?? ''}`}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "var(--eco-brand-50)" }}>
-            <Icon size={14} style={{ color: "var(--eco-brand-600)" }} />
+          <div
+            className="w-8 h-8 rounded-xl flex items-center justify-center"
+            style={{ background: 'var(--eco-brand-50)' }}
+          >
+            <Icon size={14} style={{ color: 'var(--eco-brand-600)' }} />
           </div>
-          <div className="text-[14px]" style={{ color: "var(--eco-text)" }}>{title}</div>
+          <div className="text-[14px]" style={PANEL_TITLE_STYLE}>
+            {title}
+          </div>
         </div>
         {error && (
           <Button variant="ghost" size="sm" onClick={onRetry}>
@@ -857,7 +1387,7 @@ function ChartShell({
           </Button>
         )}
       </div>
-      <div style={{ width: "100%", height }}>
+      <div style={{ width: '100%', height }}>
         {loading ? (
           <ChartPlaceholder shape={placeholderShape} height={height} />
         ) : error ? (
@@ -872,13 +1402,17 @@ function ChartShell({
   );
 }
 
-function ChartPlaceholder({ shape, height }: { shape: "bars" | "pie"; height: number }) {
-  if (shape === "pie") {
+function ChartPlaceholder({ shape, height }: { shape: 'bars' | 'pie'; height: number }) {
+  if (shape === 'pie') {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <div
           className="rounded-full animate-pulse"
-          style={{ width: Math.min(height - 40, 180), height: Math.min(height - 40, 180), background: "var(--eco-neutral-200)" }}
+          style={{
+            width: Math.min(height - 40, 180),
+            height: Math.min(height - 40, 180),
+            background: 'var(--eco-neutral-200)',
+          }}
         />
       </div>
     );
@@ -892,7 +1426,7 @@ function ChartPlaceholder({ shape, height }: { shape: "bars" | "pie"; height: nu
           className="flex-1 rounded-md animate-pulse"
           style={{
             height: `${30 + ((i * 17) % 60)}%`,
-            background: "var(--eco-neutral-200)",
+            background: 'var(--eco-neutral-200)',
           }}
         />
       ))}
@@ -902,9 +1436,17 @@ function ChartPlaceholder({ shape, height }: { shape: "bars" | "pie"; height: nu
 
 function ChartErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg" style={{ background: "var(--eco-surface)" }}>
-      <AlertCircle size={20} style={{ color: "var(--eco-danger-500)" }} />
-      <span className="text-[12px] text-center max-w-[260px]" style={{ color: "var(--eco-text-secondary)" }}>{message}</span>
+    <div
+      className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg"
+      style={{ background: 'var(--eco-surface)' }}
+    >
+      <AlertCircle size={20} style={{ color: 'var(--eco-danger-500)' }} />
+      <span
+        className="text-[12px] text-center max-w-[260px]"
+        style={{ color: 'var(--eco-text-secondary)' }}
+      >
+        {message}
+      </span>
       <Button variant="secondary" size="sm" onClick={onRetry}>
         <RefreshCw size={12} />
       </Button>
@@ -914,11 +1456,19 @@ function ChartErrorState({ message, onRetry }: { message: string; onRetry: () =>
 
 function ChartEmptyState({ label, icon: Icon }: { label: string; icon: typeof Inbox }) {
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg" style={{ background: "var(--eco-surface)" }}>
-      <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--eco-neutral-100)" }}>
-        <Icon size={16} style={{ color: "var(--eco-text-tertiary)" }} />
+    <div
+      className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg"
+      style={{ background: 'var(--eco-surface)' }}
+    >
+      <div
+        className="w-9 h-9 rounded-full flex items-center justify-center"
+        style={{ background: 'var(--eco-neutral-100)' }}
+      >
+        <Icon size={16} style={{ color: 'var(--eco-text-tertiary)' }} />
       </div>
-      <span className="text-[12px]" style={{ color: "var(--eco-text-tertiary)" }}>{label}</span>
+      <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+        {label}
+      </span>
     </div>
   );
 }
