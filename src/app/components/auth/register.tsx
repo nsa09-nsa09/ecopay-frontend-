@@ -5,6 +5,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
 import { useI18n, type Language } from '../i18n-provider';
 import { useAuth } from './auth-provider';
+import { VerifyCodeStep } from './verify-code-step';
 import { ApiError, getLegalDocumentRequest, type LegalDocumentDto } from '../../lib/api';
 
 // Pick the localized body/title for a legal document, falling back to Russian
@@ -32,6 +33,10 @@ export function RegisterPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const redirectTarget = new URLSearchParams(location.search).get('redirect') || '/profile';
+
+  // Once registration succeeds without an auto-verified session, we switch to
+  // the code-confirmation step and stop rendering the sign-up form.
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -94,8 +99,13 @@ export function RegisterPage() {
     setLoading(true);
 
     try {
-      await register(displayName, email, pw, true, terms?.version, privacy?.version);
-      navigate(redirectTarget);
+      const result = await register(displayName, email, pw, true, terms?.version, privacy?.version);
+      if (result.kind === 'session') {
+        navigate(redirectTarget);
+      } else {
+        // Email confirmation required — advance to the code-entry step.
+        setPendingEmail(result.email);
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -109,6 +119,18 @@ export function RegisterPage() {
   };
 
   const canSubmit = accepted && !loading;
+
+  // Second stage: the account exists but is unverified. Show the code form and
+  // hand off to the profile once the emailed code checks out.
+  if (pendingEmail) {
+    return (
+      <VerifyCodeStep
+        email={pendingEmail}
+        onVerified={() => navigate(redirectTarget)}
+        onBack={() => setPendingEmail(null)}
+      />
+    );
+  }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">

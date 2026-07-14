@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { Card, Select, RoomStatusBadge, Pill, EmptyState, Button } from '../ds-primitives';
 import { Users, Filter, Search, LayoutGrid } from 'lucide-react';
 import { useI18n, type Language } from '../i18n-provider';
@@ -50,6 +50,7 @@ function ServiceLogo({ url, name }: { url?: string | null; name: string }) {
 
 export function RoomsCatalogPage() {
   const { language } = useI18n();
+  const navigate = useNavigate();
   const [rooms, setRooms] = useState<RoomSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -374,7 +375,31 @@ export function RoomsCatalogPage() {
 
                 <div className="flex items-center justify-between text-[12px]">
                   <span style={{ color: 'var(--eco-text-tertiary)' }}>
-                    {tx(language, 'Владелец', 'Иесі', 'Owner')}: {room.ownerDisplayName}
+                    {tx(language, 'Владелец', 'Иесі', 'Owner')}:{' '}
+                    {room.ownerSlug || room.ownerPublicId ? (
+                      <span
+                        role="link"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          navigate(`/u/${room.ownerSlug ?? room.ownerPublicId}`);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            navigate(`/u/${room.ownerSlug ?? room.ownerPublicId}`);
+                          }
+                        }}
+                        className="cursor-pointer hover:underline"
+                        style={{ color: 'var(--eco-primary)' }}
+                      >
+                        {room.ownerDisplayName}
+                      </span>
+                    ) : (
+                      room.ownerDisplayName
+                    )}
                   </span>
                 </div>
               </Card>

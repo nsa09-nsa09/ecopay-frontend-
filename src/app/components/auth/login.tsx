@@ -5,8 +5,16 @@ import { useI18n } from '../i18n-provider';
 import { formatDateTime } from '../../lib/datetime';
 import { useAuth } from './auth-provider';
 import { consumePersistedBanEvent } from './auth-provider';
+import { VerifyCodeStep } from './verify-code-step';
 import { Ban } from 'lucide-react';
 import { ApiError } from '../../lib/api';
+
+// The backend tags an unverified-login 403 with this marker inside the errors
+// map (see GlobalExceptionHandler#handleEmailNotVerified) so we can detect it
+// without depending on the localized message text.
+function isEmailNotVerified(err: ApiError): boolean {
+  return err.status === 403 && err.errors?.code === 'EMAIL_NOT_VERIFIED';
+}
 
 interface BanInfo {
   reason: string | null;
@@ -48,6 +56,9 @@ export function LoginPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [banInfo, setBanInfo] = useState<BanInfo | null>(null);
+  // When set, the account exists but its email isn't verified — show the code
+  // step (which resends a fresh code and logs the user in on success).
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
 
   useEffect(() => {
     // Order of precedence: query params (just-arrived realtime redirect),
@@ -76,6 +87,8 @@ export function LoginPage() {
         const ban = parseBanFromApiError(err);
         if (ban) {
           setBanInfo(ban);
+        } else if (isEmailNotVerified(err)) {
+          setUnverifiedEmail(email);
         } else {
           setError(err.message);
           setFieldErrors(err.errors);
@@ -87,6 +100,19 @@ export function LoginPage() {
       setLoading(false);
     }
   };
+
+  // Unverified account tried to sign in: divert to email confirmation. A fresh
+  // code is auto-sent on mount since the original one may have expired.
+  if (unverifiedEmail) {
+    return (
+      <VerifyCodeStep
+        email={unverifiedEmail}
+        autoResendOnMount
+        onVerified={() => navigate(redirectTarget)}
+        onBack={() => setUnverifiedEmail(null)}
+      />
+    );
+  }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { useI18n } from '../i18n-provider';
 import { formatDate } from '../../lib/datetime';
-import { Card, Button, Skeleton } from '../ds-primitives';
-import { Star, Shield, AlertCircle, Flag, Info } from 'lucide-react';
+import { Card, Skeleton } from '../ds-primitives';
+import { Star, AlertCircle } from 'lucide-react';
 import {
   ApiError,
   getPublicProfile,
@@ -13,8 +13,12 @@ import {
   type ReputationDto,
   type ReviewDto,
 } from '../../lib/api';
-import { reputationProgress } from '../../lib/reputation';
-import { ReputationLevelBadge } from './level-badge';
+import {
+  reputationBandMeta,
+  reputationFillPercent,
+  reputationOutOfTen,
+  resolveReputationBand,
+} from '../../lib/reputation';
 
 function StarRating({
   rating,
@@ -62,63 +66,6 @@ function StarRating({
 
 export { StarRating };
 
-function ReputationExplanationPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const { t } = useI18n();
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <Card className="w-full max-w-md">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[18px]" style={{ color: 'var(--eco-text)' }}>
-            {t('reputationExplanation')}
-          </h2>
-          <button onClick={onClose} style={{ color: 'var(--eco-text-tertiary)' }}>
-            ✕
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <p className="text-[14px]" style={{ color: 'var(--eco-text-secondary)' }}>
-            {t('reputationFactorsDesc')}
-          </p>
-          <div className="flex flex-col gap-2">
-            {[
-              { icon: Star, label: t('factorAverageRating') },
-              { icon: Shield, label: t('factorCompletedPeriods') },
-              { icon: AlertCircle, label: t('factorDisputes') },
-              { icon: Flag, label: t('factorViolations') },
-            ].map((factor, idx) => (
-              <div key={idx} className="flex items-start gap-2">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: 'var(--eco-brand-50)' }}
-                >
-                  <factor.icon size={16} style={{ color: 'var(--eco-primary)' }} />
-                </div>
-                <div className="flex-1 pt-1">
-                  <p className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
-                    {factor.label}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 p-3 rounded-lg" style={{ background: 'var(--eco-warning-50)' }}>
-            <p className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
-              {t('reviewModeratedNote')}
-            </p>
-          </div>
-          <Button variant="primary" size="md" onClick={onClose} className="mt-2">
-            {t('close')}
-          </Button>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
 export function PublicUserProfilePage() {
   const { t, language } = useI18n();
   const { id, publicId } = useParams<{ id?: string; publicId?: string }>();
@@ -126,7 +73,6 @@ export function PublicUserProfilePage() {
   const [reviewFilter, setReviewFilter] = useState<'all' | 'positive' | 'negative' | 'recent'>(
     'all',
   );
-  const [explanationOpen, setExplanationOpen] = useState(false);
 
   const [reputation, setReputation] = useState<ReputationDto | null>(null);
   const [profile, setProfile] = useState<PublicProfileDto | null>(null);
@@ -157,6 +103,7 @@ export function PublicUserProfilePage() {
           displayName: prof.displayName,
           avatar: prof.avatar ?? null,
           reputation: prof.reputation,
+          reputationLevel: prof.reputationLevel ?? null,
           averageRating: prof.averageRating,
           reviewsCount: prof.reviewsCount,
           completedRoomsCount: prof.completedRoomsCount,
@@ -222,21 +169,16 @@ export function PublicUserProfilePage() {
 
   if (loading) {
     return (
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-[800px] mx-auto px-4 sm:px-6 py-8">
         <Skeleton width={200} height={28} />
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
-          <div className="flex flex-col gap-6">
-            <Card className="flex flex-col gap-3">
-              <Skeleton width={120} height={20} />
-              <Skeleton width="60%" height={14} />
-              <Skeleton width="40%" height={14} />
-            </Card>
-            <Card>
-              <Skeleton width="100%" height={120} />
-            </Card>
-          </div>
+        <div className="mt-6 flex flex-col gap-6">
+          <Card className="flex flex-col gap-3">
+            <Skeleton width={120} height={20} />
+            <Skeleton width="60%" height={14} />
+            <Skeleton width="40%" height={14} />
+          </Card>
           <Card>
-            <Skeleton width="100%" height={160} />
+            <Skeleton width="100%" height={120} />
           </Card>
         </div>
       </div>
@@ -245,7 +187,7 @@ export function PublicUserProfilePage() {
 
   if (error || !reputation) {
     return (
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-[800px] mx-auto px-4 sm:px-6 py-8">
         <Card>
           <div
             className="flex items-center gap-2 text-[14px]"
@@ -260,251 +202,224 @@ export function PublicUserProfilePage() {
 
   const initial = (reputation.displayName ?? '?').charAt(0).toUpperCase();
   const avg = reputation.averageRating ?? 0;
+  const band = resolveReputationBand(reputation.reputationLevel, reputation.reputation);
+  const bandMeta = reputationBandMeta(band);
+  const bandLabel = t(bandMeta.labelKey);
+  const outOfTen = reputationOutOfTen(reputation.reputation);
+  const fillPct = reputationFillPercent(reputation.reputation);
+  const slug = profile?.slug ?? null;
 
   return (
-    <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-[800px] mx-auto px-4 sm:px-6 py-8">
       <div className="mb-6">
         <h1 className="text-[22px] sm:text-[28px]" style={{ color: 'var(--eco-text)' }}>
           {t('publicProfile')}
         </h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
-        <div className="flex flex-col gap-6">
-          <Card>
-            <div className="flex flex-col sm:flex-row items-start gap-4">
-              {reputation.avatar ? (
-                <img
-                  src={reputation.avatar}
-                  alt={reputation.displayName ?? ''}
-                  className="w-20 h-20 rounded-full object-cover shrink-0"
-                />
-              ) : (
+      <div className="flex flex-col gap-6">
+        <Card>
+          <div className="flex flex-col sm:flex-row items-start gap-4">
+            {reputation.avatar ? (
+              <img
+                src={reputation.avatar}
+                alt={reputation.displayName ?? ''}
+                className="w-20 h-20 rounded-full object-cover shrink-0"
+              />
+            ) : (
+              <div
+                className="w-20 h-20 rounded-full flex items-center justify-center shrink-0 text-[24px]"
+                style={{ background: 'var(--eco-brand-100)', color: 'var(--eco-primary)' }}
+              >
+                {initial}
+              </div>
+            )}
+
+            <div className="flex-1 min-w-0">
+              <h2
+                className="text-[20px] sm:text-[22px] break-words"
+                style={{ color: 'var(--eco-text)' }}
+              >
+                {reputation.displayName}
+              </h2>
+              {slug ? (
+                <div className="text-[13px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  @{slug}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--eco-border)' }}>
+            <div className="flex items-end justify-between gap-3 flex-wrap">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[40px] leading-none" style={{ color: 'var(--eco-text)' }}>
+                  {outOfTen.toFixed(1)}
+                </span>
+                <span className="text-[16px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  / 10
+                </span>
+              </div>
+              <span
+                className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px]"
+                style={{
+                  background: `${bandMeta.color}1A`,
+                  color: bandMeta.color,
+                  fontWeight: 500,
+                }}
+              >
+                {bandLabel}
+              </span>
+            </div>
+            <div
+              className="mt-3 h-2 w-full rounded-full overflow-hidden"
+              style={{ background: 'var(--eco-surface)' }}
+            >
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${fillPct}%`,
+                  background: bandMeta.color,
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6">
+            <div className="text-center">
+              <div className="text-[24px]" style={{ color: 'var(--eco-primary)' }}>
+                {outOfTen.toFixed(1)}
+                <span className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  {' '}
+                  / 10
+                </span>
+              </div>
+              <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                {t('reputationScore')}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
+                {reputation.completedRoomsCount}
+              </div>
+              <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                {t('successfulPeriods')}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
+                {reputation.reviewsCount}
+              </div>
+              <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                {t('reviews')}
+              </div>
+            </div>
+          </div>
+
+          {reputation.averageRating != null && (
+            <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--eco-border)' }}>
+              <div className="flex items-center gap-3">
+                <div className="text-[32px]" style={{ color: 'var(--eco-text)' }}>
+                  {avg.toFixed(1)}
+                </div>
+                <div>
+                  <StarRating rating={avg} size={20} />
+                  <div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {reputation.reviewsCount} {t('reviews')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <p
+            className="mt-6 text-[12px] leading-relaxed"
+            style={{ color: 'var(--eco-text-tertiary)' }}
+          >
+            {t('reputationNote')}
+          </p>
+        </Card>
+
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[18px]" style={{ color: 'var(--eco-text)' }}>
+              {t('reviewsTitle')}
+            </h3>
+          </div>
+
+          <div className="flex gap-2 mb-4 overflow-x-auto">
+            {[
+              { key: 'all' as const, label: t('allReviews') },
+              { key: 'positive' as const, label: t('positiveReviews') },
+              { key: 'negative' as const, label: t('negativeReviews') },
+              { key: 'recent' as const, label: t('recentReviews') },
+            ].map((filter) => (
+              <button
+                key={filter.key}
+                onClick={() => setReviewFilter(filter.key)}
+                className="px-3 py-1.5 rounded-lg text-[13px] whitespace-nowrap transition-colors cursor-pointer"
+                style={{
+                  background:
+                    reviewFilter === filter.key ? 'var(--eco-primary)' : 'var(--eco-surface)',
+                  color: reviewFilter === filter.key ? '#fff' : 'var(--eco-text-secondary)',
+                  border: 'none',
+                }}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+
+          {filteredReviews.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-[14px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                {t('noReviewsYet')}
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {filteredReviews.map((review) => (
                 <div
-                  className="w-20 h-20 rounded-full flex items-center justify-center shrink-0 text-[24px]"
-                  style={{ background: 'var(--eco-brand-100)', color: 'var(--eco-primary)' }}
+                  key={review.id}
+                  className="p-4 rounded-lg"
+                  style={{ background: 'var(--eco-surface)' }}
                 >
-                  {initial}
-                </div>
-              )}
-
-              <div className="flex-1 min-w-0">
-                <h2
-                  className="text-[20px] sm:text-[22px] break-words"
-                  style={{ color: 'var(--eco-text)' }}
-                >
-                  {reputation.displayName}
-                </h2>
-                <div className="mt-1.5">
-                  <ReputationLevelBadge
-                    level={reputation.reputationLevel}
-                    score={reputation.reputation}
-                  />
-                </div>
-                <div className="text-[13px] mt-1.5" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {profile?.publicId ? (
-                    <span style={{ fontFamily: 'monospace' }}>{profile.publicId}</span>
-                  ) : (
-                    <>User #{reputation.userId}</>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6">
-              <div className="text-center">
-                <div className="text-[24px]" style={{ color: 'var(--eco-primary)' }}>
-                  {reputation.reputation}
-                </div>
-                <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {t('reputationScore')}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
-                  {reputation.completedRoomsCount}
-                </div>
-                <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {t('successfulPeriods')}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
-                  {reputation.reviewsCount}
-                </div>
-                <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {t('reviews')}
-                </div>
-              </div>
-            </div>
-
-            {(() => {
-              const prog = reputationProgress(reputation.reputation);
-              return (
-                <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--eco-border)' }}>
-                  <div
-                    className="flex items-center justify-between mb-2 text-[12px]"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    <span>{t('reputationLevel')}</span>
-                    {prog ? (
-                      <span>
-                        {prog.pointsToNext} {t('repPointsToNext')} {t(prog.next.labelKey)}
-                      </span>
-                    ) : (
-                      <span>{t('repMaxLevel')}</span>
-                    )}
-                  </div>
-                  <div
-                    className="h-1.5 rounded-full overflow-hidden"
-                    style={{ background: 'var(--eco-surface)' }}
-                  >
+                  <div className="flex items-start gap-3">
                     <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.round((prog ? prog.progress : 1) * 100)}%`,
-                        background: 'var(--eco-primary)',
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })()}
-
-            {reputation.averageRating != null && (
-              <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--eco-border)' }}>
-                <div className="flex items-center gap-3">
-                  <div className="text-[32px]" style={{ color: 'var(--eco-text)' }}>
-                    {avg.toFixed(1)}
-                  </div>
-                  <div>
-                    <StarRating rating={avg} size={20} />
-                    <div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {reputation.reviewsCount} {t('reviews')}
+                      className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                      style={{ background: 'var(--eco-neutral-100)' }}
+                    >
+                      {(review.authorDisplayName ?? '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+                          {review.authorDisplayName}
+                        </span>
+                        <span
+                          className="text-[12px]"
+                          style={{ color: 'var(--eco-text-tertiary)' }}
+                        >
+                          {formatDate(review.createdAt, language)}
+                        </span>
+                      </div>
+                      <StarRating rating={review.rating} size={14} />
+                      {review.text && (
+                        <p
+                          className="text-[13px] mt-2 whitespace-pre-wrap"
+                          style={{ color: 'var(--eco-text-secondary)' }}
+                        >
+                          {review.text}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </Card>
-
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[18px]" style={{ color: 'var(--eco-text)' }}>
-                {t('reviewsTitle')}
-              </h3>
-            </div>
-
-            <div className="flex gap-2 mb-4 overflow-x-auto">
-              {[
-                { key: 'all' as const, label: t('allReviews') },
-                { key: 'positive' as const, label: t('positiveReviews') },
-                { key: 'negative' as const, label: t('negativeReviews') },
-                { key: 'recent' as const, label: t('recentReviews') },
-              ].map((filter) => (
-                <button
-                  key={filter.key}
-                  onClick={() => setReviewFilter(filter.key)}
-                  className="px-3 py-1.5 rounded-lg text-[13px] whitespace-nowrap transition-colors cursor-pointer"
-                  style={{
-                    background:
-                      reviewFilter === filter.key ? 'var(--eco-primary)' : 'var(--eco-surface)',
-                    color: reviewFilter === filter.key ? '#fff' : 'var(--eco-text-secondary)',
-                    border: 'none',
-                  }}
-                >
-                  {filter.label}
-                </button>
               ))}
             </div>
-
-            {filteredReviews.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-[14px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {t('noReviewsYet')}
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {filteredReviews.map((review) => (
-                  <div
-                    key={review.id}
-                    className="p-4 rounded-lg"
-                    style={{ background: 'var(--eco-surface)' }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                        style={{ background: 'var(--eco-neutral-100)' }}
-                      >
-                        {(review.authorDisplayName ?? '?').charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
-                            {review.authorDisplayName}
-                          </span>
-                          <span
-                            className="text-[12px]"
-                            style={{ color: 'var(--eco-text-tertiary)' }}
-                          >
-                            {formatDate(review.createdAt, language)}
-                          </span>
-                        </div>
-                        <StarRating rating={review.rating} size={14} />
-                        {review.text && (
-                          <p
-                            className="text-[13px] mt-2 whitespace-pre-wrap"
-                            style={{ color: 'var(--eco-text-secondary)' }}
-                          >
-                            {review.text}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <Card>
-            <div className="flex items-center gap-2 mb-3">
-              <Info size={16} style={{ color: 'var(--eco-primary)' }} />
-              <h3 className="text-[16px]" style={{ color: 'var(--eco-text)' }}>
-                {t('reputationFactors')}
-              </h3>
-            </div>
-            <p className="text-[13px] mb-3" style={{ color: 'var(--eco-text-secondary)' }}>
-              {t('reputationFactorsDesc')}
-            </p>
-            <ul
-              className="flex flex-col gap-2 text-[12px]"
-              style={{ color: 'var(--eco-text-tertiary)' }}
-            >
-              <li>• {t('factorAverageRating')}</li>
-              <li>• {t('factorCompletedPeriods')}</li>
-              <li>• {t('factorDisputes')}</li>
-              <li>• {t('factorViolations')}</li>
-            </ul>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setExplanationOpen(true)}
-              className="w-full mt-3"
-            >
-              {t('viewDetails')}
-            </Button>
-          </Card>
-        </div>
+          )}
+        </Card>
       </div>
-
-      <ReputationExplanationPanel
-        isOpen={explanationOpen}
-        onClose={() => setExplanationOpen(false)}
-      />
     </div>
   );
 }

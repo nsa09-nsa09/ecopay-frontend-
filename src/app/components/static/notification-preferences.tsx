@@ -66,6 +66,13 @@ function typeLabel(type: string, language: Language): string {
         'Қатысушы қатынасты растады',
         'Member confirmed access',
       );
+    case 'ROOM_MEMBER_PAID':
+      return tx(
+        language,
+        'Участник оплатил и ждёт подключения',
+        'Қатысушы төледі және қосылуды күтуде',
+        'Member paid and awaits connection',
+      );
     case 'MEMBERSHIP_ACTIVATED':
       return tx(language, 'Участие активировано', 'Қатысу белсендірілді', 'Membership activated');
     case 'MEMBERSHIP_REJECTED':
@@ -79,6 +86,15 @@ function typeLabel(type: string, language: Language): string {
       );
     case 'ROOM_ACTIVE':
       return tx(language, 'Комната активирована', 'Бөлме белсендірілді', 'Room activated');
+    case 'ROOM_FULL_AWAITING_ACCESS':
+      return tx(
+        language,
+        'Все участники оплатили — нужен доступ',
+        'Барлық қатысушы төледі — қатынас қажет',
+        'All members paid — access needed',
+      );
+    case 'CHAT_MESSAGE':
+      return tx(language, 'Новое сообщение в чате', 'Чатта жаңа хабарлама', 'New chat message');
     case 'ROOM_COMPLETED':
       return tx(language, 'Комната завершена', 'Бөлме аяқталды', 'Room completed');
     case 'ROOM_BLOCKED':
