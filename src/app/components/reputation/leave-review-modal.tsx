@@ -13,7 +13,7 @@ interface LeaveReviewModalProps {
   open: boolean;
   onClose: () => void;
   recipientId: number;
-  roomId: number;
+  roomId?: number;
   recipientName?: string;
   onSubmitted?: () => void;
 }
@@ -47,7 +47,7 @@ export function LeaveReviewModal({
         createReviewRequest(
           {
             recipientId,
-            roomId,
+            ...(roomId !== undefined ? { roomId } : {}),
             rating,
             text: text.trim() || undefined,
           },

@@ -72,7 +72,12 @@ import {
   YAxis,
 } from 'recharts';
 
-type KpiSparklineKey = 'revenue' | 'uniqueVisitors' | 'pageViews' | 'newRooms';
+type KpiSparklineKey =
+  | 'revenue'
+  | 'commissionRevenue'
+  | 'uniqueVisitors'
+  | 'pageViews'
+  | 'newRooms';
 
 interface KpiCardConfig {
   key: string;
@@ -283,6 +288,10 @@ export function AdminDashboardPage() {
       period: p.period,
       [t('dashboardMetricRevenue')]:
         typeof p.revenue === 'string' ? Number(p.revenue) : (p.revenue ?? 0),
+      [t('dashboardMetricCommission')]:
+        typeof p.commissionRevenue === 'string'
+          ? Number(p.commissionRevenue)
+          : (p.commissionRevenue ?? 0),
     }));
   }, [metrics, t]);
 
@@ -333,9 +342,17 @@ export function AdminDashboardPage() {
           {
             key: 'totalRevenueLabel',
             value: formatMoney(kpis.totalRevenue),
-            icon: TrendingUp,
+            icon: Wallet,
             variant: 'success',
             sparklineKey: 'revenue',
+            linkTo: '/admin/finance?tab=revenue',
+          },
+          {
+            key: 'platformRevenueLabel',
+            value: formatMoney(kpis.platformRevenue ?? null),
+            icon: Percent,
+            variant: 'success',
+            sparklineKey: 'commissionRevenue',
             linkTo: '/admin/finance?tab=revenue',
           },
           {
@@ -348,7 +365,7 @@ export function AdminDashboardPage() {
           {
             key: 'kpiActiveSubsValue',
             value: formatMoney(kpis.totalActiveSubscriptionsValueKzt ?? null),
-            icon: Wallet,
+            icon: TrendingUp,
             variant: 'success',
             linkTo: '/admin/finance?tab=subscriptions',
           },
@@ -461,7 +478,7 @@ export function AdminDashboardPage() {
     (sparklineKey: KpiSparklineKey): { v: number }[] | null => {
       if (!metrics || !Array.isArray(metrics.series) || metrics.series.length < 2) return null;
       const points = metrics.series.map((p) => {
-        const raw = (p as Record<string, unknown>)[sparklineKey];
+        const raw = (p as unknown as Record<string, unknown>)[sparklineKey];
         const num = typeof raw === 'string' ? Number(raw) : (raw as number | null | undefined);
         return { v: typeof num === 'number' && Number.isFinite(num) ? num : 0 };
       });
@@ -932,6 +949,16 @@ export function AdminDashboardPage() {
                               style={{ stopColor: 'var(--eco-brand-600)', stopOpacity: 0 }}
                             />
                           </linearGradient>
+                          <linearGradient id="eco-grad-commission" x1="0" y1="0" x2="0" y2="1">
+                            <stop
+                              offset="0%"
+                              style={{ stopColor: 'var(--eco-positive)', stopOpacity: 0.32 }}
+                            />
+                            <stop
+                              offset="100%"
+                              style={{ stopColor: 'var(--eco-positive)', stopOpacity: 0 }}
+                            />
+                          </linearGradient>
                         </defs>
                         <CartesianGrid
                           stroke="var(--eco-border)"
@@ -958,6 +985,15 @@ export function AdminDashboardPage() {
                           stroke="var(--eco-brand-600)"
                           strokeWidth={2}
                           fill="url(#eco-grad-revenue)"
+                          fillOpacity={1}
+                          dot={false}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey={t('dashboardMetricCommission')}
+                          stroke="var(--eco-positive)"
+                          strokeWidth={2}
+                          fill="url(#eco-grad-commission)"
                           fillOpacity={1}
                           dot={false}
                         />

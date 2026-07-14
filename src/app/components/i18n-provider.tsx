@@ -2573,7 +2573,22 @@ const translations: Translations = {
     kz: 'Модерация күтуде',
     en: 'Pending moderation',
   },
-  totalRevenueLabel: { ru: 'Общий доход', kz: 'Жалпы табыс', en: 'Total revenue' },
+  totalRevenueLabel: { ru: 'Оборот', kz: 'Айналым', en: 'Turnover' },
+  totalRevenueDescription: {
+    ru: 'Подписки + комиссии',
+    kz: 'Жазылымдар + комиссиялар',
+    en: 'Subscriptions + fees',
+  },
+  platformRevenueLabel: {
+    ru: 'Доход платформы',
+    kz: 'Платформа табысы',
+    en: 'Platform revenue',
+  },
+  platformRevenueDescription: {
+    ru: 'Только комиссии платформы',
+    kz: 'Тек платформа комиссиясы',
+    en: 'Platform fees only',
+  },
   totalRefundsLabel: { ru: 'Возвраты', kz: 'Қайтарулар', en: 'Refunds' },
   pendingPayoutsLabel: { ru: 'Выплаты в ожидании', kz: 'Күтудегі төлемдер', en: 'Pending payouts' },
   emptyAdminLogs: {
@@ -3679,7 +3694,16 @@ const translations: Translations = {
     en: 'Traffic: unique visitors and page views',
   },
   dashboardChartNewRoomsTitle: { ru: 'Новые комнаты', kz: 'Жаңа бөлмелер', en: 'New rooms' },
-  dashboardChartRevenueTitle: { ru: 'Выручка (KZT)', kz: 'Табыс (KZT)', en: 'Revenue (KZT)' },
+  dashboardChartRevenueTitle: {
+    ru: 'Оборот и доход платформы (KZT)',
+    kz: 'Айналым және платформа табысы (KZT)',
+    en: 'Turnover & platform revenue (KZT)',
+  },
+  dashboardMetricCommission: {
+    ru: 'Доход платформы',
+    kz: 'Платформа табысы',
+    en: 'Platform revenue',
+  },
   dashboardMetricUniqueVisitors: {
     ru: 'Уникальные гости',
     kz: 'Бірегей қонақтар',
@@ -3687,7 +3711,12 @@ const translations: Translations = {
   },
   dashboardMetricPageViews: { ru: 'Просмотры', kz: 'Қаралымдар', en: 'Page views' },
   dashboardMetricNewRooms: { ru: 'Новые комнаты', kz: 'Жаңа бөлмелер', en: 'New rooms' },
-  dashboardMetricRevenue: { ru: 'Выручка', kz: 'Табыс', en: 'Revenue' },
+  dashboardMetricRevenue: { ru: 'Оборот', kz: 'Айналым', en: 'Turnover' },
+  rateUserAction: {
+    ru: 'Оценить пользователя',
+    kz: 'Пайдаланушыны бағалау',
+    en: 'Rate user',
+  },
   dashboardSectionAudience: {
     ru: 'Аудитория и спрос',
     kz: 'Аудитория мен сұраныс',
