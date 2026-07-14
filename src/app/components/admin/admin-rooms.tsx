@@ -12,6 +12,7 @@ import {
 } from '../../lib/api';
 import { ShieldX, ShieldCheck, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
+import { formatNumber } from '../../lib/datetime';
 
 const PAGE_SIZE = 20;
 
@@ -254,7 +255,7 @@ export function AdminRoomsPage() {
                       { label: t('startLabel'), value: selected.startDate },
                       {
                         label: t('totalCost'),
-                        value: `₸${(selected.priceTotal ?? 0).toLocaleString()}`,
+                        value: `₸${formatNumber(selected.priceTotal ?? 0)}`,
                       },
                     ].map((s) => (
                       <div key={s.label}>

@@ -418,7 +418,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
               border: 'none',
               color: 'var(--eco-text-secondary)',
             }}
-            aria-label="Close menu"
+            aria-label={t('closeMenu')}
           >
             <X size={18} />
           </button>
@@ -484,7 +484,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                 border: 'none',
                 color: 'var(--eco-text-secondary)',
               }}
-              aria-label="Open menu"
+              aria-label={t('openMenu')}
             >
               <Menu size={18} />
             </button>
@@ -613,7 +613,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                   border: 'none',
                   color: 'var(--eco-text-secondary)',
                 }}
-                aria-label="Close"
+                aria-label={t('close')}
               >
                 <X size={16} />
               </button>

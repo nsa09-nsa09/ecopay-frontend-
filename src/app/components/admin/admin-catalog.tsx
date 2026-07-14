@@ -6,6 +6,7 @@ import { Badge, Button, Card, Input, Modal, Select, Tabs } from '../ds-primitive
 import { FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
 import { LogoCropModal } from './logo-crop-modal';
 import { Image as ImageIcon, Pencil, Plus, RefreshCw, Trash2, Upload, X } from 'lucide-react';
+import { formatNumber } from '../../lib/datetime';
 import {
   adminCreateCategory,
   adminCreateService,
@@ -1200,7 +1201,7 @@ function TariffsSection() {
                       className="px-4 py-3 whitespace-nowrap"
                       style={{ color: 'var(--eco-text-secondary)' }}
                     >
-                      {Number(tariff.basePriceTotal).toLocaleString()}
+                      {formatNumber(Number(tariff.basePriceTotal))}
                     </td>
                     <td
                       className="px-4 py-3 whitespace-nowrap"

@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { Card, Badge, Button } from '../ds-primitives';
 import { useI18n } from '../i18n-provider';
 import { ChevronDown, ChevronUp, X, Users, Info, ArrowRight } from 'lucide-react';
+import { formatNumber } from '../../lib/datetime';
 
 // ─── i18n helpers ───
 type L = 'ru' | 'kz' | 'en';
@@ -101,7 +102,7 @@ function PerPersonTable({ price, members }: { price: number; members: number[] }
           >
             {m}p →{' '}
             <strong style={{ color: 'var(--eco-text)' }}>
-              ₸{Math.round(price / m).toLocaleString()}
+              ₸{formatNumber(Math.round(price / m))}
             </strong>
           </span>
         ))}
@@ -180,7 +181,7 @@ function GoogleOneCard({ lang }: { lang: L }) {
             {selected.name}
           </span>
           <span className="text-[15px]" style={{ color: 'var(--eco-primary)' }}>
-            ₸{selected.price.toLocaleString()}
+            ₸{formatNumber(selected.price)}
             <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
               {' '}
               /{t(lang, 'мес', 'ай', 'mo')}
@@ -242,7 +243,7 @@ function GoogleOneCard({ lang }: { lang: L }) {
                     {p.name}
                   </td>
                   <td className="text-right py-1.5 px-2" style={{ color: 'var(--eco-primary)' }}>
-                    ₸{p.price.toLocaleString()}
+                    ₸{formatNumber(p.price)}
                   </td>
                   {members.map((m) => (
                     <td
@@ -250,7 +251,7 @@ function GoogleOneCard({ lang }: { lang: L }) {
                       className="text-right py-1.5 px-2"
                       style={{ color: 'var(--eco-text-secondary)' }}
                     >
-                      ₸{Math.round(p.price / m).toLocaleString()}
+                      ₸{formatNumber(Math.round(p.price / m))}
                     </td>
                   ))}
                 </tr>
@@ -570,10 +571,10 @@ function YandexDiskCard({ lang }: { lang: L }) {
                     className="text-right py-1.5 px-2"
                     style={{ color: 'var(--eco-text-secondary)' }}
                   >
-                    ₸{p.monthly.toLocaleString()}
+                    ₸{formatNumber(p.monthly)}
                   </td>
                   <td className="text-right py-1.5 px-2" style={{ color: 'var(--eco-primary)' }}>
-                    ₸{p.yearly.toLocaleString()}
+                    ₸{formatNumber(p.yearly)}
                   </td>
                   <td className="text-right py-1.5 px-2" style={{ color: 'var(--eco-positive)' }}>
                     -{savings}%

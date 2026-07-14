@@ -1,4 +1,5 @@
 import type { Language } from '../components/i18n-provider';
+import { getCurrentLanguage } from './locale';
 
 const ALMATY_TZ = 'Asia/Almaty';
 
@@ -8,8 +9,10 @@ const LOCALE_BY_LANGUAGE: Record<Language, string> = {
   en: 'en-US',
 };
 
+// When no explicit language is passed, follow the active i18n language that
+// I18nProvider mirrors into lib/locale on every render.
 function resolveLocale(language?: Language): string {
-  return language ? (LOCALE_BY_LANGUAGE[language] ?? 'ru-RU') : 'ru-RU';
+  return LOCALE_BY_LANGUAGE[language ?? getCurrentLanguage()] ?? 'ru-RU';
 }
 
 function parse(value: string | number | Date | null | undefined): Date | null {
@@ -50,6 +53,22 @@ export function formatDateTime(
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
+}
+
+const numberCache = new Map<string, Intl.NumberFormat>();
+
+/**
+ * Format a number (prices, counters) using the active i18n language, so the
+ * thousands separator follows the app language instead of the browser locale.
+ */
+export function formatNumber(value: number, language?: Language): string {
+  const locale = resolveLocale(language);
+  let fmt = numberCache.get(locale);
+  if (!fmt) {
+    fmt = new Intl.NumberFormat(locale);
+    numberCache.set(locale, fmt);
+  }
+  return fmt.format(value);
 }
 
 /**

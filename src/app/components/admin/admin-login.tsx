@@ -235,7 +235,7 @@ export function AdminLoginPage() {
             className="inline-flex items-center gap-2 text-[13px] cursor-pointer self-start"
             style={{ color: 'var(--eco-primary)', background: 'transparent', border: 'none' }}
           >
-            ← Вернуться на страницу
+            {t('adminBackToSite')}
           </button>
         </div>
 
