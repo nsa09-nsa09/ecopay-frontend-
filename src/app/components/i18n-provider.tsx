@@ -35,6 +35,34 @@ const translations: Translations = {
   },
   catalog: { ru: 'Каталог', kz: 'Каталог', en: 'Catalog' },
   news: { ru: 'Новости', kz: 'Жаңалықтар', en: 'News' },
+
+  // ===== Stories (home) =====
+  storiesSectionTitle: { ru: 'Актуальное', kz: 'Өзекті', en: 'Highlights' },
+  storiesLearnMore: { ru: 'Подробнее', kz: 'Толығырақ', en: 'Learn more' },
+  storiesPrev: { ru: 'Предыдущая история', kz: 'Алдыңғы оқиға', en: 'Previous story' },
+  storiesNext: { ru: 'Следующая история', kz: 'Келесі оқиға', en: 'Next story' },
+  storiesClose: { ru: 'Закрыть', kz: 'Жабу', en: 'Close' },
+  storiesOpenAria: {
+    ru: 'Открыть историю: {{title}}',
+    kz: 'Оқиғаны ашу: {{title}}',
+    en: 'Open story: {{title}}',
+  },
+  storiesViewerAria: { ru: 'Просмотр историй', kz: 'Оқиғаларды қарау', en: 'Story viewer' },
+
+  // ===== Social (news) =====
+  socialSectionTitle: { ru: 'Мы в соцсетях', kz: 'Біз әлеуметтік желіде', en: 'Follow us' },
+  socialSectionSubtitle: {
+    ru: 'Акции, гайды и короткие видео о том, как экономить на подписках',
+    kz: 'Жазылымдарда үнемдеу туралы акциялар, гайдтар және қысқа видеолар',
+    en: 'Deals, guides and short videos on saving with subscriptions',
+  },
+  socialFollowers: { ru: 'подписчиков', kz: 'жазылушы', en: 'followers' },
+  socialViewInstagram: {
+    ru: 'Смотреть в Instagram',
+    kz: 'Instagram-да көру',
+    en: 'View on Instagram',
+  },
+  socialViewTikTok: { ru: 'Смотреть в TikTok', kz: 'TikTok-та көру', en: 'View on TikTok' },
   memberReviewsTitle: {
     ru: 'Отзывы участников',
     kz: 'Қатысушылар пікірлері',

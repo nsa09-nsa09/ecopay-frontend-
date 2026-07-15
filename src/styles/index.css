@@ -346,3 +346,12 @@ button:not(.eco-btn):focus-visible {
     transform: none;
   }
 }
+
+/* Stories preview strip: horizontal drag-scroll without a visible scrollbar. */
+.eco-stories-scroller {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.eco-stories-scroller::-webkit-scrollbar {
+  display: none;
+}
