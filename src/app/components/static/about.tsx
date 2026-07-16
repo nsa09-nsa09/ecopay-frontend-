@@ -85,7 +85,7 @@ export function AboutPage() {
     };
   }, []);
 
-  const heroTitle = pickLocalized(content, 'title', language)?.trim() || t('aboutEcoPay');
+  const heroTitle = pickLocalized(content, 'title', language)?.trim() || t('aboutEcoSplit');
   const missionText = pickLocalized(content, 'mission', language)?.trim() || t('missionText');
   const descriptionText =
     pickLocalized(content, 'description', language)?.trim() || t('howWeHelpText');

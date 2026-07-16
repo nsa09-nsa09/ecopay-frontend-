@@ -78,6 +78,9 @@ const PrivacyPage = lazy(() =>
 const HowItWorksPage = lazy(() =>
   import('./components/static/how-it-works').then((m) => ({ default: m.HowItWorksPage })),
 );
+const SecurityPage = lazy(() =>
+  import('./components/static/security').then((m) => ({ default: m.SecurityPage })),
+);
 const AdminLoginPage = lazy(() =>
   import('./components/admin/admin-login').then((m) => ({ default: m.AdminLoginPage })),
 );
@@ -239,10 +242,30 @@ const AnalyticsEventTrackingPage = lazy(() =>
 );
 
 function ErrorFallback() {
+  // The error boundary can render outside the i18n provider, so read the
+  // persisted language directly instead of using the hook.
+  let lang = 'ru';
+  try {
+    lang = localStorage.getItem('ecopay-language') ?? 'ru';
+  } catch {
+    /* storage unavailable — keep default */
+  }
+  const title =
+    lang === 'kz'
+      ? 'Бірдеңе дұрыс болмады'
+      : lang === 'en'
+        ? 'Something went wrong'
+        : 'Что-то пошло не так';
+  const body =
+    lang === 'kz'
+      ? 'Қайталап көріңіз немесе артқа оралыңыз.'
+      : lang === 'en'
+        ? 'Please try again or go back.'
+        : 'Попробуйте ещё раз или вернитесь назад.';
   return (
     <div style={{ padding: 40, textAlign: 'center', color: 'var(--eco-text)' }}>
-      <h2>Something went wrong</h2>
-      <p style={{ color: 'var(--eco-text-secondary)' }}>Please try again or go back.</p>
+      <h2>{title}</h2>
+      <p style={{ color: 'var(--eco-text-secondary)' }}>{body}</p>
     </div>
   );
 }
@@ -293,6 +316,7 @@ export const router = createBrowserRouter([
           { path: 'terms', Component: TermsPage },
           { path: 'privacy', Component: PrivacyPage },
           { path: 'how-it-works', Component: HowItWorksPage },
+          { path: 'security', Component: SecurityPage },
           { path: 'payment/room', Component: PaymentRoomDetailsPage },
           { path: 'payment/checkout', Component: PaymentCheckoutPage },
           // Freedom Pay redirect-back targets (success_url / failure_url) — wired to

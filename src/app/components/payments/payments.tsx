@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { Card, Badge, Button, Skeleton, EmptyState } from '../ds-primitives';
 import { useI18n, type Language } from '../i18n-provider';
-import { formatDateTime } from '../../lib/datetime';
+import { formatDateTime, formatNumber } from '../../lib/datetime';
 import {
   CheckCircle2,
   XCircle,
@@ -78,7 +78,7 @@ function PaymentFooter({ lang }: { lang: L }) {
           <Phone size={11} /> +7 (727) 000-00-00
         </span>
         <span className="flex items-center gap-1.5">
-          <Mail size={11} /> support@ecopay.kz
+          <Mail size={11} /> support@ecosplit.kz
         </span>
         <span className="flex items-center gap-1.5">
           <MapPin size={11} />{' '}
@@ -88,9 +88,9 @@ function PaymentFooter({ lang }: { lang: L }) {
       <div className="text-[11px] mt-3" style={{ color: 'var(--eco-text-tertiary)' }}>
         {tx(
           lang,
-          '© 2026 EcoPay · ТОО «Apex Digital»',
-          '© 2026 EcoPay · «Apex Digital» ЖШС',
-          '© 2026 EcoPay · Apex Digital LLP',
+          '© 2026 EcoSplit · ТОО «Apex Digital»',
+          '© 2026 EcoSplit · «Apex Digital» ЖШС',
+          '© 2026 EcoSplit · Apex Digital LLP',
         )}
       </div>
     </div>
@@ -272,7 +272,7 @@ export function PaymentRoomDetailsPage() {
           {[
             {
               label: tx(l, 'Доля участника', 'Қатысушы үлесі', 'Participant share'),
-              value: `₸${share.toLocaleString()}`,
+              value: `₸${formatNumber(share)}`,
             },
             {
               label: tx(
@@ -281,7 +281,7 @@ export function PaymentRoomDetailsPage() {
                 'Платформа комиссиясы (8%)',
                 'Platform fee (8%)',
               ),
-              value: `₸${fee.toLocaleString()}`,
+              value: `₸${formatNumber(fee)}`,
             },
           ].map((row) => (
             <div key={row.label} className="flex items-center justify-between text-[14px]">
@@ -297,7 +297,7 @@ export function PaymentRoomDetailsPage() {
               {tx(l, 'Итого к оплате', 'Төлем жиыны', 'Total to pay now')}
             </span>
             <span className="text-[18px]" style={{ color: 'var(--eco-primary)' }}>
-              ₸{total.toLocaleString()}
+              ₸{formatNumber(total)}
             </span>
           </div>
         </div>
@@ -402,7 +402,7 @@ export function PaymentCheckoutPage() {
             Beeline Family 4
           </span>
           <span className="text-[15px]" style={{ color: 'var(--eco-primary)' }}>
-            ₸{total.toLocaleString()}
+            ₸{formatNumber(total)}
           </span>
         </div>
         <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
@@ -495,7 +495,7 @@ export function PaymentCheckoutPage() {
 
       <Button variant="primary" size="lg" className="w-full">
         <Lock size={15} /> {tx(l, 'Оплатить безопасно', 'Қауіпсіз төлеу', 'Pay securely')} · ₸
-        {total.toLocaleString()}
+        {formatNumber(total)}
       </Button>
 
       <TrustBlock lang={l} />
@@ -822,6 +822,24 @@ function refundStatusVariant(s: string): 'warning' | 'info' | 'success' | 'dange
   return 'default';
 }
 
+const refundStatusLabel = (s: string, l: L): string => {
+  const map: Record<string, [string, string, string]> = {
+    SUCCESS: ['Выполнен', 'Орындалды', 'Success'],
+    COMPLETED: ['Завершён', 'Аяқталды', 'Completed'],
+    SENT: ['Отправлен', 'Жіберілді', 'Sent'],
+    FAILED: ['Ошибка', 'Сәтсіз', 'Failed'],
+    REJECTED: ['Отклонён', 'Қабылданбады', 'Rejected'],
+    CANCELLED: ['Отменён', 'Бас тартылды', 'Cancelled'],
+    PENDING: ['Ожидает', 'Күтуде', 'Pending'],
+    REQUESTED: ['Запрошен', 'Сұратылды', 'Requested'],
+    IN_REVIEW: ['На проверке', 'Тексеруде', 'In review'],
+    APPROVED: ['Одобрен', 'Мақұлданды', 'Approved'],
+    PROCESSING: ['Обрабатывается', 'Өңделуде', 'Processing'],
+  };
+  const entry = map[s.toUpperCase()];
+  return entry ? tx(l, ...entry) : s;
+};
+
 export function RefundStatusPage() {
   const { language } = useI18n();
   const l = language as L;
@@ -933,11 +951,13 @@ export function RefundStatusPage() {
                   >
                     RF-{r.id}
                   </span>
-                  <Badge variant={refundStatusVariant(r.status)}>{r.status}</Badge>
+                  <Badge variant={refundStatusVariant(r.status)}>
+                    {refundStatusLabel(r.status, l)}
+                  </Badge>
                 </div>
                 <div className="text-[18px]" style={{ color: 'var(--eco-primary)' }}>
                   {r.currency === 'KZT' ? '₸' : `${r.currency} `}
-                  {Number(r.amount).toLocaleString()}
+                  {formatNumber(Number(r.amount))}
                 </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -1110,7 +1130,12 @@ function PayoutMethodsCard({
                 size="sm"
                 loading={deletingId === m.id}
                 onClick={() => void remove(m.id)}
-                aria-label="Delete payout method"
+                aria-label={tx(
+                  l,
+                  'Удалить способ выплаты',
+                  'Төлем тәсілін жою',
+                  'Delete payout method',
+                )}
               >
                 <Trash2 size={14} style={{ color: 'var(--eco-negative)' }} />
               </Button>
@@ -1245,7 +1270,16 @@ export function OwnerPayoutPage() {
         tx(l, 'Способ выплаты добавлен', 'Төлем тәсілі қосылды', 'Payout method added'),
       );
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to add method');
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : tx(
+              l,
+              'Не удалось добавить способ выплаты',
+              'Төлем тәсілін қосу мүмкін болмады',
+              'Failed to add payout method',
+            ),
+      );
     }
   };
 
@@ -1257,7 +1291,16 @@ export function OwnerPayoutPage() {
         tx(l, 'Способ выплаты удалён', 'Төлем тәсілі жойылды', 'Payout method removed'),
       );
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to remove method');
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : tx(
+              l,
+              'Не удалось удалить способ выплаты',
+              'Төлем тәсілін жою мүмкін болмады',
+              'Failed to remove payout method',
+            ),
+      );
     }
   };
 
@@ -1357,7 +1400,7 @@ export function OwnerPayoutPage() {
                     </div>
                     <div className="text-[18px]" style={{ color: 'var(--eco-primary)' }}>
                       {p.currency === 'KZT' ? '₸' : `${p.currency} `}
-                      {Number(p.amount).toLocaleString()}
+                      {formatNumber(Number(p.amount))}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

@@ -94,7 +94,7 @@ export function LoginPage() {
           setFieldErrors(err.errors);
         }
       } else {
-        setError('Unable to sign in right now.');
+        setError(t('unableToSignIn'));
       }
     } finally {
       setLoading(false);

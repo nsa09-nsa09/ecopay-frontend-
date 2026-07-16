@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { Button, LanguageSwitcher, WaveDivider } from './ds-primitives';
 import { BrandLogo } from './brand-logo';
+import { PaymentLogosRow } from './payment-logos';
 import { Menu, X, Search } from 'lucide-react';
 import { useI18n } from './i18n-provider';
 import { useAuth } from './auth/auth-provider';
@@ -339,8 +340,8 @@ export function AppLayout() {
   return (
     <div style={{ background: 'var(--eco-bg)', color: 'var(--eco-text)', minHeight: '100vh' }}>
       <nav
-        className="sticky top-0 z-40 border-b"
-        style={{ background: 'var(--eco-bg)', borderColor: 'var(--eco-border)' }}
+        className="eco-nav sticky top-0 z-40 border-b"
+        style={{ borderColor: 'var(--eco-border)' }}
       >
         <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 sm:gap-6 h-16">
           <div className="flex items-center gap-4 lg:gap-8 min-w-0">
@@ -350,7 +351,7 @@ export function AppLayout() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className="px-3.5 py-1.5 rounded-lg text-[14px] whitespace-nowrap transition-colors"
+                  className={`px-3.5 py-1.5 rounded-lg text-[14px] whitespace-nowrap transition-colors ${location.pathname === item.path ? '' : 'eco-nav-link'}`}
                   style={{
                     color:
                       location.pathname === item.path
@@ -358,6 +359,7 @@ export function AppLayout() {
                         : 'var(--eco-text-secondary)',
                     background:
                       location.pathname === item.path ? 'var(--eco-brand-50)' : 'transparent',
+                    fontWeight: location.pathname === item.path ? 600 : 400,
                     textDecoration: 'none',
                   }}
                 >
@@ -696,6 +698,7 @@ export function AppLayout() {
                 {[
                   { id: 'f-catalog', label: t('catalog'), path: '/' },
                   { id: 'f-how', label: t('howItWorks'), path: '/how-it-works' },
+                  { id: 'f-security', label: t('security'), path: '/security' },
                 ].map((item) => (
                   <Link
                     key={item.id}
@@ -707,6 +710,11 @@ export function AppLayout() {
                   </Link>
                 ))}
               </div>
+
+              <h4 className="text-[14px] mb-3 mt-6" style={{ color: 'var(--eco-text)' }}>
+                {t('paymentMethods')}
+              </h4>
+              <PaymentLogosRow />
             </div>
           </div>
 

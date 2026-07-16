@@ -18,6 +18,7 @@ import {
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
+import { formatNumber } from '../../lib/datetime';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -668,7 +669,7 @@ export function CreateRoomPage() {
                 },
                 ...tariffs.map((t) => ({
                   value: String(t.id),
-                  label: `${t.name} · ${CURRENCY_SYMBOLS[(t.currency ?? 'KZT') as SupportedCurrency] ?? t.currency}${Number(t.basePriceTotal).toLocaleString()} / ${periodLabel(t.periodType)}`,
+                  label: `${t.name} · ${CURRENCY_SYMBOLS[(t.currency ?? 'KZT') as SupportedCurrency] ?? t.currency}${formatNumber(Number(t.basePriceTotal))} / ${periodLabel(t.periodType)}`,
                 })),
               ]}
               value={tariffPlanId}

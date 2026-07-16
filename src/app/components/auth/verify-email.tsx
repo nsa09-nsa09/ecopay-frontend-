@@ -189,11 +189,11 @@ function ResendForm() {
   return (
     <div className="w-full flex flex-col gap-2 mt-2">
       <Input
-        label="Email"
+        label={tx(language, "Эл. почта", "Электрондық пошта", "Email")}
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="your@email.com"
+        placeholder={tx(language, "ваш@email.com", "сіздің@email.com", "your@email.com")}
       />
       <Button variant="secondary" loading={sending} disabled={!email.trim()} onClick={handleResend}>
         {tx(language, 'Отправить ещё раз', 'Қайта жіберу', 'Resend verification email')}

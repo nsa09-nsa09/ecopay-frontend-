@@ -296,7 +296,7 @@ export function AdminAboutPage() {
                   type="email"
                   value={form.contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="support@ecopay.kz"
+                  placeholder="support@ecosplit.kz"
                 />
               </FormRow>
 

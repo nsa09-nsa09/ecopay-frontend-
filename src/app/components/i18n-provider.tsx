@@ -12,9 +12,57 @@ type Translations = {
 };
 
 const translations: Translations = {
+  // ===== Document meta =====
+  metaTitle: {
+    ru: 'EcoSplit — платите меньше за семейные подписки',
+    kz: 'EcoSplit — отбасылық жазылымдарға азырақ төлеңіз',
+    en: 'EcoSplit — pay less for family subscriptions',
+  },
+  metaDescription: {
+    ru: 'EcoSplit — делите семейные подписки и платите в 2–6 раз меньше. Защищённые платежи и 30-дневный hold.',
+    kz: 'EcoSplit — отбасылық жазылымдарды бөлісіп, 2–6 есе аз төлеңіз. Қорғалған төлемдер және 30 күндік hold.',
+    en: 'EcoSplit — share family subscriptions and pay 2–6x less. Protected payments with a 30-day hold.',
+  },
+
   // ===== Navigation & Header =====
+  openMenu: { ru: 'Открыть меню', kz: 'Мәзірді ашу', en: 'Open menu' },
+  closeMenu: { ru: 'Закрыть меню', kz: 'Мәзірді жабу', en: 'Close menu' },
+  loadingRooms: { ru: 'Загрузка комнат…', kz: 'Бөлмелер жүктелуде…', en: 'Loading rooms…' },
+  failedToLoadRooms: {
+    ru: 'Не удалось загрузить комнаты. Попробуйте позже.',
+    kz: 'Бөлмелерді жүктеу мүмкін болмады. Кейінірек қайталап көріңіз.',
+    en: "Couldn't load rooms. Please try again later.",
+  },
   catalog: { ru: 'Каталог', kz: 'Каталог', en: 'Catalog' },
   news: { ru: 'Новости', kz: 'Жаңалықтар', en: 'News' },
+
+  // ===== Stories (home) =====
+  storiesSectionTitle: { ru: 'Актуальное', kz: 'Өзекті', en: 'Highlights' },
+  storiesLearnMore: { ru: 'Подробнее', kz: 'Толығырақ', en: 'Learn more' },
+  storiesPrev: { ru: 'Предыдущая история', kz: 'Алдыңғы оқиға', en: 'Previous story' },
+  storiesNext: { ru: 'Следующая история', kz: 'Келесі оқиға', en: 'Next story' },
+  storiesClose: { ru: 'Закрыть', kz: 'Жабу', en: 'Close' },
+  storiesOpenAria: {
+    ru: 'Открыть историю: {{title}}',
+    kz: 'Оқиғаны ашу: {{title}}',
+    en: 'Open story: {{title}}',
+  },
+  storiesViewerAria: { ru: 'Просмотр историй', kz: 'Оқиғаларды қарау', en: 'Story viewer' },
+
+  // ===== Social (news) =====
+  socialSectionTitle: { ru: 'Мы в соцсетях', kz: 'Біз әлеуметтік желіде', en: 'Follow us' },
+  socialSectionSubtitle: {
+    ru: 'Акции, гайды и короткие видео о том, как экономить на подписках',
+    kz: 'Жазылымдарда үнемдеу туралы акциялар, гайдтар және қысқа видеолар',
+    en: 'Deals, guides and short videos on saving with subscriptions',
+  },
+  socialFollowers: { ru: 'подписчиков', kz: 'жазылушы', en: 'followers' },
+  socialViewInstagram: {
+    ru: 'Смотреть в Instagram',
+    kz: 'Instagram-да көру',
+    en: 'View on Instagram',
+  },
+  socialViewTikTok: { ru: 'Смотреть в TikTok', kz: 'TikTok-та көру', en: 'View on TikTok' },
   memberReviewsTitle: {
     ru: 'Отзывы участников',
     kz: 'Қатысушылар пікірлері',
@@ -37,16 +85,13 @@ const translations: Translations = {
     kz: 'Автоматты түрде көшіру мүмкін болмады. Қолмен көшіріңіз.',
     en: 'Could not copy automatically. Copy it manually.',
   },
-  browseRooms: { ru: 'Открытые комнаты', kz: 'Ашық бөлмелер', en: 'Open Rooms' },
   myRooms: { ru: 'Мои комнаты', kz: 'Менің бөлмелерім', en: 'My Rooms' },
   support: { ru: 'Поддержка', kz: 'Қолдау', en: 'Support' },
   aboutUs: { ru: 'О нас', kz: 'Біз туралы', en: 'About Us' },
   signIn: { ru: 'Войти', kz: 'Кіру', en: 'Sign In' },
   signUp: { ru: 'Регистрация', kz: 'Тіркелу', en: 'Sign Up' },
   profile: { ru: 'Профиль', kz: 'Профиль', en: 'Profile' },
-  settings: { ru: 'Настройки', kz: 'Баптаулар', en: 'Settings' },
   signOut: { ru: 'Выйти', kz: 'Шығу', en: 'Sign Out' },
-  searchPlans: { ru: 'Поиск планов...', kz: 'Жоспарларды іздеу...', en: 'Search plans...' },
   menu: { ru: 'Меню', kz: 'Мәзір', en: 'Menu' },
 
   // ===== Footer =====
@@ -54,11 +99,15 @@ const translations: Translations = {
   company: { ru: 'Компания', kz: 'Компания', en: 'Company' },
   howItWorks: { ru: 'Как это работает', kz: 'Қалай жұмыс істейді', en: 'How it Works' },
   pricing: { ru: 'Цены', kz: 'Бағалар', en: 'Pricing' },
-  faq: { ru: 'Вопросы', kz: 'Сұрақтар', en: 'FAQ' },
   about: { ru: 'О нас', kz: 'Біз туралы', en: 'About' },
   terms: { ru: 'Условия', kz: 'Шарттар', en: 'Terms' },
   privacy: { ru: 'Конфиденциальность', kz: 'Құпиялылық', en: 'Privacy' },
-  forOwners: { ru: 'Для владельцев', kz: 'Иелерге', en: 'For Owners' },
+  paymentMethods: { ru: 'Платёжные системы', kz: 'Төлем жүйелері', en: 'Payment methods' },
+  unableToSignIn: {
+    ru: 'Не удалось войти. Попробуйте позже.',
+    kz: 'Кіру мүмкін болмады. Кейінірек көріңіз.',
+    en: 'Unable to sign in right now.',
+  },
   createTicket: { ru: 'Создать заявку', kz: 'Өтінім жасау', en: 'Create Ticket' },
   ticketStatus: { ru: 'Статус заявки', kz: 'Өтінім мәртебесі', en: 'Ticket Status' },
   developedBy: {
@@ -67,9 +116,9 @@ const translations: Translations = {
     en: 'Developed by Apex Digital',
   },
   copyright: {
-    ru: '© 2026 EcoPay · Астана, Казахстан',
-    kz: '© 2026 EcoPay · Астана, Қазақстан',
-    en: '© 2026 EcoPay · Astana, Kazakhstan',
+    ru: '© 2026 EcoSplit · Астана, Казахстан',
+    kz: '© 2026 EcoSplit · Астана, Қазақстан',
+    en: '© 2026 EcoSplit · Astana, Kazakhstan',
   },
   footerTagline: {
     ru: 'Делитесь подписками. Экономьте вместе.',
@@ -103,14 +152,14 @@ const translations: Translations = {
   },
   dontHaveAccount: { ru: 'Нет аккаунта?', kz: 'Тіркелгіңіз жоқ па?', en: "Don't have an account?" },
   welcomeBack: {
-    ru: 'Добро пожаловать в EcoPay',
-    kz: 'EcoPay-ке қайта келіңіз',
-    en: 'Welcome back to EcoPay',
+    ru: 'Добро пожаловать в EcoSplit',
+    kz: 'EcoSplit-ке қайта келіңіз',
+    en: 'Welcome back to EcoSplit',
   },
-  joinEcoPay: {
-    ru: 'Присоединяйтесь к EcoPay и начните экономить',
-    kz: 'EcoPay-ке қосылып, үнемдеуді бастаңыз',
-    en: 'Join EcoPay and start saving today',
+  joinEcoSplit: {
+    ru: 'Присоединяйтесь к EcoSplit и начните экономить',
+    kz: 'EcoSplit-ке қосылып, үнемдеуді бастаңыз',
+    en: 'Join EcoSplit and start saving today',
   },
   rememberMe: { ru: 'Запомнить меня', kz: 'Мені есте сақта', en: 'Remember me' },
   forgotPassword: { ru: 'Забыли пароль?', kz: 'Құпия сөзді ұмыттыңыз ба?', en: 'Forgot password?' },
@@ -138,202 +187,68 @@ const translations: Translations = {
 
   // ===== Home/Catalog Page =====
   heroTitle: { ru: 'Делитесь тарифами.', kz: 'Тарифтерді бөлісіңіз.', en: 'Share plans.' },
-  heroTitleHighlight: { ru: 'Экономьте.', kz: 'Үнемдеңіз.', en: 'Split costs.' },
-  heroSubtitle: {
-    ru: 'Находите или создавайте общие комнаты для семейных тарифов операторов связи. Экономьте до 70% от ежемесячного счёта.',
-    kz: 'Байланыс операторларының отбасылық тарифтері үшін ортақ бөлмелер табыңыз немесе жасаңыз. Ай сайынғы төлемді 70% дейін үнемдеңіз.',
-    en: 'Find or create shared rooms for telecom family plans. Save up to 70% on your monthly bill.',
-  },
   mobileOperators: {
     ru: 'Мобильные операторы',
     kz: 'Мобильді операторлар',
     en: 'Mobile Operators',
-  },
-  familyGroupPlansAvailable: {
-    ru: 'Семейные и групповые тарифы для совместного использования',
-    kz: 'Отбасылық және топтық тарифтер бірлескен пайдалану үшін',
-    en: 'Family & group plans available for splitting',
-  },
-  plansRooms: {
-    ru: '{{plans}} тарифов · {{rooms}} комнат',
-    kz: '{{plans}} тариф · {{rooms}} бөлме',
-    en: '{{plans}} plans · {{rooms}} rooms',
   },
   noFamilyPlansAvailable: {
     ru: 'Нет семейных тарифов',
     kz: 'Отбасылық тарифтер жоқ',
     en: 'No family plans available',
   },
-  homeInternet: { ru: 'Домашний интернет', kz: 'Үй интернеті', en: 'Home Internet' },
-  bundledInternetPlans: {
-    ru: 'Пакетные интернет-тарифы с мобильными операторами',
-    kz: 'Мобильді операторлармен бірге интернет тарифтері',
-    en: 'Bundled internet plans with mobile operators',
-  },
-  comingQ3: { ru: 'Скоро Q3 2026', kz: 'Жақында Q3 2026', en: 'Coming Q3 2026' },
-  digitalSubscriptions: {
-    ru: 'Цифровые подписки',
-    kz: 'Цифрлық жазылымдар',
-    en: 'Digital Subscriptions',
-  },
-  comingSoon: { ru: 'Скоро', kz: 'Жақында', en: 'Coming Soon' },
-  available: { ru: 'Доступно', kz: 'Қолжетімді', en: 'Available' },
-  beta: { ru: 'Бета', kz: 'Бета', en: 'Beta' },
-  videoStreaming: { ru: 'Видео стриминг', kz: 'Видео ағын', en: 'Video Streaming' },
   music: { ru: 'Музыка', kz: 'Музыка', en: 'Music' },
-  aiTools: { ru: 'AI инструменты', kz: 'AI құралдар', en: 'AI Tools' },
-  premiumApps: { ru: 'Премиум приложения', kz: 'Премиум қолданбалар', en: 'Premium Apps' },
 
   // ===== Operator Detail Page =====
-  familyPlansFor: {
-    ru: 'Семейные тарифы {{operator}}',
-    kz: '{{operator}} отбасылық тарифтері',
-    en: '{{operator}} Family Plans',
-  },
-  selectPlanToJoin: {
-    ru: 'Выберите тариф, чтобы присоединиться к комнате или создать свою',
-    kz: 'Бөлмеге қосылу немесе өзіңіздікін жасау үшін тариф таңдаңыз',
-    en: 'Select a plan to join a room or create your own',
-  },
-  gb: { ru: 'ГБ', kz: 'ГБ', en: 'GB' },
-  unlimited: { ru: 'Безлимит', kz: 'Шексіз', en: 'Unlimited' },
-  perMonth: { ru: '/мес', kz: '/ай', en: '/mo' },
   data: { ru: 'Интернет', kz: 'Интернет', en: 'Data' },
-  minutes: { ru: 'Минуты', kz: 'Минуттар', en: 'Minutes' },
-  sms: { ru: 'SMS', kz: 'SMS', en: 'SMS' },
-  slots: { ru: 'слотов', kz: 'слот', en: 'slots' },
   availableRooms: { ru: 'Доступные комнаты', kz: 'Қолжетімді бөлмелер', en: 'Available Rooms' },
-  createNewRoom: { ru: 'Создать новую комнату', kz: 'Жаңа бөлме жасау', en: 'Create New Room' },
 
   // ===== Rooms Module =====
-  activeRooms: { ru: 'Активные комнаты', kz: 'Белсенді бөлмелер', en: 'Active Rooms' },
-  pendingInvites: {
-    ru: 'Ожидающие приглашения',
-    kz: 'Күтіп тұрған шақырулар',
-    en: 'Pending Invites',
-  },
-  completedRooms: { ru: 'Завершённые комнаты', kz: 'Аяқталған бөлмелер', en: 'Completed Rooms' },
   owner: { ru: 'Владелец', kz: 'Иесі', en: 'Owner' },
   member: { ru: 'Участник', kz: 'Қатысушы', en: 'Member' },
   invited: { ru: 'Приглашён', kz: 'Шақырылған', en: 'Invited' },
   createRoom: { ru: 'Создать комнату', kz: 'Бөлме жасау', en: 'Create Room' },
-  chooseOperatorAndPlan: {
-    ru: 'Выберите оператора и тариф для совместного использования',
-    kz: 'Бірлескен пайдалану үшін оператор мен тарифті таңдаңыз',
-    en: 'Choose operator and plan to share',
-  },
   operator: { ru: 'Оператор', kz: 'Оператор', en: 'Operator' },
-  selectOperator: { ru: 'Выберите оператора', kz: 'Операторды таңдаңыз', en: 'Select Operator' },
   plan: { ru: 'Тариф', kz: 'Тариф', en: 'Plan' },
-  selectPlanFirst: {
-    ru: 'Сначала выберите оператора',
-    kz: 'Алдымен операторды таңдаңыз',
-    en: 'Select operator first',
-  },
-  selectPlan: { ru: 'Выберите тариф', kz: 'Тарифті таңдаңыз', en: 'Select Plan' },
-  roomSettings: { ru: 'Настройки комнаты', kz: 'Бөлме баптаулары', en: 'Room Settings' },
-  roomName: { ru: 'Название комнаты', kz: 'Бөлме атауы', en: 'Room Name' },
-  optionalCustomName: {
-    ru: 'Опционально, например «Семья Серик»',
-    kz: 'Міндетті емес, мысалы «Серік отбасы»',
-    en: 'Optional, e.g. "Serik Family"',
-  },
-  visibility: { ru: 'Видимость', kz: 'Көрінуі', en: 'Visibility' },
-  publicRoom: { ru: 'Публичная', kz: 'Ашық', en: 'Public' },
-  publicRoomDesc: {
-    ru: 'Любой может найти и присоединиться',
-    kz: 'Кез келген адам таба алады және қосыла алады',
-    en: 'Anyone can find and join',
-  },
-  privateRoom: { ru: 'Приватная', kz: 'Жеке', en: 'Private' },
-  privateRoomDesc: { ru: 'Только по приглашению', kz: 'Тек шақыру бойынша', en: 'Invite-only' },
-  autoAccept: { ru: 'Автоматическое принятие', kz: 'Автоматты қабылдау', en: 'Auto-accept' },
-  autoAcceptDesc: {
-    ru: 'Автоматически принимать новых участников без одобрения',
-    kz: 'Растаусыз жаңа қатысушыларды автоматты қабылдау',
-    en: 'Automatically accept new members without approval',
-  },
   cancel: { ru: 'Отмена', kz: 'Болдырмау', en: 'Cancel' },
-  next: { ru: 'Далее', kz: 'Келесі', en: 'Next' },
-  back: { ru: 'Назад', kz: 'Артқа', en: 'Back' },
-  finish: { ru: 'Завершить', kz: 'Аяқтау', en: 'Finish' },
-  reviewAndConfirm: {
-    ru: 'Проверка и подтверждение',
-    kz: 'Тексеру және растау',
-    en: 'Review & Confirm',
-  },
-  reviewRoomDetails: {
-    ru: 'Проверьте детали вашей комнаты перед созданием',
-    kz: 'Жасамас бұрын бөлме деректерін тексеріңіз',
-    en: 'Review your room details before creating',
-  },
   totalCost: { ru: 'Общая стоимость', kz: 'Жалпы құны', en: 'Total Cost' },
-  costPerMember: { ru: 'За участника', kz: 'Қатысушы үшін', en: 'Per Member' },
-  maxMembers: { ru: 'Макс. участников', kz: 'Макс. қатысушылар', en: 'Max Members' },
 
   // ===== Room Detail =====
   roomDetails: { ru: 'Детали комнаты', kz: 'Бөлме деректері', en: 'Room Details' },
   members: { ru: 'Участники', kz: 'Қатысушылар', en: 'Members' },
   payments: { ru: 'Платежи', kz: 'Төлемдер', en: 'Payments' },
-  activity: { ru: 'Активность', kz: 'Белсенділік', en: 'Activity' },
   inviteLink: { ru: 'Ссылка для приглашения', kz: 'Шақыру сілтемесі', en: 'Invite Link' },
-  copyLink: { ru: 'Копировать ссылку', kz: 'Сілтемені көшіру', en: 'Copy Link' },
   shareRoom: { ru: 'Поделиться', kz: 'Бөлісу', en: 'Share' },
   leaveRoom: { ru: 'Покинуть комнату', kz: 'Бөлмеден шығу', en: 'Leave Room' },
-  deleteRoom: { ru: 'Удалить комнату', kz: 'Бөлмені жою', en: 'Delete Room' },
   joined: { ru: 'Присоединился', kz: 'Қосылды', en: 'Joined' },
   pending: { ru: 'Ожидает', kz: 'Күтуде', en: 'Pending' },
   paid: { ru: 'Оплачено', kz: 'Төленді', en: 'Paid' },
-  unpaid: { ru: 'Не оплачено', kz: 'Төленбеді', en: 'Unpaid' },
-  approve: { ru: 'Одобрить', kz: 'Растау', en: 'Approve' },
-  reject: { ru: 'Отклонить', kz: 'Қабылдамау', en: 'Reject' },
   remove: { ru: 'Удалить', kz: 'Жою', en: 'Remove' },
   sendReminder: { ru: 'Напомнить', kz: 'Еске салу', en: 'Send Reminder' },
 
   // ===== Support/Tickets =====
   tickets: { ru: 'Заявки', kz: 'Өтінімдер', en: 'Tickets' },
-  myTickets: { ru: 'Мои заявки', kz: 'Менің өтінімдерім', en: 'My Tickets' },
   createNewTicket: { ru: 'Создать заявку', kz: 'Өтінім жасау', en: 'Create New Ticket' },
-  ticketDetails: { ru: 'Детали заявки', kz: 'Өтінім деректері', en: 'Ticket Details' },
   subject: { ru: 'Тема', kz: 'Тақырып', en: 'Subject' },
   category: { ru: 'Категория', kz: 'Санат', en: 'Category' },
   priority: { ru: 'Приоритет', kz: 'Басымдық', en: 'Priority' },
   description: { ru: 'Описание', kz: 'Сипаттама', en: 'Description' },
-  attachments: { ru: 'Вложения', kz: 'Қосымшалар', en: 'Attachments' },
   submit: { ru: 'Отправить', kz: 'Жіберу', en: 'Submit' },
   status: { ru: 'Статус', kz: 'Мәртебе', en: 'Status' },
   open: { ru: 'Открыта', kz: 'Ашық', en: 'Open' },
-  inProgress: { ru: 'В работе', kz: 'Орындалуда', en: 'In Progress' },
   resolved: { ru: 'Решена', kz: 'Шешілді', en: 'Resolved' },
   closed: { ru: 'Закрыта', kz: 'Жабық', en: 'Closed' },
   low: { ru: 'Низкий', kz: 'Төмен', en: 'Low' },
   medium: { ru: 'Средний', kz: 'Орташа', en: 'Medium' },
   high: { ru: 'Высокий', kz: 'Жоғары', en: 'High' },
   urgent: { ru: 'Срочно', kz: 'Шұғыл', en: 'Urgent' },
-  reply: { ru: 'Ответить', kz: 'Жауап беру', en: 'Reply' },
-  closeTicket: { ru: 'Закрыть заявку', kz: 'Өтінімді жабу', en: 'Close Ticket' },
-  reopenTicket: { ru: 'Открыть заново', kz: 'Қайта ашу', en: 'Reopen Ticket' },
 
   // ===== Payments Module =====
   checkout: { ru: 'Оформление оплаты', kz: 'Төлемді рәсімдеу', en: 'Checkout' },
-  paymentMethod: { ru: 'Способ оплаты', kz: 'Төлем әдісі', en: 'Payment Method' },
-  cardNumber: { ru: 'Номер карты', kz: 'Карта нөмірі', en: 'Card Number' },
-  expiryDate: { ru: 'Срок действия', kz: 'Жарамдылық мерзімі', en: 'Expiry Date' },
-  cvv: { ru: 'CVV', kz: 'CVV', en: 'CVV' },
-  cardholderName: { ru: 'Имя держателя карты', kz: 'Карта иесінің аты', en: 'Cardholder Name' },
-  saveCard: { ru: 'Сохранить карту', kz: 'Картаны сақтау', en: 'Save Card' },
   payNow: { ru: 'Оплатить', kz: 'Төлеу', en: 'Pay Now' },
-  paymentConfirmation: {
-    ru: 'Подтверждение оплаты',
-    kz: 'Төлем растамасы',
-    en: 'Payment Confirmation',
-  },
   paymentSuccessful: { ru: 'Оплата успешна', kz: 'Төлем сәтті', en: 'Payment Successful' },
-  paymentPending: { ru: 'Ожидание оплаты', kz: 'Төлемді күту', en: 'Payment Pending' },
-  transactionId: { ru: 'ID транзакции', kz: 'Транзакция ID', en: 'Transaction ID' },
   amount: { ru: 'Сумма', kz: 'Сома', en: 'Amount' },
   date: { ru: 'Дата', kz: 'Күні', en: 'Date' },
-  downloadReceipt: { ru: 'Скачать чек', kz: 'Чекті жүктеу', en: 'Download Receipt' },
   refundStatus: { ru: 'Статус возврата', kz: 'Қайтару мәртебесі', en: 'Refund Status' },
   refundRequested: {
     ru: 'Возврат запрошен',
@@ -347,67 +262,33 @@ const translations: Translations = {
     en: 'Refund Processing',
   },
   refundCompleted: { ru: 'Возврат завершён', kz: 'Қайтару аяқталды', en: 'Refund Completed' },
-  ownerPayout: { ru: 'Выплата владельцу', kz: 'Иеге төлем', en: 'Owner Payout' },
-  payoutHistory: { ru: 'История выплат', kz: 'Төлем тарихы', en: 'Payout History' },
-  requestPayout: { ru: 'Запросить выплату', kz: 'Төлемге өтінім беру', en: 'Request Payout' },
 
   // ===== Profile =====
-  myProfile: { ru: 'Мой профиль', kz: 'Менің профилім', en: 'My Profile' },
-  editProfile: { ru: 'Редактировать', kz: 'Өңдеу', en: 'Edit Profile' },
-  reputation: { ru: 'Репутация', kz: 'Беделі', en: 'Reputation' },
+  reputation: { ru: 'Репутация', kz: 'Бедел', en: 'Reputation' },
   reviews: { ru: 'Отзывы', kz: 'Пікірлер', en: 'Reviews' },
   verified: { ru: 'Верифицирован', kz: 'Расталған', en: 'Verified' },
-  notVerified: { ru: 'Не верифицирован', kz: 'Расталмаған', en: 'Not Verified' },
-  verifyAccount: { ru: 'Верифицировать аккаунт', kz: 'Тіркелгіні растау', en: 'Verify Account' },
   phoneNumber: { ru: 'Телефон', kz: 'Телефон', en: 'Phone Number' },
   language: { ru: 'Язык', kz: 'Тіл', en: 'Language' },
   notifications: { ru: 'Уведомления', kz: 'Хабарландырулар', en: 'Notifications' },
   security: { ru: 'Безопасность', kz: 'Қауіпсіздік', en: 'Security' },
-  changePassword: { ru: 'Изменить пароль', kz: 'Құпия сөзді өзгерту', en: 'Change Password' },
   deleteAccount: { ru: 'Удалить аккаунт', kz: 'Тіркелгіні жою', en: 'Delete Account' },
   save: { ru: 'Сохранить', kz: 'Сақтау', en: 'Save' },
 
   // ===== Admin Portal =====
-  adminDashboard: { ru: 'Панель администратора', kz: 'Әкімші панелі', en: 'Admin Dashboard' },
   moderationQueue: { ru: 'Очередь модерации', kz: 'Модерация кезегі', en: 'Moderation Queue' },
   users: { ru: 'Пользователи', kz: 'Пайдаланушылар', en: 'Users' },
   rooms: { ru: 'Комнаты', kz: 'Бөлмелер', en: 'Rooms' },
   disputes: { ru: 'Споры', kz: 'Дау-дамайлар', en: 'Disputes' },
   refunds: { ru: 'Возвраты', kz: 'Қайтарулар', en: 'Refunds' },
-  analytics: { ru: 'Аналитика', kz: 'Аналитика', en: 'Analytics' },
   logs: { ru: 'Логи', kz: 'Логтар', en: 'Logs' },
-  totalUsers: { ru: 'Всего пользователей', kz: 'Барлық пайдаланушылар', en: 'Total Users' },
-  activeRoomsCount: { ru: 'Активные комнаты', kz: 'Белсенді бөлмелер', en: 'Active Rooms' },
-  totalRevenue: { ru: 'Общий доход', kz: 'Жалпы табыс', en: 'Total Revenue' },
-  pendingTickets: { ru: 'Ожидающие заявки', kz: 'Күтіп тұрған өтінімдер', en: 'Pending Tickets' },
   banUser: { ru: 'Заблокировать', kz: 'Бұғаттау', en: 'Ban User' },
   unbanUser: { ru: 'Разблокировать', kz: 'Бұғаттан шығару', en: 'Unban User' },
   viewDetails: { ru: 'Подробнее', kz: 'Толығырақ', en: 'View Details' },
 
   // ===== Digital Subscriptions =====
-  digitalSubscriptionsAvailable: {
-    ru: 'Цифровые подписки · Доступно',
-    kz: 'Цифрлық жазылымдар · Қолжетімді',
-    en: 'Digital Subscriptions · Available',
-  },
-  shareDigitalServices: {
-    ru: 'Делитесь премиум-сервисами',
-    kz: 'Премиум қызметтерді бөлісіңіз',
-    en: 'Share premium services',
-  },
-  googleOneFamily: {
-    ru: 'Google One Семейная',
-    kz: 'Google One Отбасылық',
-    en: 'Google One Family',
-  },
-  appleOne: { ru: 'Apple One', kz: 'Apple One', en: 'Apple One' },
-  yandexPlus: { ru: 'Яндекс Плюс', kz: 'Яндекс Плюс', en: 'Yandex Plus' },
-  yandexDisk: { ru: 'Яндекс Диск', kz: 'Яндекс Диск', en: 'Yandex Disk' },
-  storage: { ru: 'Хранилище', kz: 'Сақтау орны', en: 'Storage' },
-  familySharing: { ru: 'Семейный доступ', kz: 'Отбасылық қатынас', en: 'Family Sharing' },
 
   // ===== Static Pages =====
-  aboutEcoPay: { ru: 'Об EcoPay', kz: 'EcoPay туралы', en: 'About EcoPay' },
+  aboutEcoSplit: { ru: 'Об EcoSplit', kz: 'EcoSplit туралы', en: 'About EcoSplit' },
   ourMission: { ru: 'Наша миссия', kz: 'Біздің миссия', en: 'Our Mission' },
   aboutSubtitle: {
     ru: 'Надёжная платформа Казахстана для совместных тарифов связи',
@@ -415,9 +296,9 @@ const translations: Translations = {
     en: "Kazakhstan's trusted platform for shared telecom plans",
   },
   missionText: {
-    ru: 'EcoPay делает семейные тарифы операторов связи доступными для всех в Казахстане. Присоединяйтесь к общей комнате, разделяйте оплату и экономьте до 70% от ежемесячного счёта. Без контрактов и лишних хлопот.',
-    kz: 'EcoPay Қазақстандағы отбасылық тарифтерді барлығына қолжетімді етеді. Ортақ бөлмеге қосылып, төлемді бөлісіп, ай сайынғы төлемнен 70%-ға дейін үнемдеңіз. Келісімшарттар мен қиындықтар жоқ.',
-    en: 'EcoPay makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly bill. No contracts, no hassle.',
+    ru: 'EcoSplit делает семейные тарифы операторов связи доступными для всех в Казахстане. Присоединяйтесь к общей комнате, разделяйте оплату и экономьте до 70% от ежемесячного счёта. Без контрактов и лишних хлопот.',
+    kz: 'EcoSplit Қазақстандағы отбасылық тарифтерді барлығына қолжетімді етеді. Ортақ бөлмеге қосылып, төлемді бөлісіп, ай сайынғы төлемнен 70%-ға дейін үнемдеңіз. Келісімшарттар мен қиындықтар жоқ.',
+    en: 'EcoSplit makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly bill. No contracts, no hassle.',
   },
   trustPrivacyTitle: {
     ru: 'Доверие и приватность прежде всего',
@@ -451,11 +332,6 @@ const translations: Translations = {
     en: "We connect people who want to share family plans from Kazakhstan's major telecom operators: Beeline, Activ, Altel, Tele2, and Kcell. Our platform handles payments, verification, and support so you can focus on savings.",
   },
   contactGetInTouch: { ru: 'Связаться с нами', kz: 'Бізбен байланысыңыз', en: 'Get in Touch' },
-  contactPhoneNote: {
-    ru: '(Деловой контакт, может измениться до запуска)',
-    kz: '(Іскерлік байланыс, іске қосылғанға дейін өзгеруі мүмкін)',
-    en: '(Business contact, subject to change before launch)',
-  },
   contactPhoneNumber: { ru: '+7 747 226 6885', kz: '+7 747 226 6885', en: '+7 747 226 6885' },
   contactEmail: {
     ru: 'apexdigitalservices3@gmail.com',
@@ -490,14 +366,14 @@ const translations: Translations = {
     en: 'Communication through our support',
   },
   aboutQrTitle: {
-    ru: 'Откройте EcoPay на телефоне',
-    kz: 'Телефоныңызда EcoPay-ды ашыңыз',
-    en: 'Open EcoPay on your phone',
+    ru: 'Откройте EcoSplit на телефоне',
+    kz: 'Телефоныңызда EcoSplit-ды ашыңыз',
+    en: 'Open EcoSplit on your phone',
   },
   aboutQrCaption: {
-    ru: 'Отсканируйте, чтобы открыть EcoPay на телефоне',
-    kz: 'Телефонда EcoPay-ды ашу үшін сканерлеңіз',
-    en: 'Scan to open EcoPay on your phone',
+    ru: 'Отсканируйте, чтобы открыть EcoSplit на телефоне',
+    kz: 'Телефонда EcoSplit-ды ашу үшін сканерлеңіз',
+    en: 'Scan to open EcoSplit on your phone',
   },
   adminAboutApexLink: {
     ru: 'Ссылка Apex Digital',
@@ -510,13 +386,6 @@ const translations: Translations = {
     en: 'Building trust through technology',
   },
   howItWorksTitle: { ru: 'Как это работает', kz: 'Қалай жұмыс істейді', en: 'How It Works' },
-  termsOfService: { ru: 'Условия использования', kz: 'Пайдалану шарттары', en: 'Terms of Service' },
-  privacyPolicy: {
-    ru: 'Политика конфиденциальности',
-    kz: 'Құпиялылық саясаты',
-    en: 'Privacy Policy',
-  },
-  lastUpdated: { ru: 'Обновлено', kz: 'Жаңартылды', en: 'Last Updated' },
 
   // ===== Common UI Elements =====
   loading: { ru: 'Загрузка...', kz: 'Жүктеу...', en: 'Loading...' },
@@ -529,41 +398,17 @@ const translations: Translations = {
   edit: { ru: 'Редактировать', kz: 'Өңдеу', en: 'Edit' },
   close: { ru: 'Закрыть', kz: 'Жабу', en: 'Close' },
   search: { ru: 'Поиск', kz: 'Іздеу', en: 'Search' },
-  filter: { ru: 'Фильтр', kz: 'Сүзгі', en: 'Filter' },
-  sort: { ru: 'Сортировка', kz: 'Сұрыптау', en: 'Sort' },
-  reset: { ru: 'Сбросить', kz: 'Қалпына келтіру', en: 'Reset' },
-  apply: { ru: 'Применить', kz: 'Қолдану', en: 'Apply' },
-  export: { ru: 'Экспорт', kz: 'Экспорт', en: 'Export' },
-  import: { ru: 'Импорт', kz: 'Импорт', en: 'Import' },
-  download: { ru: 'Скачать', kz: 'Жүктеу', en: 'Download' },
   upload: { ru: 'Загрузить', kz: 'Жүктеп салу', en: 'Upload' },
-  share: { ru: 'Поделиться', kz: 'Бөлісу', en: 'Share' },
   copy: { ru: 'Копировать', kz: 'Көшіру', en: 'Copy' },
-  copied: { ru: 'Скопировано', kz: 'Көшірілді', en: 'Copied' },
-  more: { ru: 'Ещё', kz: 'Тағы', en: 'More' },
-  less: { ru: 'Меньше', kz: 'Азырақ', en: 'Less' },
   all: { ru: 'Все', kz: 'Барлығы', en: 'All' },
   none: { ru: 'Нет', kz: 'Жоқ', en: 'None' },
-  yes: { ru: 'Да', kz: 'Иә', en: 'Yes' },
-  no: { ru: 'Нет', kz: 'Жоқ', en: 'No' },
   required: { ru: 'Обязательно', kz: 'Міндетті', en: 'Required' },
   optional: { ru: 'Опционально', kz: 'Міндетті емес', en: 'Optional' },
   na: { ru: 'Н/Д', kz: 'Қ/Ж', en: 'N/A' },
 
   // ===== Time & Dates =====
-  today: { ru: 'Сегодня', kz: 'Бүгін', en: 'Today' },
-  tomorrow: { ru: 'Завтра', kz: 'Ертең', en: 'Tomorrow' },
-  thisWeek: { ru: 'На этой неделе', kz: 'Осы аптада', en: 'This Week' },
-  thisMonth: { ru: 'В этом месяце', kz: 'Осы айда', en: 'This Month' },
-  thisYear: { ru: 'В этом году', kz: 'Биыл', en: 'This Year' },
 
   // ===== Validation Messages =====
-  invalidEmail: { ru: 'Неверный email', kz: 'Дұрыс емес email', en: 'Invalid email' },
-  passwordTooShort: {
-    ru: 'Пароль слишком короткий',
-    kz: 'Құпия сөз тым қысқа',
-    en: 'Password too short',
-  },
   passwordsDoNotMatch: {
     ru: 'Пароли не совпадают',
     kz: 'Құпия сөздер сәйкес келмейді',
@@ -571,115 +416,23 @@ const translations: Translations = {
   },
 
   // ===== Empty States =====
-  noRoomsYet: { ru: 'Пока нет комнат', kz: 'Әлі бөлмелер жоқ', en: 'No rooms yet' },
-  noTicketsYet: { ru: 'Пока нет заявок', kz: 'Әлі өтінімдер жоқ', en: 'No tickets yet' },
-  noResultsFound: {
-    ru: 'Результаты не найдены',
-    kz: 'Нәтижелер табылмады',
-    en: 'No results found',
-  },
-  noDataAvailable: { ru: 'Нет данных', kz: 'Деректер жоқ', en: 'No data available' },
 
   // ===== Reputation & Reviews =====
-  reputationScore: { ru: 'Репутация', kz: 'Беделі', en: 'Reputation Score' },
+  reputationScore: { ru: 'Репутация', kz: 'Бедел', en: 'Reputation Score' },
   rating: { ru: 'Рейтинг', kz: 'Рейтинг', en: 'Rating' },
-  averageRating: { ru: 'Средний рейтинг', kz: 'Орташа рейтинг', en: 'Average Rating' },
-  roomsCreated: { ru: 'Создано комнат', kz: 'Жасалған бөлмелер', en: 'Rooms Created' },
-  roomsJoined: { ru: 'Присоединился к комнатам', kz: 'Қосылған бөлмелер', en: 'Rooms Joined' },
   successfulPeriods: { ru: 'Успешные периоды', kz: 'Сәтті кезеңдер', en: 'Successful Periods' },
-  completedPeriods: {
-    ru: 'Завершённые периоды',
-    kz: 'Аяқталған кезеңдер',
-    en: 'Completed Periods',
-  },
-  recentRooms: { ru: 'Недавние комнаты', kz: 'Соңғы бөлмелер', en: 'Recent Rooms' },
   reviewsTitle: { ru: 'Отзывы', kz: 'Пікірлер', en: 'Reviews' },
   allReviews: { ru: 'Все', kz: 'Барлығы', en: 'All' },
   positiveReviews: { ru: 'Положительные', kz: 'Оң', en: 'Positive' },
   negativeReviews: { ru: 'Отрицательные', kz: 'Теріс', en: 'Negative' },
   recentReviews: { ru: 'Недавние', kz: 'Соңғы', en: 'Recent' },
   leaveReview: { ru: 'Оставить отзыв', kz: 'Пікір қалдыру', en: 'Leave a Review' },
-  leaveAReview: { ru: 'Оставить отзыв', kz: 'Пікір қалдыру', en: 'Leave a Review' },
-  writeReview: { ru: 'Написать отзыв', kz: 'Пікір жазу', en: 'Write Review' },
-  reviewLocked: {
-    ru: 'Вы можете оставить отзыв только после того, как вы поделились комнатой и период завершён.',
-    kz: 'Пікір қалдыру үшін бөлмені бөлісіп, кезең аяқталуы керек.',
-    en: 'You can review only after you shared a room and the period is completed.',
-  },
-  reviewEligibilityTitle: {
-    ru: 'Кто может оставлять отзывы',
-    kz: 'Кім пікір қалдыра алады',
-    en: 'Who Can Leave Reviews',
-  },
-  reviewEligibilityDesc: {
-    ru: 'Только участники из одной комнаты могут оставлять отзывы.',
-    kz: 'Тек бір бөлмедегі қатысушылар пікір қалдыра алады.',
-    en: 'Only participants from the same room can review.',
-  },
-  selectCompletedRoom: {
-    ru: 'Выберите завершённую комнату',
-    kz: 'Аяқталған бөлмені таңдаңыз',
-    en: 'Select a completed room',
-  },
-  yourRating: { ru: 'Ваша оценка', kz: 'Сіздің бағаңыз', en: 'Your Rating' },
-  reviewText: { ru: 'Текст отзыва', kz: 'Пікір мәтіні', en: 'Review Text' },
-  reviewTextPlaceholder: {
-    ru: 'Опишите ваш опыт совместного использования...',
-    kz: 'Бірлескен пайдалану тәжірибеңізді сипаттаңыз...',
-    en: 'Describe your sharing experience...',
-  },
   submitReview: { ru: 'Отправить отзыв', kz: 'Пікір жіберу', en: 'Submit Review' },
-  reviewSubmitted: { ru: 'Отзыв отправлен', kz: 'Пікір жіберілді', en: 'Review Submitted' },
-  thankYouForReview: {
-    ru: 'Спасибо за ваш отзыв!',
-    kz: 'Пікіріңіз үшін рахмет!',
-    en: 'Thank you for your review!',
-  },
-  reputationExplanation: {
-    ru: 'Объяснение репутации',
-    kz: 'Беделді түсіндіру',
-    en: 'Reputation Explanation',
-  },
-  reputationFactors: { ru: 'Факторы репутации', kz: 'Беделі факторлары', en: 'Reputation Factors' },
-  reputationFactorsDesc: {
-    ru: 'Репутация рассчитывается на основе:',
-    kz: 'Беделі мына негізде есептеледі:',
-    en: 'Reputation is calculated based on:',
-  },
-  factorAverageRating: {
-    ru: 'Средний рейтинг от отзывов',
-    kz: 'Пікірлердің орташа рейтингі',
-    en: 'Average rating from reviews',
-  },
-  factorCompletedPeriods: {
-    ru: 'Количество завершённых периодов',
-    kz: 'Аяқталған кезеңдер саны',
-    en: 'Number of completed periods',
-  },
-  factorDisputes: {
-    ru: 'Споры и жалобы',
-    kz: 'Дау-дамайлар және шағымдар',
-    en: 'Disputes and complaints',
-  },
-  factorViolations: {
-    ru: 'Подтверждённые нарушения',
-    kz: 'Расталған бұзушылықтар',
-    en: 'Confirmed violations',
-  },
-  reputationLevel: { ru: 'Уровень репутации', kz: 'Бедел деңгейі', en: 'Reputation level' },
-  repLevelNewcomer: { ru: 'Новичок', kz: 'Жаңадан келген', en: 'Newcomer' },
-  repLevelBronze: { ru: 'Бронза', kz: 'Қола', en: 'Bronze' },
-  repLevelSilver: { ru: 'Серебро', kz: 'Күміс', en: 'Silver' },
-  repLevelGold: { ru: 'Золото', kz: 'Алтын', en: 'Gold' },
-  repLevelPlatinum: { ru: 'Платина', kz: 'Платина', en: 'Platinum' },
-  repPointsToNext: { ru: 'очк. до уровня', kz: 'ұпай келесі деңгейге', en: 'pts to' },
-  repMaxLevel: { ru: 'Максимальный уровень', kz: 'Ең жоғары деңгей', en: 'Top level reached' },
   repBandCritical: { ru: 'Критическая', kz: 'Сын', en: 'Critical' },
   repBandLow: { ru: 'Низкая', kz: 'Төмен', en: 'Low' },
   repBandFair: { ru: 'Средняя', kz: 'Орташа', en: 'Fair' },
   repBandGood: { ru: 'Хорошая', kz: 'Жақсы', en: 'Good' },
   repBandExcellent: { ru: 'Отличная', kz: 'Үздік', en: 'Excellent' },
-  reputationOutOfTen: { ru: 'из 10', kz: '/ 10', en: 'out of 10' },
   reputationNote: {
     ru: 'Репутация начинается с 10/10 и снижается при низких оценках и подтверждённых нарушениях.',
     kz: 'Бедел 10/10-нан басталады және төмен бағалар мен расталған бұзушылықтарда төмендейді.',
@@ -695,98 +448,10 @@ const translations: Translations = {
     kz: 'Тек кіші латын әріптері, сандар және дефис (3–30).',
     en: 'Lowercase latin letters, digits and hyphen only (3–30).',
   },
-  reportedByAdmin: {
-    ru: 'Сообщено администратором',
-    kz: 'Әкімші хабарлаған',
-    en: 'Reported by Admin',
-  },
-  hiddenByAdmin: { ru: 'Скрыто администратором', kz: 'Әкімші жасырған', en: 'Hidden by Admin' },
-  moderatedReview: {
-    ru: 'Модерированный отзыв',
-    kz: 'Модерацияланған пікір',
-    en: 'Moderated Review',
-  },
-  reviewModeratedNote: {
-    ru: 'Этот отзыв был скрыт модераторами за нарушение правил.',
-    kz: 'Бұл пікір ережелерді бұзғаны үшін модераторлар жасырды.',
-    en: 'This review was hidden by moderators for violating rules.',
-  },
   noReviewsYet: { ru: 'Пока нет отзывов', kz: 'Әлі пікірлер жоқ', en: 'No reviews yet' },
-  beTheFirst: {
-    ru: 'Станьте первым, кто оставит отзыв',
-    kz: 'Пікір қалдырған бірінші адам болыңыз',
-    en: 'Be the first to leave a review',
-  },
-  starsOutOfFive: { ru: 'из 5', kz: '5-тен', en: 'out of 5' },
-  basedOnReviews: {
-    ru: 'на основе {{count}} отзывов',
-    kz: '{{count}} пікір негізінде',
-    en: 'based on {{count}} reviews',
-  },
-  basedOnReviews_one: {
-    ru: 'на основе {{count}} отзыва',
-    kz: '{{count}} пікір негізінде',
-    en: 'based on {{count}} review',
-  },
-  basedOnReviews_few: {
-    ru: 'на основе {{count}} отзывов',
-    kz: '{{count}} пікір негізінде',
-    en: 'based on {{count}} reviews',
-  },
-  basedOnReviews_many: {
-    ru: 'на основе {{count}} отзывов',
-    kz: '{{count}} пікір негізінде',
-    en: 'based on {{count}} reviews',
-  },
-  memberSince: { ru: 'Участник с', kz: 'Қатысушы', en: 'Member since' },
-  lastActive: { ru: 'Был в сети', kz: 'Соңғы белсенділік', en: 'Last active' },
   publicProfile: { ru: 'Публичный профиль', kz: 'Ашық профиль', en: 'Public Profile' },
-  viewingProfile: { ru: 'Просмотр профиля', kz: 'Профильді көру', en: 'Viewing Profile' },
-  stars: { ru: 'звёзд', kz: 'жұлдыз', en: 'stars' },
-  star: { ru: 'звезда', kz: 'жұлдыз', en: 'star' },
-  clickToRate: { ru: 'Нажмите, чтобы оценить', kz: 'Бағалау үшін басыңыз', en: 'Click to rate' },
   room: { ru: 'Комната', kz: 'Бөлме', en: 'Room' },
   period: { ru: 'Период', kz: 'Кезең', en: 'Period' },
-  ago: { ru: 'назад', kz: 'бұрын', en: 'ago' },
-  daysAgo: { ru: '{{count}} дней назад', kz: '{{count}} күн бұрын', en: '{{count}} days ago' },
-  daysAgo_one: { ru: '{{count}} день назад', kz: '{{count}} күн бұрын', en: '{{count}} day ago' },
-  daysAgo_few: { ru: '{{count}} дня назад', kz: '{{count}} күн бұрын', en: '{{count}} days ago' },
-  daysAgo_many: { ru: '{{count}} дней назад', kz: '{{count}} күн бұрын', en: '{{count}} days ago' },
-  monthsAgo: {
-    ru: '{{count}} месяцев назад',
-    kz: '{{count}} ай бұрын',
-    en: '{{count}} months ago',
-  },
-  monthsAgo_one: {
-    ru: '{{count}} месяц назад',
-    kz: '{{count}} ай бұрын',
-    en: '{{count}} month ago',
-  },
-  monthsAgo_few: {
-    ru: '{{count}} месяца назад',
-    kz: '{{count}} ай бұрын',
-    en: '{{count}} months ago',
-  },
-  monthsAgo_many: {
-    ru: '{{count}} месяцев назад',
-    kz: '{{count}} ай бұрын',
-    en: '{{count}} months ago',
-  },
-  yearsAgo: { ru: '{{count}} лет назад', kz: '{{count}} жыл бұрын', en: '{{count}} years ago' },
-  yearsAgo_one: { ru: '{{count}} год назад', kz: '{{count}} жыл бұрын', en: '{{count}} year ago' },
-  yearsAgo_few: {
-    ru: '{{count}} года назад',
-    kz: '{{count}} жыл бұрын',
-    en: '{{count}} years ago',
-  },
-  yearsAgo_many: {
-    ru: '{{count}} лет назад',
-    kz: '{{count}} жыл бұрын',
-    en: '{{count}} years ago',
-  },
-  helpful: { ru: 'Полезно', kz: 'Пайдалы', en: 'Helpful' },
-  report: { ru: 'Пожаловаться', kz: 'Шағымдану', en: 'Report' },
-  reported: { ru: 'Отмечено', kz: 'Белгіленген', en: 'Reported' },
 
   // ===== States, SLA & Edge Cases (Page 09) =====
   statesSlaTitle: {
@@ -819,7 +484,6 @@ const translations: Translations = {
   },
   allowedActions: { ru: 'Доступные действия', kz: 'Қолжетімді әрекеттер', en: 'Allowed Actions' },
   primaryCta: { ru: 'Основная кнопка', kz: 'Негізгі батырма', en: 'Primary CTA' },
-  whatUserSees: { ru: 'Что видит пользователь', kz: 'Пайдаланушы не көреді', en: 'What User Sees' },
   transitionsTo: { ru: 'Переходы', kz: 'Ауысулар', en: 'Transitions' },
   roomOpenDesc: {
     ru: 'Комната создана, ожидает участников. Владелец может редактировать, делиться ссылкой.',
@@ -1060,14 +724,13 @@ const translations: Translations = {
     en: 'Identifier Masking',
   },
   revealFlow: { ru: 'Раскрытие данных', kz: 'Деректерді ашу', en: 'Reveal Flow' },
-  auditTrail: { ru: 'Аудит-лог', kz: 'Аудит-лог', en: 'Audit Trail' },
+  auditTrail: { ru: 'Аудит-лог', kz: 'Аудит журналы', en: 'Audit Trail' },
   noDirectContacts: {
     ru: 'Без прямых контактов',
     kz: 'Тікелей байланыстарсыз',
     en: 'No Direct Contacts',
   },
   phoneMasked: { ru: 'Телефон (маскирован)', kz: 'Телефон (маскаланған)', en: 'Phone (masked)' },
-  contractId: { ru: 'ID контракта', kz: 'Келісімшарт ID', en: 'Contract ID' },
   contractIdMasked: {
     ru: 'ID контракта (маскирован)',
     kz: 'Келісімшарт ID (маскаланған)',
@@ -1171,9 +834,9 @@ const translations: Translations = {
     en: 'Direct contacts prohibited',
   },
   noDirectContactsDesc: {
-    ru: 'EcoPay не раскрывает личные данные участников друг другу. Все взаимодействия происходят через платформу.',
-    kz: 'EcoPay қатысушылардың жеке деректерін бір-біріне ашпайды. Барлық өзара әрекеттер платформа арқылы жүреді.',
-    en: "EcoPay does not expose members' personal data to each other. All interactions happen through the platform.",
+    ru: 'EcoSplit не раскрывает личные данные участников друг другу. Все взаимодействия происходят через платформу.',
+    kz: 'EcoSplit қатысушылардың жеке деректерін бір-біріне ашпайды. Барлық өзара әрекеттер платформа арқылы жүреді.',
+    en: "EcoSplit does not expose members' personal data to each other. All interactions happen through the platform.",
   },
   noDirectContactsRule1: {
     ru: 'Телефоны, email и реальные имена скрыты от других участников',
@@ -1271,7 +934,6 @@ const translations: Translations = {
   disputeInReview: { ru: 'На рассмотрении', kz: 'Қарастыруда', en: 'In Review' },
   disputeDecision: { ru: 'Решение принято', kz: 'Шешім қабылданды', en: 'Decision Made' },
   disputeRefundSent: { ru: 'Возврат отправлен', kz: 'Қайтару жіберілді', en: 'Refund Sent' },
-  disputeRejected: { ru: 'Отклонён', kz: 'Қабылданбады', en: 'Rejected' },
   addMoreEvidence: {
     ru: 'Добавить ещё доказательства',
     kz: 'Тағы дәлелдеме қосу',
@@ -1355,145 +1017,13 @@ const translations: Translations = {
   },
   refundAmount: { ru: 'Сумма возврата', kz: 'Қайтару сомасы', en: 'Refund amount' },
   slaIndicator: { ru: 'SLA индикатор', kz: 'SLA көрсеткіші', en: 'SLA indicator' },
-  assigned: { ru: 'Назначен', kz: 'Тағайындалған', en: 'Assigned' },
   unassigned: { ru: 'Не назначен', kz: 'Тағайындалмаған', en: 'Unassigned' },
 
   // ===== Notifications & Inbox (Page 14) =====
-  notificationsTitle: { ru: 'Уведомления', kz: 'Хабарландырулар', en: 'Notifications' },
-  notificationsSubtitle: {
-    ru: 'Входящие уведомления, настройки каналов и библиотека шаблонов',
-    kz: 'Кіріс хабарландырулар, арна параметрлері және үлгілер кітапханасы',
-    en: 'In-app inbox, channel preferences, and notification template library',
-  },
-  notifDropdown: { ru: 'Выпадающий список', kz: 'Ашылмалы тізім', en: 'Dropdown' },
-  notifCenter: { ru: 'Центр уведомлений', kz: 'Хабарландыру орталығы', en: 'Notification Center' },
-  notifTemplates: {
-    ru: 'Шаблоны уведомлений',
-    kz: 'Хабарландыру үлгілері',
-    en: 'Notification Templates',
-  },
-  markAllRead: {
-    ru: 'Отметить все как прочитанные',
-    kz: 'Барлығын оқылған деп белгілеу',
-    en: 'Mark all as read',
-  },
-  noNotifications: { ru: 'Нет уведомлений', kz: 'Хабарландырулар жоқ', en: 'No notifications' },
-  noNotificationsDesc: {
-    ru: 'Когда появятся обновления, вы увидите их здесь',
-    kz: 'Жаңартулар пайда болғанда, оларды мұнда көресіз',
-    en: "When there are updates, you'll see them here",
-  },
-  allNotifs: { ru: 'Все', kz: 'Барлығы', en: 'All' },
-  catRooms: { ru: 'Комнаты', kz: 'Бөлмелер', en: 'Rooms' },
-  catPayments: { ru: 'Платежи', kz: 'Төлемдер', en: 'Payments' },
-  catSupport: { ru: 'Поддержка', kz: 'Қолдау', en: 'Support' },
-  catSecurity: { ru: 'Безопасность', kz: 'Қауіпсіздік', en: 'Security' },
-  viewAll: { ru: 'Смотреть все', kz: 'Барлығын көру', en: 'View all' },
-  justNow: { ru: 'Только что', kz: 'Жаңа ғана', en: 'Just now' },
-  minutesAgo: { ru: 'мин назад', kz: 'мин бұрын', en: 'min ago' },
-  hoursAgo: { ru: 'ч назад', kz: 'сағ бұрын', en: 'h ago' },
   yesterday: { ru: 'Вчера', kz: 'Кеше', en: 'Yesterday' },
-  viewRoom: { ru: 'Перейти к комнате', kz: 'Бөлмеге өту', en: 'View room' },
-  viewPayment: { ru: 'Перейти к платежу', kz: 'Төлемге өту', en: 'View payment' },
-  viewDispute: { ru: 'Перейти к спору', kz: 'Дауға өту', en: 'View dispute' },
-  viewProfile: { ru: 'Перейти к профилю', kz: 'Профильге өту', en: 'View profile' },
-  notifUserJoinedRoom: {
-    ru: 'Новый участник присоединился к вашей комнате',
-    kz: 'Жаңа қатысушы бөлмеңізге қосылды',
-    en: 'A new member joined your room',
-  },
-  notifUserJoinedRoomBody: {
-    ru: 'User_k9x3p присоединился к «Beeline Family 30GB». Предоставьте доступ к тарифу.',
-    kz: 'User_k9x3p «Beeline Family 30GB» бөлмесіне қосылды. Тарифке қатынас беріңіз.',
-    en: "User_k9x3p joined 'Beeline Family 30GB'. Please grant plan access.",
-  },
-  notifAccessGranted: {
-    ru: 'Владелец предоставил доступ',
-    kz: 'Иесі қатынас берді',
-    en: 'Owner granted access',
-  },
-  notifAccessGrantedBody: {
-    ru: 'Доступ к тарифу в комнате «Activ Start 15GB» предоставлен. Подтвердите получение.',
-    kz: '«Activ Start 15GB» бөлмесінде тарифке қатынас берілді. Алғаныңызды растаңыз.',
-    en: "Plan access in room 'Activ Start 15GB' has been granted. Please confirm receipt.",
-  },
-  notifAccessConfirmed: {
-    ru: 'Доступ подтверждён администратором',
-    kz: 'Қатынас әкімші растады',
-    en: 'Access confirmed by admin',
-  },
-  notifAccessConfirmedBody: {
-    ru: 'Администратор подтвердил доступ для User_m2k9x в комнате RM-0412.',
-    kz: 'Әкімші RM-0412 бөлмесінде User_m2k9x қатынасын растады.',
-    en: 'Admin confirmed access for User_m2k9x in room RM-0412.',
-  },
-  notifDisputeCreated: { ru: 'Спор создан', kz: 'Дау жасалды', en: 'Dispute created' },
-  notifDisputeCreatedBody: {
-    ru: 'Спор DSP-001 по комнате RM-0412 принят в обработку. Ожидайте ответа.',
-    kz: 'RM-0412 бөлмесі бойынша DSP-001 дауы өңдеуге қабылданды. Жауап күтіңіз.',
-    en: "Dispute DSP-001 for room RM-0412 has been received. We'll respond shortly.",
-  },
-  notifDisputeClosed: { ru: 'Спор закрыт', kz: 'Дау жабылды', en: 'Dispute closed' },
-  notifDisputeClosedBody: {
-    ru: 'Решение по спору DSP-001 принято в вашу пользу. Возврат инициирован.',
-    kz: 'DSP-001 дауы бойынша шешім сіздің пайдаңызға шешілді. Қайтару басталды.',
-    en: 'Dispute DSP-001 was resolved in your favor. Refund has been initiated.',
-  },
-  notifPaymentReceived: { ru: 'Платёж получен', kz: 'Төлем алынды', en: 'Payment received' },
-  notifPaymentReceivedBody: {
-    ru: 'Платёж 4 500 ₸ за комнату «Beeline Family 30GB» успешно обработан.',
-    kz: '«Beeline Family 30GB» бөлмесі үшін 4 500 ₸ төлем сәтті өңделді.',
-    en: "Payment of 4,500 ₸ for room 'Beeline Family 30GB' processed successfully.",
-  },
-  notifMemberBanned: {
-    ru: 'Участник заблокирован',
-    kz: 'Қатысушы бұғатталды',
-    en: 'Member blocked',
-  },
-  notifMemberBannedBody: {
-    ru: 'User_r7n1q заблокирован в комнате RM-0399 из-за нарушения правил.',
-    kz: 'User_r7n1q RM-0399 бөлмесінде ережелерді бұзғаны үшін бұғатталды.',
-    en: 'User_r7n1q has been blocked in room RM-0399 due to a policy violation.',
-  },
-  notifMemberUnbanned: { ru: 'Блокировка снята', kz: 'Бұғаттау алынды', en: 'Member unblocked' },
-  notifMemberUnbannedBody: {
-    ru: 'Блокировка User_r7n1q в комнате RM-0399 снята.',
-    kz: 'RM-0399 бөлмесінде User_r7n1q бұғаттауы алынды.',
-    en: 'User_r7n1q has been unblocked in room RM-0399.',
-  },
-  notifRoomStatusChanged: {
-    ru: 'Статус комнаты изменён',
-    kz: 'Бөлме мәртебесі өзгерді',
-    en: 'Room status changed',
-  },
-  notifRoomStatusChangedBody: {
-    ru: 'Комната «Kcell Unlimited» перешла в статус ACTIVE.',
-    kz: '«Kcell Unlimited» бөлмесі ACTIVE мәртебесіне ауысты.',
-    en: "Room 'Kcell Unlimited' moved to ACTIVE status.",
-  },
-  notifRefundSent: { ru: 'Возврат отправлен', kz: 'Қайтару жіберілді', en: 'Refund sent' },
-  notifRefundSentBody: {
-    ru: 'Возврат 4 500 ₸ по спору DSP-001 отправлен на карту. Ожидайте 1–3 рабочих дня.',
-    kz: 'DSP-001 бойынша 4 500 ₸ қайтару картаға жіберілді. 1–3 жұмыс күн күтіңіз.',
-    en: 'Refund of 4,500 ₸ for dispute DSP-001 sent to your card. Expect 1–3 business days.',
-  },
-  loadingNotifications: {
-    ru: 'Загрузка уведомлений...',
-    kz: 'Хабарландырулар жүктелуде...',
-    en: 'Loading notifications...',
-  },
-  templateLibrary: { ru: 'Библиотека шаблонов', kz: 'Үлгілер кітапханасы', en: 'Template Library' },
-  templateLibraryDesc: {
-    ru: 'Стандартные карточки уведомлений для всех типов событий',
-    kz: 'Барлық оқиға түрлері үшін стандартты хабарландыру карталары',
-    en: 'Standard notification cards for all platform event types',
-  },
-  eventType: { ru: 'Тип события', kz: 'Оқиға түрі', en: 'Event type' },
-  recipient: { ru: 'Получатель', kz: 'Алушы', en: 'Recipient' },
   channel: { ru: 'Канал', kz: 'Арна', en: 'Channel' },
   inApp: { ru: 'В приложении', kz: 'Қолданбада', en: 'In-app' },
   push: { ru: 'Push', kz: 'Push', en: 'Push' },
-  emailChannel: { ru: 'Email', kz: 'Email', en: 'Email' },
 
   // ===== Quality Pass (Page 15) =====
   qualityPassTitle: {
@@ -1780,7 +1310,6 @@ const translations: Translations = {
     kz: 'WCAG 2.1 AA — ең төменгі стандарт',
     en: 'WCAG 2.1 AA — minimum standard',
   },
-  focusVisible: { ru: 'Видимый фокус', kz: 'Көрінетін фокус', en: 'Visible focus' },
   ariaLabelRequired: {
     ru: 'aria-label обязателен для иконок-кнопок',
     kz: 'белгіше-батырмалар үшін aria-label міндетті',
@@ -1872,7 +1401,6 @@ const translations: Translations = {
   },
   toastWarning: { ru: 'Обратите внимание', kz: 'Назар аударыңыз', en: 'Heads up' },
   toastInfo: { ru: 'К сведению', kz: 'Мәлімет үшін', en: 'For your info' },
-  dismiss: { ru: 'Закрыть', kz: 'Жабу', en: 'Dismiss' },
   bannerInfoMsg: {
     ru: 'Плановое обслуживание 5 апреля, 03:00–05:00. Сервис может быть недоступен.',
     kz: '5 сәуір 03:00–05:00 жоспарлы қызмет көрсету. Сервис қолжетімсіз болуы мүмкін.',
@@ -1926,9 +1454,8 @@ const translations: Translations = {
   missingState: { ru: 'Отсутствует', kz: 'Жетіспейді', en: 'Missing' },
   breakpointDesktop: { ru: 'Десктоп', kz: 'Десктоп', en: 'Desktop' },
   breakpointTablet: { ru: 'Планшет', kz: 'Планшет', en: 'Tablet' },
-  breakpointMobile: { ru: 'Мобильді', kz: 'Мобильді', en: 'Mobile' },
+  breakpointMobile: { ru: 'Мобильный', kz: 'Мобильді', en: 'Mobile' },
   truncationRule: { ru: 'Правило обрезки', kz: 'Қиып алу ережесі', en: 'Truncation rule' },
-  overflowNote: { ru: 'Переполнение', kz: 'Толып кету', en: 'Overflow note' },
   longestString: { ru: 'Самая длинная строка', kz: 'Ең ұзын жол', en: 'Longest string' },
   dateFormat: { ru: 'Формат даты', kz: 'Күн форматы', en: 'Date format' },
   currencyFormat: { ru: 'Формат валюты', kz: 'Валюта форматы', en: 'Currency format' },
@@ -2005,9 +1532,7 @@ const translations: Translations = {
     en: 'No direct chat — support only',
   },
   qaPass: { ru: 'Принято', kz: 'Қабылданды', en: 'Pass' },
-  qaFail: { ru: 'Не принято', kz: 'Қабылданбады', en: 'Fail' },
   qaPartial: { ru: 'Частично', kz: 'Ішінара', en: 'Partial' },
-  stepNum: { ru: 'Шаг', kz: 'Қадам', en: 'Step' },
   expectedUi: { ru: 'Ожидаемый UI', kz: 'Күтілетін UI', en: 'Expected UI' },
   recoveryCta: { ru: 'Восстановление', kz: 'Қалпына келтіру', en: 'Recovery CTA' },
 
@@ -2026,9 +1551,6 @@ const translations: Translations = {
   sectionI18nRules: { ru: 'Правила i18n-ключей', kz: 'i18n-кілт ережелері', en: 'i18n Key Rules' },
   govDo: { ru: 'Правильно', kz: 'Дұрыс', en: 'Do' },
   govDont: { ru: 'Неправильно', kz: 'Қате', en: "Don't" },
-  govWhy: { ru: 'Почему', kz: 'Неліктен', en: 'Why' },
-  govRule: { ru: 'Правило', kz: 'Ереже', en: 'Rule' },
-  govRuleCount: { ru: 'правил', kz: 'ереже', en: 'rules' },
 
   // ===== Payment History & Receipts (Page 22) =====
   phTitle: {
@@ -2065,17 +1587,14 @@ const translations: Translations = {
     kz: 'Таңдалған кезеңде транзакция жоқ',
     en: 'No transactions for selected period',
   },
-  phTotal: { ru: 'Итого', kz: 'Барлығы', en: 'Total' },
   phReceiptTitle: { ru: 'Платёжная квитанция', kz: 'Төлем түбіртегі', en: 'Payment Receipt' },
   phReceiptFrom: { ru: 'Плательщик', kz: 'Төлеуші', en: 'From' },
   phReceiptTo: { ru: 'Получатель', kz: 'Алушы', en: 'To' },
   phReceiptGenerated: { ru: 'Сгенерировано', kz: 'Жасалған', en: 'Generated' },
-  phPeriod: { ru: 'Период', kz: 'Кезең', en: 'Period' },
   phThisMonth: { ru: 'Этот месяц', kz: 'Бұл ай', en: 'This month' },
   phLast3: { ru: '3 месяца', kz: '3 ай', en: '3 months' },
   phLast6: { ru: '6 месяцев', kz: '6 ай', en: '6 months' },
   phAllTime: { ru: 'Всё время', kz: 'Бүкіл уақыт', en: 'All time' },
-  phSummary: { ru: 'Сводка', kz: 'Жиынтық', en: 'Summary' },
   phPaid: { ru: 'Оплачено', kz: 'Төленді', en: 'Paid' },
   phReceived: { ru: 'Получено', kz: 'Алынды', en: 'Received' },
   phRefunded: { ru: 'Возвращено', kz: 'Қайтарылды', en: 'Refunded' },
@@ -2138,46 +1657,6 @@ const translations: Translations = {
   geoShareable: { ru: 'Тарифов доступно', kz: 'Қолжетімді тарифтер', en: 'Shareable plans' },
 
   // ===== Notification Preferences (Page 24) =====
-  npTitle: {
-    ru: 'Настройки уведомлений',
-    kz: 'Хабарландыру баптаулары',
-    en: 'Notification Preferences',
-  },
-  npSubtitle: {
-    ru: 'Выберите, как и о чём вас уведомлять — в приложении, push или email',
-    kz: 'Хабарландыру тәсілі мен мазмұнын таңдаңыз — қосымшада, push немесе email',
-    en: 'Choose how and what to be notified about — in-app, push, or email',
-  },
-  npInApp: { ru: 'В приложении', kz: 'Қосымшада', en: 'In-App' },
-  npPush: { ru: 'Push', kz: 'Push', en: 'Push' },
-  npEmail: { ru: 'Email', kz: 'Email', en: 'Email' },
-  npCatPayments: { ru: 'Платежи', kz: 'Төлемдер', en: 'Payments' },
-  npCatRooms: { ru: 'Комнаты', kz: 'Бөлмелер', en: 'Rooms' },
-  npCatDisputes: { ru: 'Споры', kz: 'Даулар', en: 'Disputes' },
-  npCatSecurity: { ru: 'Безопасность', kz: 'Қауіпсіздік', en: 'Security' },
-  npCatMarketing: { ru: 'Новости и акции', kz: 'Жаңалықтар мен акциялар', en: 'News & Offers' },
-  npCatSystem: { ru: 'Системные', kz: 'Жүйелік', en: 'System' },
-  npSavePrefs: { ru: 'Сохранить настройки', kz: 'Баптауларды сақтау', en: 'Save Preferences' },
-  npReset: { ru: 'Сбросить', kz: 'Қалпына келтіру', en: 'Reset to Defaults' },
-  npPrivacyNote: {
-    ru: 'Вы можете изменить настройки в любое время. Мы не продаём ваши данные третьим лицам.',
-    kz: 'Баптауларды кез келген уақытта өзгерте аласыз. Деректеріңізді үшінші тарапқа сатпаймыз.',
-    en: 'You can change preferences anytime. We never sell your data to third parties.',
-  },
-  npQuietHours: { ru: 'Тихие часы', kz: 'Тыныш сағаттар', en: 'Quiet Hours' },
-  npQuietDesc: {
-    ru: 'Push-уведомления не будут отправляться в указанный период',
-    kz: 'Көрсетілген кезеңде push-хабарландырулар жіберілмейді',
-    en: "Push notifications won't be sent during this period",
-  },
-  npDigest: { ru: 'Дайджест', kz: 'Дайджест', en: 'Digest' },
-  npDigestDesc: {
-    ru: 'Получайте сводку вместо отдельных писем',
-    kz: 'Жеке хаттардың орнына жиынтық алыңыз',
-    en: 'Get a summary instead of individual emails',
-  },
-  npRequired: { ru: 'Обязательное', kz: 'Міндетті', en: 'Required' },
-  npAlwaysOn: { ru: 'Всегда включено', kz: 'Әрқашан қосулы', en: 'Always on' },
 
   // ===== UI Data Contracts & API Mapping (Page 23) =====
   dcTitle: {
@@ -2214,7 +1693,6 @@ const translations: Translations = {
   dcStatus: { ru: 'Статус', kz: 'Мәртебе', en: 'Status' },
   dcBadge: { ru: 'Бейдж', kz: 'Бейдж', en: 'Badge' },
   dcColor: { ru: 'Цвет', kz: 'Түс', en: 'Color' },
-  dcAction: { ru: 'Действие', kz: 'Әрекет', en: 'Action' },
   dcPermission: { ru: 'Доступ', kz: 'Рұқсат', en: 'Permission' },
   dcCatalogList: { ru: 'Каталог тарифов', kz: 'Тариф каталогы', en: 'Catalog List' },
   dcOperatorPage: { ru: 'Страница оператора', kz: 'Оператор беті', en: 'Operator Page' },
@@ -2222,7 +1700,7 @@ const translations: Translations = {
   dcJoinCheckout: { ru: 'Вступление и оплата', kz: 'Қосылу және төлем', en: 'Join & Checkout' },
   dcPendingHold: { ru: 'Ожидание и холд', kz: 'Күту және холд', en: 'Pending & Hold' },
   dcSupportTicket: { ru: 'Тикет поддержки', kz: 'Қолдау тикеті', en: 'Support Ticket' },
-  dcAdminModeration: { ru: 'Админ: модерация', kz: 'Админ: модерация', en: 'Admin: Moderation' },
+  dcAdminModeration: { ru: 'Админ: модерация', kz: 'Әкімші: модерация', en: 'Admin: Moderation' },
   dcProfileReviews: {
     ru: 'Профиль и отзывы',
     kz: 'Профиль және пікірлер',
@@ -2244,9 +1722,6 @@ const translations: Translations = {
     kz: 'i18n-кілт конвенциялары',
     en: 'i18n Key Conventions',
   },
-  dcModules: { ru: 'модулей', kz: 'модуль', en: 'modules' },
-  dcContracts: { ru: 'контрактов', kz: 'келісімшарт', en: 'contracts' },
-  dcEndpoints: { ru: 'эндпоинтов', kz: 'эндпоинт', en: 'endpoints' },
   dcStatuses: { ru: 'статусов', kz: 'мәртебе', en: 'statuses' },
 
   // ===== Copy Library (Page 24) =====
@@ -2278,10 +1753,6 @@ const translations: Translations = {
   clNotifs: { ru: 'Уведомления', kz: 'Хабарландырулар', en: 'Notifications' },
   clPlurals: { ru: 'Множественное число', kz: 'Көпше түрі', en: 'Pluralization' },
   clNumbers: { ru: 'Числа и форматы', kz: 'Сандар және пішімдер', en: 'Numbers & Formatting' },
-  clKey: { ru: 'Ключ', kz: 'Кілт', en: 'Key' },
-  clContext: { ru: 'Контекст', kz: 'Контекст', en: 'Context' },
-  clTone: { ru: 'Тон', kz: 'Тон', en: 'Tone' },
-  clCategory: { ru: 'Категория', kz: 'Санат', en: 'Category' },
   clEntries: { ru: 'записей', kz: 'жазба', en: 'entries' },
   clCategories: { ru: 'категорий', kz: 'санат', en: 'categories' },
   clToneGuide: { ru: 'Руководство по тону', kz: 'Тон нұсқаулығы', en: 'Tone Guide' },
@@ -2308,16 +1779,7 @@ const translations: Translations = {
   },
   bcDod: { ru: 'Definition of Done', kz: 'Дайындық анықтамасы', en: 'Definition of Done' },
   bcAcceptance: { ru: 'Критерии приёмки', kz: 'Қабылдау критерийлері', en: 'Acceptance Criteria' },
-  bcPriority: { ru: 'Приоритет', kz: 'Басымдық', en: 'Priority' },
-  bcStatus: { ru: 'Статус', kz: 'Мәртебе', en: 'Status' },
-  bcBlocks: { ru: 'Блокирует', kz: 'Бұғаттайды', en: 'Blocks' },
-  bcTasks: { ru: 'задач', kz: 'тапсырма', en: 'tasks' },
   bcCritical: { ru: 'Критичных', kz: 'Маңызды', en: 'Critical' },
-  bcMust: { ru: 'Обязательных', kz: 'Міндетті', en: 'Must-have' },
-  bcNice: { ru: 'Желательных', kz: 'Қалаулы', en: 'Nice-to-have' },
-  bcPassed: { ru: 'Пройдено', kz: 'Өтті', en: 'Passed' },
-  bcFailed: { ru: 'Не пройдено', kz: 'Өтпеді', en: 'Failed' },
-  bcPending: { ru: 'Ожидает', kz: 'Күтуде', en: 'Pending' },
 
   // ===== Analytics & Event Tracking Plan (Page 25) =====
   anTitle: {
@@ -2341,17 +1803,12 @@ const translations: Translations = {
   anProperties: { ru: 'Свойства', kz: 'Сипаттар', en: 'Properties' },
   anTrigger: { ru: 'Триггер в UI', kz: 'UI триггері', en: 'UI Trigger' },
   anMetric: { ru: 'Целевая метрика', kz: 'Мақсатты метрика', en: 'Success Metric' },
-  anEventName: { ru: 'Имя события', kz: 'Оқиға аты', en: 'Event Name' },
-  anModule: { ru: 'Модуль', kz: 'Модуль', en: 'Module' },
   anThreshold: { ru: 'Порог', kz: 'Шек', en: 'Threshold' },
-  anAction: { ru: 'Действие', kz: 'Әрекет', en: 'Action' },
-  anSeverity: { ru: 'Критичность', kz: 'Маңыздылық', en: 'Severity' },
   anFunnelConversion: {
     ru: 'Воронка конверсий',
     kz: 'Конверсия воронкасы',
     en: 'Conversion Funnel',
   },
-  anRetention: { ru: 'Удержание', kz: 'Ұстап қалу', en: 'Retention' },
   anImplementation: { ru: 'Реализация', kz: 'Жүзеге асыру', en: 'Implementation' },
   anSearchEvents: { ru: 'Поиск событий…', kz: 'Оқиғаларды іздеу…', en: 'Search events…' },
   anTotalEvents: { ru: 'событий', kz: 'оқиға', en: 'events' },
@@ -2365,32 +1822,10 @@ const translations: Translations = {
   'roomStatus.CANCELLED': { ru: 'Отменена', kz: 'Бас тартылды', en: 'Cancelled' },
   'roomStatus.BLOCKED': { ru: 'Заблокирована', kz: 'Бұғатталған', en: 'Blocked' },
 
-  'memberStatus.APPLIED': { ru: 'Подал заявку', kz: 'Өтінім берген', en: 'Applied' },
-  'memberStatus.PENDING': { ru: 'Ожидает', kz: 'Күтуде', en: 'Pending' },
-  'memberStatus.ACTIVE': { ru: 'Активен', kz: 'Белсенді', en: 'Active' },
-  'memberStatus.REJECTED': { ru: 'Отклонён', kz: 'Қабылданбады', en: 'Rejected' },
-  'memberStatus.BLOCKED': { ru: 'Заблокирован', kz: 'Бұғатталған', en: 'Blocked' },
-  'memberStatus.CANCELLED': { ru: 'Отменён', kz: 'Бас тартылды', en: 'Cancelled' },
-
   'ticketStatus.OPEN': { ru: 'Открыта', kz: 'Ашық', en: 'Open' },
   'ticketStatus.IN_PROGRESS': { ru: 'В работе', kz: 'Орындалуда', en: 'In Progress' },
   'ticketStatus.RESOLVED': { ru: 'Решена', kz: 'Шешілді', en: 'Resolved' },
   'ticketStatus.CLOSED': { ru: 'Закрыта', kz: 'Жабық', en: 'Closed' },
-
-  'disputeStatus.OPEN': { ru: 'Открыт', kz: 'Ашық', en: 'Open' },
-  'disputeStatus.UNDER_REVIEW': { ru: 'На рассмотрении', kz: 'Қарастыруда', en: 'Under Review' },
-  'disputeStatus.RESOLVED': { ru: 'Решён', kz: 'Шешілді', en: 'Resolved' },
-
-  'refundStatus.PENDING': { ru: 'Ожидает', kz: 'Күтуде', en: 'Pending' },
-  'refundStatus.PROCESSING': { ru: 'Обрабатывается', kz: 'Өңделуде', en: 'Processing' },
-  'refundStatus.COMPLETED': { ru: 'Завершён', kz: 'Аяқталды', en: 'Completed' },
-  'refundStatus.FAILED': { ru: 'Ошибка', kz: 'Сәтсіз', en: 'Failed' },
-
-  'paymentStatus.PAID': { ru: 'Оплачено', kz: 'Төленді', en: 'Paid' },
-  'paymentStatus.PENDING': { ru: 'Ожидает', kz: 'Күтуде', en: 'Pending' },
-  'paymentStatus.PROCESSING': { ru: 'Обрабатывается', kz: 'Өңделуде', en: 'Processing' },
-  'paymentStatus.FAILED': { ru: 'Ошибка', kz: 'Сәтсіз', en: 'Failed' },
-  'paymentStatus.REFUNDED': { ru: 'Возвращено', kz: 'Қайтарылды', en: 'Refunded' },
 
   // ===== Admin: shared chrome =====
   adminPortal: { ru: 'Админ-портал', kz: 'Әкімші порталы', en: 'Admin Portal' },
@@ -2467,13 +1902,6 @@ const translations: Translations = {
     kz: 'Желіге қосылу мәселесі. Қосылымды тексеріңіз.',
     en: 'Network error. Check your connection.',
   },
-  demoCredentials: { ru: 'Демо-доступ', kz: 'Демо-деректер', en: 'Demo Credentials' },
-  loginLabel: { ru: 'Логин', kz: 'Логин', en: 'Login' },
-  figmaOnlyNote: {
-    ru: 'Видно только в Figma — удалите перед продакшеном.',
-    kz: 'Тек Figma үшін көрінеді — өндіріске дейін жойыңыз.',
-    en: 'Visible for Figma only — remove before production.',
-  },
   reasonMinLength: {
     ru: 'Минимум {{n}} символов.',
     kz: 'Кемінде {{n}} таңба.',
@@ -2490,7 +1918,6 @@ const translations: Translations = {
     kz: 'Сіз {{email}} ретінде кірдіңіз',
     en: 'Signed in as {{email}}',
   },
-  goToDashboard: { ru: 'Перейти в панель', kz: 'Басқару тақтасына өту', en: 'Go to dashboard' },
   noNewNotifications: {
     ru: 'Нет новых уведомлений',
     kz: 'Жаңа хабарландырулар жоқ',
@@ -2499,7 +1926,6 @@ const translations: Translations = {
   moderationItemRoom: { ru: 'Комната', kz: 'Бөлме', en: 'Room' },
   moderationItemMember: { ru: 'Участник', kz: 'Қатысушы', en: 'Member' },
   moderationItemUnknown: { ru: 'Объект', kz: 'Нысан', en: 'Entity' },
-  riskScoreLabel: { ru: 'Балл риска', kz: 'Тәуекел балы', en: 'Risk score' },
   reasonCode: { ru: 'Код причины', kz: 'Себеп коды', en: 'Reason code' },
   assignedTo: { ru: 'Назначено', kz: 'Тағайындалған', en: 'Assigned to' },
   meLabel: { ru: 'Я', kz: 'Мен', en: 'Me' },
@@ -2546,7 +1972,6 @@ const translations: Translations = {
     kz: 'Бан мен бан алу аудит/төлем тарихын сақтайды. Пайдаланушыны өшіру жоқ.',
     en: 'Ban / unban preserves audit and payment history. Hard delete is not used.',
   },
-  noData: { ru: 'Нет данных', kz: 'Деректер жоқ', en: 'No data' },
   searchUsersPlaceholder: {
     ru: 'Поиск пользователей…',
     kz: 'Пайдаланушыларды іздеу…',
@@ -2590,7 +2015,6 @@ const translations: Translations = {
     en: 'Platform fees only',
   },
   totalRefundsLabel: { ru: 'Возвраты', kz: 'Қайтарулар', en: 'Refunds' },
-  pendingPayoutsLabel: { ru: 'Выплаты в ожидании', kz: 'Күтудегі төлемдер', en: 'Pending payouts' },
   emptyAdminLogs: {
     ru: 'Логи администратора пусты.',
     kz: 'Әкімші логтары бос.',
@@ -2634,15 +2058,25 @@ const translations: Translations = {
 
   // ===== Admin: dashboard =====
   openDisputes: { ru: 'Открытые споры', kz: 'Ашық даулар', en: 'Open Disputes' },
-  refundsPending: { ru: 'Возвраты в ожидании', kz: 'Күтудегі қайтарулар', en: 'Refunds Pending' },
-  ticketsOpen: { ru: 'Открытые заявки', kz: 'Ашық өтінімдер', en: 'Tickets Open' },
-  activeBans: { ru: 'Активные блокировки', kz: 'Белсенді бұғаттаулар', en: 'Active Bans' },
-  totalRooms: { ru: 'Всего комнат', kz: 'Барлық бөлмелер', en: 'Total Rooms' },
-  monthlyRevenue: { ru: 'Доход за месяц', kz: 'Айлық табыс', en: 'Monthly Revenue' },
   recentActivity: { ru: 'Недавняя активность', kz: 'Соңғы белсенділік', en: 'Recent Activity' },
 
   // ===== Admin: moderation =====
   itemsPendingReview: {
+    ru: '{{count}} элементов на проверке',
+    kz: '{{count}} элемент тексеруде',
+    en: '{{count}} items pending review',
+  },
+  itemsPendingReview_one: {
+    ru: '{{count}} элемент на проверке',
+    kz: '{{count}} элемент тексеруде',
+    en: '{{count}} item pending review',
+  },
+  itemsPendingReview_few: {
+    ru: '{{count}} элемента на проверке',
+    kz: '{{count}} элемент тексеруде',
+    en: '{{count}} items pending review',
+  },
+  itemsPendingReview_many: {
     ru: '{{count}} элементов на проверке',
     kz: '{{count}} элемент тексеруде',
     en: '{{count}} items pending review',
@@ -2654,35 +2088,22 @@ const translations: Translations = {
     en: 'No items pending moderation.',
   },
   colEntity: { ru: 'Объект', kz: 'Нысан', en: 'Entity' },
-  colRiskFlags: { ru: 'Флаги риска', kz: 'Тәуекел белгілері', en: 'Risk Flags' },
   colScore: { ru: 'Балл', kz: 'Балл', en: 'Score' },
-  colIdentifier: { ru: 'Идентификатор', kz: 'Идентификатор', en: 'Identifier' },
   colSubmitted: { ru: 'Отправлено', kz: 'Жіберілді', en: 'Submitted' },
   colActions: { ru: 'Действия', kz: 'Әрекеттер', en: 'Actions' },
   colTimestamp: { ru: 'Время', kz: 'Уақыт', en: 'Timestamp' },
   colActor: { ru: 'Действующее лицо', kz: 'Әрекет етуші', en: 'Actor' },
   colType: { ru: 'Тип', kz: 'Түрі', en: 'Type' },
-  colAction: { ru: 'Действие', kz: 'Әрекет', en: 'Action' },
   colReason: { ru: 'Причина', kz: 'Себеп', en: 'Reason' },
-  colUser: { ru: 'Пользователь', kz: 'Пайдаланушы', en: 'User' },
-  colAmount: { ru: 'Сумма', kz: 'Сома', en: 'Amount' },
   colStatus: { ru: 'Статус', kz: 'Мәртебе', en: 'Status' },
-  colDispute: { ru: 'Спор', kz: 'Дау', en: 'Dispute' },
 
   // ===== Admin: identity in logs + users segmentation =====
-  logsAdminLabel: { ru: 'Админ', kz: 'Әкімші', en: 'Admin' },
   logsIpLabel: { ru: 'IP', kz: 'IP', en: 'IP' },
   logsRoomOwnerLabel: { ru: 'Владелец', kz: 'Иесі', en: 'Owner' },
   usersSegmentUsers: { ru: 'Пользователи', kz: 'Пайдаланушылар', en: 'Users' },
   usersSegmentAdmins: { ru: 'Админы', kz: 'Әкімшілер', en: 'Admins' },
   usersLastLogin: { ru: 'Последний вход', kz: 'Соңғы кіру', en: 'Last login' },
 
-  roomVerification: { ru: 'Проверка комнаты', kz: 'Бөлмені тексеру', en: 'Room verification' },
-  memberVerification: {
-    ru: 'Проверка участника',
-    kz: 'Қатысушыны тексеру',
-    en: 'Member verification',
-  },
   confirmModerationItem: {
     ru: 'Подтвердите, что элемент прошёл модерацию.',
     kz: 'Элемент модерациядан өткенін растаңыз.',
@@ -2693,40 +2114,9 @@ const translations: Translations = {
     kz: 'Элементті қабылдамау. Нысан хабарландырылады.',
     en: 'Reject this item. The entity will be notified.',
   },
-  requestInfoModerationItem: {
-    ru: 'Запросить дополнительную информацию у владельца или участника.',
-    kz: 'Иесінен немесе қатысушыдан қосымша ақпарат сұрау.',
-    en: 'Request additional information from the owner/member.',
-  },
   comment: { ru: 'Комментарий', kz: 'Түсініктеме', en: 'Comment' },
-  mandatoryActionReason: {
-    ru: 'Обязательная причина действия (записывается в аудит)...',
-    kz: 'Әрекеттің міндетті себебі (аудитке жазылады)...',
-    en: 'Mandatory reason for this action (logged for audit)...',
-  },
-  actionRecordedAuditLogs: {
-    ru: 'Это действие будет записано в журнал аудита администратора.',
-    kz: 'Бұл әрекет әкімші аудит журналына жазылады.',
-    en: 'This action will be recorded in admin audit logs.',
-  },
-  sendRequest: { ru: 'Отправить запрос', kz: 'Сұрау жіберу', en: 'Send Request' },
   reason: { ru: 'Причина', kz: 'Себеп', en: 'Reason' },
   reveal: { ru: 'Раскрыть', kz: 'Ашу', en: 'Reveal' },
-  revealIdentifierReasonPrompt: {
-    ru: 'Укажите причину просмотра полного идентификатора. Это записывается для аудита.',
-    kz: 'Толық идентификаторды көру себебін көрсетіңіз. Бұл аудит үшін жазылады.',
-    en: 'Provide a reason for viewing the full identifier. This is logged for audit compliance.',
-  },
-  reasonPlaceholderModeration: {
-    ru: 'напр., Проверка личности для модерации',
-    kz: 'мыс., Модерация үшін жеке басын тексеру',
-    en: 'e.g., Verifying identity for moderation',
-  },
-  revealActionLogged: {
-    ru: 'Действие раскрытия записано',
-    kz: 'Ашу әрекеті жазылды',
-    en: 'Reveal action logged',
-  },
 
   // ===== Admin: logs =====
   auditTrailSubtitle: {
@@ -2749,16 +2139,8 @@ const translations: Translations = {
   seats: { ru: 'Слоты', kz: 'Орындар', en: 'Seats' },
   seatsLower: { ru: 'мест', kz: 'орын', en: 'seats' },
   startLabel: { ru: 'Старт', kz: 'Басталуы', en: 'Start' },
-  ownerIdLabel: { ru: 'ID владельца', kz: 'Иесінің ID', en: 'Owner ID' },
-  reasonRequired: { ru: 'Требуется причина', kz: 'Себеп қажет', en: 'Reason required' },
   blockRoom: { ru: 'Заблокировать комнату', kz: 'Бөлмені бұғаттау', en: 'Block Room' },
   unblockRoom: { ru: 'Разблокировать комнату', kz: 'Бөлмені бұғаттан шығару', en: 'Unblock Room' },
-  roomEventLog: {
-    ru: 'Журнал событий комнаты',
-    kz: 'Бөлме оқиғалар журналы',
-    en: 'Room Event Log',
-  },
-  risk: { ru: 'Риск', kz: 'Тәуекел', en: 'Risk' },
   blockRoomConfirm: {
     ru: 'Блокировка комнаты остановит всю активность. Активные участники будут уведомлены.',
     kz: 'Бөлмені бұғаттау барлық белсенділікті тоқтатады. Белсенді қатысушылар хабарландырылады.',
@@ -2769,23 +2151,7 @@ const translations: Translations = {
     kz: 'Бұғаттан шығару бөлмені бұрынғы белсенді күйіне қайтарады.',
     en: 'Unblocking will restore the room to its previous active state.',
   },
-  adminBackToSite: { ru: 'На сайт', kz: 'Сайтқа', en: 'Back to site' },
-  mandatoryReasonAudit: {
-    ru: 'Обязательная причина (записывается в аудит)...',
-    kz: 'Міндетті себеп (аудитке жазылады)...',
-    en: 'Mandatory reason (audit logged)...',
-  },
-  actionRecordedAuditLog: {
-    ru: 'Действие записано в журнал аудита администратора.',
-    kz: 'Әрекет әкімші аудит журналына жазылды.',
-    en: 'Action recorded in admin audit log.',
-  },
-  provideReasonAuditLogged: {
-    ru: 'Укажите причину. Это действие записывается в аудит.',
-    kz: 'Себепті көрсетіңіз. Бұл әрекет аудитке жазылады.',
-    en: 'Provide a reason. This action is audit-logged.',
-  },
-  reasonPlaceholder: { ru: 'Причина...', kz: 'Себеп...', en: 'Reason...' },
+  adminBackToSite: { ru: '← Вернуться на сайт', kz: '← Сайтқа оралу', en: '← Back to site' },
 
   // ===== Admin: users =====
   selectUserToView: {
@@ -2797,11 +2163,6 @@ const translations: Translations = {
   owned: { ru: 'Владеет', kz: 'Иелігінде', en: 'Owned' },
   joinedCount: { ru: 'Вступления', kz: 'Қосылулар', en: 'Joined' },
   sinceLabel: { ru: 'С', kz: 'Бері', en: 'Since' },
-  reasonRequiredAuditLogged: {
-    ru: 'Требуется причина · Записывается в аудит',
-    kz: 'Себеп қажет · Аудитке жазылады',
-    en: 'Reason required · Audit logged',
-  },
   banUserConfirm: {
     ru: 'Блокировка отключит возможность пользователя создавать комнаты и вступать в них.',
     kz: 'Бұғаттау пайдаланушының бөлме жасау және оларға қосылу мүмкіндігін өшіреді.',
@@ -2818,11 +2179,6 @@ const translations: Translations = {
     en: 'Mandatory (audit logged)...',
   },
   auditLoggedShort: { ru: 'Записано в аудит.', kz: 'Аудитке жазылды.', en: 'Audit logged.' },
-  provideReasonAuditLoggedShort: {
-    ru: 'Укажите причину. Записывается в аудит.',
-    kz: 'Себепті көрсетіңіз. Аудитке жазылады.',
-    en: 'Provide reason. Audit logged.',
-  },
 
   // ===== Admin: tickets =====
   ticketsSupportView: {
@@ -2832,31 +2188,18 @@ const translations: Translations = {
   },
   escalatedBadge: { ru: 'Эскалировано', kz: 'Күшейтілген', en: 'Escalated' },
   selectTicket: { ru: 'Выберите заявку', kz: 'Өтінімді таңдаңыз', en: 'Select a ticket' },
-  noRoom: { ru: 'Без комнаты', kz: 'Бөлмесіз', en: 'No room' },
   escalateToDispute: { ru: 'Эскалировать в спор', kz: 'Дауға күшейту', en: 'Escalate to Dispute' },
   escalatedToDisputeReview: {
     ru: 'Эскалировано в рассмотрение спора',
     kz: 'Дау қарастыруына күшейтілді',
     en: 'Escalated to dispute review',
   },
-  replyAsSupport: {
-    ru: 'Ответить как поддержка...',
-    kz: 'Қолдау атынан жауап беру...',
-    en: 'Reply as Support...',
-  },
   escalateDisputeConfirm: {
     ru: 'Это создаст спор и уведомит пользователя и команду администраторов.',
     kz: 'Бұл дау жасап, пайдаланушы мен әкімшілер тобын хабарландырады.',
     en: 'This will create a dispute and notify the user and admin team.',
   },
-  escalationReasonPlaceholder: {
-    ru: 'Причина эскалации (записывается в аудит)...',
-    kz: 'Күшейту себебі (аудитке жазылады)...',
-    en: 'Escalation reason (audit logged)...',
-  },
   escalate: { ru: 'Эскалировать', kz: 'Күшейту', en: 'Escalate' },
-  supportLabel: { ru: 'Поддержка', kz: 'Қолдау', en: 'Support' },
-  adminLabelRole: { ru: 'Администратор', kz: 'Әкімші', en: 'Admin' },
 
   // ===== Admin: disputes & refunds =====
   selectDispute: { ru: 'Выберите спор', kz: 'Дауды таңдаңыз', en: 'Select a dispute' },
@@ -2867,56 +2210,8 @@ const translations: Translations = {
   },
   createdLabel: { ru: 'Создан', kz: 'Жасалған', en: 'Created' },
   summaryLabel: { ru: 'Резюме', kz: 'Түйіндеме', en: 'Summary' },
-  evidenceAttachments: {
-    ru: 'Прикреплённые доказательства',
-    kz: 'Тіркелген дәлелдемелер',
-    en: 'Evidence Attachments',
-  },
-  favorRespondent: {
-    ru: 'В пользу ответчика',
-    kz: 'Жауапкердің пайдасына',
-    en: 'Favor Respondent',
-  },
-  process: { ru: 'Обработать', kz: 'Өңдеу', en: 'Process' },
   retry: { ru: 'Повторить', kz: 'Қайталау', en: 'Retry' },
-  idempotencyLabel: { ru: 'Идемпотентность:', kz: 'Идемпотенттік:', en: 'Idempotency:' },
-  idempotencyNote: {
-    ru: 'Каждый возврат привязан к уникальному ID намерения. Повтор неудачного возврата использует то же намерение, чтобы избежать дублирования. Все действия с возвратами записываются в аудит.',
-    kz: 'Әр қайтару бірегей ниет ID-мен байланысты. Сәтсіз қайтаруды қайталау қосарлануды болдырмау үшін сол ниетті қайта пайдаланады. Барлық қайтару әрекеттері аудитке жазылады.',
-    en: 'Each refund is tied to a unique intent ID. Retrying a failed refund reuses the same intent to prevent duplicate processing. All refund actions are audit-logged.',
-  },
-  favorClaimantDesc: {
-    ru: 'Решение в пользу заявителя. Может быть инициирован возврат.',
-    kz: 'Өтініш беруші пайдасына шешім. Қайтару басталуы мүмкін.',
-    en: 'Ruling in favor of the claimant. A refund may be initiated.',
-  },
-  favorRespondentDesc: {
-    ru: 'Решение в пользу ответчика. Возврат не будет произведён.',
-    kz: 'Жауапкер пайдасына шешім. Қайтару жасалмайды.',
-    en: 'Ruling in favor of the respondent. No refund will be issued.',
-  },
-  decisionRationalePlaceholder: {
-    ru: 'Обоснование решения (обязательно, записывается в аудит)...',
-    kz: 'Шешім негіздемесі (міндетті, аудитке жазылады)...',
-    en: 'Decision rationale (mandatory, audit logged)...',
-  },
-  decisionRecorded: {
-    ru: 'Решение записано без возможности изменения.',
-    kz: 'Шешім өзгертілмейтіндей жазылды.',
-    en: 'Decision permanently recorded.',
-  },
-  confirmDecision: { ru: 'Подтвердить решение', kz: 'Шешімді растау', en: 'Confirm Decision' },
-  processRefund: { ru: 'Обработать возврат', kz: 'Қайтаруды өңдеу', en: 'Process Refund' },
-  refundStubNote: {
-    ru: 'Это заглушка. В продакшене это вызывает API платёжного процессора с указанным выше ID намерения.',
-    kz: 'Бұл — үлгі. Өндірісте бұл жоғарыдағы ниет ID-мен төлем процессоры API-ын іске қосады.',
-    en: 'This is a stub. In production, this triggers the payment processor API with the intent ID above.',
-  },
-  initiateRefund: { ru: 'Инициировать возврат', kz: 'Қайтаруды бастау', en: 'Initiate Refund' },
   intentIdLabel: { ru: 'ID намерения', kz: 'Ниет ID', en: 'Intent ID' },
-  refundIdLabel: { ru: 'ID возврата', kz: 'Қайтару ID', en: 'Refund ID' },
-  disputesTab: { ru: 'Споры', kz: 'Даулар', en: 'Disputes' },
-  refundsTab: { ru: 'Возвраты', kz: 'Қайтарулар', en: 'Refunds' },
 
   // ===== Auth: register =====
   pwMin8: { ru: 'Минимум 8 символов', kz: 'Кемінде 8 таңба', en: 'Min 8 characters' },
@@ -2929,26 +2224,6 @@ const translations: Translations = {
   },
 
   // ===== Catalog: home =====
-  unableToLoadCatalog: {
-    ru: 'Не удалось загрузить каталог.',
-    kz: 'Каталогты жүктеу мүмкін болмады.',
-    en: 'Unable to load the live catalog right now.',
-  },
-  splitDigitalServicesTeaser: {
-    ru: 'Делитесь стримингом, музыкой и AI-инструментами. Запуск позже в 2026 году.',
-    kz: 'Стриминг, музыка және AI құралдарын бөлісіңіз. 2026 жылы кейінірек іске қосылады.',
-    en: 'Split streaming, music, AI tools. Launching later in 2026.',
-  },
-  bundleIncludesInternet: {
-    ru: 'Пакет включает домашний интернет',
-    kz: 'Топтамаға үй интернеті кіреді',
-    en: 'Bundle includes home internet',
-  },
-  promoFirstMonth: {
-    ru: 'Промо-цена в первый месяц',
-    kz: 'Бірінші айда промо-баға',
-    en: 'Promo price first month',
-  },
 
   // ===== Catalog: operator =====
   operatorNotFound: {
@@ -3014,8 +2289,21 @@ const translations: Translations = {
     kz: 'Макс. {{count}} қатысушы',
     en: 'Max {{count}} members',
   },
-  ownerColon: { ru: 'Владелец: {{name}}', kz: 'Иесі: {{name}}', en: 'Owner: {{name}}' },
-  tbd: { ru: 'Уточняется', kz: 'Анықталады', en: 'TBD' },
+  maxMembersCount_one: {
+    ru: 'Макс. {{count}} участник',
+    kz: 'Макс. {{count}} қатысушы',
+    en: 'Max {{count}} member',
+  },
+  maxMembersCount_few: {
+    ru: 'Макс. {{count}} участника',
+    kz: 'Макс. {{count}} қатысушы',
+    en: 'Max {{count}} members',
+  },
+  maxMembersCount_many: {
+    ru: 'Макс. {{count}} участников',
+    kz: 'Макс. {{count}} қатысушы',
+    en: 'Max {{count}} members',
+  },
 
   // ===== Rooms: my-rooms =====
   tabJoined: { ru: 'Участвую', kz: 'Қатысамын', en: 'Joined' },
@@ -3037,7 +2325,6 @@ const translations: Translations = {
   },
   viewDetailsAction: { ru: 'Подробнее', kz: 'Толығырақ', en: 'View details' },
   manage: { ru: 'Управлять', kz: 'Басқару', en: 'Manage' },
-  pendingCount: { ru: '{{count}} в ожидании', kz: '{{count}} күтуде', en: '{{count}} pending' },
   perMonthShort: { ru: '/мес', kz: '/ай', en: '/mo' },
   perMemberMonth: { ru: '/мес за участника', kz: '/ай қатысушыға', en: '/mo per member' },
 
@@ -3104,28 +2391,6 @@ const translations: Translations = {
   sortPriceAsc: { ru: 'Цена: по возрастанию', kz: 'Бағасы: өсу', en: 'Price: low to high' },
   sortPriceDesc: { ru: 'Цена: по убыванию', kz: 'Бағасы: кему', en: 'Price: high to low' },
   sortNewest: { ru: 'Сначала новые', kz: 'Алдымен жаңалары', en: 'Newest first' },
-  marketplaceFromPrice: { ru: 'от', kz: 'бастап', en: 'from' },
-  marketplaceNoTariffs: { ru: 'Тарифов пока нет', kz: 'Әзірге тарифтер жоқ', en: 'No tariffs yet' },
-  marketplaceTariffsCount: {
-    ru: '{{count}} тарифов',
-    kz: '{{count}} тариф',
-    en: '{{count}} tariffs',
-  },
-  marketplaceTariffsCount_one: {
-    ru: '{{count}} тариф',
-    kz: '{{count}} тариф',
-    en: '{{count}} tariff',
-  },
-  marketplaceTariffsCount_few: {
-    ru: '{{count}} тарифа',
-    kz: '{{count}} тариф',
-    en: '{{count}} tariffs',
-  },
-  marketplaceTariffsCount_many: {
-    ru: '{{count}} тарифов',
-    kz: '{{count}} тариф',
-    en: '{{count}} tariffs',
-  },
   marketplaceLoadFailed: {
     ru: 'Не удалось загрузить каталог',
     kz: 'Каталог жүктелмеді',
@@ -3170,72 +2435,12 @@ const translations: Translations = {
     kz: 'Оператор ережелері',
     en: 'Operator rules',
   },
-  catalogRuleAccessType: {
-    ru: 'Способ доступа по умолчанию',
-    kz: 'Әдепкі қолжетімділік тәсілі',
-    en: 'Default access type',
-  },
-  catalogRuleAccessTypeNone: {
-    ru: '— не задано —',
-    kz: '— белгіленбеген —',
-    en: '— not set —',
-  },
-  catalogRuleAccessFamilyPlan: {
-    ru: 'Семейный план',
-    kz: 'Отбасылық жоспар',
-    en: 'Family plan',
-  },
-  catalogRuleAccessSharedAccount: {
-    ru: 'Общий аккаунт',
-    kz: 'Ортақ аккаунт',
-    en: 'Shared account',
-  },
-  catalogRuleAccessInviteLink: {
-    ru: 'Ссылка-приглашение',
-    kz: 'Шақыру сілтемесі',
-    en: 'Invite link',
-  },
-  catalogRuleAccessEmailInvite: {
-    ru: 'Приглашение по email',
-    kz: 'Email арқылы шақыру',
-    en: 'Email invite',
-  },
-  catalogRuleRegion: {
-    ru: 'Регион (ограничение)',
-    kz: 'Аймақ (шектеу)',
-    en: 'Region (restriction)',
-  },
-  catalogRuleSharingWarning: {
-    ru: 'Предупреждение о совместном использовании',
-    kz: 'Бірлесіп пайдалану туралы ескерту',
-    en: 'Sharing warning',
-  },
-  catalogRuleSlaHours: {
-    ru: 'SLA выдачи доступа (часы)',
-    kz: 'Қолжетімділік беру SLA (сағат)',
-    en: 'Access grant SLA (hours)',
-  },
-  catalogRuleRequiresEmailForInvite: {
-    ru: 'Требуется email участника для приглашения',
-    kz: 'Шақыру үшін қатысушының email қажет',
-    en: 'Requires member email for invite',
-  },
-  catalogRuleEmailChangeForbidden: {
-    ru: 'Запрещена смена email',
-    kz: 'Email өзгертуге тыйым салынған',
-    en: 'Email change forbidden',
-  },
 
   // ===== Service reviews =====
-  serviceReviewsTitle: {
-    ru: 'Отзывы участников',
-    kz: 'Қатысушылар пікірлері',
-    en: 'Member reviews',
-  },
   serviceReviewMyTitle: {
-    ru: 'Мой отзыв о EcoPay',
-    kz: 'EcoPay туралы пікірім',
-    en: 'My EcoPay review',
+    ru: 'Мой отзыв о EcoSplit',
+    kz: 'EcoSplit туралы пікірім',
+    en: 'My EcoSplit review',
   },
   serviceReviewLeavePrompt: {
     ru: 'Оставьте отзыв о сервисе',
@@ -3393,11 +2598,6 @@ const translations: Translations = {
     kz: 'Тіркелулер және кірулер',
     en: 'Registrations & logins',
   },
-  dashboardMetricsLoadFailed: {
-    ru: 'Не удалось загрузить метрики',
-    kz: 'Метрикалар жүктелмеді',
-    en: 'Failed to load metrics',
-  },
   dashboardNewLast30d: {
     ru: 'Новых за 30 дней',
     kz: 'Соңғы 30 күнде жаңа',
@@ -3530,11 +2730,6 @@ const translations: Translations = {
   },
   adminFeedbackFilterType: { ru: 'Тип', kz: 'Түрі', en: 'Type' },
   adminFeedbackFilterStatus: { ru: 'Статус', kz: 'Мәртебе', en: 'Status' },
-  adminFeedbackColAuthor: { ru: 'От кого', kz: 'Кімнен', en: 'Author' },
-  adminFeedbackColType: { ru: 'Тип', kz: 'Түрі', en: 'Type' },
-  adminFeedbackColSubject: { ru: 'Тема', kz: 'Тақырып', en: 'Subject' },
-  adminFeedbackColDate: { ru: 'Дата', kz: 'Күні', en: 'Date' },
-  adminFeedbackColStatus: { ru: 'Статус', kz: 'Мәртебе', en: 'Status' },
   adminFeedbackAllTypes: { ru: 'Все типы', kz: 'Барлық түрлері', en: 'All types' },
   adminFeedbackAllStatuses: { ru: 'Все статусы', kz: 'Барлық мәртебелер', en: 'All statuses' },
   adminFeedbackSelect: {
@@ -3568,42 +2763,10 @@ const translations: Translations = {
   },
 
   // ===== Currency picker (create-room) =====
-  currencyLabel: { ru: 'Валюта', kz: 'Валюта', en: 'Currency' },
-  currencyKzt: { ru: 'Тенге (KZT, ₸)', kz: 'Теңге (KZT, ₸)', en: 'Tenge (KZT, ₸)' },
-  currencyUsd: { ru: 'Доллар США (USD, $)', kz: 'АҚШ доллары (USD, $)', en: 'US Dollar (USD, $)' },
-  currencyEur: { ru: 'Евро (EUR, €)', kz: 'Еуро (EUR, €)', en: 'Euro (EUR, €)' },
-  currencyCny: { ru: 'Юань (CNY, ¥)', kz: 'Юань (CNY, ¥)', en: 'Yuan (CNY, ¥)' },
-  currencyGbp: {
-    ru: 'Фунт стерлингов (GBP, £)',
-    kz: 'Фунт стерлинг (GBP, £)',
-    en: 'Pound Sterling (GBP, £)',
-  },
-  currencyRub: { ru: 'Рубль (RUB, ₽)', kz: 'Рубль (RUB, ₽)', en: 'Ruble (RUB, ₽)' },
-  currencyUzs: {
-    ru: 'Узбекский сум (UZS, сум)',
-    kz: 'Өзбек сомы (UZS, сум)',
-    en: 'Uzbek Sum (UZS, soʼm)',
-  },
-  currencyKgs: {
-    ru: 'Киргизский сом (KGS, сом)',
-    kz: 'Қырғыз сомы (KGS, сом)',
-    en: 'Kyrgyz Som (KGS, som)',
-  },
-  priceAmountLabel: { ru: 'Сумма', kz: 'Сома', en: 'Amount' },
-  priceKztEquivalent: {
-    ru: '≈ {{amount}} в тенге',
-    kz: '≈ {{amount}} теңгеде',
-    en: '≈ {{amount}} in tenge',
-  },
   priceFxUnavailable: {
     ru: 'Курс валют недоступен',
     kz: 'Валюта курсы қолжетімсіз',
     en: 'FX rate unavailable',
-  },
-  priceFxUpdatedAt: {
-    ru: 'Курсы обновлены: {{time}}',
-    kz: 'Курстар жаңартылды: {{time}}',
-    en: 'Rates updated: {{time}}',
   },
 
   // ===== Member dashboard =====
@@ -3620,7 +2783,7 @@ const translations: Translations = {
   memberStatTotalSpent: { ru: 'Всего потрачено', kz: 'Барлық жұмсалғаны', en: 'Total spent' },
   memberStatTotalSaved: { ru: 'Сэкономлено', kz: 'Үнемделген', en: 'Total saved' },
   memberStatNextPayment: { ru: 'Ближайший платёж', kz: 'Жақын төлем', en: 'Next payment' },
-  memberStatReputation: { ru: 'Репутация', kz: 'Репутация', en: 'Reputation' },
+  memberStatReputation: { ru: 'Репутация', kz: 'Бедел', en: 'Reputation' },
   memberStatReviewsReceived: {
     ru: 'Полученные отзывы',
     kz: 'Алынған пікірлер',
@@ -3670,11 +2833,6 @@ const translations: Translations = {
     ru: 'Средняя заполняемость комнат',
     kz: 'Бөлмелердің орташа толтыруы',
     en: 'Avg room fill rate',
-  },
-  kpiAvgMembersPerRoom: {
-    ru: 'В среднем участников на комнату',
-    kz: 'Бөлмеге орташа қатысушылар',
-    en: 'Avg members per room',
   },
   kpiActiveSubsValue: {
     ru: 'Стоимость активных подписок',
@@ -3756,7 +2914,6 @@ const translations: Translations = {
     en: 'Active members',
   },
   dashboardEmptyChart: { ru: 'Нет данных', kz: 'Деректер жоқ', en: 'No data' },
-  dashboardOtherSlice: { ru: 'Другое', kz: 'Басқа', en: 'Other' },
   dashboardCountryDistributionTitle: {
     ru: 'Распределение по странам',
     kz: 'Елдер бойынша бөлу',
@@ -3787,37 +2944,20 @@ const translations: Translations = {
   },
 
   // ===== Verification mode (room protection type) =====
-  verificationModeRiskBased: {
-    ru: 'Защита по риску',
-    kz: 'Тәуекелге қарай қорғау',
-    en: 'Risk-based protection',
-  },
-  verificationModeAuto: { ru: 'Авто-проверка', kz: 'Авто тексеру', en: 'Auto verification' },
-  verificationModeAdminRequired: {
-    ru: 'Проверка администратора',
-    kz: 'Әкімші тексеруі',
-    en: 'Admin verification',
-  },
 
   // ===== Navbar typeahead (public catalog search) =====
   navbarSearchPlaceholder: { ru: 'Поиск планов…', kz: 'Жоспарларды іздеу…', en: 'Search plans…' },
   navbarSearchLoading: { ru: 'Ищем…', kz: 'Іздеу…', en: 'Searching…' },
   navbarSearchEmpty: { ru: 'Ничего не найдено', kz: 'Ештеңе табылмады', en: 'No results' },
-  navbarSearchHint: {
-    ru: 'Введите минимум 2 символа',
-    kz: 'Кемінде 2 таңба енгізіңіз',
-    en: 'Type at least 2 characters',
-  },
   navbarSearchClose: { ru: 'Закрыть', kz: 'Жабу', en: 'Close' },
 
   // ===== News (home + admin) =====
   newsSectionTitle: { ru: 'Новости', kz: 'Жаңалықтар', en: 'News' },
   newsSectionSubtitle: {
-    ru: 'Свежие обновления EcoPay: релизы, изменения и истории сообщества.',
-    kz: 'EcoPay жаңартулары: релиздер, өзгерістер және қауымдастық оқиғалары.',
-    en: 'Latest EcoPay updates: releases, changes, and community stories.',
+    ru: 'Свежие обновления EcoSplit: релизы, изменения и истории сообщества.',
+    kz: 'EcoSplit жаңартулары: релиздер, өзгерістер және қауымдастық оқиғалары.',
+    en: 'Latest EcoSplit updates: releases, changes, and community stories.',
   },
-  newsReadMore: { ru: 'Читать', kz: 'Оқу', en: 'Read' },
   newsEmptyTitle: { ru: 'Новостей пока нет', kz: 'Әзірге жаңалықтар жоқ', en: 'No news yet' },
   newsEmptyDesc: {
     ru: 'Как только мы что-то опубликуем, оно появится здесь.',
@@ -3887,11 +3027,6 @@ const translations: Translations = {
   adminNewsFormEdit: { ru: 'Редактирование', kz: 'Өңдеу', en: 'Editing' },
   adminNewsSaveSuccess: { ru: 'Сохранено', kz: 'Сақталды', en: 'Saved' },
   adminNewsDeleteSuccess: { ru: 'Удалено', kz: 'Жойылды', en: 'Deleted' },
-  adminNewsImageRequired: {
-    ru: 'Сначала сохраните новость, затем можно загрузить картинку.',
-    kz: 'Алдымен жаңалықты сақтаңыз, содан кейін суретті жүктеуге болады.',
-    en: 'Save the post first, then you can upload an image.',
-  },
   adminNewsImageAtCreateHint: {
     ru: 'PNG/JPG/WebP, до 5 МБ. Картинка загрузится сразу после сохранения.',
     kz: 'PNG/JPG/WebP, 5 МБ-қа дейін. Сурет сақтаудан кейін жүктеледі.',
@@ -3934,7 +3069,6 @@ const translations: Translations = {
   },
 
   // ===== FAQ extra (8–12 questions) =====
-  faqSectionTitle: { ru: 'Частые вопросы', kz: 'Жиі сұрақтар', en: 'FAQ' },
 
   // ===== Ban event (realtime) =====
   bannedHeadline: { ru: 'Аккаунт заблокирован', kz: 'Тіркелгі бұғатталды', en: 'Account blocked' },
@@ -3947,205 +3081,6 @@ const translations: Translations = {
   },
 
   // ===== /privacy =====
-  privacyHeroSubtitle: {
-    ru: 'Конфиденциальность в приоритете. Вот как мы защищаем ваши данные.',
-    kz: 'Құпиялылық басты орында. Сіздің деректеріңізді қалай қорғайтынымызды осында оқыңыз.',
-    en: "Your privacy is our priority. Here's how we protect your data.",
-  },
-  privacyLastUpdatedDate: {
-    ru: 'Обновлено: 3 апреля 2026',
-    kz: 'Жаңартылды: 2026 жылғы 3 сәуір',
-    en: 'Last updated: April 3, 2026',
-  },
-  privacyPrinciplesHeading: {
-    ru: 'Наши принципы конфиденциальности',
-    kz: 'Біздің құпиялылық принциптеріміз',
-    en: 'Our Privacy Principles',
-  },
-  privacyPrincipleEncryptionTitle: {
-    ru: 'Ваши данные зашифрованы',
-    kz: 'Деректеріңіз шифрланған',
-    en: 'Your Data is Encrypted',
-  },
-  privacyPrincipleEncryptionDesc: {
-    ru: 'Все персональные данные и платёжная информация шифруются при передаче и хранении по отраслевым стандартам.',
-    kz: 'Барлық жеке және төлем деректері өнеркәсіптік стандарттарға сай тасымалдау және сақтау кезінде шифрланады.',
-    en: 'All personal information and payment data is encrypted in transit and at rest using industry-standard protocols.',
-  },
-  privacyPrincipleNoContactTitle: {
-    ru: 'Контакты не передаются',
-    kz: 'Байланыс деректері берілмейді',
-    en: 'No Contact Sharing',
-  },
-  privacyPrincipleNoContactDesc: {
-    ru: 'Мы никогда не передаём ваш номер, e-mail или личные данные другим пользователям. Всё взаимодействие происходит через платформу.',
-    kz: 'Біз сіздің телефон нөміріңізді, e-mail-ыңызды немесе жеке мәліметтеріңізді басқа пайдаланушыларға бермейміз. Барлық үйлестіру платформа арқылы өтеді.',
-    en: 'We never share your phone number, email, or personal details with other users. All coordination happens through our platform.',
-  },
-  privacyPrincipleSupportOnlyTitle: {
-    ru: 'Общение только через поддержку',
-    kz: 'Қарым-қатынас тек қолдау арқылы',
-    en: 'Support-Only Communication',
-  },
-  privacyPrincipleSupportOnlyDesc: {
-    ru: 'Прямой переписки между пользователями нет. Все вопросы решаются через официальные заявки в поддержку, которые проверяет наша команда.',
-    kz: 'Пайдаланушылар арасында тікелей хабар алмасу жоқ. Барлық сұрақтар біздің команда қарайтын ресми қолдау өтінімдері арқылы шешіледі.',
-    en: 'There is no direct user-to-user messaging. All communication is handled through official support tickets monitored by our team.',
-  },
-  privacyPrincipleTransparentTitle: {
-    ru: 'Прозрачное использование данных',
-    kz: 'Деректерді мөлдір пайдалану',
-    en: 'Transparent Data Usage',
-  },
-  privacyPrincipleTransparentDesc: {
-    ru: 'Мы собираем только то, что необходимо для работы сервиса. Вы можете в любой момент запросить просмотр, экспорт или удаление своих данных.',
-    kz: 'Біз қызмет жұмысы үшін қажетті деректерді ғана жинаймыз. Кез келген уақытта деректеріңізді көру, экспорттау немесе жою сұранысын жасай аласыз.',
-    en: 'We only collect data necessary to provide our service. You can request to see, export, or delete your data at any time.',
-  },
-  privacyPrincipleMinimalTitle: {
-    ru: 'Минимальный сбор данных',
-    kz: 'Деректерді ең аз көлемде жинау',
-    en: 'Minimal Data Collection',
-  },
-  privacyPrincipleMinimalDesc: {
-    ru: 'Только необходимое: имя, e-mail, номер телефона и реквизиты платежа. Никакой истории браузера, отслеживания геолокации или сторонней аналитики.',
-    kz: 'Тек қажеттісі: аты-жөні, e-mail, телефон нөмірі және төлем деректемелері. Шолғыш тарихы, геолокацияны бақылау немесе сыртқы аналитика жоқ.',
-    en: 'We collect only essential information: name, email, phone number, and payment details. No browsing history, location tracking, or third-party analytics.',
-  },
-  privacyPrincipleComplianceTitle: {
-    ru: 'Соответствие и защита',
-    kz: 'Сәйкестік және қорғау',
-    en: 'Compliance & Protection',
-  },
-  privacyPrincipleComplianceDesc: {
-    ru: 'Мы соблюдаем требования законодательства Казахстана о защите данных и применяем международные передовые практики.',
-    kz: 'Біз Қазақстанның дербес деректерді қорғау туралы талаптарын сақтаймыз және халықаралық озық тәжірибелерді қолданамыз.',
-    en: 'We comply with Kazakhstan data protection regulations and international best practices to keep your information safe.',
-  },
-
-  privacyDataHeading: {
-    ru: 'Какие данные мы собираем',
-    kz: 'Қандай деректерді жинаймыз',
-    en: 'What Data We Collect',
-  },
-  privacyDataAccountTitle: {
-    ru: 'Данные аккаунта',
-    kz: 'Тіркелгі деректері',
-    en: 'Account Information',
-  },
-  privacyDataAccountItem1: { ru: 'Полное имя', kz: 'Толық аты-жөні', en: 'Full name' },
-  privacyDataAccountItem2: { ru: 'Адрес e-mail', kz: 'E-mail мекенжайы', en: 'Email address' },
-  privacyDataAccountItem3: { ru: 'Номер телефона', kz: 'Телефон нөмірі', en: 'Phone number' },
-  privacyDataAccountItem4: {
-    ru: 'Пароль (хешированный)',
-    kz: 'Құпиясөз (хэштелген)',
-    en: 'Password (hashed)',
-  },
-
-  privacyDataPaymentTitle: {
-    ru: 'Платёжные данные',
-    kz: 'Төлем деректері',
-    en: 'Payment Information',
-  },
-  privacyDataPaymentItem1: {
-    ru: 'Реквизиты способа оплаты',
-    kz: 'Төлем тәсілінің деректемелері',
-    en: 'Payment method details',
-  },
-  privacyDataPaymentItem2: {
-    ru: 'История транзакций',
-    kz: 'Транзакциялар тарихы',
-    en: 'Transaction history',
-  },
-  privacyDataPaymentItem3: { ru: 'Платёжный адрес', kz: 'Төлем мекенжайы', en: 'Billing address' },
-
-  privacyDataUsageTitle: {
-    ru: 'Использование сервиса',
-    kz: 'Қызметті пайдалану',
-    en: 'Usage Data',
-  },
-  privacyDataUsageItem1: {
-    ru: 'История участия в комнатах',
-    kz: 'Бөлмелерге қатысу тарихы',
-    en: 'Room participation history',
-  },
-  privacyDataUsageItem2: {
-    ru: 'Записи заявок в поддержку',
-    kz: 'Қолдау өтінімдерінің жазбалары',
-    en: 'Support ticket records',
-  },
-  privacyDataUsageItem3: { ru: 'Активность входов', kz: 'Кіру белсенділігі', en: 'Login activity' },
-
-  privacyDataTechnicalTitle: {
-    ru: 'Технические данные',
-    kz: 'Техникалық деректер',
-    en: 'Technical Data',
-  },
-  privacyDataTechnicalItem1: { ru: 'IP-адрес', kz: 'IP-мекенжай', en: 'IP address' },
-  privacyDataTechnicalItem2: { ru: 'Тип браузера', kz: 'Шолғыш түрі', en: 'Browser type' },
-  privacyDataTechnicalItem3: {
-    ru: 'Сведения об устройстве',
-    kz: 'Құрылғы туралы мәліметтер',
-    en: 'Device information',
-  },
-
-  privacyCommitmentsHeading: {
-    ru: 'Ключевые обязательства',
-    kz: 'Негізгі міндеттемелер',
-    en: 'Key Commitments',
-  },
-  privacyCommitmentNoSellingLabel: { ru: 'Никаких продаж:', kz: 'Сатылмайды:', en: 'No selling:' },
-  privacyCommitmentNoSellingDesc: {
-    ru: 'Мы никогда не продаём ваши данные третьим сторонам.',
-    kz: 'Біз сіздің деректеріңізді ешқашан үшінші тұлғаларға сатпаймыз.',
-    en: 'We never sell your data to third parties.',
-  },
-  privacyCommitmentNoUserSharingLabel: {
-    ru: 'Никакого обмена между пользователями:',
-    kz: 'Пайдаланушылар арасында бөлісу жоқ:',
-    en: 'No user-to-user sharing:',
-  },
-  privacyCommitmentNoUserSharingDesc: {
-    ru: 'Ваши контактные данные никогда не передаются другим пользователям.',
-    kz: 'Сіздің байланыс деректеріңіз ешқашан басқа пайдаланушыларға берілмейді.',
-    en: 'Your contact information is never shared with other users.',
-  },
-  privacyCommitmentDeletionLabel: {
-    ru: 'Право на удаление:',
-    kz: 'Жою құқығы:',
-    en: 'Right to deletion:',
-  },
-  privacyCommitmentDeletionDesc: {
-    ru: 'Вы можете в любое время запросить удаление аккаунта и данных.',
-    kz: 'Кез келген уақытта тіркелгі мен деректерді жоюды талап ете аласыз.',
-    en: 'You can request account and data deletion at any time.',
-  },
-  privacyCommitmentPortabilityLabel: {
-    ru: 'Переносимость данных:',
-    kz: 'Деректердің тасымалдануы:',
-    en: 'Data portability:',
-  },
-  privacyCommitmentPortabilityDesc: {
-    ru: 'Вы можете экспортировать свои данные в стандартном формате.',
-    kz: 'Деректеріңізді стандартты пішімде экспорттай аласыз.',
-    en: 'You can export your data in a standard format.',
-  },
-
-  privacyContactHeading: {
-    ru: 'Вопросы о конфиденциальности?',
-    kz: 'Құпиялылық туралы сұрақтар бар ма?',
-    en: 'Privacy Questions?',
-  },
-  privacyContactDescBefore: {
-    ru: 'Если у вас есть вопросы об этой политике или том, как мы обращаемся с данными, напишите нам на ',
-    kz: 'Осы саясат немесе деректерді қалай өңдейтініміз туралы сұрақтарыңыз болса, бізге хат жазыңыз: ',
-    en: 'If you have questions about this privacy policy or how we handle your data, contact us at ',
-  },
-  privacyContactDescAfter: {
-    ru: ' или через нашу систему поддержки.',
-    kz: ' немесе қолдау жүйеміз арқылы хабарласыңыз.',
-    en: ' or through our support system.',
-  },
 
   // ===== /how-it-works =====
   howItWorksSubtitle: {
@@ -4259,9 +3194,9 @@ const translations: Translations = {
     en: 'Important: No User-to-User Chat',
   },
   howItWorksNoticeDesc: {
-    ru: 'EcoPay не предоставляет прямого общения между пользователями. Все вопросы и координация решаются через официальные заявки в поддержку, которые проверяет наша команда. Это защищает вашу приватность и обеспечивает безопасность и фиксацию всех взаимодействий.',
-    kz: 'EcoPay пайдаланушылар арасында тікелей хабарласуды қамтамасыз етпейді. Барлық сұрақтар мен үйлестіру біздің команда қарайтын ресми қолдау өтінімдері арқылы шешіледі. Бұл сіздің құпиялылығыңызды қорғайды әрі барлық әрекеттің қауіпсіз және құжатталған болуын қамтамасыз етеді.',
-    en: 'EcoPay does not provide direct messaging between users. All communication, questions, and coordination happen through official support tickets monitored by our team. This protects your privacy and ensures all interactions are secure and documented.',
+    ru: 'EcoSplit не предоставляет прямого общения между пользователями. Все вопросы и координация решаются через официальные заявки в поддержку, которые проверяет наша команда. Это защищает вашу приватность и обеспечивает безопасность и фиксацию всех взаимодействий.',
+    kz: 'EcoSplit пайдаланушылар арасында тікелей хабарласуды қамтамасыз етпейді. Барлық сұрақтар мен үйлестіру біздің команда қарайтын ресми қолдау өтінімдері арқылы шешіледі. Бұл сіздің құпиялылығыңызды қорғайды әрі барлық әрекеттің қауіпсіз және құжатталған болуын қамтамасыз етеді.',
+    en: 'EcoSplit does not provide direct messaging between users. All communication, questions, and coordination happen through official support tickets monitored by our team. This protects your privacy and ensures all interactions are secure and documented.',
   },
 
   howItWorksHelpTitle: { ru: 'Нужна помощь?', kz: 'Көмек керек пе?', en: 'Need Help?' },
@@ -4378,7 +3313,6 @@ const translations: Translations = {
     kz: 'Тарих әлі бос',
     en: 'No snapshots yet',
   },
-  adminPricingPrevious: { ru: 'Ранее', kz: 'Бұрын', en: 'Previously' },
   adminPricingInactive: { ru: 'Отключено', kz: 'Өшірілген', en: 'Inactive' },
   adminPricingRecentChanges: {
     ru: 'Недавние изменения цен',
@@ -4478,11 +3412,6 @@ const translations: Translations = {
     ru: 'Цена не найдена',
     kz: 'Баға табылмады',
     en: 'No price found',
-  },
-  adminPricingTestError: {
-    ru: 'Ошибка проверки',
-    kz: 'Тексеру қатесі',
-    en: 'Test failed',
   },
 
   // ===== Admin Finance drill-down (/admin/finance) =====
@@ -4603,6 +3532,17 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   setCurrentLanguage(language);
   useEffect(() => {
     setCurrentLanguage(language);
+  }, [language]);
+
+  // Keep document-level metadata in sync with the active language so the tab
+  // title, SEO description and <html lang> reflect what the user actually sees.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const htmlLangByLanguage: Record<Language, string> = { ru: 'ru', kz: 'kk', en: 'en' };
+    document.documentElement.lang = htmlLangByLanguage[language];
+    document.title = translations.metaTitle[language];
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', translations.metaDescription[language]);
   }, [language]);
 
   const setLanguage = (lang: Language) => {

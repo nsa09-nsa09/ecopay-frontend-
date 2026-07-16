@@ -383,7 +383,7 @@ export function AdminFeedbackPage() {
                         background: 'var(--eco-surface)',
                         color: 'var(--eco-text-secondary)',
                       }}
-                      aria-label="Close"
+                      aria-label={t('close')}
                     >
                       <X size={14} />
                     </button>
