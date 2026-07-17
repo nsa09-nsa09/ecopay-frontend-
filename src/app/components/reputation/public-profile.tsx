@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { useI18n } from '../i18n-provider';
 import { formatDate } from '../../lib/datetime';
-import { Card, Skeleton } from '../ds-primitives';
+import { Button, Card, Skeleton } from '../ds-primitives';
 import { Star, AlertCircle } from 'lucide-react';
 import {
   ApiError,
@@ -20,6 +20,8 @@ import {
   resolveReputationBand,
 } from '../../lib/reputation';
 import { RatingScale } from './rating-scale';
+import { useAuth } from '../auth/auth-provider';
+import { LeaveReviewModal } from './leave-review-modal';
 
 function StarRating({
   rating,
@@ -70,6 +72,7 @@ export { StarRating };
 export function PublicUserProfilePage() {
   const { t, language } = useI18n();
   const { id, publicId } = useParams<{ id?: string; publicId?: string }>();
+  const { user: currentUser, isAuthenticated } = useAuth();
 
   const [reviewFilter, setReviewFilter] = useState<'all' | 'positive' | 'negative' | 'recent'>(
     'all',
@@ -80,61 +83,52 @@ export function PublicUserProfilePage() {
   const [reviews, setReviews] = useState<ReviewDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setProfile(null);
-
-    async function loadByPublicId(hash: string) {
-      const prof = await getPublicProfile(hash);
-      if (cancelled) return;
-      setProfile(prof);
-      const [rep, rev] = await Promise.all([
-        getReputationRequest(prof.id).catch(() => null),
-        getReputationReviewsRequest(prof.id).catch(() => [] as ReviewDto[]),
-      ]);
-      if (cancelled) return;
-      if (rep) {
-        setReputation(rep);
-      } else {
-        setReputation({
-          userId: prof.id,
-          displayName: prof.displayName,
-          avatar: prof.avatar ?? null,
-          reputation: prof.reputation,
-          reputationLevel: prof.reputationLevel ?? null,
-          averageRating: prof.averageRating,
-          reviewsCount: prof.reviewsCount,
-          completedRoomsCount: prof.completedRoomsCount,
-        });
+  const loadProfile = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+        setProfile(null);
       }
-      setReviews(rev);
-    }
 
-    async function loadByNumericId(uid: string) {
-      const [rep, rev] = await Promise.all([
-        getReputationRequest(uid),
-        getReputationReviewsRequest(uid),
-      ]);
-      if (cancelled) return;
-      setReputation(rep);
-      setReviews(rev);
-    }
-
-    const run = async () => {
       try {
         if (publicId) {
-          await loadByPublicId(publicId);
+          const prof = await getPublicProfile(publicId);
+          setProfile(prof);
+          const [rep, rev] = await Promise.all([
+            getReputationRequest(prof.id).catch(() => null),
+            getReputationReviewsRequest(prof.id).catch(() => [] as ReviewDto[]),
+          ]);
+          if (rep) {
+            setReputation(rep);
+          } else {
+            setReputation({
+              userId: prof.id,
+              displayName: prof.displayName,
+              avatar: prof.avatar ?? null,
+              reputation: prof.reputation,
+              reputationLevel: prof.reputationLevel ?? null,
+              averageRating: prof.averageRating,
+              reviewsCount: prof.reviewsCount,
+              completedRoomsCount: prof.completedRoomsCount,
+            });
+          }
+          setReviews(rev);
         } else if (id) {
           // User ids are 64-bit; keep the raw string (Number() would corrupt it).
-          await loadByNumericId(id);
+          const [rep, rev] = await Promise.all([
+            getReputationRequest(id),
+            getReputationReviewsRequest(id),
+          ]);
+          setReputation(rep);
+          setReviews(rev);
         } else {
           throw new ApiError(400, 'Invalid user.');
         }
       } catch (err) {
-        if (cancelled) return;
         if (err instanceof ApiError && err.status === 404) {
           setError(t('publicProfileNotFound'));
         } else {
@@ -143,16 +137,15 @@ export function PublicUserProfilePage() {
           );
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!silent) setLoading(false);
       }
-    };
+    },
+    [id, publicId, t],
+  );
 
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [id, publicId, t]);
+  useEffect(() => {
+    void loadProfile();
+  }, [loadProfile]);
 
   const filteredReviews = reviews
     .filter((r) => {
@@ -210,6 +203,8 @@ export function PublicUserProfilePage() {
   const outOfTen = reputationOutOfTen(reputation.reputation);
   const fillPct = reputationFillPercent(reputation.reputation);
   const slug = profile?.slug ?? null;
+  const canRate =
+    isAuthenticated && currentUser != null && currentUser.id !== reputation.userId;
 
   return (
     <div className="max-w-[800px] mx-auto px-4 sm:px-6 py-8">
@@ -250,6 +245,16 @@ export function PublicUserProfilePage() {
                 </div>
               ) : null}
             </div>
+            {canRate && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setReviewOpen(true)}
+                className="shrink-0"
+              >
+                <Star size={14} /> {t('rateUserAction')}
+              </Button>
+            )}
           </div>
 
           <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--eco-border)' }}>
@@ -434,6 +439,18 @@ export function PublicUserProfilePage() {
           )}
         </Card>
       </div>
+
+      {canRate && (
+        <LeaveReviewModal
+          open={reviewOpen}
+          onClose={() => setReviewOpen(false)}
+          recipientId={reputation.userId}
+          recipientName={reputation.displayName ?? undefined}
+          onSubmitted={() => {
+            void loadProfile({ silent: true });
+          }}
+        />
+      )}
     </div>
   );
 }

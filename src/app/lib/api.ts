@@ -1051,6 +1051,7 @@ export interface AdminDashboardKpisDto {
   completedRooms: number;
   blockedRooms: number;
   totalRevenue: number | string;
+  platformRevenue?: number | string | null;
   totalRefunds: number | string;
   openDisputes: number;
   pendingModeration: number;
@@ -1112,6 +1113,7 @@ export interface DashboardMetricPoint {
   pageViews?: number | null;
   newRooms?: number | null;
   revenue?: number | string | null;
+  commissionRevenue?: number | string | null;
 }
 
 export interface DashboardMetricsResponse {
@@ -1778,7 +1780,7 @@ export interface ReviewDto {
 
 export interface CreateReviewPayload {
   recipientId: number;
-  roomId: number;
+  roomId?: number;
   rating: number;
   text?: string;
 }
