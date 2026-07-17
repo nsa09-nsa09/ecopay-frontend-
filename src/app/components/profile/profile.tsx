@@ -40,6 +40,7 @@ import {
 } from '../../lib/api';
 import { MyServiceReviewCard } from './my-service-review';
 import { ReputationLevelBadge } from '../reputation/level-badge';
+import { reputationOutOfTen } from '../../lib/reputation';
 import {
   CartesianGrid,
   Legend,
@@ -216,9 +217,11 @@ export function ProfilePage() {
             </div>
             <div className="flex items-center gap-1" style={{ color: 'var(--eco-warning)' }}>
               <Star size={16} fill="currentColor" />
-              <span className="text-[16px]">{user.reputation ?? 0}</span>
+              <span className="text-[16px]">
+                {reputationOutOfTen(user.reputation).toFixed(1)}/10
+              </span>
               <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                {tx(language, 'репутация', 'репутация', 'reputation')}
+                {tx(language, 'рейтинг доверия', 'сенім рейтингі', 'trust rating')}
               </span>
             </div>
             <ReputationLevelBadge level={user.reputationLevel} score={user.reputation ?? 0} />
@@ -461,7 +464,7 @@ export function ProfilePage() {
                 <Star size={14} /> {tx(language, 'Репутация', 'Репутация', 'Reputation')}
               </div>
               <div className="mt-2 text-[15px]" style={{ color: 'var(--eco-text)' }}>
-                {user.reputation ?? 0}
+                {reputationOutOfTen(user.reputation).toFixed(1)}/10
               </div>
             </div>
           </Card>
@@ -1088,11 +1091,11 @@ function MemberDashboardCard() {
         },
         {
           key: 'memberStatReputation',
-          value: formatCount(
+          value: `${reputationOutOfTen(
             typeof data.reputationScore === 'string'
               ? Number(data.reputationScore)
               : data.reputationScore,
-          ),
+          ).toFixed(1)}/10`,
           icon: Star,
           variant: 'success',
         },

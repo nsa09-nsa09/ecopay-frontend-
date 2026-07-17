@@ -434,9 +434,9 @@ const translations: Translations = {
   repBandGood: { ru: 'Хорошая', kz: 'Жақсы', en: 'Good' },
   repBandExcellent: { ru: 'Отличная', kz: 'Үздік', en: 'Excellent' },
   reputationNote: {
-    ru: 'Репутация начинается с 10/10 и снижается при низких оценках и подтверждённых нарушениях.',
-    kz: 'Бедел 10/10-нан басталады және төмен бағалар мен расталған бұзушылықтарда төмендейді.',
-    en: 'Reputation starts at 10/10 and drops for low ratings and confirmed violations.',
+    ru: 'Рейтинг доверия по 10-балльной шкале. Новый пользователь начинает с нейтральных 5.0/10; рейтинг складывается из оценок участников после завершённых периодов и снижается при подтверждённых нарушениях.',
+    kz: 'Сенім рейтингі 10 балдық шкала бойынша. Жаңа пайдаланушы бейтарап 5.0/10-нан бастайды; рейтинг аяқталған кезеңдерден кейінгі қатысушылардың бағаларынан құралады және расталған бұзушылықтарда төмендейді.',
+    en: 'Trust rating on a 10-point scale. A new user starts at a neutral 5.0/10; the rating is built from member reviews after completed periods and drops for confirmed violations.',
   },
   slugLabel: { ru: 'Ссылка профиля', kz: 'Профиль сілтемесі', en: 'Profile handle' },
   slugAvailable: { ru: 'Свободно', kz: 'Бос', en: 'Available' },

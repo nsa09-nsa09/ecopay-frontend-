@@ -37,6 +37,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
+import { reputationOutOfTen } from '../../lib/reputation';
 
 const PAGE_SIZE = 20;
 
@@ -432,7 +433,8 @@ export function AdminUsersPage() {
                       className="flex items-center gap-0.5"
                       style={{ color: 'var(--eco-warning-500)' }}
                     >
-                      <Star size={10} fill="currentColor" /> {u.reputation ?? 0}
+                      <Star size={10} fill="currentColor" />{' '}
+                      {reputationOutOfTen(u.reputation).toFixed(1)}/10
                     </span>
                     · {u.emailMasked ?? u.email}
                   </div>
@@ -539,7 +541,11 @@ export function AdminUsersPage() {
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                     {[
-                      { label: t('rating'), value: `${selected.reputation ?? 0}`, icon: Star },
+                      {
+                        label: t('rating'),
+                        value: `${reputationOutOfTen(selected.reputation).toFixed(1)}/10`,
+                        icon: Star,
+                      },
                       { label: t('owned'), value: `${selected.roomsOwned ?? 0}`, icon: Home },
                       {
                         label: t('joinedCount'),
