@@ -2,7 +2,9 @@ export type UserRole = 'USER' | 'SUPPORT' | 'ADMIN';
 
 export interface User {
   id: number;
-  email: string;
+  /** Null for phone-registered accounts until an email is added in the profile. */
+  email: string | null;
+  emailVerified?: boolean;
   displayName: string;
   phone: string | null;
   phoneVerified: boolean;
@@ -479,17 +481,41 @@ export function trackVisitRequest(path: string): Promise<void> {
   });
 }
 
-export function loginRequest(email: string, password: string) {
+/** True when the sign-in/sign-up identifier the user typed is a phone number, not an email. */
+export function isPhoneIdentifier(identifier: string): boolean {
+  return /^\+?[\d\s()-]+$/.test(identifier.trim());
+}
+
+/** Normalize a typed phone to the backend's +7XXXXXXXXXX format (best effort). */
+export function normalizePhone(identifier: string): string {
+  const digits = identifier.replace(/\D/g, '');
+  if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))) {
+    return `+7${digits.slice(1)}`;
+  }
+  if (digits.length === 10) {
+    return `+7${digits}`;
+  }
+  return `+${digits}`;
+}
+
+/**
+ * Sign in with either identifier: the backend takes exactly one of email / phone plus the
+ * password. Callers pass whatever the user typed; phone-looking input is normalized to +7….
+ */
+export function loginRequest(identifier: string, password: string) {
+  const body = isPhoneIdentifier(identifier)
+    ? { phone: normalizePhone(identifier), password }
+    : { email: identifier.trim(), password };
   return requestJson<AuthResponse>('/auth/login', {
     method: 'POST',
     credentials: 'include',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(body),
   });
 }
 
 export function registerRequest(
   displayName: string,
-  email: string,
+  identifier: { email?: string; phone?: string },
   password: string,
   termsAccepted: boolean,
   acceptedTermsVersion?: number,
@@ -500,13 +526,61 @@ export function registerRequest(
     credentials: 'include',
     body: JSON.stringify({
       displayName,
-      email,
+      email: identifier.email,
+      phone: identifier.phone,
       password,
       termsAccepted,
       acceptedTermsVersion,
       acceptedPrivacyVersion,
     }),
   });
+}
+
+/**
+ * Final phone-registration step: confirm the 6-digit SMS code. Returns a full session (access
+ * token + httpOnly refresh cookie). Backend: POST /api/v1/auth/verify-phone-code.
+ */
+export function verifyPhoneCodeRequest(phone: string, code: string) {
+  return requestJson<AuthResponse>('/auth/verify-phone-code', {
+    method: 'POST',
+    credentials: 'include',
+    body: JSON.stringify({ phone, code }),
+  });
+}
+
+/** Re-send the SMS code for an unfinished phone registration (always 200, enumeration-safe). */
+export function resendPhoneCodeRequest(phone: string) {
+  return requestJson<void>('/auth/resend-phone-code', {
+    method: 'POST',
+    body: JSON.stringify({ phone }),
+  });
+}
+
+/**
+ * Add or change the account email, step 1: the backend emails a one-time code to the new address.
+ * The account keeps its current email (or none) until the code is confirmed.
+ */
+export function requestEmailChangeRequest(email: string, accessToken: string) {
+  return requestJson<void>(
+    '/users/me/email/request',
+    {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    },
+    accessToken,
+  );
+}
+
+/** Add or change the account email, step 2: confirm the emailed 6-digit code. */
+export function confirmEmailChangeRequest(code: string, accessToken: string) {
+  return requestJson<User>(
+    '/users/me/email/confirm',
+    {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    },
+    accessToken,
+  );
 }
 
 /**

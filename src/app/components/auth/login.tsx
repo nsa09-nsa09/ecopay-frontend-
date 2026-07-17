@@ -1,19 +1,29 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { Button, Input, Card } from '../ds-primitives';
-import { useI18n } from '../i18n-provider';
+import { useI18n, type Language } from '../i18n-provider';
 import { formatDateTime } from '../../lib/datetime';
 import { useAuth } from './auth-provider';
 import { consumePersistedBanEvent } from './auth-provider';
 import { VerifyCodeStep } from './verify-code-step';
+import { VerifyPhoneStep } from './verify-phone-step';
 import { Ban } from 'lucide-react';
-import { ApiError } from '../../lib/api';
+import { ApiError, normalizePhone } from '../../lib/api';
+
+const tx = (l: Language, ru: string, kz: string, en: string) =>
+  l === 'ru' ? ru : l === 'kz' ? kz : en;
 
 // The backend tags an unverified-login 403 with this marker inside the errors
 // map (see GlobalExceptionHandler#handleEmailNotVerified) so we can detect it
 // without depending on the localized message text.
 function isEmailNotVerified(err: ApiError): boolean {
   return err.status === 403 && err.errors?.code === 'EMAIL_NOT_VERIFIED';
+}
+
+// Same marker convention for phone-registered accounts that never confirmed
+// their SMS code (GlobalExceptionHandler#handlePhoneNotVerified).
+function isPhoneNotVerified(err: ApiError): boolean {
+  return err.status === 403 && err.errors?.code === 'PHONE_NOT_VERIFIED';
 }
 
 interface BanInfo {
@@ -50,7 +60,9 @@ export function LoginPage() {
   const navigate = useNavigate();
   const redirectTarget = new URLSearchParams(location.search).get('redirect') || '/profile';
 
-  const [email, setEmail] = useState('');
+  // One field for both identifiers: phone-registered users type their +7…
+  // number, email users their address. loginRequest routes accordingly.
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -59,6 +71,8 @@ export function LoginPage() {
   // When set, the account exists but its email isn't verified — show the code
   // step (which resends a fresh code and logs the user in on success).
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  // Same for phone-registered accounts that never confirmed the SMS code.
+  const [unverifiedPhone, setUnverifiedPhone] = useState<string | null>(null);
 
   useEffect(() => {
     // Order of precedence: query params (just-arrived realtime redirect),
@@ -80,7 +94,7 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password);
+      await login(identifier, password);
       navigate(redirectTarget);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -88,7 +102,9 @@ export function LoginPage() {
         if (ban) {
           setBanInfo(ban);
         } else if (isEmailNotVerified(err)) {
-          setUnverifiedEmail(email);
+          setUnverifiedEmail(identifier);
+        } else if (isPhoneNotVerified(err)) {
+          setUnverifiedPhone(normalizePhone(identifier));
         } else {
           setError(err.message);
           setFieldErrors(err.errors);
@@ -110,6 +126,18 @@ export function LoginPage() {
         autoResendOnMount
         onVerified={() => navigate(redirectTarget)}
         onBack={() => setUnverifiedEmail(null)}
+      />
+    );
+  }
+
+  // Phone-registered account that never confirmed its SMS code: divert to the
+  // SMS step ("resend" there requests a fresh code if the original expired).
+  if (unverifiedPhone) {
+    return (
+      <VerifyPhoneStep
+        phone={unverifiedPhone}
+        onVerified={() => navigate(redirectTarget)}
+        onBack={() => setUnverifiedPhone(null)}
       />
     );
   }
@@ -159,12 +187,18 @@ export function LoginPage() {
         <Card>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <Input
-              label={t('email')}
-              type="email"
-              placeholder={t('yourEmail')}
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              error={fieldErrors.email}
+              label={tx(language, 'Телефон или email', 'Телефон немесе email', 'Phone or email')}
+              type="text"
+              placeholder={tx(
+                language,
+                '+7 700 123 45 67 или you@mail.kz',
+                '+7 700 123 45 67 немесе you@mail.kz',
+                '+7 700 123 45 67 or you@mail.kz',
+              )}
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
+              error={fieldErrors.email ?? fieldErrors.phone}
+              autoComplete="username"
             />
             <Input
               label={t('password')}
