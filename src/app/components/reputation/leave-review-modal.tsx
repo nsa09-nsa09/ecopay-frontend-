@@ -4,7 +4,10 @@ import { toast } from 'sonner';
 import { ApiError, createReviewRequest } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
-import { StarRating } from './public-profile';
+import { RatingScale } from './rating-scale';
+
+/** Neutral starting value of the 1..10 trust rating picker. */
+const DEFAULT_RATING = 5;
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -28,13 +31,13 @@ export function LeaveReviewModal({
 }: LeaveReviewModalProps) {
   const { authorizedRequest } = useAuth();
   const { language } = useI18n();
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(DEFAULT_RATING);
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) {
-      setRating(0);
+      setRating(DEFAULT_RATING);
       setText('');
     }
   }, [open]);
@@ -90,13 +93,11 @@ export function LeaveReviewModal({
           <label className="block text-[14px] mb-2" style={{ color: 'var(--eco-text)' }}>
             {tx(language, 'Ваша оценка', 'Сіздің бағаңыз', 'Your rating')}
           </label>
-          <div className="flex items-center gap-2">
-            <StarRating rating={rating} size={28} interactive onChange={setRating} />
-            {rating > 0 && (
-              <span className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-                {rating} / 5
-              </span>
-            )}
+          <div className="flex items-center gap-3">
+            <RatingScale rating={rating} size={24} interactive onChange={setRating} />
+            <span className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+              {rating} / 10
+            </span>
           </div>
         </div>
 

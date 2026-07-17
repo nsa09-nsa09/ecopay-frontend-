@@ -19,6 +19,7 @@ import {
   reputationOutOfTen,
   resolveReputationBand,
 } from '../../lib/reputation';
+import { RatingScale } from './rating-scale';
 
 function StarRating({
   rating,
@@ -155,8 +156,9 @@ export function PublicUserProfilePage() {
 
   const filteredReviews = reviews
     .filter((r) => {
-      if (reviewFilter === 'positive') return r.rating >= 4;
-      if (reviewFilter === 'negative') return r.rating < 4;
+      // Ratings are on the 1..10 scale; 8/10 matches the old "4 of 5 stars" cut-off.
+      if (reviewFilter === 'positive') return r.rating >= 8;
+      if (reviewFilter === 'negative') return r.rating < 8;
       return true;
     })
     .slice()
@@ -321,9 +323,13 @@ export function PublicUserProfilePage() {
               <div className="flex items-center gap-3">
                 <div className="text-[32px]" style={{ color: 'var(--eco-text)' }}>
                   {avg.toFixed(1)}
+                  <span className="text-[14px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {' '}
+                    / 10
+                  </span>
                 </div>
                 <div>
-                  <StarRating rating={avg} size={20} />
+                  <RatingScale rating={avg} size={18} />
                   <div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
                     {reputation.reviewsCount} {t('reviews')}
                   </div>
@@ -403,7 +409,15 @@ export function PublicUserProfilePage() {
                           {formatDate(review.createdAt, language)}
                         </span>
                       </div>
-                      <StarRating rating={review.rating} size={14} />
+                      <div className="flex items-center gap-2">
+                        <RatingScale rating={review.rating} size={12} />
+                        <span
+                          className="text-[12px]"
+                          style={{ color: 'var(--eco-text-secondary)' }}
+                        >
+                          {review.rating}/10
+                        </span>
+                      </div>
                       {review.text && (
                         <p
                           className="text-[13px] mt-2 whitespace-pre-wrap"

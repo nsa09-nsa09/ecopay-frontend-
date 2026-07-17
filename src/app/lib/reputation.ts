@@ -1,6 +1,7 @@
 // Trust-band mapping for the reputation score. The score is a 0..100 integer
-// where 100 means 10.0/10. Bands mirror the backend ReputationLevel enum
-// (kz.hrms.splitupauth.entity.ReputationLevel).
+// where 100 means 10.0/10; it is the average peer rating (1..10) × 10, and a
+// user with no reviews sits at the neutral default 50 (= 5.0/10). Bands mirror
+// the backend ReputationLevel enum (kz.hrms.splitupauth.entity.ReputationLevel).
 
 export type ReputationLevel = 'CRITICAL' | 'LOW' | 'FAIR' | 'GOOD' | 'EXCELLENT';
 
