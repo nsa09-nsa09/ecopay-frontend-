@@ -5,8 +5,16 @@ import { Checkbox } from '../ui/checkbox';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
 import { useI18n, type Language } from '../i18n-provider';
 import { useAuth } from './auth-provider';
-import { VerifyCodeStep } from './verify-code-step';
-import { ApiError, getLegalDocumentRequest, type LegalDocumentDto } from '../../lib/api';
+import { VerifyPhoneStep } from './verify-phone-step';
+import {
+  ApiError,
+  getLegalDocumentRequest,
+  normalizePhone,
+  type LegalDocumentDto,
+} from '../../lib/api';
+
+const tx = (l: Language, ru: string, kz: string, en: string) =>
+  l === 'ru' ? ru : l === 'kz' ? kz : en;
 
 // Pick the localized body/title for a legal document, falling back to Russian
 // (canonical) then to any non-empty variant so the box never shows blank text.
@@ -35,11 +43,13 @@ export function RegisterPage() {
   const redirectTarget = new URLSearchParams(location.search).get('redirect') || '/profile';
 
   // Once registration succeeds without an auto-verified session, we switch to
-  // the code-confirmation step and stop rendering the sign-up form.
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  // the SMS-code confirmation step and stop rendering the sign-up form.
+  const [pendingPhone, setPendingPhone] = useState<string | null>(null);
 
   const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
+  // Registration is phone-based: email is optional and added later in the
+  // profile (needed only for password recovery / email notifications).
+  const [phone, setPhone] = useState('');
   const [show, setShow] = useState(false);
   const [pw, setPw] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -96,15 +106,35 @@ export function RegisterPage() {
       return;
     }
 
+    const normalizedPhone = normalizePhone(phone);
+    if (!/^\+7\d{10}$/.test(normalizedPhone)) {
+      setFieldErrors({
+        phone: tx(
+          language,
+          'Введите номер в формате +7XXXXXXXXXX',
+          '+7XXXXXXXXXX форматында нөмір енгізіңіз',
+          'Enter the number in +7XXXXXXXXXX format',
+        ),
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const result = await register(displayName, email, pw, true, terms?.version, privacy?.version);
+      const result = await register(
+        displayName,
+        { phone: normalizedPhone },
+        pw,
+        true,
+        terms?.version,
+        privacy?.version,
+      );
       if (result.kind === 'session') {
         navigate(redirectTarget);
       } else {
-        // Email confirmation required — advance to the code-entry step.
-        setPendingEmail(result.email);
+        // SMS confirmation required — advance to the code-entry step.
+        setPendingPhone(result.identifier);
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -120,14 +150,14 @@ export function RegisterPage() {
 
   const canSubmit = accepted && !loading;
 
-  // Second stage: the account exists but is unverified. Show the code form and
-  // hand off to the profile once the emailed code checks out.
-  if (pendingEmail) {
+  // Second stage: the account exists but is unverified. Show the SMS-code form
+  // and hand off to the profile once the code checks out.
+  if (pendingPhone) {
     return (
-      <VerifyCodeStep
-        email={pendingEmail}
+      <VerifyPhoneStep
+        phone={pendingPhone}
         onVerified={() => navigate(redirectTarget)}
-        onBack={() => setPendingEmail(null)}
+        onBack={() => setPendingPhone(null)}
       />
     );
   }
@@ -153,12 +183,18 @@ export function RegisterPage() {
               error={fieldErrors.displayName}
             />
             <Input
-              label={t('email')}
-              type="email"
-              placeholder={t('yourEmail')}
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              error={fieldErrors.email}
+              label={tx(language, 'Телефон', 'Телефон', 'Phone')}
+              type="tel"
+              placeholder="+7 700 123 45 67"
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              error={fieldErrors.phone}
+              hint={tx(
+                language,
+                'Пришлём SMS с кодом подтверждения. Email можно добавить позже в профиле.',
+                'Растау коды бар SMS жібереміз. Email-ді кейін профильде қосуға болады.',
+                'We will text you a confirmation code. You can add an email later in your profile.',
+              )}
             />
             <div className="flex flex-col gap-1.5">
               <label style={{ color: 'var(--eco-text)', fontSize: 14 }}>{t('password')}</label>

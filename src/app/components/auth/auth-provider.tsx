@@ -19,6 +19,7 @@ import {
   staffLoginRequest,
   updateCurrentUser,
   verifyEmailCodeRequest,
+  verifyPhoneCodeRequest,
   verifyStaffTwoFactorRequest,
 } from '../../lib/api';
 import { clearAdminDashboardCache } from '../../lib/admin-dashboard-cache';
@@ -68,30 +69,34 @@ interface SessionState {
 export type StaffLoginResult =
   { kind: 'session'; user: User } | { kind: 'twoFactor'; challenge: TwoFactorChallenge };
 
-// Regular sign-up no longer logs the user in immediately: unless the backend
-// auto-verified the email (dev mode), the account must confirm the 6-digit
-// code emailed to them before a session is issued.
+// Regular sign-up no longer logs the user in immediately: the account must
+// confirm the 6-digit code sent to its identifier (SMS for phone sign-up,
+// email otherwise) before a session is issued. Dev auto-verify is the
+// exception and returns a ready session.
 export type RegisterResult =
   | { kind: 'session'; user: User }
-  | { kind: 'verificationRequired'; email: string };
+  | { kind: 'verificationRequired'; channel: 'email' | 'phone'; identifier: string };
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isReady: boolean;
-  login: (email: string, password: string) => Promise<User>;
+  login: (identifier: string, password: string) => Promise<User>;
   staffLogin: (email: string, password: string) => Promise<StaffLoginResult>;
   verifyStaffTwoFactor: (challengeId: string, code: string) => Promise<User>;
   resendStaffTwoFactor: (challengeId: string) => Promise<void>;
   register: (
     displayName: string,
-    email: string,
+    identifier: { email?: string; phone?: string },
     password: string,
     termsAccepted: boolean,
     acceptedTermsVersion?: number,
     acceptedPrivacyVersion?: number,
   ) => Promise<RegisterResult>;
   verifyEmailCode: (email: string, code: string) => Promise<User>;
+  verifyPhoneCode: (phone: string, code: string) => Promise<User>;
+  /** Merge a fresh user object (e.g. after confirming an email change) into the session. */
+  applyUser: (user: User) => void;
   logout: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
@@ -286,22 +291,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (
     displayName: string,
-    email: string,
+    identifier: { email?: string; phone?: string },
     password: string,
     termsAccepted: boolean,
     acceptedTermsVersion?: number,
     acceptedPrivacyVersion?: number,
-  ) => {
+  ): Promise<RegisterResult> => {
     const response = await registerRequest(
       displayName,
-      email,
+      identifier,
       password,
       termsAccepted,
       acceptedTermsVersion,
       acceptedPrivacyVersion,
     );
     // Dev auto-verify returns a ready session; the normal flow returns only the
-    // user and expects the emailed code to be confirmed next.
+    // user and expects the SMS/emailed code to be confirmed next.
     if (response.accessToken) {
       commitSession({
         accessToken: response.accessToken,
@@ -309,7 +314,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return { kind: 'session', user: response.user };
     }
-    return { kind: 'verificationRequired', email };
+    return identifier.phone
+      ? { kind: 'verificationRequired', channel: 'phone', identifier: identifier.phone }
+      : { kind: 'verificationRequired', channel: 'email', identifier: identifier.email ?? '' };
   };
 
   const verifyEmailCode = async (email: string, code: string) => {
@@ -319,6 +326,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: response.user,
     });
     return response.user;
+  };
+
+  const verifyPhoneCode = async (phone: string, code: string) => {
+    const response = await verifyPhoneCodeRequest(phone, code);
+    commitSession({
+      accessToken: response.accessToken,
+      user: response.user,
+    });
+    return response.user;
+  };
+
+  /** Push an updated user object (returned by a profile mutation) into the live session. */
+  const applyUser = (user: User) => {
+    setSession((currentSession) => {
+      if (!currentSession) {
+        writeSessionHint(null);
+        return null;
+      }
+      const nextSession = { ...currentSession, user };
+      writeSessionHint(user);
+      return nextSession;
+    });
   };
 
   const logout = async () => {
@@ -419,6 +448,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resendStaffTwoFactor,
         register,
         verifyEmailCode,
+        verifyPhoneCode,
+        applyUser,
         logout,
         requestPasswordReset,
         confirmPasswordReset,

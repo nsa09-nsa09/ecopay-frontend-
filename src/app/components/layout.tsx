@@ -430,7 +430,7 @@ export function AppLayout() {
                           {user?.displayName}
                         </div>
                         <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                          {user?.email}
+                          {user?.email ?? user?.phone}
                         </div>
                       </div>
                       <div className="border-t my-1" style={{ borderColor: 'var(--eco-border)' }} />

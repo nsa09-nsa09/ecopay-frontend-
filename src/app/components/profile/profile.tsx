@@ -29,9 +29,11 @@ import { formatDate, formatDateTime } from '../../lib/datetime';
 import {
   ApiError,
   checkSlugAvailable,
+  confirmEmailChangeRequest,
   deleteMyAccount,
   deleteMyAvatar,
   getMyDashboardRequest,
+  requestEmailChangeRequest,
   requestPhoneCodeRequest,
   resendVerificationEmailRequest,
   uploadMyAvatar,
@@ -212,7 +214,7 @@ export function ProfilePage() {
                 {user.displayName}
               </div>
               <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                {user.email}
+                {user.email ?? user.phone}
               </div>
             </div>
             <div className="flex items-center gap-1" style={{ color: 'var(--eco-warning)' }}>
@@ -349,7 +351,7 @@ export function ProfilePage() {
 
           <PhoneVerificationCard />
 
-          <EmailVerificationCard email={user.email} />
+          <EmailCard />
 
           {(user.slug || user.publicId) && (
             <PublicLinkCard
@@ -453,7 +455,8 @@ export function ProfilePage() {
                 <Mail size={14} /> Email
               </div>
               <div className="mt-2 text-[15px]" style={{ color: 'var(--eco-text)' }}>
-                {user.email}
+                {user.email ??
+                  tx(language, 'Не добавлен', 'Қосылмаған', 'Not added')}
               </div>
             </div>
             <div className="rounded-lg p-4" style={{ background: 'var(--eco-surface)' }}>
@@ -903,18 +906,42 @@ function FindUserCard() {
   );
 }
 
-function EmailVerificationCard({ email }: { email: string }) {
+/**
+ * Email is optional now (phone registration): this card covers all three
+ * states — no email yet (add one), unverified (resend the registration email),
+ * and verified (badge + change flow). Adding/changing goes through
+ * /users/me/email/request + /confirm: the account keeps its current address
+ * until the emailed one-time code is confirmed.
+ */
+function EmailCard() {
   const { language } = useI18n();
-  const [sending, setSending] = useState(false);
+  const { user, authorizedRequest, applyUser } = useAuth();
+
+  const currentEmail = user?.email ?? null;
+  const verified = Boolean(user?.emailVerified);
+
+  // 'idle' shows the current state; 'editing' the new-address input;
+  // 'codeSent' the 6-digit confirmation input.
+  const [step, setStep] = useState<'idle' | 'editing' | 'codeSent'>(currentEmail ? 'idle' : 'editing');
+  const [newEmail, setNewEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleResend = async () => {
-    setSending(true);
+  const resetFeedback = () => {
     setMessage(null);
     setError(null);
+  };
+
+  // Legacy path: an email-registered account that never confirmed the
+  // registration email keeps the old "resend" action.
+  const handleResendRegistrationEmail = async () => {
+    if (!currentEmail) return;
+    resetFeedback();
+    setBusy(true);
     try {
-      await resendVerificationEmailRequest(email);
+      await resendVerificationEmailRequest(currentEmail);
       setMessage(
         tx(
           language,
@@ -935,39 +962,199 @@ function EmailVerificationCard({ email }: { email: string }) {
             ),
       );
     } finally {
-      setSending(false);
+      setBusy(false);
+    }
+  };
+
+  const handleRequestCode = async () => {
+    resetFeedback();
+    const email = newEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError(
+        tx(language, 'Введите корректный email.', 'Дұрыс email енгізіңіз.', 'Enter a valid email.'),
+      );
+      return;
+    }
+    setBusy(true);
+    try {
+      await authorizedRequest((token) => requestEmailChangeRequest(email, token));
+      setStep('codeSent');
+      setMessage(
+        tx(
+          language,
+          'Мы отправили код подтверждения на новый адрес.',
+          'Жаңа мекенжайға растау кодын жібердік.',
+          'We sent a confirmation code to the new address.',
+        ),
+      );
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : tx(
+              language,
+              'Не удалось отправить код.',
+              'Кодты жіберу мүмкін болмады.',
+              'Unable to send the code right now.',
+            ),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleConfirmCode = async () => {
+    resetFeedback();
+    if (code.length !== 6) {
+      setError(
+        tx(language, 'Введите 6-значный код.', '6 таңбалы кодты енгізіңіз.', 'Enter the 6-digit code.'),
+      );
+      return;
+    }
+    setBusy(true);
+    try {
+      const updated = await authorizedRequest((token) => confirmEmailChangeRequest(code, token));
+      applyUser(updated);
+      setStep('idle');
+      setNewEmail('');
+      setCode('');
+      setMessage(
+        tx(language, 'Email подтверждён.', 'Email расталды.', 'Email verified.'),
+      );
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : tx(
+              language,
+              'Не удалось подтвердить код.',
+              'Кодты растау мүмкін болмады.',
+              'Unable to verify the code right now.',
+            ),
+      );
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
-    <Card className="flex flex-col gap-3">
-      <h3 className="flex items-center gap-2 text-[16px]" style={{ color: 'var(--eco-text)' }}>
-        <Mail size={16} />{' '}
-        {tx(language, 'Подтверждение email', 'Email растау', 'Email verification')}
-      </h3>
-      <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-        {language === 'ru' ? (
-          <>
-            Не пришло письмо на <strong>{email}</strong>? Отправьте заново.
-          </>
-        ) : language === 'kz' ? (
-          <>
-            Хат <strong>{email}</strong> мекенжайына келмеді ме? Қайта жіберіңіз.
-          </>
-        ) : (
-          <>
-            Didn't get the verification email for <strong>{email}</strong>? Resend it.
-          </>
-        )}
-      </p>
-      <Button variant="secondary" loading={sending} onClick={handleResend}>
-        {tx(
-          language,
-          'Отправить письмо ещё раз',
-          'Хатты қайта жіберу',
-          'Resend verification email',
-        )}
-      </Button>
+    <Card className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-[16px]" style={{ color: 'var(--eco-text)' }}>
+          <Mail size={16} /> Email
+        </h3>
+        {currentEmail &&
+          (verified ? (
+            <Badge variant="success">{tx(language, 'Подтверждён', 'Расталған', 'Verified')}</Badge>
+          ) : (
+            <Badge>{tx(language, 'Не подтверждён', 'Расталмаған', 'Not verified')}</Badge>
+          ))}
+      </div>
+
+      {currentEmail ? (
+        <p
+          className="flex items-center gap-1.5 text-[13px]"
+          style={{ color: verified ? 'var(--eco-positive)' : 'var(--eco-text-secondary)' }}
+        >
+          {verified && <CheckCircle2 size={14} />} {currentEmail}
+        </p>
+      ) : (
+        <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+          {tx(
+            language,
+            'Почта не добавлена. Добавьте её, чтобы восстанавливать доступ, если потеряете телефон, и получать уведомления. Это необязательно.',
+            'Пошта қосылмаған. Телефоннан айырылған жағдайда қатынасты қалпына келтіру және хабарламалар алу үшін қосыңыз. Бұл міндетті емес.',
+            'No email yet. Add one to recover access if you lose your phone and to receive notifications. This is optional.',
+          )}
+        </p>
+      )}
+
+      {step === 'editing' || step === 'codeSent' ? (
+        <>
+          <Input
+            label={
+              currentEmail
+                ? tx(language, 'Новый email', 'Жаңа email', 'New email')
+                : 'Email'
+            }
+            type="email"
+            placeholder="you@mail.kz"
+            value={newEmail}
+            onChange={(event) => {
+              setNewEmail(event.target.value);
+              if (step === 'codeSent') setStep('editing');
+            }}
+          />
+          {step === 'codeSent' ? (
+            <>
+              <Input
+                label={tx(language, 'Код из письма', 'Хаттағы код', 'Code from the email')}
+                value={code}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                inputMode="numeric"
+                placeholder="123456"
+                hint={tx(
+                  language,
+                  'Код действует 30 минут.',
+                  'Код 30 минут жарамды.',
+                  'The code is valid for 30 minutes.',
+                )}
+              />
+              <div className="flex gap-2">
+                <Button loading={busy} onClick={handleConfirmCode} disabled={code.length !== 6}>
+                  {tx(language, 'Подтвердить', 'Растау', 'Confirm')}
+                </Button>
+                <Button variant="ghost" loading={busy} onClick={handleRequestCode}>
+                  {tx(language, 'Отправить код ещё раз', 'Кодты қайта жіберу', 'Resend code')}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="flex gap-2">
+              <Button loading={busy} onClick={handleRequestCode} disabled={!newEmail.trim()}>
+                {currentEmail
+                  ? tx(language, 'Отправить код', 'Код жіберу', 'Send code')
+                  : tx(language, 'Добавить email', 'Email қосу', 'Add email')}
+              </Button>
+              {currentEmail && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setStep('idle');
+                    setNewEmail('');
+                    resetFeedback();
+                  }}
+                >
+                  {tx(language, 'Отмена', 'Бас тарту', 'Cancel')}
+                </Button>
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setStep('editing');
+              resetFeedback();
+            }}
+          >
+            {tx(language, 'Сменить email', 'Email ауыстыру', 'Change email')}
+          </Button>
+          {currentEmail && !verified && (
+            <Button variant="ghost" loading={busy} onClick={handleResendRegistrationEmail}>
+              {tx(
+                language,
+                'Отправить письмо ещё раз',
+                'Хатты қайта жіберу',
+                'Resend verification email',
+              )}
+            </Button>
+          )}
+        </div>
+      )}
+
       {message && (
         <p className="text-[12px]" style={{ color: 'var(--eco-positive)' }}>
           {message}
