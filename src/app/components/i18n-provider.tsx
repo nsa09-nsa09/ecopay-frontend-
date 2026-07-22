@@ -3423,6 +3423,94 @@ const translations: Translations = {
     en: 'Row-level active subscriptions will be added in a follow-up.',
   },
   adminFinanceNav: { ru: 'Финансы', kz: 'Қаржы', en: 'Finance' },
+
+  // ===== Service access type (what a member hands over to be let in) =====
+  accessTypeEmail: { ru: 'Вход по email', kz: 'Email арқылы кіру', en: 'Access by email' },
+  accessTypePhone: { ru: 'Вход по номеру', kz: 'Нөмір арқылы кіру', en: 'Access by phone' },
+  accessTypeBoth: {
+    ru: 'Вход по email или номеру',
+    kz: 'Email немесе нөмір арқылы кіру',
+    en: 'Access by email or phone',
+  },
+  accessTypeLabel: { ru: 'Способ доступа', kz: 'Қол жеткізу тәсілі', en: 'Access method' },
+  accessTypeEmailHint: {
+    ru: 'Владелец пришлёт приглашение на вашу почту.',
+    kz: 'Иесі шақыруды поштаңызға жібереді.',
+    en: 'The owner will send the invite to your email.',
+  },
+  accessTypePhoneHint: {
+    ru: 'Владелец добавит вас по номеру телефона.',
+    kz: 'Иесі сізді телефон нөмірі бойынша қосады.',
+    en: 'The owner will add you by phone number.',
+  },
+  accessTypeBothHint: {
+    ru: 'Этот сервис принимает и почту, и номер — выберите, что удобнее.',
+    kz: 'Бұл қызмет поштаны да, нөмірді де қабылдайды — ыңғайлысын таңдаңыз.',
+    en: 'This service accepts either — pick whichever you prefer.',
+  },
+
+  // ===== Join form: contact field =====
+  joinContactChoice: {
+    ru: 'Что передать владельцу',
+    kz: 'Иесіне не беру керек',
+    en: 'What to share',
+  },
+  joinContactEmailLabel: {
+    ru: 'Email для приглашения',
+    kz: 'Шақыруға арналған email',
+    en: 'Email for the invite',
+  },
+  joinContactPhoneLabel: { ru: 'Номер телефона', kz: 'Телефон нөмірі', en: 'Phone number' },
+  joinContactAccountLabel: { ru: 'ID лицевого счёта', kz: 'Жеке шот ID', en: 'Account ID' },
+  joinContactEmailPlaceholder: {
+    ru: 'name@example.com',
+    kz: 'name@example.com',
+    en: 'name@example.com',
+  },
+  joinContactPhonePlaceholder: {
+    ru: '+7 700 000 00 00',
+    kz: '+7 700 000 00 00',
+    en: '+7 700 000 00 00',
+  },
+  joinContactAccountPlaceholder: {
+    ru: 'ID договора у оператора',
+    kz: 'Оператордағы келісімшарт ID',
+    en: 'Contract ID with the operator',
+  },
+  joinContactEmailRequired: {
+    ru: 'Укажите email — по нему придёт приглашение.',
+    kz: 'Email көрсетіңіз — шақыру соған келеді.',
+    en: 'Enter an email — the invite goes there.',
+  },
+  joinContactPhoneRequired: {
+    ru: 'Укажите номер телефона — по нему вас добавят.',
+    kz: 'Телефон нөмірін көрсетіңіз — сізді сол бойынша қосады.',
+    en: 'Enter a phone number — you will be added by it.',
+  },
+  joinContactEmailInvalid: {
+    ru: 'Проверьте адрес: похоже, в нём опечатка.',
+    kz: 'Мекенжайды тексеріңіз: онда қате бар сияқты.',
+    en: 'Check the address — it looks mistyped.',
+  },
+  joinContactPhoneInvalid: {
+    ru: 'Введите номер в формате +7XXXXXXXXXX.',
+    kz: 'Нөмірді +7XXXXXXXXXX форматында енгізіңіз.',
+    en: 'Enter the number as +7XXXXXXXXXX.',
+  },
+  joinContactAccountInvalid: {
+    ru: 'Укажите ID договора полностью.',
+    kz: 'Келісімшарт ID толық көрсетіңіз.',
+    en: 'Enter the full contract ID.',
+  },
+  joinContactStep: { ru: 'Контакт', kz: 'Байланыс', en: 'Contact' },
+  joinContactPrivacy: {
+    ru: 'Контакт хранится зашифрованным и открывается владельцу только после оплаты.',
+    kz: 'Байланыс шифрланған күйде сақталады және иесіне тек төлемнен кейін ашылады.',
+    en: 'Your contact is stored encrypted and shown to the owner only after payment.',
+  },
+
+  // ===== Admin: service access type =====
+  adminServiceAccessType: { ru: 'Способ доступа', kz: 'Қол жеткізу тәсілі', en: 'Access type' },
 };
 
 export interface PluralForms {
