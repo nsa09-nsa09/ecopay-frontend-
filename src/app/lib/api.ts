@@ -36,6 +36,9 @@ export function isTwoFactorChallenge(value: StaffLoginResponse): value is TwoFac
   return (value as TwoFactorChallenge).requiresTwoFactor === true;
 }
 
+/** What a joining member must hand over so the owner can grant them access. */
+export type ServiceAccessType = 'EMAIL' | 'PHONE' | 'BOTH';
+
 export interface ServiceDto {
   id: number;
   categoryId: number;
@@ -43,6 +46,7 @@ export interface ServiceDto {
   name: string;
   slug: string;
   providerType: string;
+  accessType?: ServiceAccessType | null;
   minPricePerMember?: number | null;
   currency?: string | null;
   tariffCount?: number;
@@ -83,6 +87,7 @@ export interface RoomSummaryDto {
   serviceId: number;
   serviceName: string;
   serviceLogoUrl?: string | null;
+  serviceAccessType?: ServiceAccessType | null;
 }
 
 export interface RoomResponseDto {
@@ -93,6 +98,8 @@ export interface RoomResponseDto {
   categoryId: number;
   serviceId: number;
   serviceLogoUrl?: string | null;
+  /** Contact this service needs from a joining member — drives the join form. */
+  serviceAccessType?: ServiceAccessType | null;
   tariffPlanId: number;
   roomType: string;
   verificationMode: string;
@@ -151,7 +158,7 @@ export function buildSupportWebSocketUrl(accessToken: string) {
   return wsUrl.toString();
 }
 
-import { getFriendlyApiMessage, type FriendlyApiErrorCode } from './locale';
+import { getCurrentLanguage, getFriendlyApiMessage, type FriendlyApiErrorCode } from './locale';
 
 /**
  * Heuristic: detect server-side internals that must never leak to end users
@@ -268,6 +275,13 @@ async function requestJson<T>(
 
   if (accessToken) {
     headers.set('Authorization', `Bearer ${accessToken}`);
+  }
+
+  // The backend renders transactional email in this language and stores it on
+  // the account. Send the in-app language, not the browser's: someone using a
+  // Russian-locale browser who switched the site to Kazakh wants Kazakh email.
+  if (!headers.has('Accept-Language')) {
+    headers.set('Accept-Language', getCurrentLanguage());
   }
 
   let response: Response;
@@ -2143,6 +2157,7 @@ export interface AdminServiceDto {
   name: string;
   slug: string;
   providerType: string;
+  accessType?: ServiceAccessType | null;
   isActive: boolean;
   tariffsCount: number;
   logoUrl?: string | null;
@@ -2185,6 +2200,7 @@ export interface CreateServicePayload {
   name: string;
   slug?: string;
   providerType: string;
+  accessType?: ServiceAccessType;
   isActive?: boolean;
 }
 
@@ -2193,6 +2209,7 @@ export interface UpdateServicePayload {
   name?: string;
   slug?: string;
   providerType?: string;
+  accessType?: ServiceAccessType;
   isActive?: boolean;
 }
 

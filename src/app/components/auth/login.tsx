@@ -9,6 +9,14 @@ import { VerifyCodeStep } from './verify-code-step';
 import { VerifyPhoneStep } from './verify-phone-step';
 import { Ban } from 'lucide-react';
 import { ApiError, normalizePhone } from '../../lib/api';
+import { looksLikeEmail, serverEmailErrorCode } from '../../lib/email-validation';
+import { useEmailField } from './use-email-field';
+import {
+  EmailFieldStatusHint,
+  EmailSuggestion,
+  emailFormatErrorText,
+  serverEmailErrorText,
+} from './email-field-messages';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -62,7 +70,15 @@ export function LoginPage() {
 
   // One field for both identifiers: phone-registered users type their +7…
   // number, email users their address. loginRequest routes accordingly.
-  const [identifier, setIdentifier] = useState('');
+  //
+  // The hook only judges input containing '@' — a phone number must not be
+  // flagged as a malformed email — and it debounces, so we never scold someone
+  // mid-keystroke.
+  const emailField = useEmailField('', { onlyWhenEmailLike: true });
+  const identifier = emailField.value;
+  const setIdentifier = emailField.setValue;
+  const isEmailIdentifier = looksLikeEmail(identifier);
+
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -91,20 +107,40 @@ export function LoginPage() {
     setError(null);
     setFieldErrors({});
     setBanInfo(null);
+
+    // Catch a malformed address before spending a request on it — a failed
+    // round trip would come back as "invalid credentials", which sends the
+    // user hunting for a password problem they don't have.
+    if (isEmailIdentifier) {
+      const check = emailField.validateNow();
+      if (!check.ok) {
+        setFieldErrors({ email: emailFormatErrorText(check.error!, language) });
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
-      await login(identifier, password);
+      // Submit the canonical form so a stray capital or pasted space can't
+      // miss the stored row.
+      await login(isEmailIdentifier ? emailField.normalized : identifier, password);
       navigate(redirectTarget);
     } catch (err) {
       if (err instanceof ApiError) {
         const ban = parseBanFromApiError(err);
+        const emailCode = serverEmailErrorCode(err.errors);
         if (ban) {
           setBanInfo(ban);
         } else if (isEmailNotVerified(err)) {
-          setUnverifiedEmail(identifier);
+          setUnverifiedEmail(emailField.normalized);
         } else if (isPhoneNotVerified(err)) {
           setUnverifiedPhone(normalizePhone(identifier));
+        } else if (emailCode) {
+          // Server-side format/domain rejection: show it on the field, with
+          // the correction it suggested if there is one.
+          setFieldErrors({ email: serverEmailErrorText(emailCode, language) });
+          if (err.errors.suggestion) emailField.setValue(err.errors.suggestion);
         } else {
           setError(err.message);
           setFieldErrors(err.errors);
@@ -197,9 +233,26 @@ export function LoginPage() {
               )}
               value={identifier}
               onChange={(event) => setIdentifier(event.target.value)}
-              error={fieldErrors.email ?? fieldErrors.phone}
+              error={
+                fieldErrors.email ??
+                fieldErrors.phone ??
+                (emailField.error ? emailFormatErrorText(emailField.error, language) : undefined)
+              }
               autoComplete="username"
             />
+            {/* Inline state for the email case only; a phone number stays unjudged.
+                Suppressed while a typo suggestion is up: "looks good" next to
+                "did you mean…?" reads as two contradictory verdicts. */}
+            {isEmailIdentifier && !fieldErrors.email && !emailField.suggestion && (
+              <EmailFieldStatusHint status={emailField.status} />
+            )}
+            {emailField.suggestion && (
+              <EmailSuggestion
+                suggestion={emailField.suggestion}
+                onAccept={emailField.acceptSuggestion}
+                onDismiss={emailField.dismissSuggestion}
+              />
+            )}
             <Input
               label={t('password')}
               type="password"

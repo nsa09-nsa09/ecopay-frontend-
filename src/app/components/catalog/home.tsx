@@ -41,8 +41,10 @@ import {
   type CatalogSort,
   type CategoryDto,
   type PublicServiceReviewDto,
+  type ServiceAccessType,
   type ServiceDto,
 } from '../../lib/api';
+import { AccessTypeTag } from '../access-type';
 
 type L = 'ru' | 'kz' | 'en';
 
@@ -115,6 +117,8 @@ type DisplayService = {
   fullPrice?: number;
   tariffs?: number;
   logoUrl?: string | null;
+  /** Absent for the curated fallback entries, which have no backing service row. */
+  accessType?: ServiceAccessType | null;
 };
 
 // Prefer the admin-uploaded service cover; fall back to the brand SVG mark.
@@ -166,6 +170,7 @@ function fromApi(service: ServiceDto, lang: L): DisplayService {
     discount: match?.discount,
     fullPrice: match?.fullPrice,
     tariffs: service.tariffCount,
+    accessType: service.accessType,
   };
 }
 
@@ -455,6 +460,11 @@ function CatalogServiceCard({
               <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                 {service.categoryName}
               </div>
+              {service.accessType && (
+                <div className="mt-1.5">
+                  <AccessTypeTag accessType={service.accessType} />
+                </div>
+              )}
             </div>
           </div>
 

@@ -28,6 +28,7 @@ import {
   type CreateCategoryPayload,
   type CreateServicePayload,
   type CreateTariffPayload,
+  type ServiceAccessType,
   type UpdateCategoryPayload,
   type UpdateServicePayload,
   type UpdateTariffPayload,
@@ -39,6 +40,7 @@ const tx = (l: Language, ru: string, kz: string, en: string) =>
 type CatalogTab = 'categories' | 'services' | 'tariffs';
 
 const PROVIDER_TYPES = ['OPERATOR', 'ISP', 'DIGITAL'];
+const ACCESS_TYPES: ServiceAccessType[] = ['EMAIL', 'PHONE', 'BOTH'];
 const PERIOD_TYPES = ['MONTHLY', 'YEARLY', 'OTHER'];
 
 function providerTypeLabel(value: string, language: Language): string {
@@ -51,6 +53,18 @@ function providerTypeLabel(value: string, language: Language): string {
       return tx(language, 'Цифровая подписка', 'Цифрлық жазылым', 'Digital subscription');
     default:
       return value;
+  }
+}
+
+/** What a joining member hands over — mirrors the public-facing AccessTypeTag copy. */
+function accessTypeLabel(value: ServiceAccessType, t: (key: string) => string): string {
+  switch (value) {
+    case 'PHONE':
+      return t('accessTypePhone');
+    case 'BOTH':
+      return t('accessTypeBoth');
+    default:
+      return t('accessTypeEmail');
   }
 }
 
@@ -567,6 +581,12 @@ function ServicesSection() {
                     className="text-left px-4 py-3 whitespace-nowrap"
                     style={{ color: 'var(--eco-text-tertiary)' }}
                   >
+                    {t('adminServiceAccessType')}
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 whitespace-nowrap"
+                    style={{ color: 'var(--eco-text-tertiary)' }}
+                  >
                     {t('catalogTariffsTab')}
                   </th>
                   <th
@@ -609,6 +629,12 @@ function ServicesSection() {
                       className="px-4 py-3 whitespace-nowrap"
                       style={{ color: 'var(--eco-text-secondary)' }}
                     >
+                      {accessTypeLabel(s.accessType ?? 'EMAIL', t)}
+                    </td>
+                    <td
+                      className="px-4 py-3 whitespace-nowrap"
+                      style={{ color: 'var(--eco-text-secondary)' }}
+                    >
                       {s.tariffsCount}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -636,7 +662,7 @@ function ServicesSection() {
                 {items.length === 0 && (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-4 py-10 text-center text-[13px]"
                       style={{ color: 'var(--eco-text-tertiary)' }}
                     >
@@ -716,6 +742,7 @@ function ServiceFormModal({
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [providerType, setProviderType] = useState<string>(PROVIDER_TYPES[0]);
+  const [accessType, setAccessType] = useState<ServiceAccessType>('EMAIL');
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -736,6 +763,7 @@ function ServiceFormModal({
     setName(existing?.name ?? '');
     setSlug(existing?.slug ?? '');
     setProviderType(existing?.providerType ?? PROVIDER_TYPES[0]);
+    setAccessType(existing?.accessType ?? 'EMAIL');
     setIsActive(existing?.isActive ?? true);
     setError(null);
     setCurrent(existing);
@@ -811,6 +839,7 @@ function ServiceFormModal({
           name: name.trim(),
           slug: slug.trim() || undefined,
           providerType,
+          accessType,
           isActive,
         };
         saved = await authorizedRequest((token) => adminUpdateService(current.id, payload, token));
@@ -820,6 +849,7 @@ function ServiceFormModal({
           name: name.trim(),
           slug: slug.trim() || undefined,
           providerType,
+          accessType,
           isActive,
         };
         saved = await authorizedRequest((token) => adminCreateService(payload, token));
@@ -914,6 +944,12 @@ function ServiceFormModal({
           value={providerType}
           onChange={(e) => setProviderType(e.target.value)}
           options={PROVIDER_TYPES.map((p) => ({ value: p, label: providerTypeLabel(p, language) }))}
+        />
+        <Select
+          label={t('adminServiceAccessType')}
+          value={accessType}
+          onChange={(e) => setAccessType(e.target.value as ServiceAccessType)}
+          options={ACCESS_TYPES.map((a) => ({ value: a, label: accessTypeLabel(a, t) }))}
         />
         <label className="flex items-center gap-2 text-[13px]" style={{ color: 'var(--eco-text)' }}>
           <input

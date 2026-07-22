@@ -40,6 +40,14 @@ import {
   verifyPhoneRequest,
   type MemberDashboardDto,
 } from '../../lib/api';
+import { serverEmailErrorCode } from '../../lib/email-validation';
+import { useEmailField, useResendCountdown } from '../auth/use-email-field';
+import {
+  EmailFieldStatusHint,
+  EmailSuggestion,
+  emailFormatErrorText,
+  serverEmailErrorText,
+} from '../auth/email-field-messages';
 import { MyServiceReviewCard } from './my-service-review';
 import { ReputationLevelBadge } from '../reputation/level-badge';
 import { reputationOutOfTen } from '../../lib/reputation';
@@ -923,7 +931,11 @@ function EmailCard() {
   // 'idle' shows the current state; 'editing' the new-address input;
   // 'codeSent' the 6-digit confirmation input.
   const [step, setStep] = useState<'idle' | 'editing' | 'codeSent'>(currentEmail ? 'idle' : 'editing');
-  const [newEmail, setNewEmail] = useState('');
+  const emailField = useEmailField();
+  const newEmail = emailField.value;
+  // Mirrors the server's 60s cooldown so the button reads as unavailable
+  // instead of failing with a 429 the user cannot interpret.
+  const resend = useResendCountdown(60);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -968,17 +980,20 @@ function EmailCard() {
 
   const handleRequestCode = async () => {
     resetFeedback();
-    const email = newEmail.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError(
-        tx(language, 'Введите корректный email.', 'Дұрыс email енгізіңіз.', 'Enter a valid email.'),
-      );
+
+    // Level 1 locally: don't spend a request (or the server's send quota) on
+    // an address that is visibly malformed.
+    const check = emailField.validateNow();
+    if (!check.ok) {
+      setError(emailFormatErrorText(check.error!, language));
       return;
     }
+
     setBusy(true);
     try {
-      await authorizedRequest((token) => requestEmailChangeRequest(email, token));
+      await authorizedRequest((token) => requestEmailChangeRequest(check.normalized, token));
       setStep('codeSent');
+      resend.start();
       setMessage(
         tx(
           language,
@@ -988,16 +1003,46 @@ function EmailCard() {
         ),
       );
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : tx(
+      if (err instanceof ApiError) {
+        // Levels the client can't check: dead domain, address already taken,
+        // rate limit, SMTP down. Each gets its own message — a blanket
+        // "ошибка" leaves the user with nothing to act on.
+        const emailCode = serverEmailErrorCode(err.errors);
+        if (emailCode) {
+          setError(serverEmailErrorText(emailCode, language));
+          if (err.errors.suggestion) emailField.setValue(err.errors.suggestion);
+        } else if (err.status === 409) {
+          setError(
+            tx(
               language,
-              'Не удалось отправить код.',
-              'Кодты жіберу мүмкін болмады.',
-              'Unable to send the code right now.',
+              'Этот адрес уже привязан к другому аккаунту.',
+              'Бұл мекенжай басқа аккаунтқа байланған.',
+              'That address is already used by another account.',
             ),
-      );
+          );
+        } else if (err.status === 429) {
+          setError(
+            tx(
+              language,
+              'Слишком много попыток. Подождите минуту и попробуйте снова.',
+              'Тым көп әрекет. Бір минут күтіп, қайталап көріңіз.',
+              'Too many attempts. Please wait a minute and try again.',
+            ),
+          );
+          resend.start();
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError(
+          tx(
+            language,
+            'Не удалось отправить код.',
+            'Кодты жіберу мүмкін болмады.',
+            'Unable to send the code right now.',
+          ),
+        );
+      }
     } finally {
       setBusy(false);
     }
@@ -1016,7 +1061,7 @@ function EmailCard() {
       const updated = await authorizedRequest((token) => confirmEmailChangeRequest(code, token));
       applyUser(updated);
       setStep('idle');
-      setNewEmail('');
+      emailField.reset();
       setCode('');
       setMessage(
         tx(language, 'Email подтверждён.', 'Email расталды.', 'Email verified.'),
@@ -1081,10 +1126,27 @@ function EmailCard() {
             placeholder="you@mail.kz"
             value={newEmail}
             onChange={(event) => {
-              setNewEmail(event.target.value);
-              if (step === 'codeSent') setStep('editing');
+              emailField.setValue(event.target.value);
+              // Editing the address invalidates the code we just sent.
+              if (step === 'codeSent') {
+                setStep('editing');
+                resend.reset();
+              }
             }}
+            error={emailField.error ? emailFormatErrorText(emailField.error, language) : undefined}
           />
+          {/* Hidden while a suggestion is up: "looks good" next to "did you
+              mean…?" reads as two contradictory verdicts. */}
+          {!emailField.error && !emailField.suggestion && (
+            <EmailFieldStatusHint status={emailField.status} />
+          )}
+          {emailField.suggestion && (
+            <EmailSuggestion
+              suggestion={emailField.suggestion}
+              onAccept={emailField.acceptSuggestion}
+              onDismiss={emailField.dismissSuggestion}
+            />
+          )}
           {step === 'codeSent' ? (
             <>
               <Input
@@ -1104,14 +1166,26 @@ function EmailCard() {
                 <Button loading={busy} onClick={handleConfirmCode} disabled={code.length !== 6}>
                   {tx(language, 'Подтвердить', 'Растау', 'Confirm')}
                 </Button>
-                <Button variant="ghost" loading={busy} onClick={handleRequestCode}>
-                  {tx(language, 'Отправить код ещё раз', 'Кодты қайта жіберу', 'Resend code')}
+                <Button
+                  variant="ghost"
+                  loading={busy}
+                  disabled={!resend.canResend}
+                  onClick={handleRequestCode}
+                >
+                  {resend.canResend
+                    ? tx(language, 'Отправить код ещё раз', 'Кодты қайта жіберу', 'Resend code')
+                    : tx(
+                        language,
+                        `Отправить повторно через ${resend.remaining} с`,
+                        `${resend.remaining} с кейін қайта жіберу`,
+                        `Resend in ${resend.remaining}s`,
+                      )}
                 </Button>
               </div>
             </>
           ) : (
             <div className="flex gap-2">
-              <Button loading={busy} onClick={handleRequestCode} disabled={!newEmail.trim()}>
+              <Button loading={busy} onClick={handleRequestCode} disabled={!newEmail.trim() || emailField.status === 'invalid'}>
                 {currentEmail
                   ? tx(language, 'Отправить код', 'Код жіберу', 'Send code')
                   : tx(language, 'Добавить email', 'Email қосу', 'Add email')}
@@ -1121,7 +1195,7 @@ function EmailCard() {
                   variant="ghost"
                   onClick={() => {
                     setStep('idle');
-                    setNewEmail('');
+                    emailField.reset();
                     resetFeedback();
                   }}
                 >

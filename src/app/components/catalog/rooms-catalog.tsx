@@ -4,6 +4,7 @@ import { Card, Select, RoomStatusBadge, Pill, EmptyState, Button } from '../ds-p
 import { Users, Filter, Search, LayoutGrid } from 'lucide-react';
 import { useI18n, type Language } from '../i18n-provider';
 import { getRooms, type RoomSummaryDto } from '../../lib/api';
+import { AccessTypeTag } from '../access-type';
 
 const moneyFormatter = new Intl.NumberFormat('ru-RU');
 const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
@@ -356,8 +357,9 @@ export function RoomsCatalogPage() {
                   <RoomStatusBadge status={room.status} />
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 flex-wrap">
                   <Pill variant="info">{room.roomType}</Pill>
+                  <AccessTypeTag accessType={room.serviceAccessType} />
                 </div>
 
                 <div className="flex items-center justify-between text-[13px] mt-auto">

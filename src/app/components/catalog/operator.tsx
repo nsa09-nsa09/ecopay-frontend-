@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router';
 import { Card, Pill, Select, RoomStatusBadge, EmptyState, Tabs } from '../ds-primitives';
 import { ArrowLeft, Users, Filter } from 'lucide-react';
 import { useI18n } from '../i18n-provider';
+import { AccessTypeTag } from '../access-type';
 import {
   getRooms,
   getService,
@@ -165,6 +166,9 @@ export function OperatorPage() {
               ? t('noFamilyGroupPlans')
               : t('plansOpenRooms', { plans: plans.length, rooms: rooms.length })}
           </p>
+          <div className="mt-1.5">
+            <AccessTypeTag accessType={service.accessType} size="md" />
+          </div>
         </div>
       </div>
 

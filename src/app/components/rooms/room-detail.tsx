@@ -23,6 +23,14 @@ import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
 import { LeaveReviewModal } from '../reputation/leave-review-modal';
 import { ReputationLevelBadge } from '../reputation/level-badge';
+import { AccessTypeNote, normalizeAccessType } from '../access-type';
+import {
+  allowedIdentifierTypes,
+  defaultIdentifierType,
+  normalizeIdentifier,
+  validateIdentifier,
+  type IdentifierType,
+} from '../../lib/contact-identifier';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -33,9 +41,34 @@ function formatMoney(value: number | null | undefined) {
   return `₸${moneyFormatter.format(Number(value ?? 0))}`;
 }
 
+/** Label and placeholder for each contact the join form can ask for. */
+const contactCopyKeys: Record<IdentifierType, { label: string; placeholder: string }> = {
+  EMAIL: { label: 'joinContactEmailLabel', placeholder: 'joinContactEmailPlaceholder' },
+  PHONE: { label: 'joinContactPhoneLabel', placeholder: 'joinContactPhonePlaceholder' },
+  SIM: { label: 'joinContactPhoneLabel', placeholder: 'joinContactPhonePlaceholder' },
+  ESIM: { label: 'joinContactPhoneLabel', placeholder: 'joinContactPhonePlaceholder' },
+  ACCOUNT: { label: 'joinContactAccountLabel', placeholder: 'joinContactAccountPlaceholder' },
+};
+
+/** SIM/eSIM are brand names, not phrases — everything else goes through the dictionary. */
+function contactTypeOptionLabel(type: IdentifierType, t: (key: string) => string) {
+  if (type === 'SIM') return 'SIM';
+  if (type === 'ESIM') return 'eSIM';
+  return t(contactCopyKeys[type].label);
+}
+
+function contactErrorKey(type: IdentifierType, error: 'required' | 'invalid') {
+  if (error === 'required') {
+    return type === 'EMAIL' ? 'joinContactEmailRequired' : 'joinContactPhoneRequired';
+  }
+  if (type === 'EMAIL') return 'joinContactEmailInvalid';
+  if (type === 'ACCOUNT') return 'joinContactAccountInvalid';
+  return 'joinContactPhoneInvalid';
+}
+
 export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   // Keep the id as a string: room ids are 64-bit and Number() would corrupt them.
   const roomId = id ?? '';
   const location = useLocation();
@@ -51,7 +84,9 @@ export function RoomDetailPage() {
   const [joinStep, setJoinStep] = useState(0);
   const [consent, setConsent] = useState(false);
   const [joinDone, setJoinDone] = useState(false);
-  const [identifierType, setIdentifierType] = useState('PHONE');
+  // Null until the member picks one: the service's accessType supplies the default,
+  // and the room isn't loaded yet at this point.
+  const [identifierType, setIdentifierType] = useState<IdentifierType | null>(null);
   const [identifierValue, setIdentifierValue] = useState('');
   const [joinError, setJoinError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -127,7 +162,17 @@ export function RoomDetailPage() {
     );
   }
 
-  const requiresIdentifier = room.roomType === 'TELECOM';
+  // The service decides what the member has to hand over — an address for the
+  // providers that invite by email, a number for the ones keyed on the phone.
+  const accessType = normalizeAccessType(room.serviceAccessType);
+  const allowedTypes = allowedIdentifierTypes(accessType);
+  const contactType: IdentifierType =
+    identifierType && allowedTypes.includes(identifierType)
+      ? identifierType
+      : defaultIdentifierType(accessType);
+  const contactError = validateIdentifier(contactType, identifierValue);
+  const contactCopy = contactCopyKeys[contactType];
+
   const ownerName = summary?.ownerDisplayName ?? `User #${room.ownerUserId}`;
   const ownerProfileHandle =
     room.ownerSlug ??
@@ -166,15 +211,8 @@ export function RoomDetailPage() {
       return;
     }
 
-    if (requiresIdentifier && !identifierValue.trim()) {
-      setJoinError(
-        tx(
-          language,
-          'Идентификатор обязателен для телеком-комнат.',
-          'Телеком-бөлмелер үшін идентификатор міндетті.',
-          'Identifier is required for telecom rooms.',
-        ),
-      );
+    if (contactError) {
+      setJoinError(t(contactErrorKey(contactType, contactError)));
       return;
     }
 
@@ -186,8 +224,8 @@ export function RoomDetailPage() {
           room.id,
           {
             consentAccepted: consent,
-            identifierType: requiresIdentifier ? identifierType : undefined,
-            identifierValue: requiresIdentifier ? identifierValue.trim() : undefined,
+            identifierType: contactType,
+            identifierValue: normalizeIdentifier(contactType, identifierValue),
           },
           accessToken,
         ),
@@ -418,20 +456,11 @@ export function RoomDetailPage() {
             >
               {ctaLabel}
             </Button>
+            <div className="border-t pt-3" style={{ borderColor: 'var(--eco-border)' }}>
+              <AccessTypeNote accessType={room.serviceAccessType} />
+            </div>
             <p className="text-[11px] text-center" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {requiresIdentifier
-                ? tx(
-                    language,
-                    'Идентификатор раскрывается владельцу только после оплаты.',
-                    'Идентификатор иесіне төлемнен кейін ғана ашылады.',
-                    'Your identifier is only shared after you confirm the join request.',
-                  )
-                : tx(
-                    language,
-                    'Заявку на вступление можно отправить с этой страницы.',
-                    'Қосылу өтінімін осы беттен жіберуге болады.',
-                    'You can submit a join request from this page.',
-                  )}
+              {t('joinContactPrivacy')}
             </p>
           </Card>
 
@@ -481,51 +510,40 @@ export function RoomDetailPage() {
         {!joinDone ? (
           <div className="flex flex-col gap-5">
             <Stepper
-              steps={[
-                requiresIdentifier
-                  ? tx(language, 'Идентификатор', 'Идентификатор', 'Identifier')
-                  : tx(language, 'Согласие', 'Келісім', 'Consent'),
-                tx(language, 'Отправка', 'Жіберу', 'Submit'),
-              ]}
+              steps={[t('joinContactStep'), tx(language, 'Отправка', 'Жіберу', 'Submit')]}
               current={joinStep}
             />
 
             {joinStep === 0 && (
               <div className="flex flex-col gap-4">
-                {requiresIdentifier && (
-                  <>
-                    <Select
-                      label={tx(
-                        language,
-                        'Тип идентификатора',
-                        'Идентификатор түрі',
-                        'Identifier type',
-                      )}
-                      value={identifierType}
-                      onChange={(event) => setIdentifierType(event.target.value)}
-                      options={[
-                        { value: 'PHONE', label: tx(language, 'Телефон', 'Телефон', 'Phone') },
-                        {
-                          value: 'ACCOUNT',
-                          label: tx(language, 'ID лицевого счёта', 'Жеке шот ID', 'Account ID'),
-                        },
-                        { value: 'SIM', label: 'SIM' },
-                        { value: 'ESIM', label: 'eSIM' },
-                      ]}
-                    />
-                    <Input
-                      label={tx(language, 'Идентификатор', 'Идентификатор', 'Telecom Identifier')}
-                      placeholder={tx(
-                        language,
-                        'Номер телефона или ID договора',
-                        'Телефон нөмірі немесе келісімшарт ID',
-                        'Phone number or contract ID',
-                      )}
-                      value={identifierValue}
-                      onChange={(event) => setIdentifierValue(event.target.value)}
-                    />
-                  </>
+                <AccessTypeNote accessType={room.serviceAccessType} />
+                {allowedTypes.length > 1 && (
+                  <Select
+                    label={t('joinContactChoice')}
+                    value={contactType}
+                    onChange={(event) => setIdentifierType(event.target.value as IdentifierType)}
+                    options={allowedTypes.map((type) => ({
+                      value: type,
+                      label: contactTypeOptionLabel(type, t),
+                    }))}
+                  />
                 )}
+                <Input
+                  label={t(contactCopy.label)}
+                  placeholder={t(contactCopy.placeholder)}
+                  type={contactType === 'EMAIL' ? 'email' : 'text'}
+                  inputMode={contactType === 'EMAIL' ? 'email' : 'tel'}
+                  autoComplete={contactType === 'EMAIL' ? 'email' : 'tel'}
+                  value={identifierValue}
+                  onChange={(event) => setIdentifierValue(event.target.value)}
+                  // Only flag a problem once there is something to be wrong about.
+                  error={
+                    identifierValue.trim() && contactError
+                      ? t(contactErrorKey(contactType, contactError))
+                      : undefined
+                  }
+                  hint={t('joinContactPrivacy')}
+                />
                 <label className="flex items-start gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -550,7 +568,7 @@ export function RoomDetailPage() {
                 <Button
                   variant="primary"
                   className="w-full"
-                  disabled={!consent || (requiresIdentifier && !identifierValue.trim())}
+                  disabled={!consent || contactError !== null}
                   onClick={() => setJoinStep(1)}
                 >
                   {tx(language, 'Продолжить', 'Жалғастыру', 'Continue')}
