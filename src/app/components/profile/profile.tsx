@@ -304,10 +304,7 @@ export function ProfilePage() {
                   {trimmedSlug || (user.slug ?? user.publicId ?? '')}
                 </div>
                 {slugChanged && slugStatus.state === 'checking' && (
-                  <span
-                    className="text-[12px]"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
+                  <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                     …
                   </span>
                 )}
@@ -362,10 +359,7 @@ export function ProfilePage() {
           <EmailCard />
 
           {(user.slug || user.publicId) && (
-            <PublicLinkCard
-              slug={user.slug ?? null}
-              publicId={user.publicId ?? null}
-            />
+            <PublicLinkCard slug={user.slug ?? null} publicId={user.publicId ?? null} />
           )}
 
           <FindUserCard />
@@ -463,8 +457,7 @@ export function ProfilePage() {
                 <Mail size={14} /> Email
               </div>
               <div className="mt-2 text-[15px]" style={{ color: 'var(--eco-text)' }}>
-                {user.email ??
-                  tx(language, 'Не добавлен', 'Қосылмаған', 'Not added')}
+                {user.email ?? tx(language, 'Не добавлен', 'Қосылмаған', 'Not added')}
               </div>
             </div>
             <div className="rounded-lg p-4" style={{ background: 'var(--eco-surface)' }}>
@@ -485,6 +478,66 @@ export function ProfilePage() {
   );
 }
 
+// Mirrors app.sms.resend-cooldown-seconds on the backend. The server is the
+// authority — this only keeps the button from offering a request it will refuse.
+const RESEND_COOLDOWN_SECONDS = 60;
+
+/** Seconds as m:ss — "0:45" reads as a wait, "45" reads as a quantity. */
+function formatCountdown(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+/**
+ * Turns a failed phone-verification call into a localized sentence.
+ *
+ * <p>Maps on HTTP status rather than the server text: those messages are English
+ * strings written for developers, and ApiError passes them straight through
+ * whenever they look curated — so rendering `err.message` shows "Invalid
+ * verification code" to a Russian user. The three statuses below are exactly the
+ * cases the flow needs to tell apart.
+ */
+function phoneErrorMessage(status: number, language: Language): string {
+  switch (status) {
+    case 400:
+      return tx(
+        language,
+        'Неверный код. Проверьте цифры из SMS.',
+        'Код қате. SMS-тегі сандарды тексеріңіз.',
+        'Wrong code. Check the digits from the SMS.',
+      );
+    case 410:
+      return tx(
+        language,
+        'Срок действия кода истёк. Запросите новый.',
+        'Кодтың мерзімі бітті. Жаңасын сұраңыз.',
+        'The code has expired. Request a new one.',
+      );
+    case 429:
+      return tx(
+        language,
+        'Слишком много попыток. Подождите немного и попробуйте снова.',
+        'Тым көп әрекет. Сәл күтіп, қайта көріңіз.',
+        'Too many attempts. Wait a moment and try again.',
+      );
+    case 409:
+      return tx(
+        language,
+        'Этот номер уже привязан к другому аккаунту.',
+        'Бұл нөмір басқа аккаунтқа тіркелген.',
+        'This number is already linked to another account.',
+      );
+    default:
+      return tx(
+        language,
+        'Не удалось выполнить запрос. Попробуйте позже.',
+        'Сұранысты орындау мүмкін болмады. Кейінірек көріңіз.',
+        'The request failed. Please try again later.',
+      );
+  }
+}
+
 function PhoneVerificationCard() {
   const { user, authorizedRequest, refreshUser } = useAuth();
   const { language } = useI18n();
@@ -497,6 +550,9 @@ function PhoneVerificationCard() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Same hook the email-resend block uses, so both cooldowns behave identically.
+  const cooldown = useResendCountdown(RESEND_COOLDOWN_SECONDS);
 
   useEffect(() => {
     setPhone(user?.phone ?? '+7');
@@ -514,6 +570,7 @@ function PhoneVerificationCard() {
     try {
       await authorizedRequest((token) => requestPhoneCodeRequest(phone, token));
       setCodeSent(true);
+      cooldown.start();
       setMessage(
         tx(
           language,
@@ -524,8 +581,11 @@ function PhoneVerificationCard() {
       );
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        setError(phoneErrorMessage(err.status, language));
         setFieldErrors(err.errors);
+        // The server refused because a code is still fresh: run the timer out
+        // rather than leaving a button that keeps failing.
+        if (err.status === 429) cooldown.start();
       } else {
         setError(
           tx(
@@ -553,6 +613,7 @@ function PhoneVerificationCard() {
       await refreshUser();
       setCode('');
       setCodeSent(false);
+      cooldown.reset();
       setMessage(
         tx(
           language,
@@ -563,8 +624,14 @@ function PhoneVerificationCard() {
       );
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        setError(phoneErrorMessage(err.status, language));
         setFieldErrors(err.errors);
+        // Expired or attempts exhausted: the current code is dead, so drop back
+        // to the request step instead of letting the user retype into a corpse.
+        if (err.status === 410 || err.status === 429) {
+          setCodeSent(false);
+          setCode('');
+        }
       } else {
         setError(
           tx(
@@ -646,8 +713,21 @@ function PhoneVerificationCard() {
             <Button type="submit" loading={verifying}>
               {tx(language, 'Подтвердить', 'Растау', 'Verify')}
             </Button>
-            <Button type="button" variant="ghost" onClick={handleRequestCode} loading={sending}>
-              {tx(language, 'Отправить код ещё раз', 'Кодты қайта жіберу', 'Resend code')}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleRequestCode}
+              loading={sending}
+              disabled={!cooldown.canResend}
+            >
+              {!cooldown.canResend
+                ? tx(
+                    language,
+                    `Отправить ещё раз через ${formatCountdown(cooldown.remaining)}`,
+                    `${formatCountdown(cooldown.remaining)} кейін қайта жіберу`,
+                    `Resend in ${formatCountdown(cooldown.remaining)}`,
+                  )
+                : tx(language, 'Отправить код ещё раз', 'Кодты қайта жіберу', 'Resend code')}
             </Button>
           </div>
         </form>
@@ -799,13 +879,7 @@ function AvatarUploader() {
   );
 }
 
-function PublicLinkCard({
-  slug,
-  publicId,
-}: {
-  slug: string | null;
-  publicId: string | null;
-}) {
+function PublicLinkCard({ slug, publicId }: { slug: string | null; publicId: string | null }) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const handle = slug ?? publicId ?? '';
@@ -930,7 +1004,9 @@ function EmailCard() {
 
   // 'idle' shows the current state; 'editing' the new-address input;
   // 'codeSent' the 6-digit confirmation input.
-  const [step, setStep] = useState<'idle' | 'editing' | 'codeSent'>(currentEmail ? 'idle' : 'editing');
+  const [step, setStep] = useState<'idle' | 'editing' | 'codeSent'>(
+    currentEmail ? 'idle' : 'editing',
+  );
   const emailField = useEmailField();
   const newEmail = emailField.value;
   // Mirrors the server's 60s cooldown so the button reads as unavailable
@@ -1052,7 +1128,12 @@ function EmailCard() {
     resetFeedback();
     if (code.length !== 6) {
       setError(
-        tx(language, 'Введите 6-значный код.', '6 таңбалы кодты енгізіңіз.', 'Enter the 6-digit code.'),
+        tx(
+          language,
+          'Введите 6-значный код.',
+          '6 таңбалы кодты енгізіңіз.',
+          'Enter the 6-digit code.',
+        ),
       );
       return;
     }
@@ -1063,9 +1144,7 @@ function EmailCard() {
       setStep('idle');
       emailField.reset();
       setCode('');
-      setMessage(
-        tx(language, 'Email подтверждён.', 'Email расталды.', 'Email verified.'),
-      );
+      setMessage(tx(language, 'Email подтверждён.', 'Email расталды.', 'Email verified.'));
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -1117,11 +1196,7 @@ function EmailCard() {
       {step === 'editing' || step === 'codeSent' ? (
         <>
           <Input
-            label={
-              currentEmail
-                ? tx(language, 'Новый email', 'Жаңа email', 'New email')
-                : 'Email'
-            }
+            label={currentEmail ? tx(language, 'Новый email', 'Жаңа email', 'New email') : 'Email'}
             type="email"
             placeholder="you@mail.kz"
             value={newEmail}
@@ -1185,7 +1260,11 @@ function EmailCard() {
             </>
           ) : (
             <div className="flex gap-2">
-              <Button loading={busy} onClick={handleRequestCode} disabled={!newEmail.trim() || emailField.status === 'invalid'}>
+              <Button
+                loading={busy}
+                onClick={handleRequestCode}
+                disabled={!newEmail.trim() || emailField.status === 'invalid'}
+              >
                 {currentEmail
                   ? tx(language, 'Отправить код', 'Код жіберу', 'Send code')
                   : tx(language, 'Добавить email', 'Email қосу', 'Add email')}
