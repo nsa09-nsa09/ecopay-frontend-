@@ -14,14 +14,14 @@ type Translations = {
 const translations: Translations = {
   // ===== Document meta =====
   metaTitle: {
-    ru: 'EcoSplit — платите меньше за семейные подписки',
-    kz: 'EcoSplit — отбасылық жазылымдарға азырақ төлеңіз',
-    en: 'EcoSplit — pay less for family subscriptions',
+    ru: 'EcoPay - платите меньше за семейные подписки',
+    kz: 'EcoPay - отбасылық жазылымдарға азырақ төлеңіз',
+    en: 'EcoPay - pay less for family subscriptions',
   },
   metaDescription: {
-    ru: 'EcoSplit — делите семейные подписки и платите в 2–6 раз меньше. Защищённые платежи и 30-дневный hold.',
-    kz: 'EcoSplit — отбасылық жазылымдарды бөлісіп, 2–6 есе аз төлеңіз. Қорғалған төлемдер және 30 күндік hold.',
-    en: 'EcoSplit — share family subscriptions and pay 2–6x less. Protected payments with a 30-day hold.',
+    ru: 'EcoPay - делите семейные подписки и платите в 2–6 раз меньше. Защищённые платежи и 30-дневный hold.',
+    kz: 'EcoPay - отбасылық жазылымдарды бөлісіп, 2–6 есе аз төлеңіз. Қорғалған төлемдер және 30 күндік hold.',
+    en: 'EcoPay - share family subscriptions and pay 2–6x less. Protected payments with a 30-day hold.',
   },
 
   // ===== Navigation & Header =====
@@ -116,9 +116,9 @@ const translations: Translations = {
     en: 'Developed by Apex Digital',
   },
   copyright: {
-    ru: '© 2026 EcoSplit · Астана, Казахстан',
-    kz: '© 2026 EcoSplit · Астана, Қазақстан',
-    en: '© 2026 EcoSplit · Astana, Kazakhstan',
+    ru: '© 2026 EcoPay · Астана, Казахстан',
+    kz: '© 2026 EcoPay · Астана, Қазақстан',
+    en: '© 2026 EcoPay · Astana, Kazakhstan',
   },
   footerTagline: {
     ru: 'Делитесь подписками. Экономьте вместе.',
@@ -152,14 +152,14 @@ const translations: Translations = {
   },
   dontHaveAccount: { ru: 'Нет аккаунта?', kz: 'Тіркелгіңіз жоқ па?', en: "Don't have an account?" },
   welcomeBack: {
-    ru: 'Добро пожаловать в EcoSplit',
-    kz: 'EcoSplit-ке қайта келіңіз',
-    en: 'Welcome back to EcoSplit',
+    ru: 'Добро пожаловать в EcoPay',
+    kz: 'EcoPay-ге қайта келіңіз',
+    en: 'Welcome back to EcoPay',
   },
   joinEcoSplit: {
-    ru: 'Присоединяйтесь к EcoSplit и начните экономить',
-    kz: 'EcoSplit-ке қосылып, үнемдеуді бастаңыз',
-    en: 'Join EcoSplit and start saving today',
+    ru: 'Присоединяйтесь к EcoPay и начните экономить',
+    kz: 'EcoPay-ге қосылып, үнемдеуді бастаңыз',
+    en: 'Join EcoPay and start saving today',
   },
   rememberMe: { ru: 'Запомнить меня', kz: 'Мені есте сақта', en: 'Remember me' },
   forgotPassword: { ru: 'Забыли пароль?', kz: 'Құпия сөзді ұмыттыңыз ба?', en: 'Forgot password?' },

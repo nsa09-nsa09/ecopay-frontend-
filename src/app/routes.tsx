@@ -140,9 +140,6 @@ const PaymentRoomDetailsPage = lazy(() =>
 const PaymentCheckoutPage = lazy(() =>
   import('./components/payments/payments').then((m) => ({ default: m.PaymentCheckoutPage })),
 );
-const PaymentConfirmationPage = lazy(() =>
-  import('./components/payments/payments').then((m) => ({ default: m.PaymentConfirmationPage })),
-);
 const PaymentPendingPage = lazy(() =>
   import('./components/payments/payments').then((m) => ({ default: m.PaymentPendingPage })),
 );
@@ -163,83 +160,148 @@ const PublicUserProfilePage = lazy(() =>
     default: m.PublicUserProfilePage,
   })),
 );
-const I18nTypographyFixPage = lazy(() =>
-  import('./components/static/i18n-typography-fix').then((m) => ({
-    default: m.I18nTypographyFixPage,
-  })),
-);
-const StatesSlaEdgeCasesPage = lazy(() =>
-  import('./components/static/states-sla-edge-cases').then((m) => ({
-    default: m.StatesSlaEdgeCasesPage,
-  })),
-);
-const PrivacyAuditPatternsPage = lazy(() =>
-  import('./components/static/privacy-audit-patterns').then((m) => ({
-    default: m.PrivacyAuditPatternsPage,
-  })),
-);
-const DisputesUserAdminPage = lazy(() =>
-  import('./components/static/disputes-user-admin').then((m) => ({
-    default: m.DisputesUserAdminPage,
-  })),
-);
 const NotificationsInboxPage = lazy(() =>
-  import('./components/static/notifications-inbox').then((m) => ({
+  import('./components/notifications/notifications-inbox').then((m) => ({
     default: m.NotificationsInboxPage,
   })),
 );
-const QualityPassStatesPage = lazy(() =>
-  import('./components/static/quality-pass-states').then((m) => ({
-    default: m.QualityPassStatesPage,
-  })),
-);
-const AccessibilityContentSafetyPage = lazy(() =>
-  import('./components/static/accessibility-content-safety').then((m) => ({
-    default: m.AccessibilityContentSafetyPage,
-  })),
-);
-const ComponentAuditPage = lazy(() =>
-  import('./components/static/component-audit-variants').then((m) => ({
-    default: m.ComponentAuditPage,
-  })),
-);
-const QaReleaseReadinessPage = lazy(() =>
-  import('./components/static/qa-release-readiness').then((m) => ({
-    default: m.QaReleaseReadinessPage,
-  })),
-);
-const GovernanceRulesPage = lazy(() =>
-  import('./components/static/governance-rules').then((m) => ({ default: m.GovernanceRulesPage })),
-);
-const PaymentHistoryPage = lazy(() =>
-  import('./components/static/payment-history-receipts').then((m) => ({
-    default: m.PaymentHistoryPage,
-  })),
-);
-const GeoBestOperatorPage = lazy(() =>
-  import('./components/static/geo-best-operator').then((m) => ({ default: m.GeoBestOperatorPage })),
-);
 const NotificationPreferencesPage = lazy(() =>
-  import('./components/static/notification-preferences').then((m) => ({
+  import('./components/notifications/notification-preferences').then((m) => ({
     default: m.NotificationPreferencesPage,
   })),
 );
-const DataContractsApiMappingPage = lazy(() =>
-  import('./components/static/data-contracts-api-mapping').then((m) => ({
-    default: m.DataContractsApiMappingPage,
-  })),
-);
-const CopyLibraryPage = lazy(() =>
-  import('./components/static/copy-library').then((m) => ({ default: m.CopyLibraryPage })),
-);
-const BuildChecklistPage = lazy(() =>
-  import('./components/static/build-checklist').then((m) => ({ default: m.BuildChecklistPage })),
-);
-const AnalyticsEventTrackingPage = lazy(() =>
-  import('./components/static/analytics-event-tracking').then((m) => ({
-    default: m.AnalyticsEventTrackingPage,
-  })),
-);
+
+const internalStaticRoutes =
+  import.meta.env.DEV || import.meta.env.VITE_ENABLE_INTERNAL_PAGES === 'true'
+    ? [
+        {
+          path: 'i18n-typography',
+          Component: lazy(() =>
+            import('./components/static/i18n-typography-fix').then((m) => ({
+              default: m.I18nTypographyFixPage,
+            })),
+          ),
+        },
+        {
+          path: 'states-sla',
+          Component: lazy(() =>
+            import('./components/static/states-sla-edge-cases').then((m) => ({
+              default: m.StatesSlaEdgeCasesPage,
+            })),
+          ),
+        },
+        {
+          path: 'privacy-audit',
+          Component: lazy(() =>
+            import('./components/static/privacy-audit-patterns').then((m) => ({
+              default: m.PrivacyAuditPatternsPage,
+            })),
+          ),
+        },
+        {
+          path: 'disputes-flows',
+          Component: lazy(() =>
+            import('./components/static/disputes-user-admin').then((m) => ({
+              default: m.DisputesUserAdminPage,
+            })),
+          ),
+        },
+        {
+          path: 'quality-pass',
+          Component: lazy(() =>
+            import('./components/static/quality-pass-states').then((m) => ({
+              default: m.QualityPassStatesPage,
+            })),
+          ),
+        },
+        {
+          path: 'accessibility-safety',
+          Component: lazy(() =>
+            import('./components/static/accessibility-content-safety').then((m) => ({
+              default: m.AccessibilityContentSafetyPage,
+            })),
+          ),
+        },
+        {
+          path: 'component-audit',
+          Component: lazy(() =>
+            import('./components/static/component-audit-variants').then((m) => ({
+              default: m.ComponentAuditPage,
+            })),
+          ),
+        },
+        {
+          path: 'qa-release',
+          Component: lazy(() =>
+            import('./components/static/qa-release-readiness').then((m) => ({
+              default: m.QaReleaseReadinessPage,
+            })),
+          ),
+        },
+        {
+          path: 'governance',
+          Component: lazy(() =>
+            import('./components/static/governance-rules').then((m) => ({
+              default: m.GovernanceRulesPage,
+            })),
+          ),
+        },
+        {
+          path: 'payment-history',
+          Component: lazy(() =>
+            import('./components/static/payment-history-receipts').then((m) => ({
+              default: m.PaymentHistoryPage,
+            })),
+          ),
+        },
+        {
+          path: 'geo-operator',
+          Component: lazy(() =>
+            import('./components/static/geo-best-operator').then((m) => ({
+              default: m.GeoBestOperatorPage,
+            })),
+          ),
+        },
+        {
+          path: 'data-contracts',
+          Component: lazy(() =>
+            import('./components/static/data-contracts-api-mapping').then((m) => ({
+              default: m.DataContractsApiMappingPage,
+            })),
+          ),
+        },
+        {
+          path: 'copy-library',
+          Component: lazy(() =>
+            import('./components/static/copy-library').then((m) => ({ default: m.CopyLibraryPage })),
+          ),
+        },
+        {
+          path: 'build-checklist',
+          Component: lazy(() =>
+            import('./components/static/build-checklist').then((m) => ({
+              default: m.BuildChecklistPage,
+            })),
+          ),
+        },
+        {
+          path: 'analytics-events',
+          Component: lazy(() =>
+            import('./components/static/analytics-event-tracking').then((m) => ({
+              default: m.AnalyticsEventTrackingPage,
+            })),
+          ),
+        },
+        {
+          path: 'payment/confirmation-demo',
+          Component: lazy(() =>
+            import('./components/payments/payments').then((m) => ({
+              default: m.PaymentConfirmationPage,
+            })),
+          ),
+        },
+      ]
+    : [];
 
 function ErrorFallback() {
   // The error boundary can render outside the i18n provider, so read the
@@ -323,8 +385,6 @@ export const router = createBrowserRouter([
           // the live reconciliation page.
           { path: 'payment/confirmation', Component: PaymentReturnPage },
           { path: 'payment/failure', Component: PaymentReturnPage },
-          // Static design reference for the old confirmation mockup.
-          { path: 'payment/confirmation-demo', Component: PaymentConfirmationPage },
           { path: 'payment/pending', Component: PaymentPendingPage },
           { path: 'payment/refund', Component: RefundStatusPage },
           { path: 'payment/payout', Component: OwnerPayoutPage },
@@ -332,23 +392,9 @@ export const router = createBrowserRouter([
           { path: 'payment/card-connected', Component: CardConnectedPage },
           { path: 'user/:id', Component: PublicUserProfilePage },
           { path: 'u/:publicId', Component: PublicUserProfilePage },
-          { path: 'i18n-typography', Component: I18nTypographyFixPage },
-          { path: 'states-sla', Component: StatesSlaEdgeCasesPage },
-          { path: 'privacy-audit', Component: PrivacyAuditPatternsPage },
-          { path: 'disputes-flows', Component: DisputesUserAdminPage },
           { path: 'notifications-inbox', Component: NotificationsInboxPage },
-          { path: 'quality-pass', Component: QualityPassStatesPage },
-          { path: 'accessibility-safety', Component: AccessibilityContentSafetyPage },
-          { path: 'component-audit', Component: ComponentAuditPage },
-          { path: 'qa-release', Component: QaReleaseReadinessPage },
-          { path: 'governance', Component: GovernanceRulesPage },
-          { path: 'payment-history', Component: PaymentHistoryPage },
-          { path: 'geo-operator', Component: GeoBestOperatorPage },
           { path: 'notification-prefs', Component: NotificationPreferencesPage },
-          { path: 'data-contracts', Component: DataContractsApiMappingPage },
-          { path: 'copy-library', Component: CopyLibraryPage },
-          { path: 'build-checklist', Component: BuildChecklistPage },
-          { path: 'analytics-events', Component: AnalyticsEventTrackingPage },
+          ...internalStaticRoutes,
         ],
       },
     ],

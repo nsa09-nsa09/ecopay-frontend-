@@ -16,7 +16,7 @@ interface LeaveReviewModalProps {
   open: boolean;
   onClose: () => void;
   recipientId: number;
-  roomId?: number;
+  roomId?: string | number;
   recipientName?: string;
   onSubmitted?: () => void;
 }

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "build:release": "vite build && node tools/check-internal-artifacts.mjs",
+    "check:internal-artifacts": "node tools/check-internal-artifacts.mjs",
     "dev": "vite",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit"

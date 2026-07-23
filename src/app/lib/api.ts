@@ -739,7 +739,7 @@ export function getRooms(params: Record<string, string | number | undefined> = {
   return requestJson<PagedResponse<RoomSummaryDto>>(`/rooms${toSearchParams(params)}`);
 }
 
-export function getRoom(roomId: number) {
+export function getRoom(roomId: string | number) {
   return requestJson<RoomResponseDto>(`/rooms/${roomId}`);
 }
 
@@ -748,7 +748,7 @@ export interface RoomInviteLinkDto {
   token: string;
 }
 
-export function getRoomInviteLink(roomId: number, accessToken: string) {
+export function getRoomInviteLink(roomId: string | number, accessToken: string) {
   return requestJson<RoomInviteLinkDto>(`/rooms/${roomId}/invite-link`, {}, accessToken);
 }
 
@@ -840,7 +840,7 @@ export interface RevealedIdentifierDto {
   roomMemberId: number;
   identifierType: string;
   identifierValue: string;
-  revealedForReason: string;
+  revealTtlSeconds: number;
 }
 
 export interface CreateRoomPayload {
@@ -945,7 +945,7 @@ export function completeRoomRequest(roomId: number, accessToken: string) {
 }
 
 export function getRoomMembers(
-  roomId: number,
+  roomId: string | number,
   accessToken: string,
   params: Record<string, string | number | undefined> = {},
 ) {
@@ -961,7 +961,7 @@ export function getMyMembership(roomId: number, accessToken: string) {
 }
 
 export function confirmOwnerAccessRequest(
-  roomId: number,
+  roomId: string | number,
   memberId: string,
   accessMethod: string,
   accessToken: string,
@@ -987,9 +987,14 @@ export function confirmMemberAccessRequest(roomId: number, accessToken: string) 
 }
 
 export function revealIdentifierRequest(
-  roomId: number,
+  roomId: string | number,
   memberId: string,
-  payload: { reason: string; contextType?: string; contextId?: number },
+  payload: {
+    reasonCode: string;
+    reasonDetails?: string;
+    contextType?: string;
+    contextId?: number;
+  },
   accessToken: string,
 ) {
   return requestJson<RevealedIdentifierDto>(
@@ -1868,7 +1873,7 @@ export interface ReviewDto {
 
 export interface CreateReviewPayload {
   recipientId: number;
-  roomId?: number;
+  roomId?: string | number;
   rating: number;
   text?: string;
 }

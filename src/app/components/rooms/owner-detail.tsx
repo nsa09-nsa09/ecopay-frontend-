@@ -56,6 +56,19 @@ const formatDateTime = (v: string | null | undefined, l: Language) =>
 
 // A member occupies a slot / is post-payment once PENDING or ACTIVE.
 const POST_PAYMENT = new Set(['PENDING', 'ACTIVE']);
+const DEFAULT_REVEAL_TTL_SECONDS = 30;
+const OWNER_REVEAL_REASON_OPTIONS = [
+  { value: 'PROVIDE_SERVICE_ACCESS', label: 'Provide service access' },
+  { value: 'RETRY_SERVICE_INVITE', label: 'Retry service invite' },
+  { value: 'RESOLVE_ACCESS_CONFIGURATION', label: 'Resolve access configuration' },
+];
+
+type RevealedIdentifierState = {
+  memberId: string;
+  identifierType: string;
+  value: string;
+  expiresAt: number;
+};
 
 /** Rebase an invite URL to the current browser origin so that
  *  a misconfigured backend default (localhost:5173) never leaks
@@ -109,8 +122,11 @@ export function OwnerDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [revealTarget, setRevealTarget] = useState<RoomMemberDto | null>(null);
-  const [revealReason, setRevealReason] = useState('');
-  const [revealedValues, setRevealedValues] = useState<Record<number, string>>({});
+  const [revealReasonCode, setRevealReasonCode] = useState(OWNER_REVEAL_REASON_OPTIONS[0].value);
+  const [revealReasonDetails, setRevealReasonDetails] = useState('');
+  const [revealedIdentifier, setRevealedIdentifier] = useState<RevealedIdentifierState | null>(
+    null,
+  );
   const [revealError, setRevealError] = useState<string | null>(null);
   const [revealing, setRevealing] = useState(false);
 
@@ -126,6 +142,24 @@ export function OwnerDetailPage() {
     const result = await authorizedRequest((token) => getRoomMembers(roomId, token, { size: 100 }));
     setMembers(result.items);
   }, [authorizedRequest, roomId]);
+
+  const clearReveal = useCallback(() => {
+    setRevealedIdentifier(null);
+    setRevealError(null);
+    setRevealReasonDetails('');
+    setRevealReasonCode(OWNER_REVEAL_REASON_OPTIONS[0].value);
+  }, []);
+
+  useEffect(() => clearReveal, [clearReveal]);
+
+  useEffect(() => {
+    if (!revealedIdentifier) return undefined;
+    const timeout = window.setTimeout(
+      () => setRevealedIdentifier(null),
+      Math.max(0, revealedIdentifier.expiresAt - Date.now()),
+    );
+    return () => window.clearTimeout(timeout);
+  }, [revealedIdentifier]);
 
   useEffect(() => {
     if (!roomId) {
@@ -177,16 +211,29 @@ export function OwnerDetailPage() {
   }, [roomId, authorizedRequest, language]);
 
   const confirmReveal = async () => {
-    if (!revealTarget || !revealReason.trim()) return;
+    if (!revealTarget) return;
     setRevealing(true);
     setRevealError(null);
+    setRevealedIdentifier(null);
     try {
       const result = await authorizedRequest((token) =>
-        revealIdentifierRequest(roomId, revealTarget.id, { reason: revealReason.trim() }, token),
+        revealIdentifierRequest(
+          roomId,
+          revealTarget.id,
+          {
+            reasonCode: revealReasonCode,
+            reasonDetails: revealReasonDetails.trim() || undefined,
+          },
+          token,
+        ),
       );
-      setRevealedValues((prev) => ({ ...prev, [revealTarget.id]: result.identifierValue }));
-      setRevealTarget(null);
-      setRevealReason('');
+      const ttlSeconds = result.revealTtlSeconds || DEFAULT_REVEAL_TTL_SECONDS;
+      setRevealedIdentifier({
+        memberId: revealTarget.id,
+        identifierType: result.identifierType,
+        value: result.identifierValue,
+        expiresAt: Date.now() + ttlSeconds * 1000,
+      });
     } catch (err) {
       setRevealError(
         err instanceof ApiError
@@ -200,6 +247,21 @@ export function OwnerDetailPage() {
       );
     } finally {
       setRevealing(false);
+    }
+  };
+
+  const closeRevealModal = () => {
+    setRevealTarget(null);
+    clearReveal();
+  };
+
+  const copyRevealedIdentifier = async () => {
+    if (!revealedIdentifier) return;
+    try {
+      await navigator.clipboard.writeText(revealedIdentifier.value);
+      toast.success('Identifier copied');
+    } catch {
+      toast.error('Could not copy identifier');
     }
   };
 
@@ -314,7 +376,11 @@ export function OwnerDetailPage() {
                 {members.map((p) => {
                   const postPayment = POST_PAYMENT.has(p.status);
                   const granted = !!p.ownerAccessConfirmedAt;
-                  const revealed = revealedValues[p.id];
+                  const revealed =
+                    revealedIdentifier?.memberId === p.id &&
+                    revealedIdentifier.expiresAt > Date.now()
+                      ? revealedIdentifier
+                      : null;
                   return (
                     <div
                       key={p.id}
@@ -367,15 +433,14 @@ export function OwnerDetailPage() {
                                   fontFamily: 'monospace',
                                 }}
                               >
-                                ID: {revealed}
+                                ID: {revealed.value}
                               </span>
                             ) : (
                               <button
                                 className="cursor-pointer inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-black/5"
                                 onClick={() => {
                                   setRevealTarget(p);
-                                  setRevealReason('');
-                                  setRevealError(null);
+                                  clearReveal();
                                 }}
                                 title={tx(
                                   language,
@@ -572,7 +637,7 @@ export function OwnerDetailPage() {
 
       <Modal
         open={!!revealTarget}
-        onClose={() => setRevealTarget(null)}
+        onClose={closeRevealModal}
         title={tx(
           language,
           'Показать идентификатор',
@@ -606,10 +671,39 @@ export function OwnerDetailPage() {
                 'мысалы, қатысушыға eSIM белсендіру',
                 'e.g., Activating eSIM for member',
               )}
-              value={revealReason}
-              onChange={(e) => setRevealReason(e.target.value)}
+              value={revealReasonDetails}
+              maxLength={180}
+              disabled={!!revealedIdentifier}
+              onChange={(e) => setRevealReasonDetails(e.target.value)}
             />
           </div>
+          <Select
+            label="Reason code"
+            options={OWNER_REVEAL_REASON_OPTIONS}
+            value={revealReasonCode}
+            disabled={!!revealedIdentifier}
+            onChange={(e) => setRevealReasonCode(e.target.value)}
+          />
+          {revealedIdentifier && (
+            <div
+              className="rounded-lg p-3 flex flex-col gap-2"
+              style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
+            >
+              <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                {revealedIdentifier.identifierType} · shown briefly
+              </div>
+              <div
+                className="text-[15px] break-all"
+                style={{ color: 'var(--eco-text)', fontFamily: 'monospace' }}
+              >
+                {revealedIdentifier.value}
+              </div>
+              <Button variant="secondary" size="sm" onClick={copyRevealedIdentifier}>
+                <Copy size={13} />
+                Copy
+              </Button>
+            </div>
+          )}
           {revealError && (
             <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
               {revealError}
@@ -617,7 +711,7 @@ export function OwnerDetailPage() {
           )}
           <Button
             variant="primary"
-            disabled={!revealReason.trim()}
+            disabled={!!revealedIdentifier}
             loading={revealing}
             onClick={confirmReveal}
           >
@@ -742,7 +836,7 @@ function InviteLinkCard({
   language,
   t,
 }: {
-  roomId: number;
+  roomId: string | number;
   language: Language;
   t: (k: string) => string;
 }) {

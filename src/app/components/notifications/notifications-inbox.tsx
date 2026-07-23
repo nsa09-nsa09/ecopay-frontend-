@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { Bell, CheckCheck, Inbox, Loader2, RefreshCw } from 'lucide-react';
 import { Card, Button, Badge, EmptyState, SkeletonCard } from '../ds-primitives';
 import { useI18n, type Language } from '../i18n-provider';
-import { useNotifications } from '../notifications/notifications-provider';
+import { useNotifications } from './notifications-provider';
 import { useAuth } from '../auth/auth-provider';
 import { formatDateTime } from '../../lib/datetime';
 import {
