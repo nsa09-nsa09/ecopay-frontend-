@@ -2606,6 +2606,10 @@ export function getNews(page = 0, limit = 6) {
   return promise;
 }
 
+export function getNewsById(id: number | string) {
+  return requestJson<NewsDto>(`/news/${id}`);
+}
+
 export function clearNewsCache() {
   newsCache.clear();
 }

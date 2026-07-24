@@ -69,6 +69,9 @@ const AboutPage = lazy(() =>
 const NewsPage = lazy(() =>
   import('./components/static/news').then((m) => ({ default: m.NewsPage })),
 );
+const NewsDetailPage = lazy(() =>
+  import('./components/static/news').then((m) => ({ default: m.NewsDetailPage })),
+);
 const TermsPage = lazy(() =>
   import('./components/static/terms').then((m) => ({ default: m.TermsPage })),
 );
@@ -375,6 +378,7 @@ export const router = createBrowserRouter([
           { path: 'feedback', Component: FeedbackPage },
           { path: 'about', Component: AboutPage },
           { path: 'news', Component: NewsPage },
+          { path: 'news/:id', Component: NewsDetailPage },
           { path: 'terms', Component: TermsPage },
           { path: 'privacy', Component: PrivacyPage },
           { path: 'how-it-works', Component: HowItWorksPage },
