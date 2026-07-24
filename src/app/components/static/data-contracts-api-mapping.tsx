@@ -630,7 +630,7 @@ const CONTRACTS: ScreenContract[] = [
         type: 'string | null',
         required: false,
         nullHandling: 'No discount applied',
-        example: 'ECOSPLIT20',
+        example: 'ECOPAY20',
       },
       {
         name: 'discount_amount',

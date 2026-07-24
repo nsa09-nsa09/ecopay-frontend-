@@ -649,7 +649,7 @@ const MODULES: ModuleChecklist[] = [
         id: 'pay-6',
         task: 'Receipt print/PDF',
         acceptance: [
-          'Print-ready layout with EcoSplit logo',
+          'Print-ready layout with EcoPay logo',
           'All IDs visible and copyable',
           'Date, amount, operator, plan, room ID, parties',
           'Separate URL for standalone receipt view',

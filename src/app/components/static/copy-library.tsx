@@ -1006,9 +1006,9 @@ const COPY_CATEGORIES: CopyCategory[] = [
       },
       {
         key: 'secFraudWarning',
-        ru: 'Не делитесь паролем или кодом подтверждения ни с кем, включая сотрудников EcoSplit',
-        kz: 'Құпиясөзіңізді немесе растау кодын ешкіммен, соның ішінде EcoSplit қызметкерлерімен бөліспеңіз',
-        en: 'Never share your password or verification code with anyone, including EcoSplit staff',
+        ru: 'Не делитесь паролем или кодом подтверждения ни с кем, включая сотрудников EcoPay',
+        kz: 'Құпиясөзіңізді немесе растау кодын ешкіммен, соның ішінде EcoPay қызметкерлерімен бөліспеңіз',
+        en: 'Never share your password or verification code with anyone, including EcoPay staff',
         context: 'Anti-fraud warning in profile/settings',
         tone: 'warning',
       },
@@ -1282,9 +1282,9 @@ const COPY_CATEGORIES: CopyCategory[] = [
       },
       {
         key: 'notifWelcome',
-        ru: 'Добро пожаловать в EcoSplit',
-        kz: 'EcoSplit-ке қош келдіңіз',
-        en: 'Welcome to EcoSplit',
+        ru: 'Добро пожаловать в EcoPay',
+        kz: 'EcoPay-ке қош келдіңіз',
+        en: 'Welcome to EcoPay',
         context: 'First login welcome notification',
         tone: 'celebratory',
       },
@@ -1926,7 +1926,7 @@ function ToneGuide() {
       tone: 'celebratory' as Tone,
       doText: 'Brief positive moment. Used sparingly for milestones.',
       dontText: "Don't use for routine actions. No emoji in copy.",
-      example: 'Добро пожаловать в EcoSplit → Welcome to EcoSplit',
+      example: 'Добро пожаловать в EcoPay → Welcome to EcoPay',
     },
   ];
 
@@ -2190,7 +2190,7 @@ function WritingRules() {
     {
       icon: Type,
       title: 'Sentence case everywhere',
-      desc: "Capitalize first word only. 'View all rooms' not 'View All Rooms'. Exception: proper nouns (EcoSplit, Beeline).",
+      desc: "Capitalize first word only. 'View all rooms' not 'View All Rooms'. Exception: proper nouns (EcoPay, Beeline).",
     },
     {
       icon: Minus,

@@ -5,6 +5,10 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:?VITE_API_BASE_URL must be set in Dokploy Environment}
+        VITE_APP_NAME: ${VITE_APP_NAME:-EcoPay}
+        VITE_SUPPORT_EMAIL: ${VITE_SUPPORT_EMAIL:-}
+        VITE_INSTAGRAM_URL: ${VITE_INSTAGRAM_URL:-}
+        VITE_TIKTOK_URL: ${VITE_TIKTOK_URL:-}
     restart: unless-stopped
     expose:
       - '80'

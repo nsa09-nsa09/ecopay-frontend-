@@ -13,6 +13,7 @@ import {
   trackVisitRequest,
   type CatalogSearchHit,
 } from '../lib/api';
+import { appBrand } from '../config/brand';
 
 const APEX_DEFAULT_LINK = 'https://apex-digital.kz';
 
@@ -641,7 +642,9 @@ export function AppLayout() {
                 {t('footerTagline')}
               </p>
               <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                {t('footerContactLine')}
+                {appBrand.supportEmail
+                  ? `${appBrand.supportEmail} · ${t('contactLocation')}`
+                  : t('contactLocation')}
               </p>
             </div>
 

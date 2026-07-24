@@ -44,7 +44,7 @@ export interface Story {
   seen: boolean;
 }
 
-// Brand-orange leaning gradients (EcoSplit coral, from #FF8C42) with a couple of
+// Brand-orange leaning gradients (EcoPay coral, from #FF8C42) with a couple of
 // accent hues so the strip doesn't read as one flat block.
 const G = {
   coral: 'linear-gradient(160deg, #FF8C42 0%, #F0741F 55%, #C55A12 100%)',
@@ -86,9 +86,9 @@ export const mockStories: Story[] = [
           en: '4K and your own profile',
         },
         text: {
-          ru: 'Свой профиль, свои рекомендации, качество 4K — без передачи пароля вне EcoSplit.',
-          kz: 'Жеке профиль, жеке ұсыныстар, 4K сапасы — құпия сөзді EcoSplit-тен тыс бермей.',
-          en: 'Your profile, your recommendations, 4K quality — no password sharing outside EcoSplit.',
+          ru: 'Свой профиль, свои рекомендации, качество 4K — без передачи пароля вне EcoPay.',
+          kz: 'Жеке профиль, жеке ұсыныстар, 4K сапасы — құпия сөзді EcoPay-тен тыс бермей.',
+          en: 'Your profile, your recommendations, 4K quality — no password sharing outside EcoPay.',
         },
         cta: {
           label: { ru: 'Найти комнату', kz: 'Бөлме табу', en: 'Find a room' },
@@ -140,9 +140,9 @@ export const mockStories: Story[] = [
           en: 'Three steps to a subscription',
         },
         text: {
-          ru: 'Выберите сервис, займите место в комнате, оплатите свою долю. Всё внутри EcoSplit.',
-          kz: 'Сервисті таңдаңыз, бөлмеден орын алыңыз, өз үлесіңізді төлеңіз. Барлығы EcoSplit ішінде.',
-          en: 'Pick a service, take a seat in a room, pay your share. All inside EcoSplit.',
+          ru: 'Выберите сервис, займите место в комнате, оплатите свою долю. Всё внутри EcoPay.',
+          kz: 'Сервисті таңдаңыз, бөлмеден орын алыңыз, өз үлесіңізді төлеңіз. Барлығы EcoPay ішінде.',
+          en: 'Pick a service, take a seat in a room, pay your share. All inside EcoPay.',
         },
       },
       {

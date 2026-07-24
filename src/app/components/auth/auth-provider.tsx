@@ -23,6 +23,7 @@ import {
   verifyStaffTwoFactorRequest,
 } from '../../lib/api';
 import { clearAdminDashboardCache } from '../../lib/admin-dashboard-cache';
+import { readWithLegacyMigration, removeWithLegacyKeys } from '../../lib/legacy-storage';
 
 interface BanEvent {
   type: 'BANNED';
@@ -30,7 +31,8 @@ interface BanEvent {
   bannedAt?: string;
 }
 
-const BAN_EVENT_STORAGE_KEY = 'ecosplit.banEvent';
+const BAN_EVENT_STORAGE_KEY = 'ecopay.banEvent';
+const LEGACY_BAN_EVENT_STORAGE_KEYS = ['ecosplit.banEvent'] as const;
 
 export interface PersistedBanEvent {
   reason: string | null;
@@ -40,9 +42,13 @@ export interface PersistedBanEvent {
 export function consumePersistedBanEvent(): PersistedBanEvent | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.sessionStorage.getItem(BAN_EVENT_STORAGE_KEY);
+    const raw = readWithLegacyMigration(
+      window.sessionStorage,
+      BAN_EVENT_STORAGE_KEY,
+      LEGACY_BAN_EVENT_STORAGE_KEYS,
+    );
     if (!raw) return null;
-    window.sessionStorage.removeItem(BAN_EVENT_STORAGE_KEY);
+    removeWithLegacyKeys(window.sessionStorage, BAN_EVENT_STORAGE_KEY, LEGACY_BAN_EVENT_STORAGE_KEYS);
     return JSON.parse(raw) as PersistedBanEvent;
   } catch {
     return null;
@@ -108,18 +114,23 @@ interface AuthContextType {
 // Non-sensitive "were you signed in?" hint so anonymous visitors don't pay a
 // pointless /auth/refresh round-trip on every reload. The real credential is
 // the httpOnly cookie; this flag just says "try refreshing on boot".
-const SESSION_HINT_KEY = 'ecosplit.session';
+const SESSION_HINT_KEY = 'ecopay.session';
+const LEGACY_SESSION_HINT_KEYS = ['ecosplit.session'] as const;
 const AuthContext = createContext<AuthContextType>(null!);
 
 function readSessionHint(): { user: User | null } | null {
   if (typeof window === 'undefined') return null;
-  const raw = window.localStorage.getItem(SESSION_HINT_KEY);
+  const raw = readWithLegacyMigration(
+    window.localStorage,
+    SESSION_HINT_KEY,
+    LEGACY_SESSION_HINT_KEYS,
+  );
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as { user?: User | null };
     return { user: parsed.user ?? null };
   } catch {
-    window.localStorage.removeItem(SESSION_HINT_KEY);
+    removeWithLegacyKeys(window.localStorage, SESSION_HINT_KEY, LEGACY_SESSION_HINT_KEYS);
     return null;
   }
 }
@@ -127,7 +138,7 @@ function readSessionHint(): { user: User | null } | null {
 function writeSessionHint(user: User | null) {
   if (typeof window === 'undefined') return;
   if (!user) {
-    window.localStorage.removeItem(SESSION_HINT_KEY);
+    removeWithLegacyKeys(window.localStorage, SESSION_HINT_KEY, LEGACY_SESSION_HINT_KEYS);
     return;
   }
   window.localStorage.setItem(SESSION_HINT_KEY, JSON.stringify({ user }));

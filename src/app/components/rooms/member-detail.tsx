@@ -190,7 +190,7 @@ export function MemberDetailPage() {
   const isActive = membership.status === 'ACTIVE';
   const canConfirm = membership.status === 'PENDING' && ownerGranted && !memberConfirmed;
 
-  // ECOpay commission the member pays on top of their tariff share (owner pays none).
+  // EcoPay commission the member pays on top of their tariff share (owner pays none).
   // Backend-computed; fall back to the bare share if the breakdown isn't available.
   const payShare = Number(room.pricePerMember ?? 0);
   const payTotal = Number(room.pricePerMemberTotal ?? payShare);
@@ -342,7 +342,7 @@ export function MemberDetailPage() {
               {payCommission > 0 && (
                 <div className="flex justify-between text-[14px] mb-1">
                   <span style={{ color: 'var(--eco-text-secondary)' }}>
-                    {tx(language, 'Комиссия ECOpay', 'ECOpay комиссиясы', 'ECOpay fee')}
+                    {tx(language, 'Комиссия EcoPay', 'EcoPay комиссиясы', 'EcoPay fee')}
                   </span>
                   <span style={{ color: 'var(--eco-text)' }}>{formatMoney(payCommission)}</span>
                 </div>

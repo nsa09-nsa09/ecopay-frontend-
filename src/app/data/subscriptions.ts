@@ -93,7 +93,7 @@ export const subscriptionListings: SubscriptionListing[] = [
     holdDays: 30,
     startDate: '2026-05-18',
     accessMethod: 'profile_invite',
-    rules: 'Отдельный профиль, доступ к 4K, без передачи пароля вне EcoSplit.',
+    rules: 'Отдельный профиль, доступ к 4K, без передачи пароля вне EcoPay.',
     tone: '#E50914',
     logoUrl: 'https://cdn.simpleicons.org/netflix/E50914',
     paymentStatus: 'paid',

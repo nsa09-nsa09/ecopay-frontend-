@@ -370,7 +370,7 @@ function ReceiptPanel({ txn, onClose }: { txn: Txn; onClose: () => void }) {
           {/* Logo + status */}
           <div className="text-center mb-6">
             <div className="text-[28px] mb-1" style={{ color: 'var(--eco-primary)' }}>
-              EcoSplit
+              EcoPay
             </div>
             <StatusBadge status={txn.status} />
           </div>
@@ -473,7 +473,7 @@ function ReceiptPanel({ txn, onClose }: { txn: Txn; onClose: () => void }) {
           <div className="flex items-center justify-center gap-1.5">
             <Shield size={10} style={{ color: 'var(--eco-text-tertiary)' }} />
             <span className="text-[10px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-              EcoSplit does not store full card numbers. All payments processed by certified PSP.
+              EcoPay does not store full card numbers. All payments processed by certified PSP.
             </span>
           </div>
         </div>
@@ -1136,7 +1136,7 @@ function ReceiptSampleView() {
           <div className="relative px-6 pt-6 pb-10" style={{ background: 'var(--eco-primary)' }}>
             <div className="flex items-center justify-between mb-6">
               <span className="text-[22px]" style={{ color: 'var(--eco-text-on-primary)' }}>
-                EcoSplit
+                EcoPay
               </span>
               <span
                 className="text-[11px] px-2 py-0.5 rounded-full"
@@ -1299,7 +1299,7 @@ function ReceiptSampleView() {
             <div className="mt-4 flex items-center justify-center gap-1.5 text-center">
               <Shield size={10} style={{ color: 'var(--eco-text-tertiary)' }} />
               <span className="text-[10px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                {t('phReceiptGenerated')}: {new Date().toLocaleString('ru-KZ')} · EcoSplit does not
+                {t('phReceiptGenerated')}: {new Date().toLocaleString('ru-KZ')} · EcoPay does not
                 store full card data
               </span>
             </div>

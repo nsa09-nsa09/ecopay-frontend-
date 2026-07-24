@@ -23,6 +23,7 @@ import {
   type SiteAboutContent,
 } from '../../lib/api';
 import { formatDate } from '../../lib/datetime';
+import { appBrand } from '../../config/brand';
 
 type LocalizedField = 'title' | 'mission' | 'description';
 
@@ -85,11 +86,11 @@ export function AboutPage() {
     };
   }, []);
 
-  const heroTitle = pickLocalized(content, 'title', language)?.trim() || t('aboutEcoSplit');
+  const heroTitle = pickLocalized(content, 'title', language)?.trim() || t('aboutEcoPay');
   const missionText = pickLocalized(content, 'mission', language)?.trim() || t('missionText');
   const descriptionText =
     pickLocalized(content, 'description', language)?.trim() || t('howWeHelpText');
-  const contactEmail = content?.contactEmail?.trim() || t('contactEmail');
+  const contactEmail = content?.contactEmail?.trim() || appBrand.supportEmail;
   const contactPhone = content?.contactPhone?.trim() || t('contactPhoneNumber');
   const apexUrl = content?.apexLink?.trim() || 'https://apex-digital.kz';
   const apexIsHttp = apexUrl.startsWith('http');
@@ -268,10 +269,12 @@ export function AboutPage() {
             {t('contactGetInTouch')}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <ContactTile
-              icon={<Mail size={18} style={{ color: 'var(--eco-primary)' }} />}
-              text={contactEmail}
-            />
+            {contactEmail && (
+              <ContactTile
+                icon={<Mail size={18} style={{ color: 'var(--eco-primary)' }} />}
+                text={contactEmail}
+              />
+            )}
             <ContactTile
               icon={<Phone size={18} style={{ color: 'var(--eco-primary)' }} />}
               text={contactPhone}

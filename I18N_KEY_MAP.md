@@ -1,8 +1,8 @@
-# EcoSplit i18n Key Map
+# EcoPay i18n Key Map
 
 **Complete trilingual coverage (RU/KZ/EN) for the entire application.**
 
-This document serves as a reference for all internationalization keys available in the EcoSplit application. All user-facing strings should use these keys via the `useI18n()` hook and `t()` function.
+This document serves as a reference for all internationalization keys available in the EcoPay application. All user-facing strings should use these keys via the `useI18n()` hook and `t()` function.
 
 ## 📋 Usage Example
 
@@ -58,7 +58,7 @@ function MyComponent() {
 ### Authentication
 
 - `createAccount` - Создать аккаунт / Тіркелгі жасау / Create Account
-- `joinEcoSplit` - Присоединяйтесь к EcoSplit... / EcoSplit-ке қосылыңыз... / Join EcoSplit to share...
+- `joinEcoPay` - Присоединяйтесь к EcoPay... / EcoPay-ке қосылыңыз... / Join EcoPay to share...
 - `displayName` - Отображаемое имя / Көрсетілетін ат / Display Name
 - `email` - Эл. почта / Электрондық пошта / Email
 - `password` - Пароль / Құпия сөз / Password
@@ -68,7 +68,7 @@ function MyComponent() {
 - `exampleName` - например, Айдар / мысалы, Айдар / e.g. Aidar
 - `alreadyHaveAccount` - Уже есть аккаунт? / Тіркелгіңіз бар ма? / Already have an account?
 - `dontHaveAccount` - Нет аккаунта? / Тіркелгіңіз жоқ па? / Don't have an account?
-- `welcomeBack` - Добро пожаловать в EcoSplit / EcoSplit-ке қайта келіңіз / Welcome back to EcoSplit
+- `welcomeBack` - Добро пожаловать в EcoPay / EcoPay-ке қайта келіңіз / Welcome back to EcoPay
 - `rememberMe` - Запомнить меня / Мені есте сақта / Remember me
 - `forgotPassword` - Забыли пароль? / Құпия сөзді ұмыттыңыз ба? / Forgot password?
 - `resetPassword` - Сбросить пароль / Құпия сөзді қалпына келтіру / Reset Password

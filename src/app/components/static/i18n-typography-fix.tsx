@@ -365,7 +365,7 @@ export function I18nTypographyFixPage() {
                   16px
                 </span>
                 <span style={{ fontSize: '16px', color: 'var(--eco-text)', lineHeight: 1.6 }}>
-                  Body text — base reading size for EcoSplit
+                  Body text — base reading size for EcoPay
                 </span>
               </div>
               <div className="flex items-baseline gap-3">

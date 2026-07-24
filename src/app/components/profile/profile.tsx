@@ -155,9 +155,9 @@ export function ProfilePage() {
           <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
             {tx(
               language,
-              'Войдите, чтобы управлять аккаунтом EcoSplit.',
-              'EcoSplit тіркелгісін басқару үшін кіріңіз.',
-              'Sign in to manage your EcoSplit account.',
+              'Войдите, чтобы управлять аккаунтом EcoPay.',
+              'EcoPay тіркелгісін басқару үшін кіріңіз.',
+              'Sign in to manage your EcoPay account.',
             )}
           </p>
           <Link to="/login" style={{ textDecoration: 'none' }}>

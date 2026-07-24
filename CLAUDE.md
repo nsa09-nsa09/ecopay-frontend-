@@ -1,4 +1,4 @@
-# Ecopay — Developer Reference (MVP v1)
+# EcoPay — Developer Reference (MVP v1)
 
 ## Tech Stack
 

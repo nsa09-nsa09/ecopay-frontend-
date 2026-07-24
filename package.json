@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "build:release": "vite build && node tools/check-internal-artifacts.mjs",
+    "build:release": "vite build && node tools/check-internal-artifacts.mjs && npm run check:brand",
+    "check:brand": "node tools/check-legacy-brand.mjs",
     "check:internal-artifacts": "node tools/check-internal-artifacts.mjs",
     "dev": "vite",
     "format": "prettier --write .",

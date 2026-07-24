@@ -117,7 +117,7 @@ const reviews = [
 
 const faqs = [
   {
-    q: { ru: "Сколько стоит Ecopay?", kz: "Ecopay қанша тұрады?", en: "How much does Ecopay cost?" },
+    q: { ru: "Сколько стоит EcoPay?", kz: "EcoPay қанша тұрады?", en: "How much does EcoPay cost?" },
     a: {
       ru: "Создать группу подписки можно бесплатно. Участник видит итоговую цену до оплаты, включая сервисный сбор и защиту платежа.",
       kz: "Бөлмені тегін жасауға болады. Қатысушы төлемге дейін сервис алымы мен төлем қорғауын қоса алғанда толық бағаны көреді.",
@@ -128,8 +128,8 @@ const faqs = [
     q: { ru: "Можно ли делиться подписками легально?", kz: "Жазылымдарды заңды түрде бөлісуге бола ма?", en: "Is subscription sharing legal?" },
     a: {
       ru: "EcoPay рассчитан на семейные и групповые тарифы, где провайдер разрешает совместный доступ. Владелец подтверждает условия при создании группы.",
-      kz: "Ecopay провайдер ортақ пайдалануға рұқсат беретін отбасылық және топтық тарифтерге арналған. Иесі бөлме жасағанда шарттарды растайды.",
-      en: "Ecopay is designed for family and group plans where the provider allows shared access. Owners confirm provider terms when creating a room.",
+      kz: "EcoPay провайдер ортақ пайдалануға рұқсат беретін отбасылық және топтық тарифтерге арналған. Иесі бөлме жасағанда шарттарды растайды.",
+      en: "EcoPay is designed for family and group plans where the provider allows shared access. Owners confirm provider terms when creating a room.",
     },
   },
   {

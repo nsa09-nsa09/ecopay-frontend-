@@ -40,6 +40,7 @@ import {
   type RefundTransactionResponse,
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
+import { appBrand } from '../../config/brand';
 
 // ─── Localized text helper ───
 type L = Language;
@@ -77,9 +78,11 @@ function PaymentFooter({ lang }: { lang: L }) {
         <span className="flex items-center gap-1.5">
           <Phone size={11} /> +7 (727) 000-00-00
         </span>
-        <span className="flex items-center gap-1.5">
-          <Mail size={11} /> support@ecosplit.kz
-        </span>
+        {appBrand.supportEmail && (
+          <span className="flex items-center gap-1.5">
+            <Mail size={11} /> {appBrand.supportEmail}
+          </span>
+        )}
         <span className="flex items-center gap-1.5">
           <MapPin size={11} />{' '}
           {tx(lang, 'Алматы, Казахстан', 'Алматы, Қазақстан', 'Almaty, Kazakhstan')}
@@ -88,9 +91,9 @@ function PaymentFooter({ lang }: { lang: L }) {
       <div className="text-[11px] mt-3" style={{ color: 'var(--eco-text-tertiary)' }}>
         {tx(
           lang,
-          '© 2026 EcoSplit · ТОО «Apex Digital»',
-          '© 2026 EcoSplit · «Apex Digital» ЖШС',
-          '© 2026 EcoSplit · Apex Digital LLP',
+          '© 2026 EcoPay · ТОО «Apex Digital»',
+          '© 2026 EcoPay · «Apex Digital» ЖШС',
+          '© 2026 EcoPay · Apex Digital LLP',
         )}
       </div>
     </div>

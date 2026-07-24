@@ -156,7 +156,7 @@ const translations: Translations = {
     kz: 'EcoPay-ге қайта келіңіз',
     en: 'Welcome back to EcoPay',
   },
-  joinEcoSplit: {
+  joinEcoPay: {
     ru: 'Присоединяйтесь к EcoPay и начните экономить',
     kz: 'EcoPay-ге қосылып, үнемдеуді бастаңыз',
     en: 'Join EcoPay and start saving today',
@@ -288,7 +288,7 @@ const translations: Translations = {
   // ===== Digital Subscriptions =====
 
   // ===== Static Pages =====
-  aboutEcoSplit: { ru: 'Об EcoSplit', kz: 'EcoSplit туралы', en: 'About EcoSplit' },
+  aboutEcoPay: { ru: 'Об EcoPay', kz: 'EcoPay туралы', en: 'About EcoPay' },
   ourMission: { ru: 'Наша миссия', kz: 'Біздің миссия', en: 'Our Mission' },
   aboutSubtitle: {
     ru: 'Надёжная платформа Казахстана для совместных тарифов связи',
@@ -296,9 +296,9 @@ const translations: Translations = {
     en: "Kazakhstan's trusted platform for shared telecom plans",
   },
   missionText: {
-    ru: 'EcoSplit делает семейные тарифы операторов связи доступными для всех в Казахстане. Присоединяйтесь к общей комнате, разделяйте оплату и экономьте до 70% от ежемесячного счёта. Без контрактов и лишних хлопот.',
-    kz: 'EcoSplit Қазақстандағы отбасылық тарифтерді барлығына қолжетімді етеді. Ортақ бөлмеге қосылып, төлемді бөлісіп, ай сайынғы төлемнен 70%-ға дейін үнемдеңіз. Келісімшарттар мен қиындықтар жоқ.',
-    en: 'EcoSplit makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly bill. No contracts, no hassle.',
+    ru: 'EcoPay делает семейные тарифы операторов связи доступными для всех в Казахстане. Присоединяйтесь к общей комнате, разделяйте оплату и экономьте до 70% от ежемесячного счёта. Без контрактов и лишних хлопот.',
+    kz: 'EcoPay Қазақстандағы отбасылық тарифтерді барлығына қолжетімді етеді. Ортақ бөлмеге қосылып, төлемді бөлісіп, ай сайынғы төлемнен 70%-ға дейін үнемдеңіз. Келісімшарттар мен қиындықтар жоқ.',
+    en: 'EcoPay makes telecom family plans accessible to everyone in Kazakhstan. Join a shared room, split the cost, and save up to 70% on your monthly bill. No contracts, no hassle.',
   },
   trustPrivacyTitle: {
     ru: 'Доверие и приватность прежде всего',
@@ -366,14 +366,14 @@ const translations: Translations = {
     en: 'Communication through our support',
   },
   aboutQrTitle: {
-    ru: 'Откройте EcoSplit на телефоне',
-    kz: 'Телефоныңызда EcoSplit-ды ашыңыз',
-    en: 'Open EcoSplit on your phone',
+    ru: 'Откройте EcoPay на телефоне',
+    kz: 'Телефоныңызда EcoPay-ды ашыңыз',
+    en: 'Open EcoPay on your phone',
   },
   aboutQrCaption: {
-    ru: 'Отсканируйте, чтобы открыть EcoSplit на телефоне',
-    kz: 'Телефонда EcoSplit-ды ашу үшін сканерлеңіз',
-    en: 'Scan to open EcoSplit on your phone',
+    ru: 'Отсканируйте, чтобы открыть EcoPay на телефоне',
+    kz: 'Телефонда EcoPay-ды ашу үшін сканерлеңіз',
+    en: 'Scan to open EcoPay on your phone',
   },
   adminAboutApexLink: {
     ru: 'Ссылка Apex Digital',
@@ -834,9 +834,9 @@ const translations: Translations = {
     en: 'Direct contacts prohibited',
   },
   noDirectContactsDesc: {
-    ru: 'EcoSplit не раскрывает личные данные участников друг другу. Все взаимодействия происходят через платформу.',
-    kz: 'EcoSplit қатысушылардың жеке деректерін бір-біріне ашпайды. Барлық өзара әрекеттер платформа арқылы жүреді.',
-    en: "EcoSplit does not expose members' personal data to each other. All interactions happen through the platform.",
+    ru: 'EcoPay не раскрывает личные данные участников друг другу. Все взаимодействия происходят через платформу.',
+    kz: 'EcoPay қатысушылардың жеке деректерін бір-біріне ашпайды. Барлық өзара әрекеттер платформа арқылы жүреді.',
+    en: "EcoPay does not expose members' personal data to each other. All interactions happen through the platform.",
   },
   noDirectContactsRule1: {
     ru: 'Телефоны, email и реальные имена скрыты от других участников',
@@ -2438,9 +2438,9 @@ const translations: Translations = {
 
   // ===== Service reviews =====
   serviceReviewMyTitle: {
-    ru: 'Мой отзыв о EcoSplit',
-    kz: 'EcoSplit туралы пікірім',
-    en: 'My EcoSplit review',
+    ru: 'Мой отзыв о EcoPay',
+    kz: 'EcoPay туралы пікірім',
+    en: 'My EcoPay review',
   },
   serviceReviewLeavePrompt: {
     ru: 'Оставьте отзыв о сервисе',
@@ -2954,9 +2954,9 @@ const translations: Translations = {
   // ===== News (home + admin) =====
   newsSectionTitle: { ru: 'Новости', kz: 'Жаңалықтар', en: 'News' },
   newsSectionSubtitle: {
-    ru: 'Свежие обновления EcoSplit: релизы, изменения и истории сообщества.',
-    kz: 'EcoSplit жаңартулары: релиздер, өзгерістер және қауымдастық оқиғалары.',
-    en: 'Latest EcoSplit updates: releases, changes, and community stories.',
+    ru: 'Свежие обновления EcoPay: релизы, изменения и истории сообщества.',
+    kz: 'EcoPay жаңартулары: релиздер, өзгерістер және қауымдастық оқиғалары.',
+    en: 'Latest EcoPay updates: releases, changes, and community stories.',
   },
   newsEmptyTitle: { ru: 'Новостей пока нет', kz: 'Әзірге жаңалықтар жоқ', en: 'No news yet' },
   newsEmptyDesc: {
@@ -3194,9 +3194,9 @@ const translations: Translations = {
     en: 'Important: No User-to-User Chat',
   },
   howItWorksNoticeDesc: {
-    ru: 'EcoSplit не предоставляет прямого общения между пользователями. Все вопросы и координация решаются через официальные заявки в поддержку, которые проверяет наша команда. Это защищает вашу приватность и обеспечивает безопасность и фиксацию всех взаимодействий.',
-    kz: 'EcoSplit пайдаланушылар арасында тікелей хабарласуды қамтамасыз етпейді. Барлық сұрақтар мен үйлестіру біздің команда қарайтын ресми қолдау өтінімдері арқылы шешіледі. Бұл сіздің құпиялылығыңызды қорғайды әрі барлық әрекеттің қауіпсіз және құжатталған болуын қамтамасыз етеді.',
-    en: 'EcoSplit does not provide direct messaging between users. All communication, questions, and coordination happen through official support tickets monitored by our team. This protects your privacy and ensures all interactions are secure and documented.',
+    ru: 'EcoPay не предоставляет прямого общения между пользователями. Все вопросы и координация решаются через официальные заявки в поддержку, которые проверяет наша команда. Это защищает вашу приватность и обеспечивает безопасность и фиксацию всех взаимодействий.',
+    kz: 'EcoPay пайдаланушылар арасында тікелей хабарласуды қамтамасыз етпейді. Барлық сұрақтар мен үйлестіру біздің команда қарайтын ресми қолдау өтінімдері арқылы шешіледі. Бұл сіздің құпиялылығыңызды қорғайды әрі барлық әрекеттің қауіпсіз және құжатталған болуын қамтамасыз етеді.',
+    en: 'EcoPay does not provide direct messaging between users. All communication, questions, and coordination happen through official support tickets monitored by our team. This protects your privacy and ensures all interactions are secure and documented.',
   },
 
   howItWorksHelpTitle: { ru: 'Нужна помощь?', kz: 'Көмек керек пе?', en: 'Need Help?' },

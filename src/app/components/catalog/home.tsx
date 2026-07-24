@@ -356,9 +356,9 @@ const staticReviews: Array<{
 const faqs = [
   {
     q: {
-      ru: 'Сколько стоит EcoSplit?',
-      kz: 'EcoSplit қанша тұрады?',
-      en: 'How much does EcoSplit cost?',
+      ru: 'Сколько стоит EcoPay?',
+      kz: 'EcoPay қанша тұрады?',
+      en: 'How much does EcoPay cost?',
     },
     a: {
       ru: 'Создать группу подписки можно бесплатно. Участник видит итоговую цену до оплаты, включая сервисный сбор и защиту платежа.',
@@ -373,9 +373,9 @@ const faqs = [
       en: 'Is subscription sharing legal?',
     },
     a: {
-      ru: 'EcoSplit рассчитан на семейные и групповые тарифы, где провайдер разрешает совместный доступ. Владелец подтверждает условия при создании группы.',
-      kz: 'EcoSplit провайдер ортақ пайдалануға рұқсат беретін отбасылық және топтық тарифтерге арналған. Иесі бөлме жасағанда шарттарды растайды.',
-      en: 'EcoSplit is designed for family and group plans where the provider allows shared access. Owners confirm provider terms when creating a room.',
+      ru: 'EcoPay рассчитан на семейные и групповые тарифы, где провайдер разрешает совместный доступ. Владелец подтверждает условия при создании группы.',
+      kz: 'EcoPay провайдер ортақ пайдалануға рұқсат беретін отбасылық және топтық тарифтерге арналған. Иесі бөлме жасағанда шарттарды растайды.',
+      en: 'EcoPay is designed for family and group plans where the provider allows shared access. Owners confirm provider terms when creating a room.',
     },
   },
   {
@@ -1291,9 +1291,9 @@ export function HomePage() {
               >
                 {tx(
                   lang,
-                  'Деньги не переводятся владельцу сразу — EcoSplit удерживает средства 30 дней, а споры замораживают выплату.',
-                  'Ақша иесіне бірден аударылмайды — EcoSplit қаражатты 30 күн ұстайды, даулар төлемді тоқтатады.',
-                  'Funds are not released immediately — EcoSplit holds them for 30 days, and disputes freeze payouts.',
+                  'Деньги не переводятся владельцу сразу — EcoPay удерживает средства 30 дней, а споры замораживают выплату.',
+                  'Ақша иесіне бірден аударылмайды — EcoPay қаражатты 30 күн ұстайды, даулар төлемді тоқтатады.',
+                  'Funds are not released immediately — EcoPay holds them for 30 days, and disputes freeze payouts.',
                 )}
               </p>
             </div>
@@ -1555,9 +1555,9 @@ export function HomePage() {
               >
                 {tx(
                   lang,
-                  'Готовы экономить с EcoSplit?',
-                  'EcoSplit арқылы үнемдеуге дайынсыз ба?',
-                  'Ready to save with EcoSplit?',
+                  'Готовы экономить с EcoPay?',
+                  'EcoPay арқылы үнемдеуге дайынсыз ба?',
+                  'Ready to save with EcoPay?',
                 )}
               </div>
               <div className="text-[14px] mt-2" style={{ opacity: 0.85 }}>

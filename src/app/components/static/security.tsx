@@ -38,9 +38,9 @@ const blocks: SecurityBlock[] = [
       },
       {
         icon: Lock,
-        ru: "SSL/TLS-сертификат: весь трафик между вами и EcoSplit зашифрован.",
-        kz: "SSL/TLS сертификаты: сіз бен EcoSplit арасындағы барлық трафик шифрланған.",
-        en: "SSL/TLS certificate: all traffic between you and EcoSplit is encrypted.",
+        ru: "SSL/TLS-сертификат: весь трафик между вами и EcoPay зашифрован.",
+        kz: "SSL/TLS сертификаты: сіз бен EcoPay арасындағы барлық трафик шифрланған.",
+        en: "SSL/TLS certificate: all traffic between you and EcoPay is encrypted.",
       },
       {
         icon: Server,
@@ -112,7 +112,7 @@ export function SecurityPage() {
           style={{ background: "var(--eco-brand-50)", color: "var(--eco-brand-700)", fontWeight: 500 }}
         >
           <ShieldCheck size={15} />
-          {tx(lang, "Безопасность EcoSplit", "EcoSplit қауіпсіздігі", "EcoSplit security")}
+          {tx(lang, "Безопасность EcoPay", "EcoPay қауіпсіздігі", "EcoPay security")}
         </div>
         <h1 className="text-[32px] sm:text-[44px] leading-tight m-0" style={{ color: "var(--eco-text)", fontWeight: 700 }}>
           {tx(lang, "Ваши данные и деньги под защитой", "Деректеріңіз бен ақшаңыз қорғауда", "Your data and money are protected")}
@@ -120,9 +120,9 @@ export function SecurityPage() {
         <p className="text-[15px] sm:text-[16px] mt-4 mx-auto max-w-[560px]" style={{ color: "var(--eco-text-secondary)" }}>
           {tx(
             lang,
-            "EcoSplit построен так, чтобы совместные подписки были безопаснее любых договорённостей в чатах: шифрование, проверенные платёжные системы и защита каждой оплаты.",
-            "EcoSplit ортақ жазылымдарды чаттағы келісімдерден қауіпсіз етеді: шифрлау, тексерілген төлем жүйелері және әр төлемді қорғау.",
-            "EcoSplit is built to make shared subscriptions safer than any chat agreement: encryption, trusted payment providers, and protection for every payment.",
+            "EcoPay построен так, чтобы совместные подписки были безопаснее любых договорённостей в чатах: шифрование, проверенные платёжные системы и защита каждой оплаты.",
+            "EcoPay ортақ жазылымдарды чаттағы келісімдерден қауіпсіз етеді: шифрлау, тексерілген төлем жүйелері және әр төлемді қорғау.",
+            "EcoPay is built to make shared subscriptions safer than any chat agreement: encryption, trusted payment providers, and protection for every payment.",
           )}
         </p>
       </div>

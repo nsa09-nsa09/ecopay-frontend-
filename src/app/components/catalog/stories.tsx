@@ -4,11 +4,13 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useI18n } from '../i18n-provider';
 import { mockStories, type LocalizedText, type Story } from '../../data/stories';
+import { readWithLegacyMigration } from '../../lib/legacy-storage';
 
 type Lang = 'ru' | 'kz' | 'en';
 
 const SLIDE_DURATION_MS = 5000;
-const SEEN_STORAGE_KEY = 'ecosplit-stories-seen';
+const SEEN_STORAGE_KEY = 'ecopay.storiesSeen';
+const LEGACY_SEEN_STORAGE_KEYS = ['ecosplit-stories-seen'] as const;
 
 const pick = (value: LocalizedText, lang: Lang): string => value[lang] ?? value.ru;
 
@@ -16,7 +18,11 @@ const pick = (value: LocalizedText, lang: Lang): string => value[lang] ?? value.
 function loadSeen(): Set<string> {
   if (typeof window === 'undefined') return new Set();
   try {
-    const raw = window.localStorage.getItem(SEEN_STORAGE_KEY);
+    const raw = readWithLegacyMigration(
+      window.localStorage,
+      SEEN_STORAGE_KEY,
+      LEGACY_SEEN_STORAGE_KEYS,
+    );
     if (!raw) return new Set();
     const arr = JSON.parse(raw);
     return Array.isArray(arr)

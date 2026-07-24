@@ -1,8 +1,8 @@
-# EcoSplit: i18n & Typography Implementation Summary
+# EcoPay: i18n & Typography Implementation Summary
 
 ## Overview
 
-Successfully implemented comprehensive internationalization (i18n) and typography improvements for the EcoSplit web application, along with mobile navigation enhancements.
+Successfully implemented comprehensive internationalization (i18n) and typography improvements for the EcoPay web application, along with mobile navigation enhancements.
 
 ---
 
@@ -59,7 +59,7 @@ Expanded `/src/app/components/i18n-provider.tsx` with **250+ translation keys** 
    - product, company, howItWorks, pricing, faq, about, terms, privacy, forOwners, createTicket, ticketStatus, developedBy, copyright
 
 3. **Authentication** (22 keys)
-   - createAccount, joinEcoSplit, displayName, email, password, confirmPassword, enterPassword, yourEmail, exampleName, alreadyHaveAccount, dontHaveAccount, welcomeBack, rememberMe, forgotPassword, resetPassword, backToSignIn, checkYourEmail, resetLinkSent, resendEmail, enterEmailForReset, sendResetLink, show, hide
+   - createAccount, joinEcoPay, displayName, email, password, confirmPassword, enterPassword, yourEmail, exampleName, alreadyHaveAccount, dontHaveAccount, welcomeBack, rememberMe, forgotPassword, resetPassword, backToSignIn, checkYourEmail, resetLinkSent, resendEmail, enterEmailForReset, sendResetLink, show, hide
 
 4. **Home/Catalog** (22 keys)
    - heroTitle, heroTitleHighlight, heroSubtitle, mobileOperators, familyGroupPlansAvailable, plansRooms, noFamilyPlansAvailable, homeInternet, bundledInternetPlans, comingQ3, digitalSubscriptions, comingSoon, available, beta, videoStreaming, music, aiTools, premiumApps, viewAll
@@ -131,7 +131,7 @@ Expanded `/src/app/components/i18n-provider.tsx` with **250+ translation keys** 
 
 **Elements**:
 
-- **Logo**: EcoSplit branding (28px, bold)
+- **Logo**: EcoPay branding (28px, bold)
 - **Search Icon**: Compact search button (replaces full search bar)
 - **Language Chip**: Shows current language (Рус/Қаз/Eng)
 - **Hamburger Menu**: Opens slide-out navigation

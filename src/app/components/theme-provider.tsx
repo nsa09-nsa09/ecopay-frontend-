@@ -4,7 +4,7 @@ export type ThemeName = "eco-coral" | "eco-blue";
 
 const themes = {
   "eco-coral": {
-    // Primitives — EcoSplit orange
+    // Primitives — EcoPay orange
     "brand-50": "#FFF4EC",
     "brand-100": "#FFE6D4",
     "brand-200": "#FFCDA8",

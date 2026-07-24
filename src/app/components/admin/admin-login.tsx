@@ -251,7 +251,7 @@ export function AdminLoginPage() {
             <Input
               label={t('email')}
               type="email"
-              placeholder="admin@ecopay.kz"
+              placeholder="admin@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               error={fieldErrors.email}

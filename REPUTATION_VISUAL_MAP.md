@@ -1,4 +1,4 @@
-# EcoSplit: Reputation & Reviews — Visual Component Map
+# EcoPay: Reputation & Reviews — Visual Component Map
 
 ## Desktop Layout (1440px)
 
@@ -72,7 +72,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                           FOOTER                                │
 │  [Product] [Company] [Support]                                  │
-│  © 2026 EcoSplit · Almaty, Kazakhstan                           │
+│  © 2026 EcoPay · Almaty, Kazakhstan                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -161,7 +161,7 @@
 ┌──────────────────────────┐
 │        FOOTER            │
 │ [Product] [Company]      │
-│ © 2026 EcoSplit          │
+│ © 2026 EcoPay          │
 └──────────────────────────┘
 ```
 
