@@ -140,7 +140,7 @@ export function NewsDetailPage() {
 
   useEffect(() => {
     if (!title) return;
-    document.title = `${title} | EcoSplit`;
+    document.title = `${title} | EcoPay`;
   }, [title]);
 
   if (loading) {
