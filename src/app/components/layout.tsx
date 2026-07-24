@@ -3,15 +3,17 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { Button, LanguageSwitcher, WaveDivider } from './ds-primitives';
 import { BrandLogo } from './brand-logo';
 import { PaymentLogosRow } from './payment-logos';
-import { Menu, X, Search } from 'lucide-react';
+import { Menu, X, Search, Wallet } from 'lucide-react';
 import { useI18n } from './i18n-provider';
 import { useAuth } from './auth/auth-provider';
 import {
   ApiError,
+  getPayoutBalanceRequest,
   getSiteAboutRequest,
   searchCatalog,
   trackVisitRequest,
   type CatalogSearchHit,
+  type PayoutBalanceDto,
 } from '../lib/api';
 import { appBrand } from '../config/brand';
 
@@ -248,12 +250,13 @@ function CatalogSearchBox({ variant, onPicked, autoFocus }: CatalogSearchBoxProp
 
 export function AppLayout() {
   const { language, setLanguage, t } = useI18n();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isReady, authorizedRequest, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileMenu, setMobileMenu] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [apexLink, setApexLink] = useState<string>(APEX_DEFAULT_LINK);
+  const [heldBalance, setHeldBalance] = useState<PayoutBalanceDto | null>(null);
   const location = useLocation();
   const lastTrackedPath = useRef<string | null>(null);
 
@@ -277,6 +280,27 @@ export function AppLayout() {
   }, []);
 
   const apexIsExternal = /^https?:\/\//i.test(apexLink);
+
+  // Keep a small balance summary in the global header so owners can see their
+  // currently held money and jump directly to the payout details page.
+  useEffect(() => {
+    if (!isReady || !isAuthenticated) {
+      setHeldBalance(null);
+      return;
+    }
+    let cancelled = false;
+    authorizedRequest((token) => getPayoutBalanceRequest(token))
+      .then((balance) => {
+        if (!cancelled) setHeldBalance(balance);
+      })
+      .catch(() => {
+        // The header is informational; a balance API hiccup must not block navigation.
+        if (!cancelled) setHeldBalance(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authorizedRequest, isAuthenticated, isReady]);
 
   // Fire-and-forget analytics ping for every route change. The backend
   // sets a cookie to dedupe unique guests; we just keep the client side
@@ -308,6 +332,17 @@ export function AppLayout() {
     .map((part) => part[0]?.toUpperCase())
     .join('')
     .slice(0, 2);
+
+  const heldAmount = heldBalance
+    ? `${heldBalance.currency === 'KZT' ? 'KZT ' : `${heldBalance.currency} `}${Number(
+        heldBalance.heldAmount,
+      ).toLocaleString(language === 'ru' ? 'ru-RU' : language === 'kz' ? 'kk-KZ' : 'en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
+    : '—';
+  const heldLabel =
+    language === 'ru' ? 'На удержании' : language === 'kz' ? 'Ұсталымда' : 'On hold';
 
   // /rooms is gated by auth — hide the entry for guests so they don't land on
   // the empty-state screen by accident. /browse is decommissioned; room
@@ -396,6 +431,26 @@ export function AppLayout() {
             >
               {languageLabels[language]}
             </div>
+
+            {isAuthenticated && !isAuthRoute && (
+              <Link
+                to="/payment/payout"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] whitespace-nowrap transition-colors hover:opacity-80"
+                style={{
+                  background: 'var(--eco-surface)',
+                  border: '1px solid var(--eco-border)',
+                  color: 'var(--eco-text-secondary)',
+                  textDecoration: 'none',
+                }}
+                aria-label={`${heldLabel}: ${heldAmount}`}
+              >
+                <Wallet size={14} style={{ color: 'var(--eco-primary)' }} />
+                <span>{heldLabel}:</span>
+                <span className="font-medium" style={{ color: 'var(--eco-text)' }}>
+                  {heldAmount}
+                </span>
+              </Link>
+            )}
 
             {isAuthenticated && !isAuthRoute ? (
               <div className="relative hidden md:block">
@@ -537,6 +592,20 @@ export function AppLayout() {
 
             {isAuthenticated && !isAuthRoute ? (
               <div className="border-t pt-3" style={{ borderColor: 'var(--eco-border)' }}>
+                <Link
+                  to="/payment/payout"
+                  onClick={() => setMobileMenu(false)}
+                  className="flex items-center justify-between px-3 py-2 rounded-lg text-[14px]"
+                  style={{ color: 'var(--eco-text-secondary)', textDecoration: 'none' }}
+                >
+                  <span className="flex items-center gap-2">
+                    <Wallet size={15} style={{ color: 'var(--eco-primary)' }} />
+                    {heldLabel}
+                  </span>
+                  <span className="font-medium" style={{ color: 'var(--eco-text)' }}>
+                    {heldAmount}
+                  </span>
+                </Link>
                 <Link
                   to="/profile"
                   onClick={() => setMobileMenu(false)}

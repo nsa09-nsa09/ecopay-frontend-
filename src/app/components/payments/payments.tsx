@@ -33,8 +33,10 @@ import {
   deletePayoutMethodRequest,
   getMyPayoutsRequest,
   getMyRefundsRequest,
+  getPayoutBalanceRequest,
   getPayoutMethodsRequest,
   registerPayoutMethodRequest,
+  type PayoutBalanceDto,
   type PayoutDto,
   type PayoutMethodDto,
   type RefundTransactionResponse,
@@ -1215,6 +1217,96 @@ function PayoutMethodsCard({
   );
 }
 
+function HeldBalanceCard({
+  balance,
+  loading,
+  error,
+  l,
+}: {
+  balance: PayoutBalanceDto | null;
+  loading: boolean;
+  error: string | null;
+  l: L;
+}) {
+  if (loading) {
+    return (
+      <Card className="mb-6 flex flex-col gap-3">
+        <Skeleton width="35%" height={14} />
+        <Skeleton width="55%" height={30} />
+        <Skeleton width="70%" height={12} />
+      </Card>
+    );
+  }
+
+  if (error || !balance) {
+    return (
+      <Card className="mb-6">
+        <div
+          className="flex items-center gap-2 text-[13px]"
+          style={{ color: 'var(--eco-negative)' }}
+        >
+          <AlertCircle size={15} />
+          {error ??
+            tx(
+              l,
+              'Не удалось загрузить удерживаемый баланс.',
+              'Ұсталған теңгерімді жүктеу мүмкін болмады.',
+              'Unable to load the held balance.',
+            )}
+        </div>
+      </Card>
+    );
+  }
+
+  const amount = Number(balance.heldAmount).toLocaleString(
+    l === 'ru' ? 'ru-RU' : l === 'kz' ? 'kk-KZ' : 'en-US',
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+  );
+  const currencyPrefix = balance.currency === 'KZT' ? '₸' : `${balance.currency} `;
+
+  return (
+    <Card className="mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Shield size={16} style={{ color: 'var(--eco-primary)' }} />
+            <span className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+              {tx(l, 'Сейчас удерживается', 'Қазір ұсталымда', 'Currently held')}
+            </span>
+          </div>
+          <div className="text-[30px] leading-tight" style={{ color: 'var(--eco-primary)' }}>
+            {currencyPrefix}
+            {amount}
+          </div>
+        </div>
+        <Badge variant={balance.heldPayoutCount > 0 ? 'info' : 'default'}>
+          {balance.heldPayoutCount} {tx(l, 'выплат в hold', 'төлем ұсталымда', 'payouts on hold')}
+        </Badge>
+      </div>
+
+      <p className="text-[12px] mt-3" style={{ color: 'var(--eco-text-tertiary)' }}>
+        {tx(
+          l,
+          'Сумма успешных платежей участников, предназначенная вам и всё ещё находящаяся в периоде hold. Возвраты и отменённые выплаты не учитываются.',
+          'Сізге арналған және hold кезеңіндегі қатысушылардың сәтті төлемдерінің сомасы. Қайтарымдар мен жойылған төлемдер есептелмейді.',
+          'Successful member payments owed to you that are still inside the hold period. Refunded and reversed payouts are excluded.',
+        )}
+      </p>
+
+      {balance.nextReleaseAt && (
+        <div
+          className="flex items-center gap-2 mt-3 pt-3 text-[12px] border-t"
+          style={{ color: 'var(--eco-text-secondary)', borderColor: 'var(--eco-border)' }}
+        >
+          <Timer size={14} />
+          {tx(l, 'Ближайшее освобождение:', 'Ең жақын босату:', 'Next release:')}{' '}
+          {formatDateTime(balance.nextReleaseAt, l)}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export function OwnerPayoutPage() {
   const { language } = useI18n();
   const l = language as L;
@@ -1222,16 +1314,20 @@ export function OwnerPayoutPage() {
 
   const [payouts, setPayouts] = useState<PayoutDto[]>([]);
   const [methods, setMethods] = useState<PayoutMethodDto[]>([]);
+  const [balance, setBalance] = useState<PayoutBalanceDto | null>(null);
   const [loadingPayouts, setLoadingPayouts] = useState(true);
   const [loadingMethods, setLoadingMethods] = useState(true);
+  const [loadingBalance, setLoadingBalance] = useState(true);
   const [payoutsError, setPayoutsError] = useState<string | null>(null);
   const [methodsError, setMethodsError] = useState<string | null>(null);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isReady) return;
     if (!isAuthenticated) {
       setLoadingPayouts(false);
       setLoadingMethods(false);
+      setLoadingBalance(false);
       return;
     }
     let cancelled = false;
@@ -1258,6 +1354,18 @@ export function OwnerPayoutPage() {
       })
       .finally(() => {
         if (!cancelled) setLoadingMethods(false);
+      });
+
+    authorizedRequest((token) => getPayoutBalanceRequest(token))
+      .then((data) => {
+        if (!cancelled) setBalance(data);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setBalanceError(err instanceof ApiError ? err.message : 'Unable to load held balance.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingBalance(false);
       });
 
     return () => {
@@ -1346,6 +1454,8 @@ export function OwnerPayoutPage() {
         </Card>
       ) : (
         <>
+          <HeldBalanceCard balance={balance} loading={loadingBalance} error={balanceError} l={l} />
+
           <PayoutMethodsCard
             methods={methods}
             loading={loadingMethods}

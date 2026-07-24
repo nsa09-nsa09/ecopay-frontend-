@@ -1977,6 +1977,14 @@ export interface PayoutDto {
   processedAt: string | null;
 }
 
+export interface PayoutBalanceDto {
+  heldAmount: number;
+  currency: string;
+  heldPayoutCount: number;
+  nextReleaseAt: string | null;
+  calculatedAt: string;
+}
+
 export interface PayoutMethodDto {
   id: number;
   providerName: string;
@@ -1988,6 +1996,10 @@ export interface PayoutMethodDto {
 
 export function getMyPayoutsRequest(accessToken: string) {
   return requestJson<PayoutDto[]>('/payouts/me', {}, accessToken);
+}
+
+export function getPayoutBalanceRequest(accessToken: string) {
+  return requestJson<PayoutBalanceDto>('/payouts/balance', {}, accessToken);
 }
 
 export function getPayoutRequest(payoutId: number, accessToken: string) {

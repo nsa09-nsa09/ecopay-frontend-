@@ -247,6 +247,29 @@ export function ProfilePage() {
           </Card>
 
           <Card className="flex flex-col gap-3">
+            <h3
+              className="flex items-center gap-2 text-[16px]"
+              style={{ color: 'var(--eco-text)' }}
+            >
+              <Wallet size={16} />
+              {tx(language, 'Выплаты владельцу', 'Иеге төлемдер', 'Owner payouts')}
+            </h3>
+            <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+              {tx(
+                language,
+                'Просматривайте удерживаемые средства и управляйте выплатами.',
+                'Ұсталымдағы қаражатты көріп, төлемдерді басқарыңыз.',
+                'View money currently on hold and manage your payouts.',
+              )}
+            </p>
+            <Link to="/payment/payout" style={{ textDecoration: 'none' }}>
+              <Button variant="ghost" size="sm" className="self-start">
+                {tx(language, 'Открыть выплаты', 'Төлемдерді ашу', 'Open payouts')}
+              </Button>
+            </Link>
+          </Card>
+
+          <Card className="flex flex-col gap-3">
             <div className="flex items-center justify-between text-[13px]">
               <span style={{ color: 'var(--eco-text-secondary)' }}>
                 {tx(language, 'Роль', 'Рөл', 'Role')}
