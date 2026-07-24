@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useState } from 'react';
-import { Newspaper } from 'lucide-react';
+import { Link } from 'react-router';
+import { ArrowRight, Newspaper } from 'lucide-react';
 import { Card, Skeleton } from '../ds-primitives';
 import { getNews, type NewsDto } from '../../lib/api';
 import { formatDate } from '../../lib/datetime';
@@ -19,17 +20,25 @@ interface NewsSectionProps {
   mode?: 'home' | 'page';
 }
 
-function pickLocalized(item: NewsDto, language: L) {
+const readMoreLabel: Record<L, string> = {
+  ru: 'Читать новость',
+  kz: 'Жаңалықты оқу',
+  en: 'Read story',
+};
+
+export function pickLocalizedNews(item: NewsDto, language: L) {
   const titleKey = language === 'kz' ? 'titleKz' : language === 'en' ? 'titleEn' : 'titleRu';
   const bodyKey = language === 'kz' ? 'bodyKz' : language === 'en' ? 'bodyEn' : 'bodyRu';
+  const localizedTitle = item[titleKey as keyof NewsDto];
+  const localizedBody = item[bodyKey as keyof NewsDto];
   const title =
-    ((item as Record<string, unknown>)[titleKey] as string | null | undefined) ||
+    (typeof localizedTitle === 'string' ? localizedTitle : null) ||
     item.titleRu ||
     item.titleEn ||
     item.titleKz ||
     '';
   const body =
-    ((item as Record<string, unknown>)[bodyKey] as string | null | undefined) ||
+    (typeof localizedBody === 'string' ? localizedBody : null) ||
     item.bodyRu ||
     item.bodyEn ||
     item.bodyKz ||
@@ -44,38 +53,51 @@ function snippet(text: string, maxChars = 160): string {
 }
 
 const NewsCard = memo(function NewsCard({ item, language }: { item: NewsDto; language: L }) {
-  const { title, body } = pickLocalized(item, language);
+  const { title, body } = pickLocalizedNews(item, language);
   return (
-    <Card className="flex flex-col gap-3 h-full overflow-hidden">
-      {item.imageUrl ? (
-        <img
-          src={item.imageUrl}
-          alt=""
-          width={480}
-          height={260}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-[180px] object-cover rounded-lg"
-          style={{ background: 'var(--eco-surface)' }}
-        />
-      ) : (
-        <div
-          className="w-full h-[180px] rounded-lg flex items-center justify-center"
-          style={{ background: 'var(--eco-surface)' }}
-        >
-          <Newspaper size={24} style={{ color: 'var(--eco-text-tertiary)' }} />
+    <Link
+      to={`/news/${item.id}`}
+      className="block h-full no-underline rounded-xl group"
+      aria-label={title || readMoreLabel[language]}
+    >
+      <Card className="flex flex-col gap-3 h-full overflow-hidden eco-lift">
+        {item.imageUrl ? (
+          <img
+            src={item.imageUrl}
+            alt=""
+            width={480}
+            height={260}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-[180px] object-cover rounded-lg"
+            style={{ background: 'var(--eco-surface)' }}
+          />
+        ) : (
+          <div
+            className="w-full h-[180px] rounded-lg flex items-center justify-center"
+            style={{ background: 'var(--eco-surface)' }}
+          >
+            <Newspaper size={24} style={{ color: 'var(--eco-text-tertiary)' }} />
+          </div>
+        )}
+        <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+          {formatDate(item.publishedAt, language)}
         </div>
-      )}
-      <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-        {formatDate(item.publishedAt, language)}
-      </div>
-      <div className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
-        {title || '—'}
-      </div>
-      <div className="text-[13px] mt-auto" style={{ color: 'var(--eco-text-secondary)' }}>
-        {snippet(body)}
-      </div>
-    </Card>
+        <div className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
+          {title || '—'}
+        </div>
+        <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+          {snippet(body)}
+        </div>
+        <div
+          className="mt-auto inline-flex items-center gap-1 text-[13px] transition-colors"
+          style={{ color: 'var(--eco-primary)' }}
+        >
+          {readMoreLabel[language]}
+          <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+        </div>
+      </Card>
+    </Link>
   );
 });
 
