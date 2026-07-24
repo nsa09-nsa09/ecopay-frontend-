@@ -26,14 +26,14 @@ import {
   Star,
   type LucideIcon,
 } from 'lucide-react';
-import { Badge, Card, Select, Skeleton, WaveDivider } from '../ds-primitives';
+import { Badge, Button, Card, Select, Skeleton, WaveDivider } from '../ds-primitives';
 import { useI18n } from '../i18n-provider';
 import { useAuth } from '../auth/auth-provider';
 import { ServiceLogo } from './service-logo';
-import { featuredServices, type FeaturedService } from '../../data/featured-services';
 import { formatNumber } from '../../lib/datetime';
 import {
   ApiError,
+  clearServicesCache,
   getServices,
   getCategories,
   getFeaturedServiceReviews,
@@ -104,12 +104,13 @@ function Reveal({
   );
 }
 
-// ─── Unified catalog card model (live API + curated fallback) ───
+// ─── Catalog card model (live API) ───
 type DisplayService = {
   key: string;
-  serviceId?: number; // present only for live API services (enables room match)
+  serviceId: number;
   name: string;
   categoryName: string;
+  /** Kept for the presentational card; live catalog does not synthesize these values. */
   description?: string;
   price: number | null;
   currency?: string | null;
@@ -117,13 +118,15 @@ type DisplayService = {
   fullPrice?: number;
   tariffs?: number;
   logoUrl?: string | null;
-  /** Absent for the curated fallback entries, which have no backing service row. */
   accessType?: ServiceAccessType | null;
 };
 
-// Prefer the admin-uploaded service cover; fall back to the brand SVG mark.
+// Prefer the logo uploaded in the admin catalog. If an old/deleted image URL
+// cannot be loaded, preserve a useful brand/monogram fallback instead of a
+// blank square.
 function CardLogo({ url, name, size = 52 }: { url?: string | null; name: string; size?: number }) {
-  if (url) {
+  const [imageFailed, setImageFailed] = useState(false);
+  if (url && !imageFailed) {
     return (
       <img
         src={url}
@@ -140,49 +143,24 @@ function CardLogo({ url, name, size = 52 }: { url?: string | null; name: string;
           background: 'var(--eco-surface)',
           border: '1px solid var(--eco-border)',
         }}
+        onError={() => setImageFailed(true)}
       />
     );
   }
   return <ServiceLogo name={name} size={size} className="shrink-0" />;
 }
 
-function findFeaturedMatch(name: string): FeaturedService | undefined {
-  const n = name.toLowerCase();
-  return featuredServices.find((f) => {
-    const fn = f.name.toLowerCase();
-    return n.includes(fn) || fn.includes(n);
-  });
-}
-
-function fromApi(service: ServiceDto, lang: L): DisplayService {
-  const match = findFeaturedMatch(service.name);
+function fromApi(service: ServiceDto): DisplayService {
   return {
     key: `api-${service.id}`,
     serviceId: service.id,
     logoUrl: service.logoUrl,
     name: service.name,
     categoryName: service.categoryName,
-    description: match
-      ? tx(lang, match.description.ru, match.description.kz, match.description.en)
-      : undefined,
-    price: service.minPricePerMember ?? match?.memberPrice ?? null,
+    price: service.minPricePerMember ?? null,
     currency: service.currency,
-    discount: match?.discount,
-    fullPrice: match?.fullPrice,
     tariffs: service.tariffCount,
     accessType: service.accessType,
-  };
-}
-
-function fromFeatured(service: FeaturedService, lang: L): DisplayService {
-  return {
-    key: `local-${service.name}`,
-    name: service.name,
-    categoryName: tx(lang, service.category.ru, service.category.kz, service.category.en),
-    description: tx(lang, service.description.ru, service.description.kz, service.description.en),
-    price: service.memberPrice,
-    discount: service.discount,
-    fullPrice: service.fullPrice,
   };
 }
 
@@ -415,8 +393,7 @@ const faqs = [
 ];
 
 // ─── Catalog card ───
-// Clicking picks the service: live services go through room-match (dev's
-// minimal-clicks flow), curated fallbacks route to the create-room flow.
+// Clicking a service first checks the backend for an open matching room.
 function CatalogServiceCard({
   service,
   language,
@@ -430,12 +407,14 @@ function CatalogServiceCard({
   onPick: (service: DisplayService) => void;
   pending: boolean;
 }) {
+  const hasTariffs = (service.tariffs ?? 0) > 0 && service.price != null;
+
   return (
     <Reveal delay={Math.min(index, 8) * 100} className="h-full">
       <button
         type="button"
         onClick={() => onPick(service)}
-        disabled={pending}
+        disabled={pending || !hasTariffs}
         className="block w-full h-full text-left p-0 disabled:opacity-60"
         style={{ background: 'transparent', border: 'none' }}
       >
@@ -448,7 +427,7 @@ function CatalogServiceCard({
               −{service.discount}%
             </span>
           )}
-          <div className="flex items-start gap-3 pr-14">
+          <div className="flex items-start gap-3">
             <CardLogo url={service.logoUrl} name={service.name} size={52} />
             <div className="min-w-0">
               <div
@@ -499,10 +478,12 @@ function CatalogServiceCard({
                 className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-[13px] transition-colors"
                 style={{ background: 'var(--eco-primary)', color: '#fff', fontWeight: 600 }}
               >
-                {pending
+                {!hasTariffs
+                  ? tx(language, 'Нет тарифов', 'Тарифтар жоқ', 'No plans')
+                  : pending
                   ? tx(language, 'Подбираем комнату…', 'Бөлме іздеудеміз…', 'Matching a room…')
                   : tx(language, 'Присоединиться', 'Қосылу', 'Join')}
-                {!pending && <ArrowRight size={14} />}
+                {hasTariffs && !pending && <ArrowRight size={14} />}
               </span>
               {service.tariffs != null && service.tariffs > 0 && (
                 <Badge variant="info">{service.tariffs}</Badge>
@@ -627,10 +608,12 @@ function CategoriesCarousel({
 // so this carousel intentionally ignores prefers-reduced-motion.
 function PopularCarousel({
   language,
-  onPickName,
+  services,
+  onPick,
 }: {
   language: L;
-  onPickName: (name: string) => void;
+  services: DisplayService[];
+  onPick: (service: DisplayService) => void;
 }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'start' }, [
     AutoScroll({
@@ -647,16 +630,16 @@ function PopularCarousel({
       <div className="overflow-hidden" ref={emblaRef}>
         {/* spacing via slide padding (not flex gap): embla's loop clones miscalculate with gap */}
         <div className="flex -ml-4">
-          {featuredServices.slice(0, 10).map((service) => (
+          {services.slice(0, 10).map((service) => (
             <button
-              key={service.name}
+              key={service.key}
               type="button"
-              onClick={() => onPickName(service.name)}
+              onClick={() => onPick(service)}
               style={{ background: 'transparent', border: 'none' }}
               className="shrink-0 min-w-0 pl-4 basis-[256px] cursor-pointer text-left p-0"
             >
               <Card className="eco-lift flex flex-col items-center text-center gap-3 py-6">
-                <ServiceLogo name={service.name} size={56} />
+                <CardLogo url={service.logoUrl} name={service.name} size={56} />
                 <div className="text-[14px]" style={{ color: 'var(--eco-text)', fontWeight: 600 }}>
                   {service.name}
                 </div>
@@ -665,7 +648,7 @@ function PopularCarousel({
                     className="text-[18px]"
                     style={{ color: 'var(--eco-primary)', fontWeight: 700 }}
                   >
-                    {formatPrice(service.memberPrice)}
+                    {formatPrice(service.price, service.currency)}
                   </span>
                   <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                     {tx(language, '/мес', '/ай', '/mo')}
@@ -679,7 +662,7 @@ function PopularCarousel({
                     fontWeight: 600,
                   }}
                 >
-                  {tx(
+                  {service.discount == null ? tx(language, 'Тарифы', 'Тарифтар', 'Plans') : tx(
                     language,
                     `экономия ${service.discount}%`,
                     `${service.discount}% үнем`,
@@ -750,6 +733,8 @@ export function HomePage() {
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [services, setServices] = useState<ServiceDto[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
+  const [catalogLoadFailed, setCatalogLoadFailed] = useState(false);
+  const [catalogRefresh, setCatalogRefresh] = useState(0);
 
   const [matchingKey, setMatchingKey] = useState<string | null>(null);
   const [matchError, setMatchError] = useState<string | null>(null);
@@ -776,11 +761,17 @@ export function HomePage() {
       setServicesLoading(true);
       void getServices(activeCategoryId === 'all' ? undefined : activeCategoryId, sort)
         .then((data) => {
-          if (!cancelled) setServices(data);
+          if (!cancelled) {
+            setServices(data);
+            setCatalogLoadFailed(false);
+          }
         })
         .catch(() => {
-          // Silent — the curated fallback below keeps the catalog populated.
-          if (!cancelled) setServices([]);
+          // The page shows an explicit retry state instead of stale local data.
+          if (!cancelled) {
+            setServices([]);
+            setCatalogLoadFailed(true);
+          }
         })
         .finally(() => {
           if (!cancelled) setServicesLoading(false);
@@ -790,7 +781,7 @@ export function HomePage() {
       cancelled = true;
       window.clearTimeout(handle);
     };
-  }, [activeCategoryId, sort]);
+  }, [activeCategoryId, sort, catalogRefresh]);
 
   useEffect(() => {
     let cancelled = false;
@@ -817,22 +808,10 @@ export function HomePage() {
     [t],
   );
 
-  // Live API services first, then curated services not already present, so the
-  // catalog always shows at least 12 cards even on an empty backend.
+  // The catalog has a single source of truth: active services returned by the
+  // backend. Local showcase cards and local prices are never mixed in.
   const displayServices = useMemo<DisplayService[]>(() => {
-    const fromApiList = services.map((s) => fromApi(s, lang));
-    let combined = fromApiList;
-    if (activeCategoryId === 'all') {
-      const matched = new Set(
-        fromApiList
-          .map((s) => findFeaturedMatch(s.name)?.name)
-          .filter((n): n is string => Boolean(n)),
-      );
-      const extras = featuredServices
-        .filter((f) => !matched.has(f.name))
-        .map((f) => fromFeatured(f, lang));
-      combined = [...fromApiList, ...extras];
-    }
+    const combined = services.map(fromApi);
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return combined;
     return combined.filter(
@@ -840,10 +819,15 @@ export function HomePage() {
         s.name.toLowerCase().includes(normalizedQuery) ||
         s.categoryName.toLowerCase().includes(normalizedQuery),
     );
-  }, [services, activeCategoryId, query, lang]);
+  }, [services, query]);
 
   const scrollToMarketplace = () => {
     document.getElementById('marketplace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const retryCatalog = () => {
+    clearServicesCache();
+    setCatalogRefresh((version) => version + 1);
   };
 
   const handleCategoryTile = (match: string[], label: string) => {
@@ -860,17 +844,12 @@ export function HomePage() {
     scrollToMarketplace();
   };
 
-  // Dev's "minimal clicks" flow: picking a live service matches an open room
-  // (JOIN → room page) or falls back to the create-room flow. Curated
-  // fallback services have no id, so they go straight to create-room.
+  // A selected service matches an open room first, then opens room creation
+  // with the same backend service preselected when no room is available.
   const handlePickService = async (service: DisplayService) => {
     setMatchError(null);
     if (!isAuthenticated) {
       navigate(`/login?redirect=${encodeURIComponent('/')}`);
-      return;
-    }
-    if (service.serviceId == null) {
-      navigate('/rooms/create', { state: { reason: 'no-free-rooms' } });
       return;
     }
     const serviceId = service.serviceId;
@@ -892,23 +871,6 @@ export function HomePage() {
       }
     } finally {
       setMatchingKey(null);
-    }
-  };
-
-  // Popular-services carousel click: match by name against live services,
-  // otherwise filter the catalog to that name.
-  const handlePickName = (name: string) => {
-    const live = services.find((s) => {
-      const n = s.name.toLowerCase();
-      const f = name.toLowerCase();
-      return n.includes(f) || f.includes(n);
-    });
-    if (live) {
-      void handlePickService(fromApi(live, lang));
-    } else {
-      setActiveCategoryId('all');
-      setQuery(name);
-      scrollToMarketplace();
     }
   };
 
@@ -1161,6 +1123,17 @@ export function HomePage() {
               <MarketplaceSkeletonCard key={i} />
             ))}
           </div>
+        ) : catalogLoadFailed ? (
+          <Card className="py-8 text-center">
+            <div className="flex flex-col items-center gap-3">
+              <span className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
+                {t('marketplaceLoadFailed')}
+              </span>
+              <Button variant="secondary" size="sm" onClick={retryCatalog}>
+                {t('retry')}
+              </Button>
+            </div>
+          </Card>
         ) : displayServices.length === 0 ? (
           <Card
             className="text-center py-10 text-[13px]"
@@ -1185,6 +1158,7 @@ export function HomePage() {
       </section>
 
       {/* ─── Popular services carousel (full width, autoplay) ─── */}
+      {displayServices.length > 0 && (
       <section
         style={{ background: 'var(--eco-surface)' }}
         className="py-12 sm:py-16 overflow-hidden"
@@ -1216,10 +1190,11 @@ export function HomePage() {
         </div>
         <Reveal delay={100}>
           <div className="px-4 sm:px-10">
-            <PopularCarousel language={lang} onPickName={handlePickName} />
+            <PopularCarousel language={lang} services={displayServices} onPick={handlePickService} />
           </div>
         </Reveal>
       </section>
+      )}
 
       {/* ─── How it works ─── */}
       <section className="max-w-[1200px] mx-auto px-4 sm:px-6 py-12 sm:py-16">
