@@ -2688,6 +2688,122 @@ export function adminUploadNewsImage(id: number, file: File, accessToken: string
   );
 }
 
+// ============================================================
+// Stories / Highlights module ("Актуальное")
+// ============================================================
+
+export type StoryStatus = 'PUBLISHED' | 'DRAFT' | 'ARCHIVED';
+
+export interface StoryDto {
+  id: number;
+  titleKz?: string | null;
+  titleRu?: string | null;
+  titleEn?: string | null;
+  headingKz?: string | null;
+  headingRu?: string | null;
+  headingEn?: string | null;
+  bodyKz?: string | null;
+  bodyRu?: string | null;
+  bodyEn?: string | null;
+  ctaLabelKz?: string | null;
+  ctaLabelRu?: string | null;
+  ctaLabelEn?: string | null;
+  ctaUrl?: string | null;
+  emoji?: string | null;
+  gradient?: string | null;
+  imageUrl?: string | null;
+  status?: StoryStatus;
+  publishedAt?: string | null;
+  sortOrder?: number;
+}
+
+export interface AdminStoryDto extends StoryDto {
+  status: StoryStatus;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertStoryPayload {
+  titleKz?: string | null;
+  titleRu?: string | null;
+  titleEn?: string | null;
+  headingKz?: string | null;
+  headingRu?: string | null;
+  headingEn?: string | null;
+  bodyKz?: string | null;
+  bodyRu?: string | null;
+  bodyEn?: string | null;
+  ctaLabelKz?: string | null;
+  ctaLabelRu?: string | null;
+  ctaLabelEn?: string | null;
+  ctaUrl?: string | null;
+  emoji?: string | null;
+  gradient?: string | null;
+  status: StoryStatus;
+  sortOrder?: number;
+}
+
+const storiesCache = new Map<string, Promise<StoryDto[]>>();
+
+export function getStories(page = 0, limit = 12) {
+  const key = `${page}::${limit}`;
+  const cached = storiesCache.get(key);
+  if (cached) return cached;
+  const promise = requestJson<PagedResponse<StoryDto>>(`/stories${toSearchParams({ page, limit })}`)
+    .then((res) => res?.items ?? [])
+    .catch((err) => {
+      storiesCache.delete(key);
+      throw err;
+    });
+  storiesCache.set(key, promise);
+  return promise;
+}
+
+export function clearStoriesCache() {
+  storiesCache.clear();
+}
+
+export function adminListStories(accessToken: string) {
+  return requestJson<PagedResponse<AdminStoryDto>>('/admin/stories', {}, accessToken).then(
+    (res) => res?.items ?? [],
+  );
+}
+
+export function adminCreateStory(payload: UpsertStoryPayload, accessToken: string) {
+  return requestJson<AdminStoryDto>(
+    '/admin/stories',
+    { method: 'POST', body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminUpdateStory(id: number, payload: UpsertStoryPayload, accessToken: string) {
+  return requestJson<AdminStoryDto>(
+    `/admin/stories/${id}`,
+    { method: 'PUT', body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function adminDeleteStory(id: number, accessToken: string) {
+  return requestJson<void>(`/admin/stories/${id}`, { method: 'DELETE' }, accessToken);
+}
+
+export function adminUploadStoryImage(id: number, file: File, accessToken: string) {
+  const form = new FormData();
+  form.append('file', file);
+  return requestJson<AdminStoryDto>(
+    `/admin/stories/${id}/image`,
+    { method: 'POST', body: form },
+    accessToken,
+  );
+}
+
+export function adminDeleteStoryImage(id: number, accessToken: string) {
+  return requestJson<AdminStoryDto>(`/admin/stories/${id}/image`, { method: 'DELETE' }, accessToken);
+}
+
 // ───────────────────────────────────────────────────────────────
 // Public catalog search (typeahead) + match
 // ───────────────────────────────────────────────────────────────

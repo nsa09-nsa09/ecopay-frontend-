@@ -131,6 +131,9 @@ const AdminLegalPage = lazy(() =>
 const AdminNewsPage = lazy(() =>
   import('./components/admin/admin-news').then((m) => ({ default: m.AdminNewsPage })),
 );
+const AdminStoriesPage = lazy(() =>
+  import('./components/admin/admin-stories').then((m) => ({ default: m.AdminStoriesPage })),
+);
 const AdminPricingPage = lazy(() =>
   import('./components/admin/admin-pricing').then((m) => ({ default: m.AdminPricingPage })),
 );
@@ -435,6 +438,7 @@ export const router = createBrowserRouter([
           { path: 'service-reviews', Component: AdminServiceReviewsPage },
           { path: 'about', Component: AdminAboutPage },
           { path: 'news', Component: AdminNewsPage },
+          { path: 'stories', Component: AdminStoriesPage },
           { path: 'legal', Component: AdminLegalPage },
         ],
       },

@@ -2973,6 +2973,50 @@ const translations: Translations = {
   // ===== Admin: Create room shortcut =====
   adminCreateRoomNav: { ru: 'Создать комнату', kz: 'Бөлме жасау', en: 'Create room' },
 
+  // ===== Admin: Stories / Highlights =====
+  adminStoriesNav: { ru: 'Актуальное', kz: 'Өзекті', en: 'Highlights' },
+  adminStoriesTitle: { ru: 'Актуальное', kz: 'Өзекті', en: 'Highlights' },
+  adminStoriesHint: {
+    ru: 'Отдельный блок кружков в новостях и на главной. Это не новости: здесь управляйте короткими story-карточками с фото, текстом и кнопкой.',
+    kz: 'Жаңалықтар мен басты беттегі бөлек дөңгелек блок. Бұл жаңалық емес: мұнда фото, мәтін және батырмасы бар қысқа story-карталарды басқарыңыз.',
+    en: 'Separate circular highlights shown in News and on the home page. These are not news posts: manage short story cards with image, copy and CTA here.',
+  },
+  adminStoriesCreate: { ru: 'Новое актуальное', kz: 'Жаңа өзекті', en: 'New highlight' },
+  adminStoriesListTitle: { ru: 'Все актуальное', kz: 'Барлық өзекті', en: 'All highlights' },
+  adminStoriesEmpty: { ru: 'Актуального ещё нет', kz: 'Өзекті әлі жоқ', en: 'No highlights yet' },
+  adminStoriesListColTitle: { ru: 'Карточка', kz: 'Карточка', en: 'Card' },
+  adminStoriesFormCreate: { ru: 'Создать актуальное', kz: 'Өзекті жасау', en: 'Create highlight' },
+  adminStoriesFormEdit: { ru: 'Редактирование актуального', kz: 'Өзектіні өңдеу', en: 'Editing highlight' },
+  adminStoriesFieldTitle: { ru: 'Название в кружке', kz: 'Дөңгелектегі атау', en: 'Bubble title' },
+  adminStoriesFieldHeading: { ru: 'Заголовок story', kz: 'Story тақырыбы', en: 'Story heading' },
+  adminStoriesFieldBody: { ru: 'Текст story', kz: 'Story мәтіні', en: 'Story text' },
+  adminStoriesFieldCtaLabel: { ru: 'Текст кнопки', kz: 'Батырма мәтіні', en: 'Button label' },
+  adminStoriesFieldCtaUrl: { ru: 'Ссылка кнопки', kz: 'Батырма сілтемесі', en: 'Button link' },
+  adminStoriesFieldEmoji: { ru: 'Эмодзи без фото', kz: 'Фото жоқ кездегі эмодзи', en: 'Fallback emoji' },
+  adminStoriesFieldGradient: { ru: 'Фон без фото', kz: 'Фото жоқ кездегі фон', en: 'Fallback background' },
+  adminStoriesImageHint: {
+    ru: 'PNG/JPG, до 5 МБ. Картинка загрузится сразу после сохранения, если это новая запись.',
+    kz: 'PNG/JPG, 5 МБ-қа дейін. Жаңа жазба болса, сурет сақтау аяқталғаннан кейін жүктеледі.',
+    en: 'PNG/JPG, up to 5 MB. For a new item, the image uploads right after save.',
+  },
+  adminStoriesImageInvalidType: {
+    ru: 'Поддерживаются только PNG и JPG.',
+    kz: 'Тек PNG және JPG қолдау табады.',
+    en: 'Only PNG and JPG are supported.',
+  },
+  adminStoriesImageTooBig: {
+    ru: 'Файл больше 5 МБ. Выберите поменьше.',
+    kz: 'Файл 5 МБ-тан үлкен. Кішірек таңдаңыз.',
+    en: 'File is larger than 5 MB. Please pick a smaller one.',
+  },
+  adminStoriesSaveSuccess: { ru: 'Актуальное сохранено', kz: 'Өзекті сақталды', en: 'Highlight saved' },
+  adminStoriesDeleteSuccess: { ru: 'Актуальное удалено', kz: 'Өзекті жойылды', en: 'Highlight deleted' },
+  adminStoriesDeleteConfirm: {
+    ru: 'Удалить это актуальное?',
+    kz: 'Бұл өзектіні жою керек пе?',
+    en: 'Delete this highlight?',
+  },
+
   // ===== Admin: News =====
   adminNewsNav: { ru: 'Новости', kz: 'Жаңалықтар', en: 'News' },
   adminNewsTitle: { ru: 'Новости', kz: 'Жаңалықтар', en: 'News' },

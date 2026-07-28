@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useI18n } from '../i18n-provider';
-import { mockStories, type LocalizedText, type Story } from '../../data/stories';
+import { type LocalizedText, type Story } from '../../data/stories';
+import { getStories, type StoryDto } from '../../lib/api';
 import { readWithLegacyMigration } from '../../lib/legacy-storage';
 
 type Lang = 'ru' | 'kz' | 'en';
@@ -11,8 +12,60 @@ type Lang = 'ru' | 'kz' | 'en';
 const SLIDE_DURATION_MS = 5000;
 const SEEN_STORAGE_KEY = 'ecopay.storiesSeen';
 const LEGACY_SEEN_STORAGE_KEYS = ['ecosplit-stories-seen'] as const;
+const STORIES_LIMIT = 12;
+const DEFAULT_GRADIENT = 'linear-gradient(160deg, #FF8C42 0%, #F0741F 55%, #C55A12 100%)';
 
 const pick = (value: LocalizedText, lang: Lang): string => value[lang] ?? value.ru;
+
+const defaultCtaLabel: LocalizedText = {
+  ru: 'Подробнее',
+  kz: 'Толығырақ',
+  en: 'Learn more',
+};
+
+function firstNonBlank(...values: Array<string | null | undefined>): string {
+  return values.find((value) => typeof value === 'string' && value.trim().length > 0)?.trim() ?? '';
+}
+
+function localizedText(
+  item: StoryDto,
+  ruKey: keyof StoryDto,
+  kzKey: keyof StoryDto,
+  enKey: keyof StoryDto,
+  fallback = '',
+): LocalizedText {
+  const ru = firstNonBlank(item[ruKey] as string | null | undefined, fallback);
+  const kz = firstNonBlank(item[kzKey] as string | null | undefined, ru, fallback);
+  const en = firstNonBlank(item[enKey] as string | null | undefined, ru, fallback);
+  return { ru, kz, en };
+}
+
+function toUiStory(item: StoryDto): Story {
+  const title = localizedText(item, 'titleRu', 'titleKz', 'titleEn', `#${item.id}`);
+  const heading = localizedText(item, 'headingRu', 'headingKz', 'headingEn', title.ru);
+  const text = localizedText(item, 'bodyRu', 'bodyKz', 'bodyEn', '');
+  const gradient = item.gradient || DEFAULT_GRADIENT;
+  const ctaLabel = localizedText(item, 'ctaLabelRu', 'ctaLabelKz', 'ctaLabelEn', defaultCtaLabel.ru);
+
+  return {
+    id: `story-${item.id}`,
+    title,
+    cover: item.imageUrl ?? undefined,
+    emoji: item.emoji ?? undefined,
+    gradient,
+    seen: false,
+    slides: [
+      {
+        id: `story-${item.id}-slide`,
+        image: item.imageUrl ?? undefined,
+        gradient,
+        heading,
+        text,
+        cta: item.ctaUrl ? { label: ctaLabel, url: item.ctaUrl } : undefined,
+      },
+    ],
+  };
+}
 
 // ─── Seen-state persistence (survives reloads) ───
 function loadSeen(): Set<string> {
@@ -120,10 +173,25 @@ export function StoriesRow({ className = '' }: { className?: string }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   const [seen, setSeen] = useState<Set<string>>(loadSeen);
+  const [items, setItems] = useState<StoryDto[]>([]);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
 
-  const stories = mockStories;
+  useEffect(() => {
+    let cancelled = false;
+    getStories(0, STORIES_LIMIT)
+      .then((data) => {
+        if (!cancelled) setItems(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setItems([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const stories = useMemo(() => items.map(toUiStory), [items]);
 
   const markSeen = useCallback((id: string) => {
     setSeen((prev) => {

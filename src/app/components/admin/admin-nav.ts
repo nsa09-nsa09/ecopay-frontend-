@@ -17,6 +17,7 @@ import {
   LineChart,
   Wallet,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react';
 import type { UserRole } from '../../lib/api';
 
@@ -78,6 +79,7 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
   { labelKey: 'adminLogs', path: '/admin/logs', icon: FileText, roles: ['ADMIN'] },
   { labelKey: 'adminAboutNav', path: '/admin/about', icon: Info, roles: ['ADMIN'] },
   { labelKey: 'adminNewsNav', path: '/admin/news', icon: Newspaper, roles: ['ADMIN'] },
+  { labelKey: 'adminStoriesNav', path: '/admin/stories', icon: Sparkles, roles: ['ADMIN'] },
   { labelKey: 'adminLegalNav', path: '/admin/legal', icon: ScrollText, roles: ['ADMIN'] },
   { labelKey: 'adminBackToSite', path: '/', icon: ExternalLink, roles: ['ADMIN', 'SUPPORT'] },
 ];
