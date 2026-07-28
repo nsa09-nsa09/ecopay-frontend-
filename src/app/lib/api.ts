@@ -956,7 +956,7 @@ export function getRoomMembers(
   );
 }
 
-export function getMyMembership(roomId: number, accessToken: string) {
+export function getMyMembership(roomId: string | number, accessToken: string) {
   return requestJson<MyRoomMembershipDto>(`/rooms/${roomId}/members/me`, {}, accessToken);
 }
 
@@ -976,12 +976,36 @@ export function confirmOwnerAccessRequest(
   );
 }
 
-export function confirmMemberAccessRequest(roomId: number, accessToken: string) {
+export function confirmMemberAccessRequest(roomId: string | number, accessToken: string) {
   return requestJson<MyRoomMembershipDto>(
     `/rooms/${roomId}/members/me/confirm-access`,
     {
       method: 'POST',
     },
+    accessToken,
+  );
+}
+
+export type RoomComplaintReason =
+  | 'ACCESS_NOT_PROVIDED'
+  | 'ACCESS_NOT_AS_DESCRIBED'
+  | 'OWNER_STOPPED_FULFILLING'
+  | 'OTHER';
+
+export interface CreateRoomComplaintPayload {
+  reasonCode: RoomComplaintReason;
+  description: string;
+}
+
+/** Opens an administrator-visible case for a paid member's complaint about the room owner. */
+export function createRoomComplaintRequest(
+  roomId: string | number,
+  payload: CreateRoomComplaintPayload,
+  accessToken: string,
+) {
+  return requestJson<DisputeResponse>(
+    `/rooms/${roomId}/members/me/complaints`,
+    { method: 'POST', body: JSON.stringify(payload) },
     accessToken,
   );
 }
@@ -1566,8 +1590,9 @@ export interface DisputeResponse {
 }
 
 export interface DisputeDecisionRequest {
+  status: 'RESOLVED' | 'REJECTED';
   decision: string;
-  decisionComment: string;
+  comment: string;
 }
 
 export function getAdminDisputesRequest(
@@ -1602,9 +1627,6 @@ export function decideDisputeRequest(
 }
 
 export interface OwnerViolationSanctionRequest {
-  createRefund: boolean;
-  paymentTransactionId?: number;
-  refundAmount?: number;
   reason: string;
 }
 
