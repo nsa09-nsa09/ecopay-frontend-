@@ -204,7 +204,7 @@ export function NewsDetailPage() {
             <span>{formatDate(item.publishedAt, language)}</span>
           </div>
           <h1
-            className="text-[30px] sm:text-[44px] leading-tight tracking-tight max-w-[860px]"
+            className="text-[30px] sm:text-[44px] leading-tight tracking-tight max-w-[860px] [overflow-wrap:anywhere]"
             style={{ color: 'var(--eco-text)', fontWeight: 700 }}
           >
             {title || label('notFoundTitle', language)}
@@ -230,13 +230,13 @@ export function NewsDetailPage() {
           </div>
         )}
 
-        <div className="max-w-[760px]">
+        <div className="w-full">
           {paragraphs.length > 0 ? (
             <div className="flex flex-col gap-5">
               {paragraphs.map((paragraph, index) => (
                 <p
                   key={index}
-                  className="text-[16px] sm:text-[17px] leading-8 whitespace-pre-line"
+                  className="text-[16px] sm:text-[17px] leading-8 whitespace-pre-line [overflow-wrap:anywhere]"
                   style={{ color: 'var(--eco-text-secondary)' }}
                 >
                   {paragraph}
@@ -245,7 +245,7 @@ export function NewsDetailPage() {
             </div>
           ) : (
             <p
-              className="text-[16px] sm:text-[17px] leading-8"
+              className="text-[16px] sm:text-[17px] leading-8 [overflow-wrap:anywhere]"
               style={{ color: 'var(--eco-text-secondary)' }}
             >
               {label('emptyBody', language)}
