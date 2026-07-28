@@ -113,7 +113,11 @@ export function AdminDisputesPage() {
       const updated = await authorizedRequest((token) =>
         decideDisputeRequest(
           selected.id,
-          { decision: decisionType, decisionComment: decisionComment.trim() },
+          {
+            status: decisionType === 'FAVOR_MEMBER' ? 'RESOLVED' : 'REJECTED',
+            decision: decisionType,
+            comment: decisionComment.trim(),
+          },
           token,
         ),
       );
@@ -305,6 +309,17 @@ export function AdminDisputesPage() {
                     </div>
                   )}
 
+                  {selected.reasonCode && (
+                    <div className="p-3 rounded-lg text-[13px]" style={{ background: 'var(--eco-surface)' }}>
+                      <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                        {tx('Причина жалобы', 'Шағым себебі', 'Complaint reason')}
+                      </div>
+                      <div className="mt-1" style={{ color: 'var(--eco-text)' }}>
+                        {selected.reasonCode.replace(/_/g, ' ')}
+                      </div>
+                    </div>
+                  )}
+
                   {selected.decision && (
                     <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
                       <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
@@ -441,6 +456,8 @@ function OwnerViolationButton({
     language === 'ru' ? ru : language === 'kz' ? kz : en;
 
   const [open, setOpen] = useState(false);
+  // Kept only to preserve the old form markup while it remains hidden below. Refund selection,
+  // transaction lookup, and amount calculation now happen safely on the server.
   const [createRefund, setCreateRefund] = useState(true);
   const [paymentTxId, setPaymentTxId] = useState('');
   const [refundAmount, setRefundAmount] = useState('');
@@ -469,9 +486,6 @@ function OwnerViolationButton({
         applyOwnerViolationSanctionRequest(
           dispute.id,
           {
-            createRefund,
-            paymentTransactionId: paymentTxId.trim() || undefined,
-            refundAmount: refundAmount.trim() ? Number(refundAmount.trim()) : undefined,
             reason: reason.trim(),
           },
           token,
@@ -502,7 +516,7 @@ function OwnerViolationButton({
         )}
       >
         <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
-          <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+          <div className="hidden" aria-hidden="true">
             {tx(
               'Зафиксировать нарушение со стороны владельца по этому спору. Опционально: инициировать возврат участнику.',
               'Осы дау бойынша иесінің бұзушылығын тіркеу. Қаласаңыз, қатысушыға қайтаруды бастаңыз.',
@@ -510,6 +524,15 @@ function OwnerViolationButton({
             )}
           </div>
 
+          <div className="p-3 rounded-lg text-[13px]" style={{ background: 'var(--eco-warning-100)', color: 'var(--eco-text)' }}>
+            {tx(
+              'После подтверждения будут автоматически созданы возвраты по всем успешным оплатам участников этой комнаты. Суммы и транзакции вручную вводить не нужно.',
+              'Расталғаннан кейін осы бөлме қатысушыларының барлық сәтті төлемдері бойынша қайтарулар автоматты түрде жасалады. Сома мен транзакцияны қолмен енгізу қажет емес.',
+              'Confirmation automatically creates refunds for every successful member payment in this room. No transaction IDs or amounts are entered manually.',
+            )}
+          </div>
+
+          <div className="hidden" aria-hidden="true">
           <label className="flex items-start gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -558,6 +581,7 @@ function OwnerViolationButton({
               </div>
             </div>
           )}
+          </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-[13px]" style={{ color: 'var(--eco-text)' }}>

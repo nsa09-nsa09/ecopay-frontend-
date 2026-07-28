@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { Card, Button, MemberStatusBadge, RoomStatusBadge } from '../ds-primitives';
+import { Card, Button, MemberStatusBadge, RoomStatusBadge, Modal, Select } from '../ds-primitives';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -9,10 +9,12 @@ import {
   AlertTriangle,
   LifeBuoy,
   CreditCard,
+  Flag,
 } from 'lucide-react';
 import {
   ApiError,
   confirmMemberAccessRequest,
+  createRoomComplaintRequest,
   createPaymentIntentRequest,
   getRoom,
   getMyMembership,
@@ -54,6 +56,13 @@ export function MemberDetailPage() {
 
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+
+  const [complaintOpen, setComplaintOpen] = useState(false);
+  const [complaintReason, setComplaintReason] = useState('ACCESS_NOT_PROVIDED');
+  const [complaintDescription, setComplaintDescription] = useState('');
+  const [complaintSubmitting, setComplaintSubmitting] = useState(false);
+  const [complaintError, setComplaintError] = useState<string | null>(null);
+  const [complaintCreated, setComplaintCreated] = useState<number | null>(null);
 
   useEffect(() => {
     if (!roomId) {
@@ -150,6 +159,39 @@ export function MemberDetailPage() {
       setPayError(err instanceof ApiError ? err.message : 'Unable to start payment right now.');
     } finally {
       setPaying(false);
+    }
+  };
+
+  const handleComplaint = async () => {
+    if (complaintDescription.trim().length < 10) return;
+    setComplaintSubmitting(true);
+    setComplaintError(null);
+    try {
+      const dispute = await authorizedRequest((token) =>
+        createRoomComplaintRequest(
+          roomId,
+          {
+            reasonCode: complaintReason as
+              | 'ACCESS_NOT_PROVIDED'
+              | 'ACCESS_NOT_AS_DESCRIBED'
+              | 'OWNER_STOPPED_FULFILLING'
+              | 'OTHER',
+            description: complaintDescription.trim(),
+          },
+          token,
+        ),
+      );
+      setComplaintCreated(dispute.id);
+      setComplaintOpen(false);
+      setComplaintDescription('');
+    } catch (err) {
+      setComplaintError(
+        err instanceof ApiError
+          ? err.message
+          : tx(language, 'Не удалось отправить жалобу.', 'Шағымды жіберу мүмкін болмады.', 'Unable to submit the complaint.'),
+      );
+    } finally {
+      setComplaintSubmitting(false);
     }
   };
 
@@ -531,6 +573,35 @@ export function MemberDetailPage() {
           </Card>
         )}
 
+        {paid && (
+          <Card className="flex flex-col gap-3" style={{ border: '1px solid var(--eco-warning)' }}>
+            <div className="flex items-start gap-3">
+              <Flag size={17} className="mt-0.5 shrink-0" style={{ color: 'var(--eco-warning)' }} />
+              <div>
+                <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
+                  {tx(language, 'Проблема с обязательствами владельца?', 'Иесі міндеттемелерін орындамады ма?', 'Problem with the owner’s obligations?')}
+                </h3>
+                <p className="text-[13px] mt-1" style={{ color: 'var(--eco-text-secondary)' }}>
+                  {tx(
+                    language,
+                    'Отправьте жалобу напрямую модераторам. Если нарушение подтвердится, комната будет заблокирована, а возврат по успешным оплатам участников будет запущен автоматически.',
+                    'Шағымды тікелей модераторларға жіберіңіз. Бұзушылық расталса, бөлме бұғатталып, қатысушылардың сәтті төлемдері бойынша қайтару автоматты түрде басталады.',
+                    'Send a report directly to moderators. If the breach is confirmed, the room is blocked and refunds for successful member payments are started automatically.',
+                  )}
+                </p>
+              </div>
+            </div>
+            {complaintCreated && (
+              <p className="text-[13px]" style={{ color: 'var(--eco-positive)' }}>
+                {tx(language, `Жалоба D-${complaintCreated} отправлена на рассмотрение.`, `D-${complaintCreated} шағымы қарауға жіберілді.`, `Complaint D-${complaintCreated} was sent for review.`)}
+              </p>
+            )}
+            <Button variant="secondary" size="md" onClick={() => setComplaintOpen(true)}>
+              <Flag size={14} /> {tx(language, 'Пожаловаться', 'Шағымдану', 'Report a problem')}
+            </Button>
+          </Card>
+        )}
+
         <Card className="flex flex-col gap-3">
           <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
             {tx(language, 'Параметры тарифа', 'Тариф параметрлері', 'Plan Details')}
@@ -559,6 +630,62 @@ export function MemberDetailPage() {
 
         {paid && <RoomChat roomId={roomId} />}
       </div>
+
+      <Modal
+        open={complaintOpen}
+        onClose={() => {
+          if (!complaintSubmitting) setComplaintOpen(false);
+        }}
+        title={tx(language, 'Жалоба на владельца комнаты', 'Бөлме иесіне шағым', 'Report the room owner')}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+            {tx(
+              language,
+              'Жалоба сразу попадёт в очередь модераторов. Укажите только факты — решение и возврат принимает администратор.',
+              'Шағым модераторлар кезегіне бірден түседі. Тек фактілерді жазыңыз — шешім мен қайтаруды әкімші қабылдайды.',
+              'Your report goes straight to the moderator queue. Please provide facts only; an administrator decides the case and refund.',
+            )}
+          </p>
+          <Select
+            label={tx(language, 'Причина', 'Себебі', 'Reason')}
+            value={complaintReason}
+            onChange={(event) => setComplaintReason(event.target.value)}
+            options={[
+              { value: 'ACCESS_NOT_PROVIDED', label: tx(language, 'Доступ не предоставлен', 'Қолжетімділік берілмеді', 'Access was not provided') },
+              { value: 'ACCESS_NOT_AS_DESCRIBED', label: tx(language, 'Доступ не соответствует описанию', 'Қолжетімділік сипаттамаға сай емес', 'Access does not match the description') },
+              { value: 'OWNER_STOPPED_FULFILLING', label: tx(language, 'Владелец перестал выполнять обязательства', 'Иесі міндеттемелерін орындауды тоқтатты', 'Owner stopped fulfilling obligations') },
+              { value: 'OTHER', label: tx(language, 'Другая проблема', 'Басқа мәселе', 'Other issue') },
+            ]}
+          />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+              {tx(language, 'Что произошло?', 'Не болды?', 'What happened?')}
+            </label>
+            <textarea
+              rows={5}
+              maxLength={5000}
+              value={complaintDescription}
+              onChange={(event) => setComplaintDescription(event.target.value)}
+              placeholder={tx(language, 'Опишите проблему и важные даты.', 'Мәселені және маңызды күндерді сипаттаңыз.', 'Describe the issue and relevant dates.')}
+              className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
+              style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', color: 'var(--eco-text)' }}
+            />
+            <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+              {tx(language, 'Минимум 10 символов', 'Кемінде 10 таңба', 'At least 10 characters')}
+            </span>
+          </div>
+          {complaintError && <p className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>{complaintError}</p>}
+          <Button
+            variant="destructive"
+            loading={complaintSubmitting}
+            disabled={complaintDescription.trim().length < 10}
+            onClick={() => void handleComplaint()}
+          >
+            <Flag size={14} /> {tx(language, 'Отправить жалобу', 'Шағымды жіберу', 'Submit report')}
+          </Button>
+        </div>
+      </Modal>
 
       {canConfirm && (
         <div
