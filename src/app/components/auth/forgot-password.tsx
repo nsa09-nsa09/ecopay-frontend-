@@ -32,7 +32,14 @@ export function ForgotPasswordPage() {
         setError(err.message);
         setFieldErrors(err.errors);
       } else {
-        setError('Unable to send the reset email right now.');
+        setError(
+          tx(
+            language,
+            'Не удалось отправить письмо для сброса пароля.',
+            'Құпия сөзді қалпына келтіру хатын жіберу мүмкін болмады.',
+            'Unable to send the reset email right now.',
+          ),
+        );
       }
     } finally {
       setLoading(false);

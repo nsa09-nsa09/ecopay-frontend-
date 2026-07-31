@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Card, Badge, Button, Input, Modal, Skeleton } from '../ds-primitives';
 import {
-  Shield,
   UserRound,
   Mail,
   Star,
@@ -267,6 +266,11 @@ export function ProfilePage() {
                 {tx(language, 'Открыть выплаты', 'Төлемдерді ашу', 'Open payouts')}
               </Button>
             </Link>
+            <Link to="/payments/history" style={{ textDecoration: 'none' }}>
+              <Button variant="secondary" size="sm" className="self-start">
+                {tx(language, 'История платежей', 'Төлем тарихы', 'Payment history')}
+              </Button>
+            </Link>
           </Card>
 
           <Card className="flex flex-col gap-3">
@@ -283,18 +287,6 @@ export function ProfilePage() {
               <Badge variant={user.status === 'ACTIVE' ? 'success' : 'default'}>
                 {user.status}
               </Badge>
-            </div>
-            <div
-              className="flex items-center gap-1.5 px-1 text-[12px]"
-              style={{ color: 'var(--eco-text-tertiary)' }}
-            >
-              <Shield size={13} />{' '}
-              {tx(
-                language,
-                'Сбросы пароля приходят в локальный MailDev в Docker.',
-                'Құпия сөзді қалпына келтіру хаттары Docker ішіндегі MailDev-ке келеді.',
-                'Password resets are sent through the local MailDev inbox in Docker.',
-              )}
             </div>
           </Card>
         </div>

@@ -9,8 +9,11 @@ import {
   type PaymentIntentResponseDto,
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
+import { useI18n, type Language } from '../i18n-provider';
 
 const PENDING_KEY = 'ecopay.pendingPayment';
+const tx = (l: Language, ru: string, kz: string, en: string) =>
+  l === 'ru' ? ru : l === 'kz' ? kz : en;
 
 interface PendingContext {
   // Strings: both are 64-bit ids serialized as strings by the backend
@@ -44,6 +47,7 @@ const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.forma
  */
 export function PaymentReturnPage() {
   const { isReady, isAuthenticated, authorizedRequest } = useAuth();
+  const { language } = useI18n();
   const navigate = useNavigate();
 
   const [context] = useState<PendingContext | null>(() => readContext());
@@ -59,7 +63,19 @@ export function PaymentReturnPage() {
     if (!isAuthenticated || !context) {
       setPhase('error');
       setError(
-        context ? 'Please sign in to view your payment status.' : 'No pending payment was found.',
+        context
+          ? tx(
+              language,
+              'Войдите, чтобы посмотреть статус платежа.',
+              'Төлем мәртебесін көру үшін кіріңіз.',
+              'Please sign in to view your payment status.',
+            )
+          : tx(
+              language,
+              'Ожидающий платёж не найден.',
+              'Күтіліп тұрған төлем табылмады.',
+              'No pending payment was found.',
+            ),
       );
       return;
     }
@@ -95,7 +111,14 @@ export function PaymentReturnPage() {
       } catch (err) {
         if (cancelled) return;
         setError(
-          err instanceof ApiError ? err.message : 'Unable to confirm your payment right now.',
+          err instanceof ApiError
+            ? err.message
+            : tx(
+                language,
+                'Не удалось подтвердить платёж.',
+                'Төлемді растау мүмкін болмады.',
+                'Unable to confirm your payment right now.',
+              ),
         );
         setPhase('error');
       }
@@ -105,7 +128,7 @@ export function PaymentReturnPage() {
     return () => {
       cancelled = true;
     };
-  }, [isReady, isAuthenticated, authorizedRequest, context]);
+  }, [isReady, isAuthenticated, authorizedRequest, context, language]);
 
   const goToMembership = () => {
     if (context) navigate(`/rooms/member/${context.roomId}`);
@@ -118,10 +141,15 @@ export function PaymentReturnPage() {
         <Card className="flex flex-col items-center text-center gap-4 py-12">
           <Clock size={32} className="animate-pulse" style={{ color: 'var(--eco-primary)' }} />
           <div className="text-[16px]" style={{ color: 'var(--eco-text)' }}>
-            Confirming your payment…
+            {tx(language, 'Подтверждаем платёж...', 'Төлемді растап жатырмыз...', 'Confirming your payment...')}
           </div>
           <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-            This can take a few seconds. Please don't close this page.
+            {tx(
+              language,
+              'Это может занять несколько секунд. Не закрывайте страницу.',
+              'Бұл бірнеше секунд алуы мүмкін. Бетті жаппаңыз.',
+              "This can take a few seconds. Please don't close this page.",
+            )}
           </div>
         </Card>
       </div>
@@ -137,7 +165,9 @@ export function PaymentReturnPage() {
             {error}
           </div>
           <Link to="/rooms" style={{ textDecoration: 'none' }}>
-            <Button variant="primary">Go to My Rooms</Button>
+            <Button variant="primary">
+              {tx(language, 'К моим комнатам', 'Менің бөлмелеріме', 'Go to My Rooms')}
+            </Button>
           </Link>
         </Card>
       </div>
@@ -161,23 +191,22 @@ export function PaymentReturnPage() {
             </div>
             <div>
               <h2 className="text-[22px]" style={{ color: 'var(--eco-text)' }}>
-                Payment Successful
+                {tx(language, 'Платёж успешен', 'Төлем сәтті', 'Payment Successful')}
               </h2>
               <p
                 className="text-[14px] mt-2 max-w-sm mx-auto"
                 style={{ color: 'var(--eco-text-secondary)' }}
               >
-                Your payment of {formatMoney(intent?.amount)} has been received. Funds are held
-                until the owner grants access and you confirm it.
+                {tx(
+                  language,
+                  `Ваш платёж ${formatMoney(intent?.amount)} получен. Средства удерживаются до выдачи доступа владельцем и вашего подтверждения.`,
+                  `${formatMoney(intent?.amount)} төлеміңіз қабылданды. Қаражат иесі қолжетімділік беріп, сіз растағанға дейін ұсталады.`,
+                  `Your payment of ${formatMoney(intent?.amount)} has been received. Funds are held until the owner grants access and you confirm it.`,
+                )}
               </p>
             </div>
-            {intent?.externalPaymentId && (
-              <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                Ref: {intent.externalPaymentId}
-              </div>
-            )}
             <Button variant="primary" size="lg" onClick={goToMembership}>
-              Go to Membership
+              {tx(language, 'К участию', 'Қатысуға өту', 'Go to Membership')}
             </Button>
           </>
         ) : failed ? (
@@ -190,28 +219,28 @@ export function PaymentReturnPage() {
             </div>
             <div>
               <h2 className="text-[22px]" style={{ color: 'var(--eco-text)' }}>
-                Payment Failed
+                {tx(language, 'Платёж не прошёл', 'Төлем өтпеді', 'Payment Failed')}
               </h2>
               <p
                 className="text-[14px] mt-2 max-w-sm mx-auto"
                 style={{ color: 'var(--eco-text-secondary)' }}
               >
-                {intent?.failureMessage ??
-                  'The payment did not complete. You can safely retry: idempotent processing means no double charge.'}
+                {tx(
+                  language,
+                  'Платёж не завершён. Можно безопасно попробовать ещё раз: повторная обработка не приведёт к двойному списанию.',
+                  'Төлем аяқталмады. Қауіпсіз түрде қайта көруге болады: қайталау қосарланған төлемге әкелмейді.',
+                  'The payment did not complete. You can safely retry: idempotent processing means no double charge.',
+                )}
               </p>
             </div>
-            {intent?.failureCode && (
-              <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                Error code: {intent.failureCode}
-              </div>
-            )}
             <div className="flex gap-3">
               <Button variant="primary" size="lg" onClick={goToMembership}>
-                <RefreshCw size={14} /> Back to Membership
+                <RefreshCw size={14} />{' '}
+                {tx(language, 'Вернуться к участию', 'Қатысуға оралу', 'Back to Membership')}
               </Button>
               <Link to="/support/new" style={{ textDecoration: 'none' }}>
                 <Button variant="secondary" size="lg">
-                  <MessageSquare size={14} /> Support
+                  <MessageSquare size={14} /> {tx(language, 'Поддержка', 'Қолдау', 'Support')}
                 </Button>
               </Link>
             </div>
@@ -221,18 +250,22 @@ export function PaymentReturnPage() {
             <Clock size={32} style={{ color: 'var(--eco-warning)' }} />
             <div>
               <h2 className="text-[22px]" style={{ color: 'var(--eco-text)' }}>
-                Payment Processing
+                {tx(language, 'Платёж обрабатывается', 'Төлем өңделуде', 'Payment Processing')}
               </h2>
               <p
                 className="text-[14px] mt-2 max-w-sm mx-auto"
                 style={{ color: 'var(--eco-text-secondary)' }}
               >
-                Your payment is still being confirmed. You can check the status on your membership
-                page; it will update automatically once settled.
+                {tx(
+                  language,
+                  'Платёж ещё подтверждается. Статус можно проверить на странице участия, он обновится автоматически.',
+                  'Төлем әлі расталып жатыр. Мәртебесін қатысу бетінде тексеруге болады, ол автоматты түрде жаңарады.',
+                  'Your payment is still being confirmed. You can check the status on your membership page; it will update automatically once settled.',
+                )}
               </p>
             </div>
             <Button variant="primary" size="lg" onClick={goToMembership}>
-              Go to Membership
+              {tx(language, 'К участию', 'Қатысуға өту', 'Go to Membership')}
             </Button>
           </>
         )}

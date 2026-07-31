@@ -151,12 +151,35 @@ export function MemberDetailPage() {
         );
         window.location.href = intent.paymentUrl;
       } else if (intent.status === 'FAILED') {
-        setPayError(intent.failureMessage ?? 'Payment failed. You can safely retry.');
+        setPayError(
+          tx(
+            language,
+            'Платёж не прошёл. Можно безопасно попробовать ещё раз.',
+            'Төлем өтпеді. Қауіпсіз түрде қайта көруге болады.',
+            'Payment failed. You can safely retry.',
+          ),
+        );
       } else {
-        setPayError('Payment is still processing. Refresh in a moment to see the latest status.');
+        setPayError(
+          tx(
+            language,
+            'Платёж ещё обрабатывается. Обновите страницу чуть позже.',
+            'Төлем әлі өңделуде. Сәл кейін бетті жаңартыңыз.',
+            'Payment is still processing. Refresh in a moment to see the latest status.',
+          ),
+        );
       }
     } catch (err) {
-      setPayError(err instanceof ApiError ? err.message : 'Unable to start payment right now.');
+      setPayError(
+        err instanceof ApiError
+          ? err.message
+          : tx(
+              language,
+              'Не удалось начать оплату.',
+              'Төлемді бастау мүмкін болмады.',
+              'Unable to start payment right now.',
+            ),
+      );
     } finally {
       setPaying(false);
     }

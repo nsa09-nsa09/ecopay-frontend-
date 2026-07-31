@@ -158,6 +158,9 @@ const OwnerPayoutPage = lazy(() =>
 const PaymentReturnPage = lazy(() =>
   import('./components/payments/payment-return').then((m) => ({ default: m.PaymentReturnPage })),
 );
+const PaymentHistoryPage = lazy(() =>
+  import('./components/payments/payment-history').then((m) => ({ default: m.PaymentHistoryPage })),
+);
 const CardConnectedPage = lazy(() =>
   import('./components/payments/card-connected').then((m) => ({ default: m.CardConnectedPage })),
 );
@@ -249,14 +252,6 @@ const internalStaticRoutes =
           Component: lazy(() =>
             import('./components/static/governance-rules').then((m) => ({
               default: m.GovernanceRulesPage,
-            })),
-          ),
-        },
-        {
-          path: 'payment-history',
-          Component: lazy(() =>
-            import('./components/static/payment-history-receipts').then((m) => ({
-              default: m.PaymentHistoryPage,
             })),
           ),
         },
@@ -395,6 +390,7 @@ export const router = createBrowserRouter([
           { path: 'payment/pending', Component: PaymentPendingPage },
           { path: 'payment/refund', Component: RefundStatusPage },
           { path: 'payment/payout', Component: OwnerPayoutPage },
+          { path: 'payments/history', Component: PaymentHistoryPage },
           // FreedomPay redirect-back target after connecting a payout card.
           { path: 'payment/card-connected', Component: CardConnectedPage },
           { path: 'user/:id', Component: PublicUserProfilePage },

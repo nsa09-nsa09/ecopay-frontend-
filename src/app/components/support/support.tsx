@@ -79,8 +79,10 @@ function localizeStatus(l: Language, status: string): string {
   return status.replace('_', ' ');
 }
 
-function relativeTime(iso: string, l: Language): string {
+function relativeTime(iso: string | null | undefined, l: Language): string {
+  if (!iso) return '—';
   const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '—';
   const diffMs = Date.now() - date.getTime();
   const m = Math.floor(diffMs / 60_000);
   if (m < 1) return tx(l, 'Только что', 'Жаңа ғана', 'Just now');
@@ -256,15 +258,18 @@ function TicketListView({
       ) : (
         <div className="flex flex-col gap-2">
           <div
-            className="hidden sm:grid sm:grid-cols-12 gap-3 px-5 py-2 text-[12px]"
-            style={{ color: 'var(--eco-text-tertiary)' }}
+            className="hidden sm:grid gap-3 px-5 py-2 text-[12px]"
+            style={{
+              color: 'var(--eco-text-tertiary)',
+              gridTemplateColumns: '160px minmax(0,1.6fr) 140px 130px 120px 112px',
+            }}
           >
-            <div className="col-span-1">ID</div>
-            <div className="col-span-4">{tx(language, 'Тема', 'Тақырыбы', 'Subject')}</div>
-            <div className="col-span-2">{tx(language, 'Категория', 'Санат', 'Topic')}</div>
-            <div className="col-span-2">{tx(language, 'Статус', 'Мәртебе', 'Status')}</div>
-            <div className="col-span-2">{tx(language, 'Комната', 'Бөлме', 'Room')}</div>
-            <div className="col-span-1">{tx(language, 'Обновлено', 'Жаңартылды', 'Updated')}</div>
+            <div>ID</div>
+            <div>{tx(language, 'Тема', 'Тақырыбы', 'Subject')}</div>
+            <div>{tx(language, 'Категория', 'Санат', 'Topic')}</div>
+            <div>{tx(language, 'Статус', 'Мәртебе', 'Status')}</div>
+            <div>{tx(language, 'Комната', 'Бөлме', 'Room')}</div>
+            <div>{tx(language, 'Обновлено', 'Жаңартылды', 'Updated')}</div>
           </div>
 
           {filtered.map((t) => (
@@ -274,15 +279,25 @@ function TicketListView({
                 style={{ background: 'transparent', border: 'none', padding: 0 }}
                 onClick={() => onSelect(t.id)}
               >
-                <div className="hidden sm:grid sm:grid-cols-12 gap-3 items-center">
+                <div
+                  className="hidden sm:grid gap-3 items-center"
+                  style={{
+                    gridTemplateColumns: '160px minmax(0,1.6fr) 140px 130px 120px 112px',
+                  }}
+                >
                   <div
-                    className="col-span-1 text-[13px]"
+                    className="text-[13px] whitespace-nowrap overflow-hidden text-ellipsis"
+                    title={`T-${t.id}`}
                     style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
                   >
                     T-{t.id}
                   </div>
-                  <div className="col-span-4 flex items-center gap-2">
-                    <span className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+                  <div className="min-w-0 flex items-center gap-2">
+                    <span
+                      className="text-[14px] line-clamp-2"
+                      title={t.subject}
+                      style={{ color: 'var(--eco-text)' }}
+                    >
                       {t.subject}
                     </span>
                     {t.escalatedToDispute && (
@@ -297,27 +312,28 @@ function TicketListView({
                       </span>
                     )}
                   </div>
-                  <div className="col-span-2">
+                  <div className="min-w-0 overflow-hidden">
                     <Badge variant={TOPIC_VARIANT[t.topic] ?? 'default'}>
                       {TOPIC_LABELS[t.topic] ?? t.topic}
                     </Badge>
                   </div>
-                  <div className="col-span-2">
+                  <div className="whitespace-nowrap">
                     <Badge variant={STATUS_VARIANT[t.status] ?? 'default'}>
                       {localizeStatus(language, t.status)}
                     </Badge>
                   </div>
                   <div
-                    className="col-span-2 text-[13px]"
+                    className="text-[13px] whitespace-nowrap overflow-hidden text-ellipsis"
+                    title={t.roomId ? `${tx(language, 'Комната', 'Бөлме', 'Room')} #${t.roomId}` : undefined}
                     style={{ color: 'var(--eco-text-secondary)' }}
                   >
                     {t.roomId ? `${tx(language, 'Комната', 'Бөлме', 'Room')} #${t.roomId}` : '—'}
                   </div>
                   <div
-                    className="col-span-1 text-[12px]"
+                    className="text-[12px] whitespace-nowrap"
                     style={{ color: 'var(--eco-text-tertiary)' }}
                   >
-                    {relativeTime(t.updatedAt, language)}
+                    {relativeTime(t.updatedAt ?? t.createdAt, language)}
                   </div>
                 </div>
 
@@ -346,7 +362,7 @@ function TicketListView({
                       )}
                     </div>
                     <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {relativeTime(t.updatedAt, language)}
+                      {relativeTime(t.updatedAt ?? t.createdAt, language)}
                     </span>
                   </div>
                   <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
@@ -402,14 +418,15 @@ function CreateTicketView({
     setSubmitting(true);
     setError(null);
     try {
-      const parsedRoomId = roomId.trim() || undefined;
+      const parsedRoomId = roomId.trim() ? Number(roomId.trim()) : undefined;
       const ticket = await authorizedRequest((token) =>
         createSupportTicketRequest(
           {
             subject: subject.trim(),
             topic,
             message: message.trim(),
-            roomId: parsedRoomId && !Number.isNaN(parsedRoomId) ? parsedRoomId : undefined,
+            roomId:
+              parsedRoomId !== undefined && !Number.isNaN(parsedRoomId) ? parsedRoomId : undefined,
           },
           token,
         ),

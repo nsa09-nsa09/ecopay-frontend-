@@ -869,7 +869,16 @@ export function RefundStatusPage() {
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof ApiError ? err.message : 'Unable to load refunds right now.');
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : tx(
+                l,
+                'Не удалось загрузить возвраты.',
+                'Қайтаруларды жүктеу мүмкін болмады.',
+                'Unable to load refunds right now.',
+              ),
+        );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -1338,7 +1347,11 @@ export function OwnerPayoutPage() {
       })
       .catch((err) => {
         if (!cancelled)
-          setPayoutsError(err instanceof ApiError ? err.message : 'Unable to load payouts.');
+          setPayoutsError(
+            err instanceof ApiError
+              ? err.message
+              : tx(l, 'Не удалось загрузить выплаты.', 'Төлемдерді жүктеу мүмкін болмады.', 'Unable to load payouts.'),
+          );
       })
       .finally(() => {
         if (!cancelled) setLoadingPayouts(false);
@@ -1350,7 +1363,16 @@ export function OwnerPayoutPage() {
       })
       .catch((err) => {
         if (!cancelled)
-          setMethodsError(err instanceof ApiError ? err.message : 'Unable to load payout methods.');
+          setMethodsError(
+            err instanceof ApiError
+              ? err.message
+              : tx(
+                  l,
+                  'Не удалось загрузить способы выплаты.',
+                  'Төлем тәсілдерін жүктеу мүмкін болмады.',
+                  'Unable to load payout methods.',
+                ),
+          );
       })
       .finally(() => {
         if (!cancelled) setLoadingMethods(false);
@@ -1362,7 +1384,16 @@ export function OwnerPayoutPage() {
       })
       .catch((err) => {
         if (!cancelled)
-          setBalanceError(err instanceof ApiError ? err.message : 'Unable to load held balance.');
+          setBalanceError(
+            err instanceof ApiError
+              ? err.message
+              : tx(
+                  l,
+                  'Не удалось загрузить удерживаемый баланс.',
+                  'Ұсталымдағы балансты жүктеу мүмкін болмады.',
+                  'Unable to load held balance.',
+                ),
+          );
       })
       .finally(() => {
         if (!cancelled) setLoadingBalance(false);

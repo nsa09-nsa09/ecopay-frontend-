@@ -259,9 +259,16 @@ export function OwnerDetailPage() {
     if (!revealedIdentifier) return;
     try {
       await navigator.clipboard.writeText(revealedIdentifier.value);
-      toast.success('Identifier copied');
+      toast.success(tx(language, 'Идентификатор скопирован', 'Идентификатор көшірілді', 'Identifier copied'));
     } catch {
-      toast.error('Could not copy identifier');
+      toast.error(
+        tx(
+          language,
+          'Не удалось скопировать идентификатор',
+          'Идентификаторды көшіру мүмкін болмады',
+          'Could not copy identifier',
+        ),
+      );
     }
   };
 

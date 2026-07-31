@@ -180,6 +180,14 @@ function looksLikeServerInternalsMessage(raw: string | undefined | null): boolea
   return false;
 }
 
+function looksLikeEnglishMessage(raw: string | undefined | null): boolean {
+  if (!raw) return false;
+  const s = raw.trim();
+  if (!s) return false;
+  if (/[А-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІі]/.test(s)) return false;
+  return /[A-Za-z]/.test(s);
+}
+
 function classifyApiErrorCode(
   status: number,
   rawMessage: string | undefined | null,
@@ -205,7 +213,15 @@ function buildFriendlyApiMessage(
   rawMessage: string | undefined | null,
   code: FriendlyApiErrorCode,
 ): string {
-  if (rawMessage && !looksLikeServerInternalsMessage(rawMessage) && rawMessage.length <= 240) {
+  const activeLanguage = getCurrentLanguage();
+  const isUnsafeLocaleMessage =
+    (activeLanguage === 'ru' || activeLanguage === 'kz') && looksLikeEnglishMessage(rawMessage);
+  if (
+    rawMessage &&
+    !isUnsafeLocaleMessage &&
+    !looksLikeServerInternalsMessage(rawMessage) &&
+    rawMessage.length <= 240
+  ) {
     return rawMessage;
   }
   return getFriendlyApiMessage(code);
@@ -1082,6 +1098,52 @@ export function createPaymentIntentRequest(
 
 export function getPaymentIntentRequest(intentId: string, accessToken: string) {
   return requestJson<PaymentIntentResponseDto>(`/payments/intents/${intentId}`, {}, accessToken);
+}
+
+export type PaymentHistoryKind = 'PAYMENT' | 'REFUND' | 'PAYOUT' | string;
+export type PaymentHistoryDirection = 'INCOMING' | 'OUTGOING' | string;
+
+export interface PaymentHistoryItemDto {
+  id?: number | string | null;
+  kind: PaymentHistoryKind;
+  direction: PaymentHistoryDirection;
+  status: string;
+  amount: number | string;
+  currency: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  paidAt?: string | null;
+  processedAt?: string | null;
+  completedAt?: string | null;
+  date?: string | null;
+  roomTitle?: string | null;
+  roomId?: number | string | null;
+  paymentIntentId?: number | string | null;
+  paymentTransactionId?: number | string | null;
+  refundId?: number | string | null;
+  payoutId?: number | string | null;
+  operationId?: number | string | null;
+  cardMask?: string | null;
+  panMask?: string | null;
+  paymentMethodMask?: string | null;
+}
+
+export function getPaymentHistoryRequest(
+  accessToken: string,
+  params: {
+    page?: number;
+    size?: number;
+    kind?: string;
+    status?: string;
+    from?: string;
+    to?: string;
+  } = {},
+) {
+  return requestJson<PagedResponse<PaymentHistoryItemDto>>(
+    `/payments/history${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
 }
 
 /**
@@ -2103,7 +2165,7 @@ export interface RefundTransactionResponse {
   disputeId: number | null;
   adminUserId: number | null;
   status: string;
-  amount: number;
+  amount: number | string;
   currency: string;
   reason: string | null;
   idempotencyKey: string;

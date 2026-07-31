@@ -168,6 +168,8 @@ export function CreateRoomPage() {
     () => services.find((s) => String(s.id) === serviceId) ?? null,
     [services, serviceId],
   );
+  const serviceIdNumber = Number(serviceId);
+  const tariffPlanIdNumber = Number(tariffPlanId);
 
   // Room type is derived from the selected service, not chosen by the owner.
   const isTelecom = selectedService ? selectedService.providerType !== 'DIGITAL' : false;
@@ -197,7 +199,7 @@ export function CreateRoomPage() {
       return;
     }
     let cancelled = false;
-    getTariffs(serviceId)
+    getTariffs(serviceIdNumber)
       .then((list) => {
         if (cancelled) return;
         setTariffs(list);
@@ -209,7 +211,7 @@ export function CreateRoomPage() {
     return () => {
       cancelled = true;
     };
-  }, [serviceId]);
+  }, [serviceId, serviceIdNumber]);
 
   const selectedTariff = useMemo(
     () => tariffs.find((t) => String(t.id) === tariffPlanId) ?? null,
@@ -314,13 +316,12 @@ export function CreateRoomPage() {
       if (tab) tab.close();
       setConnectingCard(false);
       setCardError(
-        res.failureMessage ??
-          tx(
-            language,
-            'Не удалось начать подключение карты. Попробуйте снова.',
-            'Картаны қосуды бастау мүмкін болмады. Қайта көріңіз.',
-            "Couldn't start the card connection. Please try again.",
-          ),
+        tx(
+          language,
+          'Не удалось начать подключение карты. Попробуйте снова.',
+          'Картаны қосуды бастау мүмкін болмады. Қайта көріңіз.',
+          "Couldn't start the card connection. Please try again.",
+        ),
       );
     } catch (err) {
       if (tab) tab.close();
@@ -353,14 +354,14 @@ export function CreateRoomPage() {
       setConnectingCard(true);
       return;
     }
-    if (!serviceId) {
+    if (!serviceId || !Number.isFinite(serviceIdNumber)) {
       setSubmitError(
         tx(language, 'Выберите оператора.', 'Операторды таңдаңыз.', 'Please select a service.'),
       );
       setStep(0);
       return;
     }
-    if (!tariffPlanId) {
+    if (!tariffPlanId || !Number.isFinite(tariffPlanIdNumber)) {
       setSubmitError(tx(language, 'Выберите тариф.', 'Тарифті таңдаңыз.', 'Please select a plan.'));
       setStep(0);
       return;
@@ -396,8 +397,8 @@ export function CreateRoomPage() {
         createRoomRequest(
           {
             categoryId: selectedService?.categoryId ?? null,
-            serviceId,
-            tariffPlanId,
+            serviceId: serviceIdNumber,
+            tariffPlanId: tariffPlanIdNumber,
             roomType,
             title: title.trim(),
             providerName: selectedService?.name ?? null,
