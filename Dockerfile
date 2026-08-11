@@ -13,13 +13,13 @@ ENV VITE_SUPPORT_EMAIL=${VITE_SUPPORT_EMAIL}
 ENV VITE_INSTAGRAM_URL=${VITE_INSTAGRAM_URL}
 ENV VITE_TIKTOK_URL=${VITE_TIKTOK_URL}
 
-COPY package.json ./
+COPY package.json package-lock.json ./
 
-RUN npm install --no-audit --no-fund --legacy-peer-deps
+RUN npm ci --no-audit --no-fund --legacy-peer-deps
 
 COPY . .
 
-RUN npm run build
+RUN npm run release:gate
 
 FROM nginx:1.27-alpine
 

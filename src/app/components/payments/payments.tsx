@@ -320,9 +320,9 @@ export function PaymentRoomDetailsPage() {
           <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
             {tx(
               l,
-              'Средства могут быть удержаны до подтверждения доступа владельцем.',
-              'Қаражат иесі қолжетімділікті растағанша ұсталуы мүмкін.',
-              'Funds may be held until access is confirmed by the room owner.',
+              'Выплата владельцу может быть удержана до установленной даты hold.',
+              'Иесіне төлем белгіленген hold күніне дейін ұстала алады.',
+              'The owner payout may be held until the scheduled hold release date.',
             )}
           </span>
         </div>
@@ -588,9 +588,9 @@ export function PaymentConfirmationPage() {
               >
                 {tx(
                   l,
-                  'Ваш платёж в размере ₸5,400 принят. Средства будут удержаны до подтверждения доступа.',
-                  '₸5,400 төлеміңіз қабылданды. Қолжетімділік расталғанша қаражат ұсталады.',
-                  'Your payment of ₸5,400 has been received. Funds will be held until access is confirmed.',
+                  'Ваш платёж в размере ₸5,400 принят. Выплата владельцу будет удержана до установленной даты hold.',
+                  '₸5,400 көлеміндегі төлеміңіз қабылданды. Иесіне төлем белгіленген hold күніне дейін ұсталады.',
+                  'Your payment of ₸5,400 has been received. The owner payout will be held until the scheduled hold release date.',
                 )}
               </p>
             </div>

@@ -1056,7 +1056,19 @@ export function revealIdentifierRequest(
 // synchronously and returns status SUCCESS (no redirect). Real Freedom Pay in
 // prod returns requiresRedirect + paymentUrl, and the webhook finalizes later.
 
-export type PaymentIntentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED' | string;
+export type PaymentIntentStatus =
+  | 'PENDING'
+  | 'UNKNOWN'
+  | 'RECONCILING'
+  | 'SUCCESS'
+  | 'EXPIRED'
+  | 'REFUND_REQUIRED'
+  | 'REFUND_PENDING'
+  | 'REFUNDED'
+  | 'REQUIRES_REVIEW'
+  | 'FAILED'
+  | 'CANCELLED'
+  | string;
 
 export interface PaymentIntentResponseDto {
   // String: backend serializes 64-bit ids as strings (see MyRoomMembershipDto.id).
@@ -1079,6 +1091,10 @@ export interface PaymentIntentResponseDto {
   saveCardRequested: boolean;
   failureCode: string | null;
   failureMessage: string | null;
+  expiresAt: string | null;
+  compensationRequired: boolean;
+  reviewRequired: boolean;
+  reviewReason: string | null;
 }
 
 export function createPaymentIntentRequest(
@@ -1098,6 +1114,14 @@ export function createPaymentIntentRequest(
 
 export function getPaymentIntentRequest(intentId: string, accessToken: string) {
   return requestJson<PaymentIntentResponseDto>(`/payments/intents/${intentId}`, {}, accessToken);
+}
+
+export function getCurrentPaymentIntentForMemberRequest(roomMemberId: string, accessToken: string) {
+  return requestJson<PaymentIntentResponseDto>(
+    `/payments/members/${roomMemberId}/intent/current`,
+    {},
+    accessToken,
+  );
 }
 
 export type PaymentHistoryKind = 'PAYMENT' | 'REFUND' | 'PAYOUT' | string;

@@ -18,16 +18,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
 
       - name: Install
-        run: npm install --no-audit --no-fund --legacy-peer-deps
+        run: npm ci --no-audit --no-fund --legacy-peer-deps
 
-      - name: Typecheck (non-blocking)
-        run: npm run typecheck
-        continue-on-error: true
-
-      - name: Build
-        run: npm run build:release
+      - name: Release gate
+        run: npm run release:gate
 
   build-push:
     needs: build

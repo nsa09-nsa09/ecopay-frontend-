@@ -156,7 +156,7 @@ export const mockStories: Story[] = [
         text: {
           ru: 'Оплата удерживается на hold, пока владелец не выдаст доступ, а вы его не подтвердите.',
           kz: 'Төлем иесі қолжетімділік бергенше және сіз оны растағанша hold-та ұсталады.',
-          en: 'Payment stays on hold until the owner grants access and you confirm it.',
+          en: 'Payment is accepted, and the owner payout stays on hold until the scheduled release date.',
         },
         cta: {
           label: { ru: 'Подробнее', kz: 'Толығырақ', en: 'Learn more' },

@@ -70,7 +70,7 @@ const blocks: SecurityBlock[] = [
         icon: RefreshCcw,
         ru: "30-дневный hold: деньги не уходят владельцу, пока вы не получите доступ.",
         kz: "30 күндік hold: қолжетімділік алғанша ақша иесіне жіберілмейді.",
-        en: "30-day hold: funds are not released to the owner until you get access.",
+        en: "30-day hold: owner payouts are not released before the scheduled hold date.",
       },
     ],
   },

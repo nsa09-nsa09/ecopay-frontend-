@@ -3190,9 +3190,9 @@ const translations: Translations = {
     en: 'Pay Your Share',
   },
   howItWorksStep3Desc: {
-    ru: 'Безопасно оплатите ежемесячную долю через платформу. Средства хранятся на эскроу-счёте и переводятся владельцу комнаты только после подтверждения активной услуги.',
-    kz: 'Ай сайынғы үлесіңізді платформа арқылы қауіпсіз төлеңіз. Қаражат эскроу-шотта сақталып, қызмет белсенді екені расталғаннан кейін ғана бөлме иесіне аударылады.',
-    en: 'Pay your monthly share securely through the platform. Payments are held in escrow and released to the room owner once service is confirmed active.',
+    ru: 'Безопасно оплатите ежемесячную долю через платформу. Выплата владельцу находится на hold до установленной даты; спор или возврат может остановить выплату.',
+    kz: 'Ай сайынғы үлесіңізді платформа арқылы қауіпсіз төлеңіз. Иесіне төлем белгіленген күнге дейін hold-та болады; дау немесе қайтарым төлемді тоқтатуы мүмкін.',
+    en: 'Pay your monthly share securely through the platform. The owner payout stays on hold until the scheduled release date; a dispute or refund may stop it.',
   },
   howItWorksStep3Detail1: {
     ru: 'Безопасная обработка платежей',
@@ -3200,9 +3200,9 @@ const translations: Translations = {
     en: 'Secure payment processing',
   },
   howItWorksStep3Detail2: {
-    ru: 'Защита через эскроу',
-    kz: 'Эскроу арқылы қорғау',
-    en: 'Escrow protection',
+    ru: 'Защита через hold',
+    kz: 'Hold арқылы қорғау',
+    en: 'Hold protection',
   },
   howItWorksStep3Detail3: { ru: 'Прозрачные цены', kz: 'Айқын бағалар', en: 'Transparent pricing' },
 

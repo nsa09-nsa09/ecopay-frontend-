@@ -10,6 +10,8 @@
     "check:internal-artifacts": "node tools/check-internal-artifacts.mjs",
     "dev": "vite",
     "format": "prettier --write .",
+    "release:gate": "npm run typecheck && npm run test:smoke && npm run build:release",
+    "test:smoke": "node tools/smoke-launch.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -85,10 +87,5 @@
     "tailwindcss": "4.1.12",
     "typescript": "^5.6.3",
     "vite": "6.3.5"
-  },
-  "pnpm": {
-    "overrides": {
-      "vite": "6.3.5"
-    }
   }
 }

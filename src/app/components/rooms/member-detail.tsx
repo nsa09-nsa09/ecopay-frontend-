@@ -16,10 +16,12 @@ import {
   confirmMemberAccessRequest,
   createRoomComplaintRequest,
   createPaymentIntentRequest,
+  getCurrentPaymentIntentForMemberRequest,
   getRoom,
   getMyMembership,
   type MyRoomMembershipDto,
   type RoomResponseDto,
+  type PaymentIntentResponseDto,
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
@@ -38,6 +40,36 @@ const formatDateTime = (v: string | null | undefined, l: Language) =>
   v ? formatAlmatyDateTime(v, l) : null;
 
 const POST_PAYMENT = new Set(['PENDING', 'ACTIVE']);
+const COMPENSATION_PAYMENT = new Set([
+  'REFUND_REQUIRED',
+  'REFUND_PENDING',
+  'REFUNDED',
+  'REQUIRES_REVIEW',
+]);
+
+const paymentAttemptKey = (memberId: string) => `ecopay.pendingPayment.${memberId}`;
+
+function readPaymentAttempt(memberId: string): { idempotencyKey: string; intentId?: string } | null {
+  try {
+    const raw = window.localStorage.getItem(paymentAttemptKey(memberId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { idempotencyKey?: string; intentId?: string };
+    if (typeof parsed.idempotencyKey === 'string') {
+      return { idempotencyKey: parsed.idempotencyKey, intentId: parsed.intentId };
+    }
+  } catch {
+    // ignore malformed local attempt
+  }
+  return null;
+}
+
+function writePaymentAttempt(memberId: string, value: { idempotencyKey: string; intentId?: string }) {
+  window.localStorage.setItem(paymentAttemptKey(memberId), JSON.stringify(value));
+}
+
+function clearPaymentAttempt(memberId: string) {
+  window.localStorage.removeItem(paymentAttemptKey(memberId));
+}
 
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -137,20 +169,49 @@ export function MemberDetailPage() {
     setPaying(true);
     setPayError(null);
     try {
-      const intent = await authorizedRequest((token) =>
-        createPaymentIntentRequest(membership.id, { idempotencyKey: crypto.randomUUID() }, token),
+      const memberId = String(membership.id);
+      const existingAttempt = readPaymentAttempt(memberId);
+      let intent: PaymentIntentResponseDto | null = null;
+      if (existingAttempt?.intentId) {
+        try {
+          intent = await authorizedRequest((token) =>
+            getCurrentPaymentIntentForMemberRequest(memberId, token),
+          );
+        } catch {
+          intent = null;
+        }
+      }
+      const idempotencyKey = existingAttempt?.idempotencyKey ?? crypto.randomUUID();
+      writePaymentAttempt(memberId, { idempotencyKey, intentId: existingAttempt?.intentId });
+      intent ??= await authorizedRequest((token) =>
+        createPaymentIntentRequest(memberId, { idempotencyKey }, token),
       );
+      writePaymentAttempt(memberId, { idempotencyKey, intentId: intent.id });
 
       if (intent.status === 'SUCCESS') {
+        clearPaymentAttempt(memberId);
         const updated = await authorizedRequest((token) => getMyMembership(roomId, token));
         setMembership(updated);
       } else if (intent.requiresRedirect && intent.paymentUrl) {
+        const pendingContext = { intentId: intent.id, roomId, roomMemberId: memberId };
         window.localStorage.setItem(
-          'ecopay.pendingPayment',
-          JSON.stringify({ intentId: intent.id, roomId }),
+          `ecopay.pendingPayment.${intent.id}`,
+          JSON.stringify(pendingContext),
         );
+        window.localStorage.setItem('ecopay.pendingPayment', JSON.stringify(pendingContext));
         window.location.href = intent.paymentUrl;
-      } else if (intent.status === 'FAILED') {
+      } else if (COMPENSATION_PAYMENT.has(intent.status)) {
+        clearPaymentAttempt(memberId);
+        setPayError(
+          tx(
+            language,
+            'Платёж получен, но место уже недоступно. Мы запустили возврат и покажем его статус в истории платежей.',
+            'Төлем қабылданды, бірақ орын енді қолжетімсіз. Қайтарым басталды, мәртебесі төлем тарихында көрінеді.',
+            'Payment was captured, but the seat is no longer available. A refund has been started and its status is visible in payment history.',
+          ),
+        );
+      } else if (intent.status === 'FAILED' || intent.status === 'EXPIRED' || intent.status === 'CANCELLED') {
+        clearPaymentAttempt(memberId);
         setPayError(
           tx(
             language,
@@ -426,9 +487,9 @@ export function MemberDetailPage() {
               <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                 {tx(
                   language,
-                  'Оплатите долю, чтобы закрепить место. Средства удерживаются до выдачи и подтверждения доступа.',
-                  'Орынды сақтау үшін үлесіңізді төлеңіз. Қаражат қатынас берілгенше ұсталады.',
-                  'Pay to reserve your seat. Funds are held until the owner grants access and you confirm it.',
+                  'Оплатите долю, чтобы закрепить место. Выплата владельцу будет на hold до установленной даты.',
+                  'Орынды сақтау үшін үлесіңізді төлеңіз. Иесіне төлем белгіленген күнге дейін hold-та болады.',
+                  'Pay to reserve your seat. The owner payout stays on hold until the scheduled release date.',
                 )}
               </div>
             </div>

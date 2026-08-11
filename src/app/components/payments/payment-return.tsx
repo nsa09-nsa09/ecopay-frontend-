@@ -20,10 +20,31 @@ interface PendingContext {
   // (see PaymentIntentResponseDto.id). member-detail stores them as strings.
   intentId: string;
   roomId: string;
+  roomMemberId?: string;
 }
 
 function readContext(): PendingContext | null {
+  const params = new URLSearchParams(window.location.search);
+  const urlIntentId = params.get('intentId') ?? params.get('paymentIntentId');
+  const urlRoomId = params.get('roomId');
+  const urlRoomMemberId = params.get('roomMemberId');
+  if (urlIntentId && urlRoomId) {
+    return {
+      intentId: urlIntentId,
+      roomId: urlRoomId,
+      roomMemberId: urlRoomMemberId ?? undefined,
+    };
+  }
   try {
+    if (urlIntentId) {
+      const scoped = window.localStorage.getItem(`ecopay.pendingPayment.${urlIntentId}`);
+      if (scoped) {
+        const parsed = JSON.parse(scoped) as PendingContext;
+        if (typeof parsed.intentId === 'string' && typeof parsed.roomId === 'string') {
+          return parsed;
+        }
+      }
+    }
     const raw = window.localStorage.getItem(PENDING_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PendingContext;
@@ -34,6 +55,14 @@ function readContext(): PendingContext | null {
     // ignore malformed context
   }
   return null;
+}
+
+function clearContext(context: PendingContext) {
+  window.localStorage.removeItem(PENDING_KEY);
+  window.localStorage.removeItem(`ecopay.pendingPayment.${context.intentId}`);
+  if (context.roomMemberId) {
+    window.localStorage.removeItem(`ecopay.pendingPayment.${context.roomMemberId}`);
+  }
 }
 
 const moneyFormatter = new Intl.NumberFormat('ru-RU');
@@ -84,7 +113,13 @@ export function PaymentReturnPage() {
     const MAX_ATTEMPTS = 5;
 
     const isTerminal = (status: string) =>
-      status === 'SUCCESS' || status === 'FAILED' || status === 'EXPIRED';
+      status === 'SUCCESS' ||
+      status === 'FAILED' ||
+      status === 'EXPIRED' ||
+      status === 'REFUND_REQUIRED' ||
+      status === 'REFUND_PENDING' ||
+      status === 'REFUNDED' ||
+      status === 'REQUIRES_REVIEW';
 
     async function reconcile() {
       try {
@@ -106,7 +141,7 @@ export function PaymentReturnPage() {
         setIntent(result);
         setPhase('done');
         if (isTerminal(result.status)) {
-          window.localStorage.removeItem(PENDING_KEY);
+          clearContext(context);
         }
       } catch (err) {
         if (cancelled) return;
@@ -176,6 +211,11 @@ export function PaymentReturnPage() {
 
   const status = intent?.status ?? 'PENDING';
   const success = status === 'SUCCESS';
+  const compensation =
+    status === 'REFUND_REQUIRED' ||
+    status === 'REFUND_PENDING' ||
+    status === 'REFUNDED' ||
+    status === 'REQUIRES_REVIEW';
   const failed = status === 'FAILED' || status === 'EXPIRED';
 
   return (
@@ -199,9 +239,32 @@ export function PaymentReturnPage() {
               >
                 {tx(
                   language,
-                  `Ваш платёж ${formatMoney(intent?.amount)} получен. Средства удерживаются до выдачи доступа владельцем и вашего подтверждения.`,
-                  `${formatMoney(intent?.amount)} төлеміңіз қабылданды. Қаражат иесі қолжетімділік беріп, сіз растағанға дейін ұсталады.`,
-                  `Your payment of ${formatMoney(intent?.amount)} has been received. Funds are held until the owner grants access and you confirm it.`,
+                  `Ваш платёж ${formatMoney(intent?.amount)} получен. Выплата владельцу находится на hold до установленной даты; спор или возврат может остановить выплату.`,
+                  `${formatMoney(intent?.amount)} төлеміңіз қабылданды. Иесіне төлем белгіленген күнге дейін hold-та болады; дау немесе қайтарым оны тоқтатуы мүмкін.`,
+                  `Your payment of ${formatMoney(intent?.amount)} has been received. Funds are held for the configured payout hold period; a dispute or refund may stop the payout.`,
+                )}
+              </p>
+            </div>
+            <Button variant="primary" size="lg" onClick={goToMembership}>
+              {tx(language, 'К участию', 'Қатысуға өту', 'Go to Membership')}
+            </Button>
+          </>
+        ) : compensation ? (
+          <>
+            <Clock size={32} style={{ color: 'var(--eco-warning)' }} />
+            <div>
+              <h2 className="text-[22px]" style={{ color: 'var(--eco-text)' }}>
+                {tx(language, 'Возврат запущен', 'Қайтарым басталды', 'Refund Started')}
+              </h2>
+              <p
+                className="text-[14px] mt-2 max-w-sm mx-auto"
+                style={{ color: 'var(--eco-text-secondary)' }}
+              >
+                {tx(
+                  language,
+                  'Провайдер подтвердил списание, но место уже недоступно. Доступ не выдан, выплата владельцу не создана; статус возврата доступен в истории платежей.',
+                  'Провайдер төлемді растады, бірақ орын қолжетімсіз. Қолжетімділік берілмеді, иесіне төлем жасалмады; қайтарым мәртебесі төлем тарихында көрінеді.',
+                  'The provider confirmed the charge, but the seat is no longer available. No access or owner payout was created; refund status is visible in payment history.',
                 )}
               </p>
             </div>
