@@ -5,26 +5,33 @@ import { useI18n, type Language } from '../i18n-provider';
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
 
-/** Side of the square JPEG we emit. Backend downscales further if needed. */
-const OUTPUT_SIZE = 512;
+const DEFAULT_OUTPUT = { width: 512, height: 512 };
 
 /**
- * Square crop / zoom editor for service logos. The admin pans and zooms the
- * picked image inside a square frame so the logo fills the whole tile (no
- * letterboxing). On apply we render exactly the framed region to a 512×512
- * canvas and hand back a fresh JPEG File — so the stored image already fills
- * the box everywhere it's shown, with no per-render fit settings to maintain.
+ * Crop / zoom editor. The admin pans and zooms the picked image inside a fixed
+ * frame so the image fills the whole target area (no letterboxing). On apply we
+ * render exactly the framed region to a canvas and hand back a fresh JPEG File.
  *
  * Self-contained: no cropping library, just pointer math + canvas.
  */
 export function LogoCropModal({
   open,
   file,
+  title,
+  description,
+  aspectRatio = '1 / 1',
+  maxFrameWidth = 320,
+  outputSize = DEFAULT_OUTPUT,
   onCancel,
   onApply,
 }: {
   open: boolean;
   file: File | null;
+  title?: string;
+  description?: string;
+  aspectRatio?: string;
+  maxFrameWidth?: number;
+  outputSize?: { width: number; height: number };
   onCancel: () => void;
   onApply: (cropped: File) => void;
 }) {
@@ -37,7 +44,7 @@ export function LogoCropModal({
 
   const [src, setSrc] = useState<string | null>(null);
   const [nat, setNat] = useState<{ w: number; h: number } | null>(null);
-  const [frame, setFrame] = useState(300); // measured viewport side, px
+  const [frame, setFrame] = useState({ w: 300, h: 300 }); // measured viewport, px
   const [minScale, setMinScale] = useState(1);
   const [scale, setScale] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 }); // top-left of image in frame coords
@@ -61,17 +68,21 @@ export function LogoCropModal({
     return () => URL.revokeObjectURL(url);
   }, [open, file]);
 
-  // Measure the square frame so the crop math matches what's on screen.
+  // Measure the crop frame so the crop math matches what's on screen.
   useLayoutEffect(() => {
     if (!open) return;
     const measure = () => {
-      const w = frameRef.current?.clientWidth;
-      if (w && w > 0) setFrame(w);
+      const rect = frameRef.current?.getBoundingClientRect();
+      if (rect && rect.width > 0 && rect.height > 0) {
+        setFrame({ w: rect.width, h: rect.height });
+      }
     };
     measure();
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, [open, src]);
+    return () => {
+      window.removeEventListener('resize', measure);
+    };
+  }, [open, src, aspectRatio]);
 
   const clamp = useCallback(
     (next: { x: number; y: number }, s: number) => {
@@ -79,8 +90,8 @@ export function LogoCropModal({
       const dispW = nat.w * s;
       const dispH = nat.h * s;
       // Keep the frame fully covered: image edges never enter the frame.
-      const minX = frame - dispW;
-      const minY = frame - dispH;
+      const minX = frame.w - dispW;
+      const minY = frame.h - dispH;
       return {
         x: Math.min(0, Math.max(minX, next.x)),
         y: Math.min(0, Math.max(minY, next.y)),
@@ -92,10 +103,10 @@ export function LogoCropModal({
   // Initialise to "cover": smallest scale that fills the frame, centred.
   useEffect(() => {
     if (!nat) return;
-    const cover = Math.max(frame / nat.w, frame / nat.h);
+    const cover = Math.max(frame.w / nat.w, frame.h / nat.h);
     setMinScale(cover);
     setScale(cover);
-    setPos({ x: (frame - nat.w * cover) / 2, y: (frame - nat.h * cover) / 2 });
+    setPos({ x: (frame.w - nat.w * cover) / 2, y: (frame.h - nat.h * cover) / 2 });
   }, [nat, frame]);
 
   const applyScale = useCallback(
@@ -103,9 +114,9 @@ export function LogoCropModal({
       if (!nat) return;
       const s = Math.min(minScale * 5, Math.max(minScale, nextScale));
       // Zoom around the frame centre so the focus point stays put.
-      const cx = (frame / 2 - pos.x) / scale;
-      const cy = (frame / 2 - pos.y) / scale;
-      const next = { x: frame / 2 - cx * s, y: frame / 2 - cy * s };
+      const cx = (frame.w / 2 - pos.x) / scale;
+      const cy = (frame.h / 2 - pos.y) / scale;
+      const next = { x: frame.w / 2 - cx * s, y: frame.h / 2 - cy * s };
       setScale(s);
       setPos(clamp(next, s));
     },
@@ -138,11 +149,12 @@ export function LogoCropModal({
       // Frame → natural-image source rectangle.
       const srcX = -pos.x / scale;
       const srcY = -pos.y / scale;
-      const srcSize = frame / scale;
+      const srcW = frame.w / scale;
+      const srcH = frame.h / scale;
 
       const canvas = document.createElement('canvas');
-      canvas.width = OUTPUT_SIZE;
-      canvas.height = OUTPUT_SIZE;
+      canvas.width = outputSize.width;
+      canvas.height = outputSize.height;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
         setBusy(false);
@@ -150,9 +162,9 @@ export function LogoCropModal({
       }
       // Transparent areas flatten to white, matching the backend re-encode.
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
+      ctx.fillRect(0, 0, outputSize.width, outputSize.height);
       ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(image, srcX, srcY, srcSize, srcSize, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
+      ctx.drawImage(image, srcX, srcY, srcW, srcH, 0, 0, outputSize.width, outputSize.height);
 
       canvas.toBlob(
         (blob) => {
@@ -167,22 +179,23 @@ export function LogoCropModal({
     } catch {
       setBusy(false);
     }
-  }, [nat, file, pos, scale, frame, onApply]);
+  }, [nat, file, pos, scale, frame, outputSize, onApply]);
 
   return (
     <Modal
       open={open}
       onClose={onCancel}
-      title={tx(lang, 'Кадрирование логотипа', 'Логотипті кадрлау', 'Crop logo')}
+      title={title ?? tx(lang, 'Кадрирование логотипа', 'Логотипті кадрлау', 'Crop logo')}
     >
       <div className="flex flex-col gap-4">
         <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-          {tx(
-            lang,
-            'Перетащите и масштабируйте, чтобы логотип заполнил всю область.',
-            'Логотип бүкіл аумақты толтыру үшін жылжытып, масштабтаңыз.',
-            'Drag and zoom so the logo fills the whole area.',
-          )}
+          {description ??
+            tx(
+              lang,
+              'Перетащите и масштабируйте, чтобы логотип заполнил всю область.',
+              'Логотип бүкіл аумақты толтыру үшін жылжытып, масштабтаңыз.',
+              'Drag and zoom so the logo fills the whole area.',
+            )}
         </p>
 
         <div
@@ -194,8 +207,8 @@ export function LogoCropModal({
           onWheel={onWheel}
           className="relative w-full mx-auto overflow-hidden rounded-xl select-none"
           style={{
-            maxWidth: 320,
-            aspectRatio: '1 / 1',
+            maxWidth: maxFrameWidth,
+            aspectRatio,
             background: 'var(--eco-surface)',
             border: '1px solid var(--eco-border)',
             cursor: dragRef.current ? 'grabbing' : 'grab',
