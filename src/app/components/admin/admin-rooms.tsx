@@ -27,7 +27,7 @@ export function AdminRoomsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | number | null>(null);
 
   // Honor `?selected=<id>` so the global admin search can deep-link straight
   // to a room's detail panel.
@@ -66,7 +66,7 @@ export function AdminRoomsPage() {
   }, [load]);
 
   const selected = useMemo(
-    () => items.find((r) => r.id === selectedId) ?? null,
+    () => items.find((r) => String(r.id) === String(selectedId)) ?? null,
     [items, selectedId],
   );
 
@@ -171,7 +171,7 @@ export function AdminRoomsPage() {
               </Card>
             )}
             {items.map((r) => {
-              const active = selectedId === r.id;
+              const active = String(selectedId) === String(r.id);
               return (
                 <button
                   key={r.id}

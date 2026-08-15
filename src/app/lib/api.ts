@@ -1,4 +1,5 @@
 export type UserRole = 'USER' | 'SUPPORT' | 'ADMIN';
+export type ApiId = string | number;
 
 export interface User {
   id: number;
@@ -478,12 +479,12 @@ export function adminGetFeedbackRequest(
   );
 }
 
-export function adminGetFeedbackItemRequest(id: number, accessToken: string) {
+export function adminGetFeedbackItemRequest(id: ApiId, accessToken: string) {
   return requestJson<FeedbackDto>(`/admin/feedback/${id}`, {}, accessToken);
 }
 
 export function adminUpdateFeedbackRequest(
-  id: number,
+  id: ApiId,
   payload: UpdateFeedbackPayload,
   accessToken: string,
 ) {
@@ -743,11 +744,11 @@ export function clearServicesCache() {
   servicesCache.clear();
 }
 
-export function getService(serviceId: number) {
+export function getService(serviceId: ApiId) {
   return requestJson<ServiceDto>(`/catalog/services/${serviceId}`);
 }
 
-export function getTariffs(serviceId: number) {
+export function getTariffs(serviceId: ApiId) {
   return requestJson<TariffPlanDto[]>(`/catalog/services/${serviceId}/tariffs`);
 }
 
@@ -1453,7 +1454,7 @@ export function getAdminUsersRequest(
   );
 }
 
-export function banUserRequest(userId: number, reason: string, accessToken: string) {
+export function banUserRequest(userId: ApiId, reason: string, accessToken: string) {
   return requestJson<AdminUserDto>(
     `/admin/users/${userId}/ban`,
     {
@@ -1464,7 +1465,7 @@ export function banUserRequest(userId: number, reason: string, accessToken: stri
   );
 }
 
-export function unbanUserRequest(userId: number, reason: string, accessToken: string) {
+export function unbanUserRequest(userId: ApiId, reason: string, accessToken: string) {
   return requestJson<AdminUserDto>(
     `/admin/users/${userId}/unban`,
     {
@@ -1494,12 +1495,12 @@ export function createAdminUserRequest(payload: CreateAdminUserRequest, accessTo
   );
 }
 
-export function getAdminUserRequest(userId: number, accessToken: string) {
+export function getAdminUserRequest(userId: ApiId, accessToken: string) {
   return requestJson<AdminUserDto>(`/admin/users/${userId}`, {}, accessToken);
 }
 
 export function updateAdminUserRoleRequest(
-  userId: number,
+  userId: ApiId,
   payload: { role: 'USER' | 'SUPPORT' | 'ADMIN'; reason: string },
   accessToken: string,
 ) {
@@ -1514,7 +1515,7 @@ export function updateAdminUserRoleRequest(
 }
 
 export function updateAdminUserOwnerVerifiedRequest(
-  userId: number,
+  userId: ApiId,
   payload: { verified: boolean; reason?: string },
   accessToken: string,
 ) {
@@ -1539,7 +1540,7 @@ export function getAdminRoomsRequest(
   );
 }
 
-export function blockRoomRequest(roomId: number, reason: string, accessToken: string) {
+export function blockRoomRequest(roomId: ApiId, reason: string, accessToken: string) {
   return requestJson<void>(
     `/admin/moderation/rooms/${roomId}/block`,
     {
@@ -1550,7 +1551,7 @@ export function blockRoomRequest(roomId: number, reason: string, accessToken: st
   );
 }
 
-export function unblockRoomRequest(roomId: number, reason: string, accessToken: string) {
+export function unblockRoomRequest(roomId: ApiId, reason: string, accessToken: string) {
   return requestJson<void>(
     `/admin/moderation/rooms/${roomId}/unblock`,
     {
@@ -2012,11 +2013,11 @@ export interface ReputationDto {
   completedRoomsCount: number;
 }
 
-export function getReputationRequest(userId: number) {
+export function getReputationRequest(userId: ApiId) {
   return requestJson<ReputationDto>(`/reputation/users/${userId}`);
 }
 
-export function getReputationReviewsRequest(userId: number) {
+export function getReputationReviewsRequest(userId: ApiId) {
   return requestJson<ReviewDto[]>(`/reputation/users/${userId}/reviews`);
 }
 
@@ -2171,7 +2172,7 @@ export function initPayoutCardBindingRequest(payload: { returnUrl: string }, acc
 }
 
 /** Finalize the binding after the owner returns from the hosted page. */
-export function confirmPayoutCardBindingRequest(bindingId: number, accessToken: string) {
+export function confirmPayoutCardBindingRequest(bindingId: ApiId, accessToken: string) {
   return requestJson<PayoutCardBindingConfirmDto>(
     `/payouts/methods/binding/${bindingId}/confirm`,
     { method: 'POST' },
@@ -2389,7 +2390,7 @@ export function adminDeleteCategory(id: number, accessToken: string) {
   return requestJson<void>(`/admin/catalog/categories/${id}`, { method: 'DELETE' }, accessToken);
 }
 
-export function adminGetServices(accessToken: string, categoryId?: number) {
+export function adminGetServices(accessToken: string, categoryId?: ApiId) {
   return requestJson<AdminServiceDto[]>(
     `/admin/catalog/services${toSearchParams({ categoryId })}`,
     {},
@@ -2417,7 +2418,7 @@ export function adminDeleteService(id: number, accessToken: string) {
   return requestJson<void>(`/admin/catalog/services/${id}`, { method: 'DELETE' }, accessToken);
 }
 
-export function adminGetTariffs(serviceId: number, accessToken: string) {
+export function adminGetTariffs(serviceId: ApiId, accessToken: string) {
   return requestJson<AdminTariffDto[]>(
     `/admin/catalog/services/${serviceId}/tariffs`,
     {},
@@ -2426,7 +2427,7 @@ export function adminGetTariffs(serviceId: number, accessToken: string) {
 }
 
 export function adminCreateTariff(
-  serviceId: number,
+  serviceId: ApiId,
   payload: CreateTariffPayload,
   accessToken: string,
 ) {
@@ -2918,7 +2919,7 @@ export function matchRoomForService(serviceId: number, accessToken: string) {
 // Admin: service logo upload
 // ───────────────────────────────────────────────────────────────
 
-export function adminUploadServiceLogo(serviceId: number, file: File, accessToken: string) {
+export function adminUploadServiceLogo(serviceId: ApiId, file: File, accessToken: string) {
   const form = new FormData();
   form.append('file', file);
   return requestJson<AdminServiceDto>(
@@ -2934,6 +2935,7 @@ export function adminUploadServiceLogo(serviceId: number, file: File, accessToke
 
 export interface NotificationDto {
   id: number;
+  type?: string | null;
   title: string;
   body: string;
   link?: string | null;
@@ -3025,6 +3027,7 @@ export interface NotificationPreferenceDto {
   category: NotificationCategory | string;
   inApp: boolean;
   email: boolean;
+  emailEligible?: boolean;
 }
 
 export interface NotificationPreferenceUpdate {

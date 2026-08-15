@@ -70,7 +70,7 @@ export function AdminFeedbackPage() {
   const [queryDraft, setQueryDraft] = useState('');
   const [query, setQuery] = useState('');
 
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | number | null>(null);
   const [detail, setDetail] = useState<FeedbackDto | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -137,7 +137,7 @@ export function AdminFeedbackPage() {
   }, [typeFilter, statusFilter, query]);
 
   const loadDetail = useCallback(
-    async (id: number) => {
+    async (id: string | number) => {
       setDetailLoading(true);
       setDetailError(null);
       try {
@@ -272,7 +272,7 @@ export function AdminFeedbackPage() {
               </Card>
             )}
             {items.map((item) => {
-              const isActive = selectedId === item.id;
+              const isActive = String(selectedId) === String(item.id);
               const author = item.userDisplayName || item.userEmail || t('adminFeedbackAuthorAnon');
               return (
                 <button

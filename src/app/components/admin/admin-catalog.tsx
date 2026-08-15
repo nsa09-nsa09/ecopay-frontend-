@@ -808,7 +808,10 @@ function ServiceFormModal({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const uploadLogoFor = async (serviceId: string, file: File): Promise<AdminServiceDto | null> => {
+  const uploadLogoFor = async (
+    serviceId: string | number,
+    file: File,
+  ): Promise<AdminServiceDto | null> => {
     setUploadingLogo(true);
     try {
       const updated = await authorizedRequest((token) =>
@@ -835,7 +838,7 @@ function ServiceFormModal({
       let saved: AdminServiceDto;
       if (current) {
         const payload: UpdateServicePayload = {
-          categoryId,
+          categoryId: Number(categoryId),
           name: name.trim(),
           slug: slug.trim() || undefined,
           providerType,
@@ -845,7 +848,7 @@ function ServiceFormModal({
         saved = await authorizedRequest((token) => adminUpdateService(current.id, payload, token));
       } else {
         const payload: CreateServicePayload = {
-          categoryId,
+          categoryId: Number(categoryId),
           name: name.trim(),
           slug: slug.trim() || undefined,
           providerType,

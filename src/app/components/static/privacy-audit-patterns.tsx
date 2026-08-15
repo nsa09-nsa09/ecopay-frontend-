@@ -45,7 +45,7 @@ function SectionCard({
   );
 }
 
-function SectionLabel({ children }: { children: string }) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="text-[11px] mb-3 tracking-wide" style={{ color: 'var(--eco-text-tertiary)' }}>
       {children}

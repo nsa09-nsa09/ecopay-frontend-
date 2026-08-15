@@ -71,7 +71,7 @@ export function OperatorPage() {
         if (!isCancelled) {
           setService(serviceResponse);
           setPlans(tariffResponse);
-          setRooms(roomResponse.items.filter((room) => room.serviceId === serviceId));
+          setRooms(roomResponse.items.filter((room) => String(room.serviceId) === serviceId));
         }
       } catch {
         if (!isCancelled) {

@@ -5,6 +5,7 @@ import { useI18n } from '../i18n-provider';
 import { formatDate } from '../../lib/datetime';
 import { useAuth } from '../auth/auth-provider';
 import {
+  ApiError,
   assignModerationItemRequest,
   blockRoomRequest,
   confirmModerationItemRequest,

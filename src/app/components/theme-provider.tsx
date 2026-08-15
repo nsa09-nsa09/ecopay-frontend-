@@ -95,10 +95,12 @@ const themes = {
   },
 } as const;
 
+type ThemeTokens = (typeof themes)[ThemeName];
+
 interface ThemeContextType {
   theme: ThemeName;
   setTheme: (t: ThemeName) => void;
-  tokens: (typeof themes)["eco-coral"];
+  tokens: ThemeTokens;
   t: (key: string) => string;
 }
 

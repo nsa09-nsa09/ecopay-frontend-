@@ -47,7 +47,7 @@ interface StateCard {
   titleKey: string;
   descKey: string;
   ctaKey: string;
-  ctaVariant: 'primary' | 'ghost' | 'outline';
+  ctaVariant: 'primary' | 'ghost';
   icon: React.ElementType;
   iconColor: string;
   iconBg: string;

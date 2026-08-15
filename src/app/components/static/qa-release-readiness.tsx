@@ -49,12 +49,12 @@ const SC = ({ children, className = '' }: { children: React.ReactNode; className
     {children}
   </div>
 );
-const SL = ({ children }: { children: string }) => (
+const SL = ({ children }: { children: React.ReactNode }) => (
   <div className="text-[11px] mb-3 tracking-wide" style={{ color: 'var(--eco-text-tertiary)' }}>
     {children}
   </div>
 );
-const VL = ({ children }: { children: string }) => (
+const VL = ({ children }: { children: React.ReactNode }) => (
   <span
     className="text-[10px] px-1.5 py-0.5 rounded"
     style={{ background: 'var(--eco-brand-50)', color: 'var(--eco-primary)' }}

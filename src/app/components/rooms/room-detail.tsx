@@ -110,7 +110,7 @@ export function RoomDetailPage() {
 
         if (!isCancelled) {
           setRoom(roomResponse);
-          setSummary(roomListResponse.items.find((item) => item.id === roomId) ?? null);
+          setSummary(roomListResponse.items.find((item) => String(item.id) === roomId) ?? null);
         }
       } catch {
         if (!isCancelled) {

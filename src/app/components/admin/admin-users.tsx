@@ -83,7 +83,7 @@ export function AdminUsersPage() {
   const [usersCount, setUsersCount] = useState<number | null>(null);
   const [adminsCount, setAdminsCount] = useState<number | null>(null);
 
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | number | null>(null);
   const [detail, setDetail] = useState<AdminUserDto | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
@@ -133,7 +133,7 @@ export function AdminUsersPage() {
       );
       setItems(result.items);
       setTotalPages(Math.max(1, result.totalPages));
-      if (selectedId && !result.items.some((u) => u.id === selectedId)) {
+      if (selectedId && !result.items.some((u) => String(u.id) === String(selectedId))) {
         setSelectedId(null);
       }
     } catch (err) {
@@ -189,7 +189,7 @@ export function AdminUsersPage() {
         if (!cancelled) setDetail(data);
       })
       .catch(() => {
-        if (!cancelled) setDetail(items.find((u) => u.id === selectedId) ?? null);
+        if (!cancelled) setDetail(items.find((u) => String(u.id) === String(selectedId)) ?? null);
       })
       .finally(() => {
         if (!cancelled) setDetailLoading(false);
@@ -200,7 +200,7 @@ export function AdminUsersPage() {
   }, [selectedId, authorizedRequest, items]);
 
   const listSelected = useMemo(
-    () => items.find((u) => u.id === selectedId) ?? null,
+    () => items.find((u) => String(u.id) === String(selectedId)) ?? null,
     [items, selectedId],
   );
   const selected = detail ?? listSelected;
@@ -209,7 +209,7 @@ export function AdminUsersPage() {
 
   const replaceUser = (updated: AdminUserDto) => {
     setItems((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
-    if (selectedId === updated.id) setDetail(updated);
+    if (String(selectedId) === String(updated.id)) setDetail(updated);
   };
 
   const closeBanModal = () => {
@@ -399,7 +399,7 @@ export function AdminUsersPage() {
             )}
             {items.map((u) => {
               const banned = isBanned(u);
-              const active = selectedId === u.id;
+              const active = String(selectedId) === String(u.id);
               return (
                 <button
                   key={u.id}
