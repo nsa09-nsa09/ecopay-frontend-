@@ -110,11 +110,11 @@ const translations: Translations = {
   },
   createTicket: { ru: 'Создать заявку', kz: 'Өтінім жасау', en: 'Create Ticket' },
   ticketStatus: { ru: 'Статус заявки', kz: 'Өтінім мәртебесі', en: 'Ticket Status' },
-  developedBy: {
-    ru: 'Разработано Apex Digital',
-    kz: 'Apex Digital әзірлеген',
-    en: 'Developed by Apex Digital',
-  },
+developedBy: {
+  ru: 'Команда EcoPay',
+  kz: 'EcoPay командасы',
+  en: 'EcoPay team',
+},
   copyright: {
     ru: '© 2026 EcoPay · Астана, Казахстан',
     kz: '© 2026 EcoPay · Астана, Қазақстан',
@@ -125,11 +125,11 @@ const translations: Translations = {
     kz: 'Жазылыммен бөлісіңіз. Бірге үнемдеңіз.',
     en: 'Share subscriptions. Save together.',
   },
-  footerContactLine: {
-    ru: 'apexdigitalservices3@gmail.com · Астана',
-    kz: 'apexdigitalservices3@gmail.com · Астана',
-    en: 'apexdigitalservices3@gmail.com · Astana',
-  },
+footerContactLine: {
+  ru: 'EcoPay · Астана',
+  kz: 'EcoPay · Астана',
+  en: 'EcoPay · Astana',
+},
   forOwnersFooterLink: {
     ru: 'Владельцам',
     kz: 'Иелерге',
@@ -333,11 +333,11 @@ const translations: Translations = {
   },
   contactGetInTouch: { ru: 'Связаться с нами', kz: 'Бізбен байланысыңыз', en: 'Get in Touch' },
   contactPhoneNumber: { ru: '+7 747 226 6885', kz: '+7 747 226 6885', en: '+7 747 226 6885' },
-  contactEmail: {
-    ru: 'apexdigitalservices3@gmail.com',
-    kz: 'apexdigitalservices3@gmail.com',
-    en: 'apexdigitalservices3@gmail.com',
-  },
+contactEmail: {
+  ru: '',
+  kz: '',
+  en: '',
+},
   contactLocation: { ru: 'Астана, Казахстан', kz: 'Астана, Қазақстан', en: 'Astana, Kazakhstan' },
   aboutCtaCatalog: { ru: 'Открыть каталог', kz: 'Каталогты ашу', en: 'Open catalog' },
   aboutCtaCreateRoom: { ru: 'Создать комнату', kz: 'Бөлме құру', en: 'Create a room' },
@@ -375,11 +375,11 @@ const translations: Translations = {
     kz: 'Телефонда EcoPay-ды ашу үшін сканерлеңіз',
     en: 'Scan to open EcoPay on your phone',
   },
-  adminAboutApexLink: {
-    ru: 'Ссылка Apex Digital',
-    kz: 'Apex Digital сілтемесі',
-    en: 'Apex Digital link',
-  },
+adminAboutApexLink: {
+  ru: 'Ссылка разработчика',
+  kz: 'Әзірлеуші сілтемесі',
+  en: 'Developer link',
+},
   buildingTrust: {
     ru: 'Создаём доверие с помощью технологий',
     kz: 'Технология арқылы сенімділікті құру',
@@ -2355,11 +2355,11 @@ const translations: Translations = {
     en: 'Insufficient funds',
   },
   retryPaymentAction: { ru: 'Повторить оплату', kz: 'Төлемді қайталау', en: 'Retry Payment' },
-  paymentIntentValid24h: {
-    ru: 'Платёжное намерение действует 24 часа. Двойного списания не будет.',
-    kz: 'Төлем ниеті 24 сағат жарамды. Қос есептен шығару болмайды.',
-    en: 'Your payment intent remains valid for 24 hours. No duplicate charges will occur.',
-  },
+paymentIntentValid24h: {
+  ru: 'Перед повторной оплатой обновите статус платежа, чтобы избежать повторного списания',
+  kz: 'Қайта төлем жасамас бұрын төлем мәртебесін жаңартыңыз',
+  en: 'Refresh the payment status before retrying to avoid duplicate charges',
+},
   roomBlockedTitle: { ru: 'Комната заблокирована', kz: 'Бөлме бұғатталды', en: 'Room Blocked' },
   roomBlockedDescLong: {
     ru: 'Эта комната заблокирована администратором после проверки. Все активные участники получат инструкции по возврату.',
