@@ -20,7 +20,6 @@ export interface User {
 
 export interface AuthResponse {
   accessToken: string;
-  refreshToken: string;
   user: User;
 }
 
@@ -77,6 +76,13 @@ export interface RoomSummaryDto {
   maxMembers: number;
   priceTotal: number;
   pricePerMember: number;
+  originalTariffPrice?: number | string | null;
+  originalTariffCurrency?: string | null;
+  shareKzt?: number | string | null;
+  commissionKzt?: number | string | null;
+  payableTotalKzt?: number | string | null;
+  settlementCurrency?: 'KZT' | string | null;
+  fxRateSnapshot?: number | string | null;
   currency: string;
   startDate: string;
   ownerUserId: number;
@@ -110,6 +116,13 @@ export interface RoomResponseDto {
   maxMembers: number;
   priceTotal: number;
   pricePerMember: number;
+  originalTariffPrice?: number | string | null;
+  originalTariffCurrency?: string | null;
+  shareKzt?: number | string | null;
+  commissionKzt?: number | string | null;
+  payableTotalKzt?: number | string | null;
+  settlementCurrency?: 'KZT' | string | null;
+  fxRateSnapshot?: number | string | null;
   /** EcoPay commission a joining member pays on top of pricePerMember (null if not computable). */
   pricePerMemberCommission?: number | null;
   /** Total a joining member pays = pricePerMember + pricePerMemberCommission. */
@@ -148,14 +161,13 @@ interface ErrorPayload {
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
 
-export function buildSupportWebSocketUrl(accessToken: string) {
+export function buildSupportWebSocketUrl() {
   const wsUrl = new URL(
     '/ws',
     /^https?:\/\//.test(API_BASE_URL) ? new URL(API_BASE_URL).origin : window.location.origin,
   );
 
   wsUrl.protocol = wsUrl.protocol === 'https:' ? 'wss:' : 'ws:';
-  wsUrl.searchParams.set('token', accessToken);
   return wsUrl.toString();
 }
 
@@ -726,7 +738,7 @@ export function verifyPhoneRequest(phone: string, code: string, accessToken: str
 
 const servicesCache = new Map<string, Promise<ServiceDto[]>>();
 
-export function getServices(categoryId?: number, sort?: CatalogSort) {
+export function getServices(categoryId?: ApiId, sort?: CatalogSort) {
   const key = `${categoryId ?? ''}::${sort ?? ''}`;
   const cached = servicesCache.get(key);
   if (cached) return cached;
@@ -770,7 +782,7 @@ export function getRoomInviteLink(roomId: string | number, accessToken: string) 
 }
 
 export function joinRoomRequest(
-  roomId: number,
+  roomId: ApiId,
   payload: {
     consentAccepted: boolean;
     identifierType?: string;
@@ -1067,6 +1079,7 @@ export type PaymentIntentStatus =
   | 'REFUND_PENDING'
   | 'REFUNDED'
   | 'REQUIRES_REVIEW'
+  | 'CAPTURE_ANOMALY'
   | 'FAILED'
   | 'CANCELLED'
   | string;
@@ -1078,6 +1091,13 @@ export interface PaymentIntentResponseDto {
   idempotencyKey: string;
   /** Total charged to the member = tariff share + EcoPay commission. */
   amount: number;
+  settlementCurrency?: 'KZT' | string | null;
+  payableTotalKzt?: number | string | null;
+  shareKzt?: number | string | null;
+  commissionKzt?: number | string | null;
+  originalTariffPrice?: number | string | null;
+  originalTariffCurrency?: string | null;
+  fxRateSnapshot?: number | string | null;
   /** The member's tariff share (the portion the owner receives). */
   shareAmount?: number | null;
   /** The EcoPay commission added on top of the share. */
@@ -1135,6 +1155,8 @@ export interface PaymentHistoryItemDto {
   status: string;
   amount: number | string;
   currency: string;
+  settlementCurrency?: string | null;
+  amountKzt?: number | string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   paidAt?: string | null;
@@ -1783,11 +1805,15 @@ export function markRefundFailRequest(
 // needs to answer a support ticket without opening the DB.
 export interface FinanceTransactionDto {
   id: number;
+  publicId?: string | null;
   createdAt: string;
+  updatedAt?: string | null;
   type: string;
   status: string;
   amount: number | string;
   currency: string | null;
+  providerReference?: string | null;
+  safeErrorReason?: string | null;
   roomId: number | null;
   roomTitle: string | null;
   ownerUserId: number | null;
@@ -1802,10 +1828,14 @@ export interface FinanceTransactionDto {
 
 export interface FinanceRefundDto {
   id: number;
+  publicId?: string | null;
   createdAt: string;
+  updatedAt?: string | null;
   status: string;
   amount: number | string;
   currency: string | null;
+  providerReference?: string | null;
+  safeErrorReason?: string | null;
   reason: string | null;
   adminUserId: number | null;
   adminDisplayName: string | null;
@@ -2322,7 +2352,7 @@ export interface UpdateCategoryPayload {
 }
 
 export interface CreateServicePayload {
-  categoryId: number;
+  categoryId: ApiId;
   name: string;
   slug?: string;
   providerType: string;
@@ -2331,7 +2361,7 @@ export interface CreateServicePayload {
 }
 
 export interface UpdateServicePayload {
-  categoryId?: number;
+  categoryId?: ApiId;
   name?: string;
   slug?: string;
   providerType?: string;
@@ -2375,7 +2405,7 @@ export function adminCreateCategory(payload: CreateCategoryPayload, accessToken:
 }
 
 export function adminUpdateCategory(
-  id: number,
+  id: ApiId,
   payload: UpdateCategoryPayload,
   accessToken: string,
 ) {
@@ -2386,7 +2416,7 @@ export function adminUpdateCategory(
   );
 }
 
-export function adminDeleteCategory(id: number, accessToken: string) {
+export function adminDeleteCategory(id: ApiId, accessToken: string) {
   return requestJson<void>(`/admin/catalog/categories/${id}`, { method: 'DELETE' }, accessToken);
 }
 
@@ -2406,7 +2436,7 @@ export function adminCreateService(payload: CreateServicePayload, accessToken: s
   );
 }
 
-export function adminUpdateService(id: number, payload: UpdateServicePayload, accessToken: string) {
+export function adminUpdateService(id: ApiId, payload: UpdateServicePayload, accessToken: string) {
   return requestJson<AdminServiceDto>(
     `/admin/catalog/services/${id}`,
     { method: 'PUT', body: JSON.stringify(payload) },
@@ -2414,7 +2444,7 @@ export function adminUpdateService(id: number, payload: UpdateServicePayload, ac
   );
 }
 
-export function adminDeleteService(id: number, accessToken: string) {
+export function adminDeleteService(id: ApiId, accessToken: string) {
   return requestJson<void>(`/admin/catalog/services/${id}`, { method: 'DELETE' }, accessToken);
 }
 
@@ -2438,7 +2468,7 @@ export function adminCreateTariff(
   );
 }
 
-export function adminUpdateTariff(id: number, payload: UpdateTariffPayload, accessToken: string) {
+export function adminUpdateTariff(id: ApiId, payload: UpdateTariffPayload, accessToken: string) {
   return requestJson<AdminTariffDto>(
     `/admin/catalog/tariffs/${id}`,
     { method: 'PUT', body: JSON.stringify(payload) },
@@ -2446,7 +2476,7 @@ export function adminUpdateTariff(id: number, payload: UpdateTariffPayload, acce
   );
 }
 
-export function adminDeleteTariff(id: number, accessToken: string) {
+export function adminDeleteTariff(id: ApiId, accessToken: string) {
   return requestJson<void>(`/admin/catalog/tariffs/${id}`, { method: 'DELETE' }, accessToken);
 }
 
@@ -2911,7 +2941,7 @@ export interface ServiceMatchResult {
   roomId: number | null;
 }
 
-export function matchRoomForService(serviceId: number, accessToken: string) {
+export function matchRoomForService(serviceId: ApiId, accessToken: string) {
   return requestJson<ServiceMatchResult>(`/catalog/services/${serviceId}/match`, {}, accessToken);
 }
 

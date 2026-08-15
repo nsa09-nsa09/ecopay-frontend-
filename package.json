@@ -5,12 +5,16 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "build:release": "vite build && node tools/check-internal-artifacts.mjs && npm run check:brand",
+    "build:release": "vite build && node tools/check-internal-artifacts.mjs && npm run check:production-content && npm run check:brand",
     "check:brand": "node tools/check-legacy-brand.mjs",
     "check:internal-artifacts": "node tools/check-internal-artifacts.mjs",
+    "check:production-content": "node tools/check-production-content.mjs",
     "dev": "vite",
     "format": "prettier --write .",
-    "release:gate": "npm run typecheck && npm run test:smoke && npm run build:release",
+    "preview": "vite preview",
+    "release:gate": "npm run typecheck && npm run test:contracts && npm run test:smoke && npm run test:e2e && npm run build:release",
+    "test:contracts": "tsc --noEmit",
+    "test:e2e": "playwright test",
     "test:smoke": "node tools/smoke-launch.mjs",
     "typecheck": "tsc --noEmit"
   },
@@ -78,6 +82,7 @@
     "vaul": "1.1.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.2",
     "@tailwindcss/vite": "4.1.12",
     "@types/node": "^20.11.0",
     "@types/react": "^18.3.0",

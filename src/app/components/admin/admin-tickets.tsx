@@ -147,7 +147,10 @@ export function AdminTicketsPage() {
       if (cancelled) return null;
 
       client = new Client({
-        webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl(token)),
+        webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl()),
+        connectHeaders: {
+          Authorization: `Bearer ${token}`,
+        },
         reconnectDelay: 5000,
         onConnect: () => {
           client?.subscribe('/topic/staff/support-queue', (message) => {

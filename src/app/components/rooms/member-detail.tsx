@@ -36,6 +36,10 @@ const tx = (l: Language, ru: string, kz: string, en: string) =>
 
 const moneyFormatter = new Intl.NumberFormat('ru-RU');
 const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
+const formatCurrency = (v: number | string | null | undefined, currency = 'KZT') => {
+  const formatted = moneyFormatter.format(Number(v ?? 0));
+  return currency === 'KZT' ? `₸${formatted}` : `${currency} ${formatted}`;
+};
 const formatDateTime = (v: string | null | undefined, l: Language) =>
   v ? formatAlmatyDateTime(v, l) : null;
 
@@ -76,7 +80,7 @@ export function MemberDetailPage() {
   const { language } = useI18n();
   // Keep the id as a string: room ids are 64-bit and Number() would corrupt them.
   const roomId = id ?? '';
-  const { authorizedRequest, user } = useAuth();
+  const { authorizedRequest, user, isReady, isAuthenticated } = useAuth();
 
   const [room, setRoom] = useState<RoomResponseDto | null>(null);
   const [membership, setMembership] = useState<MyRoomMembershipDto | null>(null);
@@ -97,8 +101,14 @@ export function MemberDetailPage() {
   const [complaintCreated, setComplaintCreated] = useState<number | null>(null);
 
   useEffect(() => {
+    if (!isReady) return;
     if (!roomId) {
       setError(tx(language, 'Комната не найдена.', 'Бөлме табылмады.', 'Room not found.'));
+      setLoading(false);
+      return;
+    }
+    if (!isAuthenticated) {
+      setError(tx(language, 'Sign in required.', 'Sign in required.', 'Sign in to view this membership.'));
       setLoading(false);
       return;
     }
@@ -140,7 +150,7 @@ export function MemberDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [roomId, authorizedRequest, language]);
+  }, [roomId, authorizedRequest, language, isReady, isAuthenticated]);
 
   const handleConfirm = async () => {
     setConfirming(true);
@@ -166,6 +176,17 @@ export function MemberDetailPage() {
 
   const handlePay = async () => {
     if (!membership) return;
+    if (room && ['CANCELLED', 'BLOCKED', 'COMPLETED'].includes(room.status)) {
+      setPayError(
+        tx(
+          language,
+          'Оплата по этой комнате недоступна. Проверьте текущий статус участия.',
+          'Бұл бөлме бойынша төлем қолжетімсіз. Қатысу мәртебесін тексеріңіз.',
+          'Payment is not available for this room. Check the current membership status.',
+        ),
+      );
+      return;
+    }
     setPaying(true);
     setPayError(null);
     try {
@@ -315,12 +336,19 @@ export function MemberDetailPage() {
   const memberConfirmed = !!membership.memberConfirmedAt;
   const isActive = membership.status === 'ACTIVE';
   const canConfirm = membership.status === 'PENDING' && ownerGranted && !memberConfirmed;
+  const roomPaymentClosed = ['CANCELLED', 'BLOCKED', 'COMPLETED'].includes(room.status);
 
-  // EcoPay commission the member pays on top of their tariff share (owner pays none).
-  // Backend-computed; fall back to the bare share if the breakdown isn't available.
-  const payShare = Number(room.pricePerMember ?? 0);
-  const payTotal = Number(room.pricePerMemberTotal ?? payShare);
-  const payCommission = Number(room.pricePerMemberCommission ?? Math.max(0, payTotal - payShare));
+  const settlementCurrency = room.settlementCurrency ?? 'KZT';
+  const payShare = room.shareKzt ?? room.pricePerMember;
+  const payTotal = room.payableTotalKzt ?? room.pricePerMemberTotal ?? payShare;
+  const payCommission =
+    room.commissionKzt ??
+    room.pricePerMemberCommission ??
+    Math.max(0, Number(payTotal ?? 0) - Number(payShare ?? 0));
+  const originalTariff =
+    room.originalTariffPrice != null && room.originalTariffCurrency
+      ? formatCurrency(room.originalTariffPrice, room.originalTariffCurrency)
+      : null;
 
   const timelineSteps = [
     {
@@ -450,7 +478,7 @@ export function MemberDetailPage() {
           </div>
         </Card>
 
-        {membership.status === 'APPLIED' && (
+        {membership.status === 'APPLIED' && !roomPaymentClosed && (
           <Card className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <CreditCard size={16} style={{ color: 'var(--eco-primary)' }} />
@@ -461,16 +489,32 @@ export function MemberDetailPage() {
             <div className="p-4 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
               <div className="flex justify-between text-[14px] mb-1">
                 <span style={{ color: 'var(--eco-text-secondary)' }}>
+                  {tx(language, 'Тариф', 'Тариф', 'Tariff')}
+                </span>
+                <span style={{ color: 'var(--eco-text)' }}>
+                  {originalTariff ?? formatCurrency(room.pricePerMember, room.currency)}
+                </span>
+              </div>
+              {room.fxRateSnapshot != null && (
+                <div className="flex justify-between text-[14px] mb-1">
+                  <span style={{ color: 'var(--eco-text-secondary)' }}>
+                    {tx(language, 'Курс зафиксирован при создании комнаты', 'Курс бөлме жасалғанда бекітілді', 'FX rate fixed when the room was created')}
+                  </span>
+                  <span style={{ color: 'var(--eco-text)' }}>{String(room.fxRateSnapshot)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-[14px] mb-1">
+                <span style={{ color: 'var(--eco-text-secondary)' }}>
                   {tx(language, 'Ваша доля', 'Сіздің үлесіңіз', 'Your share')}
                 </span>
-                <span style={{ color: 'var(--eco-text)' }}>{formatMoney(room.pricePerMember)}</span>
+                <span style={{ color: 'var(--eco-text)' }}>{formatCurrency(payShare, settlementCurrency)}</span>
               </div>
-              {payCommission > 0 && (
+              {Number(payCommission ?? 0) > 0 && (
                 <div className="flex justify-between text-[14px] mb-1">
                   <span style={{ color: 'var(--eco-text-secondary)' }}>
                     {tx(language, 'Комиссия EcoPay', 'EcoPay комиссиясы', 'EcoPay fee')}
                   </span>
-                  <span style={{ color: 'var(--eco-text)' }}>{formatMoney(payCommission)}</span>
+                  <span style={{ color: 'var(--eco-text)' }}>{formatCurrency(payCommission, settlementCurrency)}</span>
                 </div>
               )}
               <div
@@ -481,7 +525,7 @@ export function MemberDetailPage() {
                   {tx(language, 'Итого к оплате', 'Барлығы төлеуге', 'Total to pay')}
                 </span>
                 <span style={{ color: 'var(--eco-text)', fontWeight: 600 }}>
-                  {formatMoney(payTotal)}
+                  {formatCurrency(payTotal, settlementCurrency)}
                 </span>
               </div>
               <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
@@ -500,8 +544,26 @@ export function MemberDetailPage() {
             )}
             <Button variant="primary" size="md" loading={paying} onClick={handlePay}>
               <CreditCard size={14} /> {tx(language, 'Оплатить', 'Төлеу', 'Pay')}{' '}
-              {formatMoney(payTotal)}
+              {formatCurrency(payTotal, settlementCurrency)}
             </Button>
+          </Card>
+        )}
+
+        {membership.status === 'APPLIED' && roomPaymentClosed && (
+          <Card className="flex items-start gap-3">
+            <AlertTriangle
+              size={18}
+              className="mt-0.5 shrink-0"
+              style={{ color: 'var(--eco-warning)' }}
+            />
+            <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+              {tx(
+                language,
+                'Оплата по этой комнате недоступна из-за текущего статуса комнаты.',
+                'Бөлменің ағымдағы мәртебесіне байланысты төлем қолжетімсіз.',
+                'Payment is unavailable because of the current room status.',
+              )}
+            </div>
           </Card>
         )}
 

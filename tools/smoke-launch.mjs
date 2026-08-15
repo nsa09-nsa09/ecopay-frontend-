@@ -11,6 +11,14 @@ const checks = [
       "path: 'payment/payout'",
       "path: 'payments/history'",
     ],
+    mustNotInclude: [
+      "path: 'rooms/full'",
+      "path: 'rooms/payment-failed'",
+      "path: 'rooms/blocked'",
+      "path: 'payment/room'",
+      "path: 'payment/checkout'",
+      "path: 'payment/pending'",
+    ],
   },
   {
     file: 'src/app/components/auth/auth-provider.tsx',
@@ -27,6 +35,7 @@ const checks = [
       'confirmPaymentSuccessRequest',
       'getPaymentIntentRequest',
       'Funds are held for the configured payout hold period',
+      'Do not pay again',
     ],
     mustNotInclude: ['held in escrow', 'until the owner grants access and you confirm it'],
   },

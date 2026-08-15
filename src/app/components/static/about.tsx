@@ -6,7 +6,6 @@ import {
   Clock,
   Coins,
   Mail,
-  MapPin,
   Phone,
   Shield,
   ShieldCheck,
@@ -91,9 +90,7 @@ export function AboutPage() {
   const descriptionText =
     pickLocalized(content, 'description', language)?.trim() || t('howWeHelpText');
   const contactEmail = content?.contactEmail?.trim() || appBrand.supportEmail;
-  const contactPhone = content?.contactPhone?.trim() || t('contactPhoneNumber');
-  const apexUrl = content?.apexLink?.trim() || 'https://apex-digital.kz';
-  const apexIsHttp = apexUrl.startsWith('http');
+  const contactPhone = content?.contactPhone?.trim() || '';
 
   // QR points at the current origin so a phone scan lands on the same host
   // the visitor is browsing. Strip the Vite dev port (:5173) so a QR scanned
@@ -101,7 +98,7 @@ export function AboutPage() {
   // sensible default so the render doesn't crash.
   const qrUrl = (() => {
     const origin =
-      typeof window !== 'undefined' ? window.location.origin : 'https://dev.apex-digital.kz';
+      typeof window !== 'undefined' ? window.location.origin : 'https://ecopay.app';
     return origin.replace(/:5173(?=\/|$)/, '');
   })();
 
@@ -275,38 +272,12 @@ export function AboutPage() {
                 text={contactEmail}
               />
             )}
-            <ContactTile
-              icon={<Phone size={18} style={{ color: 'var(--eco-primary)' }} />}
-              text={contactPhone}
-            />
-            <ContactTile
-              icon={<MapPin size={18} style={{ color: 'var(--eco-primary)' }} />}
-              text={t('contactLocation')}
-            />
-          </div>
-
-          {/* Developer Credit */}
-          <div
-            className="mt-8 p-4 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
-            style={{ background: 'var(--eco-surface)' }}
-          >
-            <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-              {apexIsHttp ? (
-                <a
-                  href={apexUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: 'var(--eco-primary)', fontWeight: 600 }}
-                >
-                  {t('developedBy')}
-                </a>
-              ) : (
-                <strong style={{ color: 'var(--eco-text)' }}>{t('developedBy')}</strong>
-              )}
-            </p>
-            <span className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {t('buildingTrust')}
-            </span>
+            {contactPhone && (
+              <ContactTile
+                icon={<Phone size={18} style={{ color: 'var(--eco-primary)' }} />}
+                text={contactPhone}
+              />
+            )}
           </div>
         </section>
       </div>

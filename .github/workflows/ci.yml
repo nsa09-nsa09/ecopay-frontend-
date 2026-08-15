@@ -1,4 +1,4 @@
-name: CI/CD
+name: Frontend CI/CD
 
 on:
   push:
@@ -9,8 +9,12 @@ on:
 env:
   IMAGE: ghcr.io/nsa09-nsa09/ecopay-frontend
 
+concurrency:
+  group: frontend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  release-gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,11 +27,29 @@ jobs:
       - name: Install
         run: npm ci --no-audit --no-fund --legacy-peer-deps
 
-      - name: Release gate
-        run: npm run release:gate
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
 
-  build-push:
-    needs: build
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Unit/static contract tests
+        run: npm run test:contracts
+
+      - name: Runtime critical E2E
+        run: npm run test:e2e
+
+      - name: Production build
+        run: npm run build
+
+      - name: Internal/demo/fake content scan
+        run: npm run check:internal-artifacts && npm run check:production-content && npm run check:brand
+
+      - name: Source map/security scan
+        run: node -e "const fs=require('fs'); const path=require('path'); const hits=[]; const walk=d=>fs.readdirSync(d,{withFileTypes:true}).forEach(e=>{const p=path.join(d,e.name); if(e.isDirectory()) walk(p); else if(p.endsWith('.map')) hits.push(p)}); walk('dist'); if(hits.length){console.error(hits.join('\n')); process.exit(1)}"
+
+  docker-build-push:
+    needs: release-gate
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
     runs-on: ubuntu-latest
     permissions:
@@ -42,46 +64,55 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # main -> :latest (prod),  dev -> :dev (dev environment)
-      - name: Compute moving tag
-        id: tag
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "moving=latest" >> "$GITHUB_OUTPUT"
-          else
-            echo "moving=dev" >> "$GITHUB_OUTPUT"
-          fi
-
       - uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: |
-            ${{ env.IMAGE }}:${{ steps.tag.outputs.moving }}
-            ${{ env.IMAGE }}:${{ github.sha }}
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
 
   deploy:
-    needs: build-push
+    needs: docker-build-push
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    concurrency:
+      group: frontend-deploy-${{ github.ref }}
+      cancel-in-progress: false
     steps:
-      # main -> "frontend" (prod service),  dev -> "frontend-dev"
-      - name: Compute target service
-        id: svc
+      - name: Compute target
+        id: target
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "name=frontend" >> "$GITHUB_OUTPUT"
+            echo "service=frontend" >> "$GITHUB_OUTPUT"
+            echo "url=${{ secrets.FRONTEND_PRODUCTION_URL }}" >> "$GITHUB_OUTPUT"
           else
-            echo "name=frontend-dev" >> "$GITHUB_OUTPUT"
+            echo "service=frontend-dev" >> "$GITHUB_OUTPUT"
+            echo "url=${{ secrets.FRONTEND_STAGING_URL }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Deploy to EC2
+      - name: Deploy exact SHA to EC2
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -euo pipefail
             cd /opt/ecopay
-            docker compose pull ${{ steps.svc.outputs.name }}
-            docker compose up -d ${{ steps.svc.outputs.name }}
-            docker image prune -f
+            export FRONTEND_IMAGE="${{ env.IMAGE }}:${{ github.sha }}"
+            docker compose pull ${{ steps.target.outputs.service }}
+            docker compose up -d ${{ steps.target.outputs.service }}
+
+      - name: HTTP health check
+        run: |
+          set -euo pipefail
+          base="${{ steps.target.outputs.url }}"
+          test -n "$base"
+          for i in {1..30}; do
+            if curl -fsS "$base/healthz" | grep -q '^ok'; then
+              break
+            fi
+            sleep 5
+            if [ "$i" = "30" ]; then exit 1; fi
+          done
+          curl -fsS "$base/" | grep -qi '<div id="root"'

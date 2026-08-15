@@ -438,7 +438,16 @@ export function ProfilePage() {
                       navigate('/', { replace: true });
                     } catch (err) {
                       setDeleteError(
-                        err instanceof ApiError ? err.message : t('deleteAccountFailed'),
+                        err instanceof ApiError && err.status === 409
+                          ? tx(
+                              language,
+                              'Сначала завершите активные финансовые операции.',
+                              'Алдымен белсенді қаржылық операцияларды аяқтаңыз.',
+                              'Complete active financial operations first.',
+                            )
+                          : err instanceof ApiError
+                            ? err.message
+                            : t('deleteAccountFailed'),
                       );
                     } finally {
                       setDeleting(false);

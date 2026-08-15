@@ -42,15 +42,6 @@ const MemberDetailPage = lazy(() =>
 const OwnerDetailPage = lazy(() =>
   import('./components/rooms/owner-detail').then((m) => ({ default: m.OwnerDetailPage })),
 );
-const RoomFullPage = lazy(() =>
-  import('./components/rooms/error-states').then((m) => ({ default: m.RoomFullPage })),
-);
-const PaymentFailedPage = lazy(() =>
-  import('./components/rooms/error-states').then((m) => ({ default: m.PaymentFailedPage })),
-);
-const RoomBlockedPage = lazy(() =>
-  import('./components/rooms/error-states').then((m) => ({ default: m.RoomBlockedPage })),
-);
 const ProfilePage = lazy(() =>
   import('./components/profile/profile').then((m) => ({ default: m.ProfilePage })),
 );
@@ -139,15 +130,6 @@ const AdminPricingPage = lazy(() =>
 );
 const AdminRoute = lazy(() =>
   import('./components/admin/admin-route').then((m) => ({ default: m.AdminRoute })),
-);
-const PaymentRoomDetailsPage = lazy(() =>
-  import('./components/payments/payments').then((m) => ({ default: m.PaymentRoomDetailsPage })),
-);
-const PaymentCheckoutPage = lazy(() =>
-  import('./components/payments/payments').then((m) => ({ default: m.PaymentCheckoutPage })),
-);
-const PaymentPendingPage = lazy(() =>
-  import('./components/payments/payments').then((m) => ({ default: m.PaymentPendingPage })),
 );
 const RefundStatusPage = lazy(() =>
   import('./components/payments/payments').then((m) => ({ default: m.RefundStatusPage })),
@@ -367,9 +349,6 @@ export const router = createBrowserRouter([
           { path: 'rooms/create', Component: CreateRoomPage },
           { path: 'rooms/member/:id', Component: MemberDetailPage },
           { path: 'rooms/owner/:id', Component: OwnerDetailPage },
-          { path: 'rooms/full', Component: RoomFullPage },
-          { path: 'rooms/payment-failed', Component: PaymentFailedPage },
-          { path: 'rooms/blocked', Component: RoomBlockedPage },
           { path: 'profile', Component: ProfilePage },
           { path: 'support', Component: SupportPage },
           { path: 'support/new', Component: NewTicketPage },
@@ -381,13 +360,10 @@ export const router = createBrowserRouter([
           { path: 'privacy', Component: PrivacyPage },
           { path: 'how-it-works', Component: HowItWorksPage },
           { path: 'security', Component: SecurityPage },
-          { path: 'payment/room', Component: PaymentRoomDetailsPage },
-          { path: 'payment/checkout', Component: PaymentCheckoutPage },
           // Freedom Pay redirect-back targets (success_url / failure_url) — wired to
           // the live reconciliation page.
           { path: 'payment/confirmation', Component: PaymentReturnPage },
           { path: 'payment/failure', Component: PaymentReturnPage },
-          { path: 'payment/pending', Component: PaymentPendingPage },
           { path: 'payment/refund', Component: RefundStatusPage },
           { path: 'payment/payout', Component: OwnerPayoutPage },
           { path: 'payments/history', Component: PaymentHistoryPage },

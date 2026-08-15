@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+﻿import { Link } from 'react-router';
 import { Card, Button } from '../ds-primitives';
 import { Users, AlertTriangle, ShieldX, ArrowLeft, RefreshCw, LifeBuoy } from 'lucide-react';
 import { useI18n } from '../i18n-provider';
@@ -24,9 +24,9 @@ export function RoomFullPage() {
           {t('roomDetailsLabel')}
         </div>
         {[
-          { label: t('plan'), value: 'Beeline Family 4' },
+          { label: t('plan'), value: t('plan') },
           { label: t('seats'), value: t('seatsFull') },
-          { label: t('operator'), value: 'Beeline' },
+          { label: t('operator'), value: t('operator') },
         ].map((row) => (
           <div key={row.label} className="flex justify-between text-[14px] mb-1.5">
             <span style={{ color: 'var(--eco-text-tertiary)' }}>{row.label}</span>
@@ -67,10 +67,10 @@ export function PaymentFailedPage() {
           {t('paymentDetails')}
         </div>
         {[
-          { label: t('amount'), value: '₸5,199', isError: false },
-          { label: t('room'), value: 'Beeline Family 4', isError: false },
+          { label: t('amount'), value: 'KZT -', isError: false },
+          { label: t('room'), value: t('room'), isError: false },
           { label: t('error'), value: t('insufficientFunds'), isError: true },
-          { label: t('intentIdLabel'), value: 'pi_3M...xK7d', isError: false },
+          { label: t('intentIdLabel'), value: '-', isError: false },
         ].map((row) => (
           <div key={row.label} className="flex justify-between text-[14px] mb-1.5">
             <span style={{ color: 'var(--eco-text-tertiary)' }}>{row.label}</span>
@@ -154,3 +154,4 @@ export function RoomBlockedPage() {
     </div>
   );
 }
+

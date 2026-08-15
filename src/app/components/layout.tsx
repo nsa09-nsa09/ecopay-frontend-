@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { Button, LanguageSwitcher, WaveDivider } from './ds-primitives';
 import { BrandLogo } from './brand-logo';
@@ -9,15 +9,12 @@ import { useAuth } from './auth/auth-provider';
 import {
   ApiError,
   getPayoutBalanceRequest,
-  getSiteAboutRequest,
   searchCatalog,
   trackVisitRequest,
   type CatalogSearchHit,
   type PayoutBalanceDto,
 } from '../lib/api';
 import { appBrand } from '../config/brand';
-
-const APEX_DEFAULT_LINK = 'https://apex-digital.kz';
 
 interface CatalogSearchBoxProps {
   variant: 'desktop' | 'mobile';
@@ -255,31 +252,9 @@ export function AppLayout() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [apexLink, setApexLink] = useState<string>(APEX_DEFAULT_LINK);
   const [heldBalance, setHeldBalance] = useState<PayoutBalanceDto | null>(null);
   const location = useLocation();
   const lastTrackedPath = useRef<string | null>(null);
-
-  // Pull the admin-configured Apex Digital link once per mount. Falls back to
-  // the default constant on error / missing field, so the footer link is
-  // never broken by API hiccups or old backends without the field.
-  useEffect(() => {
-    let cancelled = false;
-    getSiteAboutRequest()
-      .then((about) => {
-        if (cancelled) return;
-        const raw = about?.apexLink?.trim();
-        if (raw && /^https?:\/\//i.test(raw)) setApexLink(raw);
-      })
-      .catch(() => {
-        // Ignore; keep default link.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const apexIsExternal = /^https?:\/\//i.test(apexLink);
 
   // Keep a small balance summary in the global header so owners can see their
   // currently held money and jump directly to the payout details page.
@@ -311,7 +286,7 @@ export function AppLayout() {
     if (lastTrackedPath.current === path) return;
     lastTrackedPath.current = path;
     void trackVisitRequest(path).catch(() => {
-      // Swallow — analytics must never break the UI.
+      // Swallow вЂ” analytics must never break the UI.
     });
   }, [location.pathname]);
 
@@ -340,11 +315,11 @@ export function AppLayout() {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`
-    : '—';
+    : 'вЂ”';
   const heldLabel =
-    language === 'ru' ? 'На удержании' : language === 'kz' ? 'Ұсталымда' : 'On hold';
+    language === 'ru' ? 'РќР° СѓРґРµСЂР¶Р°РЅРёРё' : language === 'kz' ? 'Т°СЃС‚Р°Р»С‹РјРґР°' : 'On hold';
 
-  // /rooms is gated by auth — hide the entry for guests so they don't land on
+  // /rooms is gated by auth вЂ” hide the entry for guests so they don't land on
   // the empty-state screen by accident. /browse is decommissioned; room
   // discovery now happens via service-match on the catalog tiles.
   const navItems = useMemo(() => {
@@ -361,8 +336,8 @@ export function AppLayout() {
   }, [t, isAuthenticated]);
 
   const languageLabels = {
-    ru: 'Рус',
-    kz: 'Қаз',
+    ru: 'Р СѓСЃ',
+    kz: 'ТљР°Р·',
     en: 'Eng',
   };
 
@@ -654,7 +629,7 @@ export function AppLayout() {
         )}
       </nav>
 
-      {/* Mobile search overlay — sheet anchored to the top so it remains
+      {/* Mobile search overlay вЂ” sheet anchored to the top so it remains
           usable inside the on-screen keyboard. */}
       {mobileSearchOpen && (
         <div
@@ -711,9 +686,7 @@ export function AppLayout() {
                 {t('footerTagline')}
               </p>
               <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                {appBrand.supportEmail
-                  ? `${appBrand.supportEmail} · ${t('contactLocation')}`
-                  : t('contactLocation')}
+                {appBrand.supportEmail || t('support')}
               </p>
             </div>
 
@@ -805,19 +778,6 @@ export function AppLayout() {
               >
                 {t('forOwnersFooterLink')}
               </Link>
-              {apexIsExternal ? (
-                <a
-                  href={apexLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:opacity-70 transition-opacity"
-                  style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
-                >
-                  {t('developedBy')}
-                </a>
-              ) : (
-                <span style={{ color: 'var(--eco-text-tertiary)' }}>{t('developedBy')}</span>
-              )}
             </div>
           </div>
         </div>
@@ -825,3 +785,4 @@ export function AppLayout() {
     </div>
   );
 }
+

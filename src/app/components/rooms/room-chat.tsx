@@ -101,7 +101,10 @@ export function RoomChat({ roomId }: { roomId: string }) {
       .current(async (token) => {
         if (cancelled) return null;
         client = new Client({
-          webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl(token)),
+          webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl()),
+          connectHeaders: {
+            Authorization: `Bearer ${token}`,
+          },
           reconnectDelay: 5000,
           onConnect: () => {
             client?.subscribe(roomChatTopic(roomId), (message) => {

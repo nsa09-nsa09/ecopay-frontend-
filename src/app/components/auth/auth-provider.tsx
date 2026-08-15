@@ -181,7 +181,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let active = true;
     const client = new Client({
-      webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl(accessToken)),
+      webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl()),
+      connectHeaders: {
+        Authorization: `Bearer ${accessToken}`,
+      },
       reconnectDelay: 5000,
       onConnect: () => {
         if (!active) return;

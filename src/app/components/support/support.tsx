@@ -655,7 +655,10 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
       if (cancelled) return null;
 
       client = new Client({
-        webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl(token)),
+        webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl()),
+        connectHeaders: {
+          Authorization: `Bearer ${token}`,
+        },
         reconnectDelay: 5000,
         onConnect: () => {
           client?.subscribe(`/topic/support-tickets/${ticketId}`, (message) => {

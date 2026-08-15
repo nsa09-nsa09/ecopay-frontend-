@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState, type ReactNode } from 'react';
 import { useI18n } from '../i18n-provider';
 import { Badge, Pill, Button, Card } from '../ds-primitives';
 import {
@@ -45,7 +45,7 @@ function SectionCard({
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <div className="text-[11px] mb-3 tracking-wide" style={{ color: 'var(--eco-text-tertiary)' }}>
       {children}

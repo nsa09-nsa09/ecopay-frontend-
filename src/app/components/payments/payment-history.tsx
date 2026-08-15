@@ -106,7 +106,7 @@ function signedAmount(item: PaymentHistoryItemDto): string {
   const direction = item.direction.toUpperCase();
   const kind = item.kind.toUpperCase();
   const sign = direction === 'INCOMING' || kind === 'REFUND' ? '+' : '−';
-  return `${sign}${money(item.amount, item.currency)}`;
+  return `${sign}${money(item.amountKzt ?? item.amount, item.settlementCurrency ?? item.currency)}`;
 }
 
 function SummaryBlock({ label, value }: { label: string; value: string }) {

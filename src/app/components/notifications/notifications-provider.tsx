@@ -86,7 +86,10 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       .current(async (token) => {
         if (cancelled) return null;
         client = new Client({
-          webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl(token)),
+          webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl()),
+          connectHeaders: {
+            Authorization: `Bearer ${token}`,
+          },
           reconnectDelay: 5000,
           onConnect: () => {
             client?.subscribe(notificationsTopic(userId), (message) => {

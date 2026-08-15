@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { Card, Button } from '../ds-primitives';
 import { CheckCircle2, XCircle, Clock, RefreshCw, MessageSquare } from 'lucide-react';
 import {
@@ -19,7 +19,7 @@ interface PendingContext {
   // Strings: both are 64-bit ids serialized as strings by the backend
   // (see PaymentIntentResponseDto.id). member-detail stores them as strings.
   intentId: string;
-  roomId: string;
+  roomId?: string;
   roomMemberId?: string;
 }
 
@@ -28,10 +28,10 @@ function readContext(): PendingContext | null {
   const urlIntentId = params.get('intentId') ?? params.get('paymentIntentId');
   const urlRoomId = params.get('roomId');
   const urlRoomMemberId = params.get('roomMemberId');
-  if (urlIntentId && urlRoomId) {
+  if (urlIntentId) {
     return {
       intentId: urlIntentId,
-      roomId: urlRoomId,
+      roomId: urlRoomId ?? undefined,
       roomMemberId: urlRoomMemberId ?? undefined,
     };
   }
@@ -40,7 +40,7 @@ function readContext(): PendingContext | null {
       const scoped = window.localStorage.getItem(`ecopay.pendingPayment.${urlIntentId}`);
       if (scoped) {
         const parsed = JSON.parse(scoped) as PendingContext;
-        if (typeof parsed.intentId === 'string' && typeof parsed.roomId === 'string') {
+        if (typeof parsed.intentId === 'string') {
           return parsed;
         }
       }
@@ -48,7 +48,7 @@ function readContext(): PendingContext | null {
     const raw = window.localStorage.getItem(PENDING_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PendingContext;
-    if (typeof parsed.intentId === 'string' && typeof parsed.roomId === 'string') {
+    if (typeof parsed.intentId === 'string') {
       return parsed;
     }
   } catch {
@@ -66,7 +66,14 @@ function clearContext(context: PendingContext) {
 }
 
 const moneyFormatter = new Intl.NumberFormat('ru-RU');
-const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
+const formatMoney = (v: number | string | null | undefined, currency = 'KZT') => {
+  const formatted = moneyFormatter.format(Number(v ?? 0));
+  return currency === 'KZT' ? `₸${formatted}` : `${currency} ${formatted}`;
+};
+const settlementAmount = (intent: PaymentIntentResponseDto | null) =>
+  intent?.payableTotalKzt ?? intent?.amount ?? 0;
+const settlementCurrency = (intent: PaymentIntentResponseDto | null) =>
+  intent?.settlementCurrency ?? intent?.currency ?? 'KZT';
 
 /**
  * Landing page for the Freedom Pay redirect-back (success_url / failure_url).
@@ -78,16 +85,22 @@ export function PaymentReturnPage() {
   const { isReady, isAuthenticated, authorizedRequest } = useAuth();
   const { language } = useI18n();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [context] = useState<PendingContext | null>(() => readContext());
+  const context = useMemo<PendingContext | null>(() => readContext(), [location.search]);
   const [intent, setIntent] = useState<PaymentIntentResponseDto | null>(null);
   const [phase, setPhase] = useState<'loading' | 'done' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
-  const startedRef = useRef(false);
+  const startedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isReady || startedRef.current) return;
-    startedRef.current = true;
+    if (!isReady) return;
+    const contextKey = context?.intentId ?? 'missing';
+    if (startedRef.current === contextKey) return;
+    startedRef.current = contextKey;
+    setIntent(null);
+    setPhase('loading');
+    setError(null);
 
     if (!isAuthenticated || !context) {
       setPhase('error');
@@ -116,10 +129,13 @@ export function PaymentReturnPage() {
       status === 'SUCCESS' ||
       status === 'FAILED' ||
       status === 'EXPIRED' ||
+      status === 'UNKNOWN' ||
+      status === 'RECONCILING' ||
       status === 'REFUND_REQUIRED' ||
       status === 'REFUND_PENDING' ||
       status === 'REFUNDED' ||
-      status === 'REQUIRES_REVIEW';
+      status === 'REQUIRES_REVIEW' ||
+      status === 'CAPTURE_ANOMALY';
 
     async function reconcile() {
       try {
@@ -166,7 +182,7 @@ export function PaymentReturnPage() {
   }, [isReady, isAuthenticated, authorizedRequest, context, language]);
 
   const goToMembership = () => {
-    if (context) navigate(`/rooms/member/${context.roomId}`);
+    if (context?.roomId) navigate(`/rooms/member/${context.roomId}`);
     else navigate('/rooms');
   };
 
@@ -216,6 +232,11 @@ export function PaymentReturnPage() {
     status === 'REFUND_PENDING' ||
     status === 'REFUNDED' ||
     status === 'REQUIRES_REVIEW';
+  const uncertain =
+    status === 'PENDING' ||
+    status === 'UNKNOWN' ||
+    status === 'RECONCILING' ||
+    status === 'CAPTURE_ANOMALY';
   const failed = status === 'FAILED' || status === 'EXPIRED';
 
   return (
@@ -239,9 +260,9 @@ export function PaymentReturnPage() {
               >
                 {tx(
                   language,
-                  `Ваш платёж ${formatMoney(intent?.amount)} получен. Выплата владельцу находится на hold до установленной даты; спор или возврат может остановить выплату.`,
-                  `${formatMoney(intent?.amount)} төлеміңіз қабылданды. Иесіне төлем белгіленген күнге дейін hold-та болады; дау немесе қайтарым оны тоқтатуы мүмкін.`,
-                  `Your payment of ${formatMoney(intent?.amount)} has been received. Funds are held for the configured payout hold period; a dispute or refund may stop the payout.`,
+                  `Ваш платёж ${formatMoney(settlementAmount(intent), settlementCurrency(intent))} получен. Выплата владельцу находится на hold до установленной даты; спор или возврат может остановить выплату.`,
+                  `${formatMoney(settlementAmount(intent), settlementCurrency(intent))} төлеміңіз қабылданды. Иесіне төлем белгіленген күнге дейін hold-та болады; дау немесе қайтарым оны тоқтатуы мүмкін.`,
+                  `Your payment of ${formatMoney(settlementAmount(intent), settlementCurrency(intent))} has been received. Funds are held for the configured payout hold period; a dispute or refund may stop the payout.`,
                 )}
               </p>
             </div>
@@ -308,7 +329,7 @@ export function PaymentReturnPage() {
               </Link>
             </div>
           </>
-        ) : (
+        ) : uncertain ? (
           <>
             <Clock size={32} style={{ color: 'var(--eco-warning)' }} />
             <div>
@@ -323,7 +344,30 @@ export function PaymentReturnPage() {
                   language,
                   'Платёж ещё подтверждается. Статус можно проверить на странице участия, он обновится автоматически.',
                   'Төлем әлі расталып жатыр. Мәртебесін қатысу бетінде тексеруге болады, ол автоматты түрде жаңарады.',
-                  'Your payment is still being confirmed. You can check the status on your membership page; it will update automatically once settled.',
+                  'We are checking the payment status. Do not pay again.',
+                )}
+              </p>
+            </div>
+            <Button variant="primary" size="lg" onClick={goToMembership}>
+              {tx(language, 'К участию', 'Қатысуға өту', 'Go to Membership')}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Clock size={32} style={{ color: 'var(--eco-warning)' }} />
+            <div>
+              <h2 className="text-[22px]" style={{ color: 'var(--eco-text)' }}>
+                {status.replace(/_/g, ' ')}
+              </h2>
+              <p
+                className="text-[14px] mt-2 max-w-sm mx-auto"
+                style={{ color: 'var(--eco-text-secondary)' }}
+              >
+                {tx(
+                  language,
+                  'Статус платежа обновлён. Проверьте детали участия.',
+                  'Төлем мәртебесі жаңартылды. Қатысу мәліметін тексеріңіз.',
+                  'Payment status was updated. Check your membership details.',
                 )}
               </p>
             </div>

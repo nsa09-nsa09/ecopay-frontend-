@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from './admin-layout';
 import { useI18n, type Language } from '../i18n-provider';
 import { formatDateTime } from '../../lib/datetime';
@@ -312,7 +312,7 @@ export function AdminAboutPage() {
                 <Input
                   value={form.apexLink}
                   onChange={(e) => setApexLink(e.target.value)}
-                  placeholder="https://apex-digital.kz"
+                  placeholder="https://example.com"
                 />
               </FormRow>
 
@@ -349,3 +349,4 @@ function FormRow({ label, children }: { label: string; children: React.ReactNode
     </label>
   );
 }
+
