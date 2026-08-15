@@ -1,6 +1,6 @@
 # EcoPay Frontend
 
-This is the frontend for the EcoPay project (React + Vite + TypeScript). The UI design system originates from the legacy Figma design source: https://www.figma.com/design/UIK50w6mBgGAFFbjIWwzpJ/EcoSplit-Design-System--Copy-.
+This is the frontend for the EcoPay project (React + Vite + TypeScript). The UI design system originates from the legacy Figma design source.
 
 ## Running the code
 

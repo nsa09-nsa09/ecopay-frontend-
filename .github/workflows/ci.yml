@@ -72,10 +72,24 @@ jobs:
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "service=frontend" >> "$GITHUB_OUTPUT"
-            echo "url=${{ secrets.FRONTEND_PRODUCTION_URL }}" >> "$GITHUB_OUTPUT"
+            echo "public_url_required=true" >> "$GITHUB_OUTPUT"
           else
             echo "service=frontend-dev" >> "$GITHUB_OUTPUT"
-            echo "url=${{ secrets.FRONTEND_STAGING_URL }}" >> "$GITHUB_OUTPUT"
+            echo "public_url_required=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate public URL config
+        env:
+          FRONTEND_PUBLIC_URL: ${{ vars.FRONTEND_PUBLIC_URL }}
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.target.outputs.public_url_required }}" = "true" ] && [ -z "${FRONTEND_PUBLIC_URL:-}" ]; then
+            echo "::error::FRONTEND_PUBLIC_URL is not configured for the production GitHub Environment"
+            exit 1
+          fi
+          if [ -n "${FRONTEND_PUBLIC_URL:-}" ] && ! printf '%s' "$FRONTEND_PUBLIC_URL" | grep -Eq '^https?://'; then
+            echo "::error::FRONTEND_PUBLIC_URL must start with http:// or https://"
+            exit 1
           fi
 
       - name: Deploy exact SHA to EC2
@@ -90,12 +104,31 @@ jobs:
             export FRONTEND_IMAGE="${{ env.IMAGE }}:${{ github.sha }}"
             docker compose pull ${{ steps.target.outputs.service }}
             docker compose up -d ${{ steps.target.outputs.service }}
+            for i in $(seq 1 30); do
+              if docker compose exec -T ${{ steps.target.outputs.service }} sh -c "wget -qO- http://127.0.0.1/healthz" | grep -q '^ok'; then
+                exit 0
+              fi
+              sleep 5
+            done
+            docker compose ps ${{ steps.target.outputs.service }}
+            docker compose logs --no-color --tail=100 ${{ steps.target.outputs.service }}
+            exit 1
 
-      - name: HTTP health check
+      - name: Public HTTP smoke
+        env:
+          FRONTEND_PUBLIC_URL: ${{ vars.FRONTEND_PUBLIC_URL }}
         run: |
           set -euo pipefail
-          base="${{ steps.target.outputs.url }}"
-          test -n "$base"
+          base="${FRONTEND_PUBLIC_URL:-}"
+          if [ -z "$base" ]; then
+            if [ "${{ steps.target.outputs.public_url_required }}" = "true" ]; then
+              echo "::error::FRONTEND_PUBLIC_URL is not configured"
+              exit 1
+            fi
+            echo "::notice::FRONTEND_PUBLIC_URL is not configured; internal deployment-host health check already passed"
+            exit 0
+          fi
+          base="${base%/}"
           for i in {1..30}; do
             if curl -fsS "$base/healthz" | grep -q '^ok'; then
               break
