@@ -30,27 +30,15 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: TypeScript typecheck
-        run: npm run typecheck
-
-      - name: Unit/static contract tests
-        run: npm run test:contracts
-
-      - name: Runtime critical E2E
-        run: npm run test:e2e
-
-      - name: Production build
-        run: npm run build
-
-      - name: Internal/demo/fake content scan
-        run: npm run check:internal-artifacts && npm run check:production-content && npm run check:brand
+      - name: Release gate
+        run: npm run release:gate
 
       - name: Source map/security scan
         run: node -e "const fs=require('fs'); const path=require('path'); const hits=[]; const walk=d=>fs.readdirSync(d,{withFileTypes:true}).forEach(e=>{const p=path.join(d,e.name); if(e.isDirectory()) walk(p); else if(p.endsWith('.map')) hits.push(p)}); walk('dist'); if(hits.length){console.error(hits.join('\n')); process.exit(1)}"
 
   docker-build-push:
     needs: release-gate
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    if: needs.release-gate.result == 'success' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -19,7 +19,7 @@ RUN npm ci --no-audit --no-fund --legacy-peer-deps
 
 COPY . .
 
-RUN npm run release:gate
+RUN npm run build:release
 
 FROM nginx:1.27-alpine
 

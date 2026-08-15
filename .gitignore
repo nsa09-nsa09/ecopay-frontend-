@@ -40,3 +40,6 @@ Thumbs.db
 ### Misc ###
 *.tsbuildinfo
 coverage/
+test-results/
+playwright-report/
+blob-report/
