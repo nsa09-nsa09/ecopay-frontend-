@@ -38,7 +38,8 @@ const moneyFormatter = new Intl.NumberFormat('ru-RU');
 const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
 const formatCurrency = (v: number | string | null | undefined, currency = 'KZT') => {
   const formatted = moneyFormatter.format(Number(v ?? 0));
-  return currency === 'KZT' ? `₸${formatted}` : `${currency} ${formatted}`;
+  const normalizedCurrency = currency ?? 'KZT';
+  return normalizedCurrency === 'KZT' ? `₸${formatted}` : `${normalizedCurrency} ${formatted}`;
 };
 const toFiniteNumber = (v: number | string | null | undefined) => {
   const parsed = Number(v);
@@ -563,9 +564,15 @@ export function MemberDetailPage() {
                 {payError}
               </p>
             )}
-            <Button variant="primary" size="md" loading={paying} onClick={handlePay}>
+            <Button
+              variant="primary"
+              size="md"
+              loading={paying}
+              disabled={!canStartPayment}
+              onClick={handlePay}
+            >
               <CreditCard size={14} /> {tx(language, 'Оплатить', 'Төлеу', 'Pay')}{' '}
-              {formatCurrency(payTotal, settlementCurrency)}
+              {canStartPayment ? formatCurrency(payTotal, settlementCurrency) : ''}
             </Button>
           </Card>
         )}
