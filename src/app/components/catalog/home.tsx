@@ -37,9 +37,11 @@ import {
   getServices,
   getCategories,
   getFeaturedServiceReviews,
+  getPublicHomeStats,
   matchRoomForService,
   type CatalogSort,
   type CategoryDto,
+  type PublicHomeStatsDto,
   type PublicServiceReviewDto,
   type ServiceAccessType,
   type ServiceDto,
@@ -56,6 +58,13 @@ function formatPrice(value: number | null | undefined, currency?: string | null)
   const n = Math.round(Number(value));
   if (currency === 'USD') return `$${formatNumber(n)}`;
   return `₸${formatNumber(n)}`;
+}
+
+const reviewAccentColors = ['#0FA47F', '#2B7DE9', '#FF8C42', '#7C5CFF', '#E8467C', '#E5A100'];
+
+function positiveNumber(value: number | string | null | undefined): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 // ─── Reveal-on-scroll wrapper ───
@@ -252,103 +261,6 @@ const howItWorksSteps: Array<{
       ru: 'Платите в 2–6 раз меньше, чем за личную подписку.',
       kz: 'Жеке жазылымнан 2–6 есе аз төлеңіз.',
       en: 'Pay 2–6× less than the solo subscription price.',
-    },
-  },
-];
-
-const staticReviews: Array<{
-  name: string;
-  text: { ru: string; kz: string; en: string };
-  rating: number;
-  source: 'Google' | 'Trustpilot';
-  color: string;
-}> = [
-  {
-    name: 'Айдана С.',
-    rating: 5,
-    source: 'Google',
-    color: '#FF8C42',
-    text: {
-      ru: 'Подключилась к комнате Netflix за пару минут. Плачу в 4 раза меньше, доступ работает без перебоев.',
-      kz: 'Netflix бөлмесіне бірнеше минутта қосылдым. 4 есе аз төлеймін, қолжетімділік үзіліссіз.',
-      en: 'Joined a Netflix room in minutes. I pay 4× less and access just works.',
-    },
-  },
-  {
-    name: 'Тимур К.',
-    rating: 5,
-    source: 'Trustpilot',
-    color: '#2B7DE9',
-    text: {
-      ru: 'Создал комнату Spotify для семьи. Деньги приходят вовремя, а hold защищает обе стороны.',
-      kz: 'Отбасыма Spotify бөлмесін жасадым. Ақша уақытында келеді, hold екі жақты да қорғайды.',
-      en: 'Made a Spotify room for my family. Payouts arrive on time and the hold protects both sides.',
-    },
-  },
-  {
-    name: 'Мадина Е.',
-    rating: 5,
-    source: 'Google',
-    color: '#0FA47F',
-    text: {
-      ru: 'Яндекс Плюс за 500 тенге в месяц — это лучшее, что я находила. Поддержка отвечает быстро.',
-      kz: 'Айына 500 теңгеге Яндекс Плюс — тапқанымның ең жақсысы. Қолдау жылдам жауап береді.',
-      en: "Yandex Plus for 500 KZT a month is the best deal I've found. Support replies fast.",
-    },
-  },
-  {
-    name: 'Алексей П.',
-    rating: 4,
-    source: 'Trustpilot',
-    color: '#7C5CFF',
-    text: {
-      ru: 'Удобный каталог и честные цены. Один раз открывал спор — вернули деньги за три дня.',
-      kz: 'Ыңғайлы каталог және адал бағалар. Бір рет дау аштым — ақшаны үш күнде қайтарды.',
-      en: 'Clean catalog and fair prices. Opened one dispute — refunded within three days.',
-    },
-  },
-  {
-    name: 'Жанель А.',
-    rating: 5,
-    source: 'Google',
-    color: '#E8467C',
-    text: {
-      ru: 'YouTube Premium на всю семью почти даром. Всё прозрачно: видно владельца, рейтинг и условия.',
-      kz: 'Бүкіл отбасына YouTube Premium дерлік тегін. Бәрі ашық: иесі, рейтинг және шарттар көрінеді.',
-      en: 'YouTube Premium for the family almost free. Everything is transparent: owner, rating, terms.',
-    },
-  },
-  {
-    name: 'Данияр М.',
-    rating: 5,
-    source: 'Trustpilot',
-    color: '#E5A100',
-    text: {
-      ru: 'Экономлю больше 8000 тенге в месяц на трёх подписках. Жалею, что не нашёл сервис раньше.',
-      kz: 'Үш жазылымнан айына 8000 теңгеден артық үнемдеймін. Ертерек таппағаныма өкінемін.',
-      en: "Saving over 8,000 KZT monthly across three subscriptions. Wish I'd found this sooner.",
-    },
-  },
-  {
-    name: 'Карина Т.',
-    rating: 5,
-    source: 'Google',
-    color: '#FF8C42',
-    text: {
-      ru: 'Microsoft 365 для учёбы вышел дешевле кофе. Оплата заняла минуту, доступ дали в тот же вечер.',
-      kz: 'Оқуға арналған Microsoft 365 кофеден арзан шықты. Төлем бір минут, қолжетімділік сол күні.',
-      en: 'Microsoft 365 for studying costs less than a coffee. Paid in a minute, access same evening.',
-    },
-  },
-  {
-    name: 'Ерлан Б.',
-    rating: 5,
-    source: 'Trustpilot',
-    color: '#0FA47F',
-    text: {
-      ru: 'Как владелец комнаты получаю выплаты стабильно. Модерация реально проверяет участников.',
-      kz: 'Бөлме иесі ретінде төлемдерді тұрақты аламын. Модерация қатысушыларды шынымен тексереді.',
-      en: 'As a room owner I get payouts reliably. Moderation actually vets members.',
     },
   },
 ];
@@ -740,6 +652,7 @@ export function HomePage() {
   const [matchError, setMatchError] = useState<string | null>(null);
 
   const [featuredReviews, setFeaturedReviews] = useState<PublicServiceReviewDto[]>([]);
+  const [homeStats, setHomeStats] = useState<PublicHomeStatsDto | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -790,7 +703,21 @@ export function HomePage() {
         if (!cancelled) setFeaturedReviews(data ?? []);
       })
       .catch(() => {
-        /* silent — static reviews cover the section */
+        if (!cancelled) setFeaturedReviews([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getPublicHomeStats()
+      .then((data) => {
+        if (!cancelled) setHomeStats(data ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setHomeStats(null);
       });
     return () => {
       cancelled = true;
@@ -874,25 +801,67 @@ export function HomePage() {
     }
   };
 
-  const gridReviews = useMemo(() => {
-    const api = featuredReviews.slice(0, 4).map((review, i) => ({
-      name: review.authorDisplayName,
-      rating: review.rating,
-      text: review.text,
-      source: null as string | null,
-      color: staticReviews[i % staticReviews.length].color,
-      link: `/u/${review.authorPublicId}`,
-    }));
-    const locals = staticReviews.slice(0, 8 - api.length).map((r) => ({
-      name: r.name,
-      rating: r.rating,
-      text: tx(lang, r.text.ru, r.text.kz, r.text.en),
-      source: r.source as string | null,
-      color: r.color,
-      link: null as string | null,
-    }));
-    return [...api, ...locals];
-  }, [featuredReviews, lang]);
+  const homeStatItems = useMemo(() => {
+    if (!homeStats) return [];
+
+    const totalUsers = positiveNumber(homeStats.totalUsers);
+    const averageRating = positiveNumber(homeStats.averageVerifiedRating);
+    const reviewCount = positiveNumber(homeStats.verifiedReviewCount);
+    const activeConnections = positiveNumber(homeStats.activeConnections);
+    const completedConnections = positiveNumber(homeStats.completedConnections);
+
+    const stats: Array<{ value: string; label: string }> = [];
+    if (totalUsers) {
+      stats.push({
+        value: formatNumber(Math.round(totalUsers)),
+        label: tx(lang, 'EcoPay users', 'EcoPay users', 'EcoPay users'),
+      });
+    }
+    if (averageRating && reviewCount) {
+      const formattedCount = formatNumber(Math.round(reviewCount));
+      stats.push({
+        value: `${averageRating.toFixed(averageRating % 1 ? 1 : 0)}/5`,
+        label: tx(
+          lang,
+          `${formattedCount} verified reviews`,
+          `${formattedCount} verified reviews`,
+          `${formattedCount} verified reviews`,
+        ),
+      });
+    }
+    if (activeConnections) {
+      stats.push({
+        value: formatNumber(Math.round(activeConnections)),
+        label: tx(lang, 'active subscriptions', 'active subscriptions', 'active subscriptions'),
+      });
+    } else if (completedConnections) {
+      stats.push({
+        value: formatNumber(Math.round(completedConnections)),
+        label: tx(
+          lang,
+          'completed subscriptions',
+          'completed subscriptions',
+          'completed subscriptions',
+        ),
+      });
+    }
+
+    return stats.slice(0, 3);
+  }, [homeStats, lang]);
+
+  const gridReviews = useMemo(
+    () =>
+      featuredReviews.slice(0, 6).map((review, i) => ({
+        id: review.id,
+        name: review.authorDisplayName,
+        rating: Math.min(5, Math.max(1, review.rating)),
+        text: review.text,
+        color: reviewAccentColors[i % reviewAccentColors.length],
+        link: `/u/${review.authorPublicId}`,
+        verifiedExperience: review.verifiedExperience === true,
+      })),
+    [featuredReviews],
+  );
 
   return (
     <div>
@@ -999,31 +968,26 @@ export function HomePage() {
             <CategoriesCarousel language={lang} onSelect={handleCategoryTile} />
           </div>
 
-          <div
-            className="animate-eco-fade-in flex flex-wrap items-center justify-center gap-x-10 gap-y-4 mt-8"
-            style={{ animationDelay: '380ms' }}
-          >
-            {[
-              ['5000+', tx(lang, 'довольных пользователей', 'риза пайдаланушы', 'happy users')],
-              ['4.8/5', tx(lang, 'рейтинг на Google', 'Google рейтингі', 'Google rating')],
-              [
-                tx(lang, 'до 80%', '80% дейін', 'up to 80%'),
-                tx(lang, 'экономии', 'үнем', 'savings'),
-              ],
-            ].map(([value, label]) => (
-              <div key={label} className="text-center">
-                <div
-                  className="text-[26px]"
-                  style={{ color: 'var(--eco-primary)', fontWeight: 700 }}
-                >
-                  {value}
+          {homeStatItems.length > 0 && (
+            <div
+              className="animate-eco-fade-in flex flex-wrap items-center justify-center gap-x-10 gap-y-4 mt-8"
+              style={{ animationDelay: '380ms' }}
+            >
+              {homeStatItems.map((stat) => (
+                <div key={stat.label} className="text-center">
+                  <div
+                    className="text-[26px]"
+                    style={{ color: 'var(--eco-primary)', fontWeight: 700 }}
+                  >
+                    {stat.value}
+                  </div>
+                  <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {stat.label}
+                  </div>
                 </div>
-                <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {label}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -1397,90 +1361,79 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* ─── Reviews ─── */}
-      <section className="max-w-[1200px] mx-auto px-4 sm:px-6 py-12 sm:py-16">
-        <Reveal>
-          <div className="text-center mb-10">
-            <h2
-              className="text-[24px] sm:text-[32px] m-0"
-              style={{ color: 'var(--eco-text)', fontWeight: 700 }}
-            >
-              {tx(
-                lang,
-                'Более 5000+ довольных пользователей',
-                '5000+ риза пайдаланушы',
-                '5000+ happy users',
-              )}
-            </h2>
-            <p
-              className="text-[14px] mt-3 m-0 inline-flex items-center gap-2"
-              style={{ color: 'var(--eco-text-secondary)' }}
-            >
-              <Star size={15} fill="#FFC107" style={{ color: '#FFC107' }} />
-              {tx(
-                lang,
-                'Рейтинг 4.8/5 на Google и Trustpilot',
-                'Google және Trustpilot рейтингі 4.8/5',
-                'Rated 4.8/5 on Google and Trustpilot',
-              )}
-            </p>
-          </div>
-        </Reveal>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {gridReviews.map((review, index) => (
-            <Reveal key={`${review.name}-${index}`} delay={(index % 3) * 90}>
-              <Card className="eco-lift h-full flex flex-col gap-3">
-                <div className="flex items-center gap-3">
-                  <span
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] shrink-0"
-                    style={{
-                      background: `${review.color}22`,
-                      color: review.color,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {review.name.charAt(0).toUpperCase()}
-                  </span>
-                  <div className="min-w-0">
-                    {review.link ? (
-                      <Link
-                        to={review.link}
-                        className="text-[14px] block truncate"
-                        style={{
-                          color: 'var(--eco-text)',
-                          fontWeight: 600,
-                          textDecoration: 'none',
-                        }}
-                      >
-                        {review.name}
-                      </Link>
-                    ) : (
-                      <div
-                        className="text-[14px] truncate"
-                        style={{ color: 'var(--eco-text)', fontWeight: 600 }}
-                      >
-                        {review.name}
-                      </div>
-                    )}
-                    <Stars rating={review.rating} />
-                  </div>
-                </div>
-                <p
-                  className="text-[13px] leading-relaxed m-0 flex-1"
-                  style={{ color: 'var(--eco-text-secondary)' }}
-                >
-                  {review.text}
-                </p>
-                {review.source && (
-                  <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                    {tx(lang, 'Отзыв с', 'Пікір көзі:', 'Review from')} {review.source}
-                  </div>
+      {/* Reviews */}
+      {gridReviews.length > 0 && (
+        <section className="max-w-[1200px] mx-auto px-4 sm:px-6 py-12 sm:py-16">
+          <Reveal>
+            <div className="text-center mb-10">
+              <h2
+                className="text-[24px] sm:text-[32px] m-0"
+                style={{ color: 'var(--eco-text)', fontWeight: 700 }}
+              >
+                {tx(lang, 'Verified EcoPay reviews', 'Verified EcoPay reviews', 'Verified EcoPay reviews')}
+              </h2>
+              <p
+                className="text-[14px] mt-3 m-0 mx-auto max-w-[560px]"
+                style={{ color: 'var(--eco-text-secondary)' }}
+              >
+                {tx(
+                  lang,
+                  'Selected by EcoPay moderators from real member reviews.',
+                  'Selected by EcoPay moderators from real member reviews.',
+                  'Selected by EcoPay moderators from real member reviews.',
                 )}
-              </Card>
-            </Reveal>
-          ))}
-        </div>
-      </section>
+              </p>
+            </div>
+          </Reveal>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {gridReviews.map((review, index) => (
+              <Reveal key={review.id} delay={(index % 3) * 90}>
+                <Card className="eco-lift h-full flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] shrink-0"
+                      style={{
+                        background: `${review.color}22`,
+                        color: review.color,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {review.name.charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Link
+                          to={review.link}
+                          className="text-[14px] block truncate"
+                          style={{
+                            color: 'var(--eco-text)',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                          }}
+                        >
+                          {review.name}
+                        </Link>
+                        {review.verifiedExperience && (
+                          <Badge variant="success">
+                            <BadgeCheck size={12} /> Verified
+                          </Badge>
+                        )}
+                      </div>
+                      <Stars rating={review.rating} />
+                    </div>
+                  </div>
+                  <p
+                    className="text-[13px] leading-relaxed m-0 flex-1"
+                    style={{ color: 'var(--eco-text-secondary)' }}
+                  >
+                    {review.text}
+                  </p>
+                </Card>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+      )}
 
       <WaveDivider flip />
 

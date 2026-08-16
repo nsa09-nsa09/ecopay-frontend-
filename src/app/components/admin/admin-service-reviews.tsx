@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { AdminLayout } from './admin-layout';
 import { Badge, Button, Card, Modal, Select } from '../ds-primitives';
@@ -11,16 +11,13 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
-  Pencil,
   RefreshCw,
-  Star,
   Trash2,
 } from 'lucide-react';
 import {
   adminDeleteServiceReview,
   adminGetServiceReviews,
   adminSetServiceReviewFeatured,
-  adminUpdateServiceReview,
   type AdminServiceReviewDto,
 } from '../../lib/api';
 
@@ -41,9 +38,9 @@ export function AdminServiceReviewsPage() {
   const [filter, setFilter] = useState<FeaturedFilter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState<AdminServiceReviewDto | null>(null);
   const [deleting, setDeleting] = useState<AdminServiceReviewDto | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
+  const [homepageReviews, setHomepageReviews] = useState<AdminServiceReviewDto[]>([]);
   const { flash, show } = useFlash();
 
   const load = useCallback(async () => {
@@ -51,10 +48,14 @@ export function AdminServiceReviewsPage() {
     setError(null);
     try {
       const featuredParam = filter === 'all' ? undefined : filter === 'featured';
-      const data = await authorizedRequest((token) =>
-        adminGetServiceReviews(token, { page, size: PAGE_SIZE, featured: featuredParam }),
+      const [data, featuredData] = await authorizedRequest((token) =>
+        Promise.all([
+          adminGetServiceReviews(token, { page, size: PAGE_SIZE, featured: featuredParam }),
+          adminGetServiceReviews(token, { page: 0, size: 6, featured: true }),
+        ]),
       );
       setItems(data.items);
+      setHomepageReviews(featuredData.items);
       setTotalPages(Math.max(1, data.totalPages));
     } catch (err) {
       setError(formatAdminApiError(err, t));
@@ -68,13 +69,25 @@ export function AdminServiceReviewsPage() {
   }, [load]);
 
   const toggleFeatured = async (review: AdminServiceReviewDto) => {
+    if (!review.featured && review.verifiedExperience === false) {
+      show(
+        'error',
+        tx(
+          language,
+          'Only reviews with a verified EcoPay experience can be featured on the homepage.',
+          'Only reviews with a verified EcoPay experience can be featured on the homepage.',
+          'Only reviews with a verified EcoPay experience can be featured on the homepage.',
+        ),
+      );
+      return;
+    }
     setPendingId(review.id);
     try {
-      const updated = await authorizedRequest((token) =>
+      await authorizedRequest((token) =>
         adminSetServiceReviewFeatured(review.id, !review.featured, token),
       );
-      setItems((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       show('success', t('actionCompletedAndLogged'));
+      void load();
     } catch (err) {
       show('error', formatAdminApiError(err, t));
     } finally {
@@ -93,6 +106,28 @@ export function AdminServiceReviewsPage() {
       show('error', formatAdminApiError(err, t));
     }
   };
+
+  const sortedHomepageReviews = useMemo(
+    () =>
+      [...homepageReviews].sort(
+        (a, b) =>
+          (a.featuredOrder ?? Number.MAX_SAFE_INTEGER) -
+            (b.featuredOrder ?? Number.MAX_SAFE_INTEGER) ||
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+    [homepageReviews],
+  );
+
+  const homepagePosition = useCallback(
+    (review: AdminServiceReviewDto) => {
+      if (!review.featured) return null;
+      return (
+        review.featuredOrder ??
+        sortedHomepageReviews.findIndex((homepageReview) => homepageReview.id === review.id) + 1
+      );
+    },
+    [sortedHomepageReviews],
+  );
 
   return (
     <AdminLayout>
@@ -123,6 +158,81 @@ export function AdminServiceReviewsPage() {
         </div>
 
         <FlashBanner flash={flash} />
+
+        {!loading && (
+          <Card className="mb-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <h2 className="text-[16px] m-0" style={{ color: 'var(--eco-text)' }}>
+                  Homepage reviews - {Math.min(sortedHomepageReviews.length, 6)}/6
+                </h2>
+                <p className="text-[12px] mt-1 m-0" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  Featured user reviews appear on the public homepage in backend order.
+                </p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
+                <RefreshCw size={13} /> {t('retry')}
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {Array.from({ length: 6 }).map((_, index) => {
+                const review = sortedHomepageReviews[index] ?? null;
+                return (
+                  <div
+                    key={`homepage-slot-${index}`}
+                    className="min-h-[132px] rounded-lg p-3 flex flex-col gap-2"
+                    style={{
+                      background: 'var(--eco-surface)',
+                      border: '1px solid var(--eco-border)',
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant={review ? 'success' : 'default'}>Slot {index + 1}</Badge>
+                      {review?.verifiedExperience === true && (
+                        <Badge variant="success">Verified</Badge>
+                      )}
+                    </div>
+                    {review ? (
+                      <>
+                        <div className="min-w-0">
+                          <Link
+                            to={`/u/${review.authorPublicId}`}
+                            className="text-[13px] block truncate"
+                            style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+                          >
+                            {review.authorDisplayName}
+                          </Link>
+                          <StarRating rating={review.rating} size={13} />
+                        </div>
+                        <p
+                          className="text-[12px] line-clamp-3 m-0 flex-1"
+                          style={{ color: 'var(--eco-text-secondary)' }}
+                        >
+                          {review.text}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => void toggleFeatured(review)}
+                          disabled={pendingId === review.id}
+                        >
+                          Remove from homepage
+                        </Button>
+                      </>
+                    ) : (
+                      <span
+                        className="text-[12px] flex-1 flex items-center"
+                        style={{ color: 'var(--eco-text-tertiary)' }}
+                      >
+                        Empty
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
 
         {error && !loading && (
           <Card className="mb-4">
@@ -169,6 +279,12 @@ export function AdminServiceReviewsPage() {
                       {review.featured && (
                         <Badge variant="success">{t('serviceReviewFeaturedBadge')}</Badge>
                       )}
+                      <Badge variant={review.verifiedExperience === false ? 'default' : 'success'}>
+                        {review.verifiedExperience === false ? 'Unverified' : 'Verified'}
+                      </Badge>
+                      {homepagePosition(review) != null && (
+                        <Badge variant="info">Homepage #{homepagePosition(review)}</Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <StarRating rating={review.rating} size={14} />
@@ -185,14 +301,14 @@ export function AdminServiceReviewsPage() {
                       <input
                         type="checkbox"
                         checked={review.featured}
-                        disabled={pendingId === review.id}
+                        disabled={
+                          pendingId === review.id ||
+                          (!review.featured && review.verifiedExperience === false)
+                        }
                         onChange={() => void toggleFeatured(review)}
                       />
                       {t('adminServiceReviewFeatureToggle')}
                     </label>
-                    <Button variant="ghost" size="sm" onClick={() => setEditing(review)}>
-                      <Pencil size={12} /> {t('catalogEdit')}
-                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => setDeleting(review)}>
                       <Trash2 size={12} /> {t('catalogDelete')}
                     </Button>
@@ -230,17 +346,6 @@ export function AdminServiceReviewsPage() {
           </div>
         )}
 
-        <EditReviewModal
-          open={!!editing}
-          existing={editing}
-          onClose={() => setEditing(null)}
-          onSaved={(updated) => {
-            setItems((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-            setEditing(null);
-            show('success', t('actionCompletedAndLogged'));
-          }}
-        />
-
         <Modal
           open={!!deleting}
           onClose={() => setDeleting(null)}
@@ -262,84 +367,5 @@ export function AdminServiceReviewsPage() {
         </Modal>
       </div>
     </AdminLayout>
-  );
-}
-
-function EditReviewModal({
-  open,
-  existing,
-  onClose,
-  onSaved,
-}: {
-  open: boolean;
-  existing: AdminServiceReviewDto | null;
-  onClose: () => void;
-  onSaved: (updated: AdminServiceReviewDto) => void;
-}) {
-  const { t } = useI18n();
-  const { authorizedRequest } = useAuth();
-  const [rating, setRating] = useState(5);
-  const [text, setText] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open || !existing) return;
-    setRating(existing.rating);
-    setText(existing.text);
-    setError(null);
-  }, [open, existing]);
-
-  const submit = async () => {
-    if (!existing) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const updated = await authorizedRequest((token) =>
-        adminUpdateServiceReview(existing.id, { rating, text: text.trim() }, token),
-      );
-      onSaved(updated);
-    } catch (err) {
-      setError(formatAdminApiError(err, t));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <Modal open={open} onClose={onClose} title={t('adminServiceReviewEditTitle')}>
-      <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
-        <div className="flex items-center gap-3">
-          <span className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
-            {t('serviceReviewRatingLabel')}:
-          </span>
-          <StarRating rating={rating} interactive onChange={setRating} size={18} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
-            {t('serviceReviewTextLabel')}
-          </label>
-          <textarea
-            rows={5}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="px-3 py-2 rounded-lg outline-none text-[13px]"
-            style={{
-              background: 'var(--eco-surface)',
-              border: '1px solid var(--eco-border)',
-              color: 'var(--eco-text)',
-            }}
-          />
-        </div>
-        {error && (
-          <div className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
-            {error}
-          </div>
-        )}
-        <Button variant="primary" loading={submitting} onClick={() => void submit()}>
-          <Star size={13} /> {t('serviceReviewSave')}
-        </Button>
-      </div>
-    </Modal>
   );
 }

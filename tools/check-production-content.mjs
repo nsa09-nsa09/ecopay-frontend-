@@ -17,6 +17,25 @@ const forbidden = [
   'ТОО «Apex Digital»',
   'payment intent remains valid for 24 hours',
   'Платёжное намерение действует 24 часа',
+  'EcoSplit',
+  'ecosplit',
+  '5000+ happy users',
+  'Rated 4.8/5 on Google',
+  'Google and Trustpilot',
+  'Joined a Netflix room in minutes',
+  'Made a Spotify room',
+  'Yandex Plus for 500 KZT',
+  'Clean catalog and fair prices',
+  'YouTube Premium for the family',
+  'Saving over 8,000 KZT',
+  'Microsoft 365 for studying',
+  'As a room owner I get payouts reliably',
+];
+
+const legacyTechnicalBrandSnippets = [
+  'ecosplit.banEvent',
+  'ecosplit.session',
+  'ecosplit-stories-seen',
 ];
 
 if (!existsSync(distDir)) {
@@ -37,9 +56,13 @@ walk(distDir);
 const offenders = [];
 for (const file of files) {
   const text = readFileSync(file, 'utf8');
+  const searchableText = legacyTechnicalBrandSnippets.reduce(
+    (current, snippet) => current.replaceAll(snippet, ''),
+    text,
+  );
   const rel = path.relative(distDir, file).replaceAll(path.sep, '/');
   for (const marker of forbidden) {
-    if (text.includes(marker)) offenders.push(`${rel}: ${marker}`);
+    if (searchableText.includes(marker)) offenders.push(`${rel}: ${marker}`);
   }
 }
 

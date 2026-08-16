@@ -16,6 +16,8 @@ import {
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
 
+const REVIEW_MAX_LENGTH = 800;
+
 export function MyServiceReviewCard() {
   const { t, language } = useI18n();
   const { isAuthenticated, authorizedRequest } = useAuth();
@@ -82,21 +84,40 @@ export function MyServiceReviewCard() {
   }
 
   const submit = async () => {
-    if (!text.trim()) {
+    const trimmedText = text.trim();
+    if (!trimmedText) {
       setError(t('serviceReviewTextLabel'));
+      return;
+    }
+    if (trimmedText.length > REVIEW_MAX_LENGTH) {
+      setError(
+        tx(
+          language,
+          `Review can be up to ${REVIEW_MAX_LENGTH} characters.`,
+          `Review can be up to ${REVIEW_MAX_LENGTH} characters.`,
+          `Review can be up to ${REVIEW_MAX_LENGTH} characters.`,
+        ),
+      );
       return;
     }
     setSubmitting(true);
     setError(null);
     setInfo(null);
     try {
-      const payload = { rating, text: text.trim() };
+      const payload = { rating: Math.min(5, Math.max(1, rating)), text: trimmedText };
       const data = review
         ? await authorizedRequest((token) => updateMyServiceReview(payload, token))
         : await authorizedRequest((token) => createServiceReview(payload, token));
       setReview(data);
       setEditing(false);
-      setInfo(t('actionCompletedAndLogged'));
+      setInfo(
+        tx(
+          language,
+          'Your review was saved and will go through moderation again before homepage placement.',
+          'Your review was saved and will go through moderation again before homepage placement.',
+          'Your review was saved and will go through moderation again before homepage placement.',
+        ),
+      );
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         setError(t('serviceReviewExistsError'));
@@ -149,6 +170,16 @@ export function MyServiceReviewCard() {
             {t('serviceReviewModerationNote')}
           </p>
         )}
+        {review.verifiedExperience === false && (
+          <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+            {tx(
+              language,
+              'You can keep this review here; homepage placement is available after a verified EcoPay experience.',
+              'You can keep this review here; homepage placement is available after a verified EcoPay experience.',
+              'You can keep this review here; homepage placement is available after a verified EcoPay experience.',
+            )}
+          </p>
+        )}
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
             {t('serviceReviewEdit')}
@@ -183,7 +214,12 @@ export function MyServiceReviewCard() {
         <span className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
           {t('serviceReviewRatingLabel')}:
         </span>
-        <StarRating rating={rating} interactive onChange={setRating} size={20} />
+        <StarRating
+          rating={rating}
+          interactive
+          onChange={(value) => setRating(Math.min(5, Math.max(1, value)))}
+          size={20}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
@@ -192,7 +228,8 @@ export function MyServiceReviewCard() {
         <textarea
           rows={4}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          maxLength={REVIEW_MAX_LENGTH}
+          onChange={(e) => setText(e.target.value.slice(0, REVIEW_MAX_LENGTH))}
           placeholder={tx(
             language,
             'Расскажите о вашем опыте...',
@@ -206,6 +243,9 @@ export function MyServiceReviewCard() {
             color: 'var(--eco-text)',
           }}
         />
+        <span className="text-[11px] self-end" style={{ color: 'var(--eco-text-tertiary)' }}>
+          {text.length}/{REVIEW_MAX_LENGTH}
+        </span>
       </div>
       <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
         {t('serviceReviewModerationNote')}

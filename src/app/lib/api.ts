@@ -2491,6 +2491,8 @@ export interface PublicServiceReviewDto {
   authorDisplayName: string;
   authorPublicId: string;
   createdAt: string;
+  verifiedExperience?: boolean | null;
+  featuredOrder?: number | null;
 }
 
 export interface ServiceReviewDto {
@@ -2501,6 +2503,8 @@ export interface ServiceReviewDto {
   rating: number;
   text: string;
   featured: boolean;
+  verifiedExperience?: boolean | null;
+  featuredOrder?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -2514,8 +2518,18 @@ export interface AdminServiceReviewDto {
   rating: number;
   text: string;
   featured: boolean;
+  verifiedExperience?: boolean | null;
+  featuredOrder?: number | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PublicHomeStatsDto {
+  totalUsers?: number | string | null;
+  averageVerifiedRating?: number | string | null;
+  verifiedReviewCount?: number | string | null;
+  activeConnections?: number | string | null;
+  completedConnections?: number | string | null;
 }
 
 export interface ServiceReviewPayload {
@@ -2525,6 +2539,10 @@ export interface ServiceReviewPayload {
 
 export function getFeaturedServiceReviews() {
   return requestJson<PublicServiceReviewDto[]>('/service-reviews/featured');
+}
+
+export function getPublicHomeStats() {
+  return requestJson<PublicHomeStatsDto>('/public/home-stats');
 }
 
 export function getMyServiceReview(accessToken: string) {

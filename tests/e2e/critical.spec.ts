@@ -15,6 +15,47 @@ const user = {
 const admin = { ...user, id: 1, email: 'admin@example.test', displayName: 'Admin', role: 'ADMIN' };
 
 async function mockApi(page: Page, role: 'USER' | 'ADMIN' | 'ANON' = 'USER') {
+  let myServiceReview = {
+    id: 101,
+    authorDisplayName: 'Member',
+    authorPublicId: 'member',
+    rating: 5,
+    text: 'EcoPay room access worked exactly as expected.',
+    featured: false,
+    verifiedExperience: false,
+    createdAt: '2026-08-15T00:00:00Z',
+    updatedAt: '2026-08-15T00:00:00Z',
+  };
+  let adminReviews = [
+    {
+      id: 201,
+      authorId: 20,
+      authorPublicId: 'verified-member',
+      authorDisplayName: 'Verified Member',
+      authorEmail: 'verified@example.test',
+      rating: 5,
+      text: 'The room invitation arrived after payment and support stayed visible.',
+      featured: true,
+      verifiedExperience: true,
+      featuredOrder: 1,
+      createdAt: '2026-08-14T00:00:00Z',
+      updatedAt: '2026-08-14T00:00:00Z',
+    },
+    {
+      id: 202,
+      authorId: 21,
+      authorPublicId: 'draft-member',
+      authorDisplayName: 'Draft Member',
+      authorEmail: 'draft@example.test',
+      rating: 4,
+      text: 'Saved draft review awaiting a verified EcoPay experience.',
+      featured: false,
+      verifiedExperience: false,
+      featuredOrder: null,
+      createdAt: '2026-08-13T00:00:00Z',
+      updatedAt: '2026-08-13T00:00:00Z',
+    },
+  ];
   await page.addInitScript(() => {
     window.localStorage.setItem('ecopay-language', 'en');
   });
@@ -51,6 +92,60 @@ async function mockApi(page: Page, role: 'USER' | 'ADMIN' | 'ANON' = 'USER') {
     if (path.includes('/users/me')) {
       if (role === 'ANON') return body({ message: 'Unauthorized' }, 401);
       return body(role === 'ADMIN' ? admin : user);
+    }
+    if (path.includes('/catalog/categories')) {
+      return body([]);
+    }
+    if (path.includes('/catalog/services')) {
+      return body([]);
+    }
+    if (path.includes('/public/home-stats')) {
+      return body({
+        totalUsers: 124,
+        averageVerifiedRating: 4.7,
+        verifiedReviewCount: 18,
+        activeConnections: 31,
+      });
+    }
+    if (path.includes('/service-reviews/featured')) {
+      return body([
+        {
+          id: 301,
+          authorDisplayName: 'Aruzhan',
+          authorPublicId: 'aruzhan',
+          rating: 5,
+          text: 'EcoPay matched me with a real room and the payment status was clear.',
+          verifiedExperience: true,
+          featuredOrder: 1,
+          createdAt: '2026-08-15T00:00:00Z',
+        },
+      ]);
+    }
+    if (path.includes('/service-reviews/me') && method === 'GET') {
+      return body(myServiceReview);
+    }
+    if (path.includes('/service-reviews/me') && method === 'PUT') {
+      const payload = route.request().postDataJSON() as { rating: number; text: string };
+      myServiceReview = {
+        ...myServiceReview,
+        rating: payload.rating,
+        text: payload.text,
+        updatedAt: '2026-08-16T00:00:00Z',
+      };
+      return body(myServiceReview);
+    }
+    if (path.includes('/service-reviews') && method === 'POST') {
+      const payload = route.request().postDataJSON() as { rating: number; text: string };
+      myServiceReview = {
+        ...myServiceReview,
+        rating: payload.rating,
+        text: payload.text,
+        updatedAt: '2026-08-16T00:00:00Z',
+      };
+      return body(myServiceReview);
+    }
+    if (path.includes('/service-reviews/me') && method === 'DELETE') {
+      return body({});
     }
     if (path.includes('/payouts/balance')) {
       return body({ heldAmount: 0, currency: 'KZT', heldPayoutCount: 0, nextReleaseAt: null, calculatedAt: '2026-08-15T00:00:00Z' });
@@ -120,6 +215,32 @@ async function mockApi(page: Page, role: 'USER' | 'ADMIN' | 'ANON' = 'USER') {
     if (path.includes('/admin/finance/transactions')) {
       return body({ items: [], page: 0, size: 20, totalItems: 0, totalPages: 1, hasNext: false, hasPrevious: false });
     }
+    if (path.includes('/admin/service-reviews') && method === 'GET') {
+      const featured = url.searchParams.get('featured');
+      const filtered =
+        featured === 'true'
+          ? adminReviews.filter((review) => review.featured)
+          : featured === 'false'
+            ? adminReviews.filter((review) => !review.featured)
+            : adminReviews;
+      return body({
+        items: filtered,
+        page: Number(url.searchParams.get('page') ?? 0),
+        size: Number(url.searchParams.get('size') ?? 20),
+        totalItems: filtered.length,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
+      });
+    }
+    if (path.includes('/admin/service-reviews/') && path.includes('/featured')) {
+      const id = Number(path.match(/service-reviews\/(\d+)/)?.[1]);
+      const payload = route.request().postDataJSON() as { featured: boolean };
+      adminReviews = adminReviews.map((review) =>
+        review.id === id ? { ...review, featured: payload.featured } : review,
+      );
+      return body(adminReviews.find((review) => review.id === id));
+    }
     return body({});
   });
 }
@@ -169,6 +290,32 @@ test('admin finance operations opens for admin', async ({ page }) => {
   );
   await page.goto('/admin/finance');
   await expect(page.getByRole('button', { name: 'PAYMENT REVIEW' })).toBeVisible();
+});
+
+test('homepage uses backend reviews and real stats only', async ({ page }) => {
+  await mockApi(page, 'ANON');
+  await page.goto('/');
+  await expect(page.getByText('124')).toBeVisible();
+  await expect(page.getByText('4.7/5')).toBeVisible();
+  await expect(page.getByText('Verified EcoPay reviews')).toBeVisible();
+  await expect(page.getByText('Aruzhan')).toBeVisible();
+  await expect(page.getByText('EcoPay matched me with a real room')).toBeVisible();
+  await expect(page.getByText('5000+ happy users')).toHaveCount(0);
+  await expect(page.getByText(/Google and Trustpilot/i)).toHaveCount(0);
+});
+
+test('admin reviews show homepage slots without user text editor', async ({ page }) => {
+  await mockApi(page, 'ADMIN');
+  await page.addInitScript(() =>
+    localStorage.setItem('ecopay.session', JSON.stringify({ user: { id: 1, displayName: 'Admin', role: 'ADMIN' } })),
+  );
+  await page.goto('/admin/service-reviews');
+  await expect(page.getByText('Homepage reviews')).toBeVisible();
+  await expect(page.getByText('Verified Member').first()).toBeVisible();
+  await expect(page.getByText('Homepage #1')).toBeVisible();
+  await expect(page.getByRole('button', { name: /edit/i })).toHaveCount(0);
+  await expect(page.getByText('Draft Member')).toBeVisible();
+  await expect(page.getByText('Unverified')).toBeVisible();
 });
 
 
