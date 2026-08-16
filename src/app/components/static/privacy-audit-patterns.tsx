@@ -27,7 +27,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
-/* в”Ђв”Ђв”Ђ Shared layout в”Ђв”Ђв”Ђ */
+/* ─── Shared layout ─── */
 function SectionCard({
   children,
   className = '',
@@ -53,7 +53,7 @@ function SectionLabel({ children }: { children: ReactNode }) {
   );
 }
 
-/* в”Ђв”Ђв”Ђ A) Identifier Masking Patterns в”Ђв”Ђв”Ђ */
+/* ─── A) Identifier Masking Patterns ─── */
 function IdentifierMaskingFrame() {
   const { t } = useI18n();
 
@@ -228,7 +228,7 @@ function IdentifierMaskingFrame() {
 
       {/* Inline rule component */}
       <SectionCard>
-        <SectionLabel>INLINE RULE COMPONENT вЂ” REUSABLE</SectionLabel>
+        <SectionLabel>INLINE RULE COMPONENT — REUSABLE</SectionLabel>
         <p className="text-[13px] mb-4" style={{ color: 'var(--eco-text-secondary)' }}>
           Drop-in component for any field that has visibility restrictions.
         </p>
@@ -278,7 +278,7 @@ function IdentifierMaskingFrame() {
   );
 }
 
-/* в”Ђв”Ђв”Ђ B) Reveal Flow в”Ђв”Ђв”Ђ */
+/* ─── B) Reveal Flow ─── */
 function RevealFlowFrame() {
   const { t } = useI18n();
   const [step, setStep] = useState<'masked' | 'modal' | 'revealed' | 'denied'>('masked');
@@ -430,7 +430,7 @@ function RevealFlowFrame() {
       {/* STATE: Modal */}
       {step === 'modal' && (
         <SectionCard>
-          <SectionLabel>{t('revealIdentifier').toUpperCase()} вЂ” MODAL</SectionLabel>
+          <SectionLabel>{t('revealIdentifier').toUpperCase()} — MODAL</SectionLabel>
           <div className="max-w-lg mx-auto">
             {/* Modal mock */}
             <div
@@ -665,7 +665,7 @@ function RevealFlowFrame() {
   );
 }
 
-/* в”Ђв”Ђв”Ђ C) Audit Trail Block в”Ђв”Ђв”Ђ */
+/* ─── C) Audit Trail Block ─── */
 function AuditTrailFrame() {
   const { t } = useI18n();
 
@@ -732,7 +732,7 @@ function AuditTrailFrame() {
       </p>
 
       <SectionCard className="mb-6">
-        <SectionLabel>AUDIT TRAIL вЂ” REUSABLE BLOCK COMPONENT</SectionLabel>
+        <SectionLabel>AUDIT TRAIL — REUSABLE BLOCK COMPONENT</SectionLabel>
         <p className="text-[13px] mb-5" style={{ color: 'var(--eco-text-secondary)' }}>
           {t('usedOn')}: Admin Dashboard, {t('roomDetailsPage')}, Disputes
         </p>
@@ -876,7 +876,7 @@ function AuditTrailFrame() {
   );
 }
 
-/* в”Ђв”Ђв”Ђ D) No Direct Contacts Callout в”Ђв”Ђв”Ђ */
+/* ─── D) No Direct Contacts Callout ─── */
 function NoDirectContactsFrame() {
   const { t } = useI18n();
 
@@ -904,9 +904,9 @@ function NoDirectContactsFrame() {
         {t('noDirectContactsDesc')}
       </p>
 
-      {/* Main callout component вЂ” all 3 variants */}
+      {/* Main callout component — all 3 variants */}
       <SectionCard className="mb-6">
-        <SectionLabel>CALLOUT COMPONENT вЂ” 3 VARIANTS</SectionLabel>
+        <SectionLabel>CALLOUT COMPONENT — 3 VARIANTS</SectionLabel>
 
         <div className="flex flex-col gap-4">
           {/* Variant 1: Compact inline */}
@@ -1031,7 +1031,7 @@ function NoDirectContactsFrame() {
 
         {/* In-context previews */}
         <div className="mt-6">
-          <SectionLabel>IN-CONTEXT PREVIEW вЂ” ROOM DETAIL CARD</SectionLabel>
+          <SectionLabel>IN-CONTEXT PREVIEW — ROOM DETAIL CARD</SectionLabel>
           <div
             className="max-w-md rounded-xl overflow-hidden"
             style={{ border: '1px solid var(--eco-border)' }}
@@ -1092,7 +1092,7 @@ function NoDirectContactsFrame() {
   );
 }
 
-/* в”Ђв”Ђв”Ђ Main Page в”Ђв”Ђв”Ђ */
+/* ─── Main Page ─── */
 export function PrivacyAuditPatternsPage() {
   const { t } = useI18n();
   const [tab, setTab] = useState<'masking' | 'reveal' | 'audit' | 'nocontact'>('masking');

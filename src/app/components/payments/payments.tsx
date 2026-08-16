@@ -43,20 +43,20 @@ import {
 import { useAuth } from '../auth/auth-provider';
 import { appBrand } from '../../config/brand';
 
-// в”Ђв”Ђв”Ђ Localized text helper в”Ђв”Ђв”Ђ
+// ─── Localized text helper ───
 type L = Language;
 const tx = (l: L, ru: string, kz: string, en: string) => (l === 'ru' ? ru : l === 'kz' ? kz : en);
 
-// в”Ђв”Ђв”Ђ Payment footer (used on payment screens only) в”Ђв”Ђв”Ђ
+// ─── Payment footer (used on payment screens only) ───
 function PaymentFooter({ lang }: { lang: L }) {
   const links = [
-    { label: tx(lang, 'РџСѓР±Р»РёС‡РЅР°СЏ РѕС„РµСЂС‚Р°', 'Р–Р°СЂРёСЏ РѕС„РµСЂС‚Р°', 'Public Offer'), href: '/terms' },
-    { label: tx(lang, 'Р РµРєРІРёР·РёС‚С‹', 'Р”РµСЂРµРєС‚РµРјРµР»РµСЂ', 'Company Details'), href: '/about' },
+    { label: tx(lang, 'Публичная оферта', 'Жария оферта', 'Public Offer'), href: '/terms' },
+    { label: tx(lang, 'Реквизиты', 'Деректемелер', 'Company Details'), href: '/about' },
     {
-      label: tx(lang, 'РџРѕР»РёС‚РёРєР° РєРѕРЅС„РёРґРµРЅС†РёР°Р»СЊРЅРѕСЃС‚Рё', 'ТљТ±РїРёСЏР»С‹Р»С‹Т› СЃР°СЏСЃР°С‚С‹', 'Privacy Policy'),
+      label: tx(lang, 'Политика конфиденциальности', 'Құпиялылық саясаты', 'Privacy Policy'),
       href: '/privacy',
     },
-    { label: tx(lang, 'РџРѕСЂСЏРґРѕРє РѕРїР»Р°С‚С‹', 'РўУ©Р»РµРј С‚У™СЂС‚С–Р±С–', 'Payment Procedure'), href: '/terms' },
+    { label: tx(lang, 'Порядок оплаты', 'Төлем тәртібі', 'Payment Procedure'), href: '/terms' },
   ];
   return (
     <div className="mt-12 pt-6 border-t" style={{ borderColor: 'var(--eco-border)' }}>
@@ -85,16 +85,16 @@ function PaymentFooter({ lang }: { lang: L }) {
       <div className="text-[11px] mt-3" style={{ color: 'var(--eco-text-tertiary)' }}>
         {tx(
           lang,
-          'В© 2026 EcoPay',
-          'В© 2026 EcoPay',
-          'В© 2026 EcoPay',
+          '© 2026 EcoPay',
+          '© 2026 EcoPay',
+          '© 2026 EcoPay',
         )}
       </div>
     </div>
   );
 }
 
-// в”Ђв”Ђв”Ђ Payment status chip в”Ђв”Ђв”Ђ
+// ─── Payment status chip ───
 type PaymentStatus = 'PENDING' | 'HOLD' | 'ACTIVE' | 'REFUNDED' | 'PAYOUT_SENT';
 const paymentStatusVariant: Record<
   PaymentStatus,
@@ -108,16 +108,16 @@ const paymentStatusVariant: Record<
 };
 const paymentStatusLabel = (s: PaymentStatus, l: L): string => {
   const map: Record<PaymentStatus, [string, string, string]> = {
-    PENDING: ['РћР¶РёРґР°РµС‚ РѕРїР»Р°С‚С‹', 'РўУ©Р»РµРј РєТЇС‚С–Р»СѓРґРµ', 'Pending Payment'],
-    HOLD: ['РЎСЂРµРґСЃС‚РІР° СѓРґРµСЂР¶Р°РЅС‹', 'ТљР°СЂР°Р¶Р°С‚ Т±СЃС‚Р°Р»РґС‹', 'Funds on Hold'],
-    ACTIVE: ['РђРєС‚РёРІРЅРѕ', 'Р‘РµР»СЃРµРЅРґС–', 'Active'],
-    REFUNDED: ['Р’РѕР·РІСЂР°С‚', 'ТљР°Р№С‚Р°СЂС‹Рј', 'Refunded'],
-    PAYOUT_SENT: ['Р’С‹РїР»Р°С‚Р° РѕС‚РїСЂР°РІР»РµРЅР°', 'РўУ©Р»РµРј Р¶С–Р±РµСЂС–Р»РґС–', 'Payout Sent'],
+    PENDING: ['Ожидает оплаты', 'Төлем күтілуде', 'Pending Payment'],
+    HOLD: ['Средства удержаны', 'Қаражат ұсталды', 'Funds on Hold'],
+    ACTIVE: ['Активно', 'Белсенді', 'Active'],
+    REFUNDED: ['Возврат', 'Қайтарым', 'Refunded'],
+    PAYOUT_SENT: ['Выплата отправлена', 'Төлем жіберілді', 'Payout Sent'],
   };
   return tx(l, ...map[s]);
 };
 
-// в”Ђв”Ђв”Ђ Stepper в”Ђв”Ђв”Ђ
+// ─── Stepper ───
 function Stepper({
   steps,
   current,
@@ -169,7 +169,7 @@ function Stepper({
   );
 }
 
-// в”Ђв”Ђв”Ђ Trust block в”Ђв”Ђв”Ђ
+// ─── Trust block ───
 function TrustBlock({ lang }: { lang: L }) {
   return (
     <div className="flex flex-col gap-3 mt-4">
@@ -207,8 +207,8 @@ function TrustBlock({ lang }: { lang: L }) {
         <Lock size={11} className="mt-0.5 shrink-0" />
         {tx(
           lang,
-          'Р‘РµР·РѕРїР°СЃРЅР°СЏ РѕР±СЂР°Р±РѕС‚РєР° РїР»Р°С‚РµР¶РµР№. РџРѕРІС‚РѕСЂРЅС‹Рµ РїР»Р°С‚РµР¶Рё Р·Р°С‰РёС‰РµРЅС‹ РѕС‚ РґРІРѕР№РЅРѕРіРѕ СЃРїРёСЃР°РЅРёСЏ.',
-          'ТљР°СѓС–РїСЃС–Р· С‚У©Р»РµРј У©ТЈРґРµСѓ. ТљР°Р№С‚Р° С‚У©Р»РµРјРґРµСЂ Т›РѕСЃ РµСЃРµРїС‚РµРЅ С€С‹Т“Р°СЂСѓРґР°РЅ Т›РѕСЂТ“Р°Р»Т“Р°РЅ.',
+          'Безопасная обработка платежей. Повторные платежи защищены от двойного списания.',
+          'Қауіпсіз төлем өңдеу. Қайта төлемдер қос есептен шығарудан қорғалған.',
           'Secure payment processing. Retry-safe payments (no double charge).',
         )}
       </div>
@@ -216,7 +216,7 @@ function TrustBlock({ lang }: { lang: L }) {
   );
 }
 
-// в”Ђв”Ђв”Ђ 1) Room Details with Pricing Box в”Ђв”Ђв”Ђ
+// ─── 1) Room Details with Pricing Box ───
 export function PaymentRoomDetailsPage() {
   const { language } = useI18n();
   const l = language as L;
@@ -224,7 +224,7 @@ export function PaymentRoomDetailsPage() {
   const room = {
     name: 'Room plan',
     operator: 'Beeline',
-    plan: 'РљРѕРјС„РѕСЂС‚ 5000',
+    plan: 'Комфорт 5000',
     totalPrice: 19999,
     seats: 4,
     filled: 3,
@@ -240,14 +240,14 @@ export function PaymentRoomDetailsPage() {
         className="inline-flex items-center gap-1 text-[13px] mb-6"
         style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
       >
-        <ArrowLeft size={14} /> {tx(l, 'РќР°Р·Р°Рґ Рє РєРѕРјРЅР°С‚Р°Рј', 'Р‘У©Р»РјРµР»РµСЂРіРµ РѕСЂР°Р»Сѓ', 'Back to rooms')}
+        <ArrowLeft size={14} /> {tx(l, 'Назад к комнатам', 'Бөлмелерге оралу', 'Back to rooms')}
       </Link>
 
       <h1 className="text-[24px] mb-2" style={{ color: 'var(--eco-text)' }}>
         {room.name}
       </h1>
       <div className="text-[13px] mb-6" style={{ color: 'var(--eco-text-tertiary)' }}>
-        {room.operator} В· {room.plan} В· {room.filled}/{room.seats} {tx(l, 'РјРµСЃС‚', 'РѕСЂС‹РЅ', 'seats')}
+        {room.operator} · {room.plan} · {room.filled}/{room.seats} {tx(l, 'мест', 'орын', 'seats')}
       </div>
 
       {/* Status chips showcase */}
@@ -262,23 +262,23 @@ export function PaymentRoomDetailsPage() {
       {/* Pricing breakdown */}
       <Card className="flex flex-col gap-4 mb-6">
         <h3 className="text-[16px]" style={{ color: 'var(--eco-text)' }}>
-          {tx(l, 'РЎС‚РѕРёРјРѕСЃС‚СЊ СѓС‡Р°СЃС‚РёСЏ', 'ТљР°С‚С‹СЃСѓ Т›Т±РЅС‹', 'Participation Cost')}
+          {tx(l, 'Стоимость участия', 'Қатысу құны', 'Participation Cost')}
         </h3>
 
         <div className="flex flex-col gap-2">
           {[
             {
-              label: tx(l, 'Р”РѕР»СЏ СѓС‡Р°СЃС‚РЅРёРєР°', 'ТљР°С‚С‹СЃСѓС€С‹ ТЇР»РµСЃС–', 'Participant share'),
-              value: `в‚ё${formatNumber(share)}`,
+              label: tx(l, 'Доля участника', 'Қатысушы үлесі', 'Participant share'),
+              value: `₸${formatNumber(share)}`,
             },
             {
               label: tx(
                 l,
-                'РљРѕРјРёСЃСЃРёСЏ РїР»Р°С‚С„РѕСЂРјС‹ (8%)',
-                'РџР»Р°С‚С„РѕСЂРјР° РєРѕРјРёСЃСЃРёСЏСЃС‹ (8%)',
+                'Комиссия платформы (8%)',
+                'Платформа комиссиясы (8%)',
                 'Platform fee (8%)',
               ),
-              value: `в‚ё${formatNumber(fee)}`,
+              value: `₸${formatNumber(fee)}`,
             },
           ].map((row) => (
             <div key={row.label} className="flex items-center justify-between text-[14px]">
@@ -291,10 +291,10 @@ export function PaymentRoomDetailsPage() {
             style={{ borderColor: 'var(--eco-border)' }}
           >
             <span className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
-              {tx(l, 'РС‚РѕРіРѕ Рє РѕРїР»Р°С‚Рµ', 'РўУ©Р»РµРј Р¶РёС‹РЅС‹', 'Total to pay now')}
+              {tx(l, 'Итого к оплате', 'Төлем жиыны', 'Total to pay now')}
             </span>
             <span className="text-[18px]" style={{ color: 'var(--eco-primary)' }}>
-              в‚ё{formatNumber(total)}
+              ₸{formatNumber(total)}
             </span>
           </div>
         </div>
@@ -312,8 +312,8 @@ export function PaymentRoomDetailsPage() {
           <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
             {tx(
               l,
-              'Р’С‹РїР»Р°С‚Р° РІР»Р°РґРµР»СЊС†Сѓ РјРѕР¶РµС‚ Р±С‹С‚СЊ СѓРґРµСЂР¶Р°РЅР° РґРѕ СѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕР№ РґР°С‚С‹ hold.',
-              'РРµСЃС–РЅРµ С‚У©Р»РµРј Р±РµР»РіС–Р»РµРЅРіРµРЅ hold РєТЇРЅС–РЅРµ РґРµР№С–РЅ Т±СЃС‚Р°Р»Р° Р°Р»Р°РґС‹.',
+              'Выплата владельцу может быть удержана до установленной даты hold.',
+              'Иесіне төлем белгіленген hold күніне дейін ұстала алады.',
               'The owner payout may be held until the scheduled hold release date.',
             )}
           </span>
@@ -322,7 +322,7 @@ export function PaymentRoomDetailsPage() {
 
       <Link to="/rooms" style={{ textDecoration: 'none' }}>
         <Button variant="primary" size="lg" className="w-full">
-          {tx(l, 'РџРµСЂРµР№С‚Рё Рє РѕРїР»Р°С‚Рµ', 'РўУ©Р»РµРјРіРµ У©С‚Сѓ', 'Proceed to Payment')} <ArrowRight size={15} />
+          {tx(l, 'Перейти к оплате', 'Төлемге өту', 'Proceed to Payment')} <ArrowRight size={15} />
         </Button>
       </Link>
 
@@ -334,8 +334,8 @@ export function PaymentRoomDetailsPage() {
         <Shield size={11} className="mt-0.5 shrink-0" />
         {tx(
           l,
-          'Р”РµР№СЃС‚РІРёСЏ РѕРіСЂР°РЅРёС‡РµРЅС‹ РїРѕ С‡Р°СЃС‚РѕС‚Рµ. РџСЂРѕРІРµСЂРєРё РЅР° РјРѕС€РµРЅРЅРёС‡РµСЃС‚РІРѕ РјРѕРіСѓС‚ РїРѕС‚СЂРµР±РѕРІР°С‚СЊ РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕР№ РІРµСЂРёС„РёРєР°С†РёРё.',
-          'УСЂРµРєРµС‚С‚РµСЂ Р¶РёС–Р»С–РєРїРµРЅ С€РµРєС‚РµР»РіРµРЅ. РђР»Р°СЏТ›С‚С‹Т› С‚РµРєСЃРµСЂСѓР»РµСЂС– Т›РѕСЃС‹РјС€Р° РІРµСЂРёС„РёРєР°С†РёСЏ С‚Р°Р»Р°Рї РµС‚СѓС– РјТЇРјРєС–РЅ.',
+          'Действия ограничены по частоте. Проверки на мошенничество могут потребовать дополнительной верификации.',
+          'Әрекеттер жиілікпен шектелген. Алаяқтық тексерулері қосымша верификация талап етуі мүмкін.',
           'Rate-limited actions. Fraud checks may require additional review.',
         )}
       </div>
@@ -345,7 +345,7 @@ export function PaymentRoomDetailsPage() {
   );
 }
 
-// в”Ђв”Ђв”Ђ 2) Join / Checkout в”Ђв”Ђв”Ђ
+// ─── 2) Join / Checkout ───
 export function PaymentCheckoutPage() {
   const { language } = useI18n();
   const l = language as L;
@@ -357,13 +357,13 @@ export function PaymentCheckoutPage() {
     {
       id: 'freedom',
       label: 'Freedom Pay',
-      desc: tx(l, 'Р‘Р°РЅРєРѕРІСЃРєР°СЏ РєР°СЂС‚Р°', 'Р‘Р°РЅРє РєР°СЂС‚Р°СЃС‹', 'Bank card'),
+      desc: tx(l, 'Банковская карта', 'Банк картасы', 'Bank card'),
       icon: CreditCard,
     },
     {
       id: 'visa',
       label: 'Visa ****4821',
-      desc: tx(l, 'РЎРѕС…СЂР°РЅС‘РЅРЅР°СЏ РєР°СЂС‚Р°', 'РЎР°Т›С‚Р°Р»Т“Р°РЅ РєР°СЂС‚Р°', 'Saved card'),
+      desc: tx(l, 'Сохранённая карта', 'Сақталған карта', 'Saved card'),
       icon: CreditCard,
     },
   ];
@@ -375,18 +375,18 @@ export function PaymentCheckoutPage() {
         className="inline-flex items-center gap-1 text-[13px] mb-6"
         style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
       >
-        <ArrowLeft size={14} /> {tx(l, 'РќР°Р·Р°Рґ', 'РђСЂС‚Т›Р°', 'Back')}
+        <ArrowLeft size={14} /> {tx(l, 'Назад', 'Артқа', 'Back')}
       </Link>
 
       <h1 className="text-[24px] mb-6" style={{ color: 'var(--eco-text)' }}>
-        {tx(l, 'РћРїР»Р°С‚Р°', 'РўУ©Р»РµРј', 'Checkout')}
+        {tx(l, 'Оплата', 'Төлем', 'Checkout')}
       </h1>
 
       <Stepper
         steps={[
-          ['Р”РµС‚Р°Р»Рё', 'РњУ™Р»С–РјРµС‚С‚РµСЂ', 'Details'],
-          ['РћРїР»Р°С‚Р°', 'РўУ©Р»РµРј', 'Payment'],
-          ['РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ', 'Р Р°СЃС‚Р°Сѓ', 'Confirmation'],
+          ['Детали', 'Мәліметтер', 'Details'],
+          ['Оплата', 'Төлем', 'Payment'],
+          ['Подтверждение', 'Растау', 'Confirmation'],
         ]}
         current={1}
         lang={l}
@@ -399,17 +399,17 @@ export function PaymentCheckoutPage() {
             Room plan
           </span>
           <span className="text-[15px]" style={{ color: 'var(--eco-primary)' }}>
-            в‚ё{formatNumber(total)}
+            ₸{formatNumber(total)}
           </span>
         </div>
         <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-          {tx(l, 'Р’Р°С€Р° РґРѕР»СЏ + РєРѕРјРёСЃСЃРёСЏ', 'РЎС–Р·РґС–ТЈ ТЇР»РµСЃС–ТЈС–Р· + РєРѕРјРёСЃСЃРёСЏ', 'Your share + platform fee')}
+          {tx(l, 'Ваша доля + комиссия', 'Сіздің үлесіңіз + комиссия', 'Your share + platform fee')}
         </div>
       </Card>
 
       {/* Payment methods */}
       <h3 className="text-[15px] mb-3" style={{ color: 'var(--eco-text)' }}>
-        {tx(l, 'РЎРїРѕСЃРѕР± РѕРїР»Р°С‚С‹', 'РўУ©Р»РµРј С‚У™СЃС–Р»С–', 'Payment Method')}
+        {tx(l, 'Способ оплаты', 'Төлем тәсілі', 'Payment Method')}
       </h3>
       <div className="flex flex-col gap-2 mb-6">
         {methods.map((m) => {
@@ -466,7 +466,7 @@ export function PaymentCheckoutPage() {
               Freedom Pay
             </span>
             <Badge variant="info">
-              {tx(l, 'РџР»Р°С‚С‘Р¶РЅС‹Р№ С€Р»СЋР·', 'РўУ©Р»РµРј С€Р»СЋР·С–', 'Payment Gateway')}
+              {tx(l, 'Платёжный шлюз', 'Төлем шлюзі', 'Payment Gateway')}
             </Badge>
           </div>
           <div
@@ -481,8 +481,8 @@ export function PaymentCheckoutPage() {
             <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
               {tx(
                 l,
-                'Р¤РѕСЂРјР° Freedom Pay РѕС‚РєСЂРѕРµС‚СЃСЏ РїСЂРё РЅР°Р¶Р°С‚РёРё В«РћРїР»Р°С‚РёС‚СЊВ»',
-                'Freedom Pay С„РѕСЂРјР°СЃС‹ В«РўУ©Р»РµСѓВ» Р±Р°СЃТ›Р°РЅРґР° Р°С€С‹Р»Р°РґС‹',
+                'Форма Freedom Pay откроется при нажатии «Оплатить»',
+                'Freedom Pay формасы «Төлеу» басқанда ашылады',
                 "Freedom Pay form will open on 'Pay securely' click",
               )}
             </div>
@@ -491,7 +491,7 @@ export function PaymentCheckoutPage() {
       )}
 
       <Button variant="primary" size="lg" className="w-full">
-        <Lock size={15} /> {tx(l, 'РћРїР»Р°С‚РёС‚СЊ Р±РµР·РѕРїР°СЃРЅРѕ', 'ТљР°СѓС–РїСЃС–Р· С‚У©Р»РµСѓ', 'Pay securely')} В· в‚ё
+        <Lock size={15} /> {tx(l, 'Оплатить безопасно', 'Қауіпсіз төлеу', 'Pay securely')} · ₸
         {formatNumber(total)}
       </Button>
 
@@ -505,8 +505,8 @@ export function PaymentCheckoutPage() {
         <Shield size={11} className="mt-0.5 shrink-0" />
         {tx(
           l,
-          'Р”РµР№СЃС‚РІРёСЏ РѕРіСЂР°РЅРёС‡РµРЅС‹ РїРѕ С‡Р°СЃС‚РѕС‚Рµ. РџСЂРѕРІРµСЂРєРё РЅР° РјРѕС€РµРЅРЅРёС‡РµСЃС‚РІРѕ РјРѕРіСѓС‚ РїРѕС‚СЂРµР±РѕРІР°С‚СЊ РІРµСЂРёС„РёРєР°С†РёРё.',
-          'УСЂРµРєРµС‚С‚РµСЂ Р¶РёС–Р»С–РєРїРµРЅ С€РµРєС‚РµР»РіРµРЅ. РђР»Р°СЏТ›С‚С‹Т› С‚РµРєСЃРµСЂСѓР»РµСЂС– РІРµСЂРёС„РёРєР°С†РёСЏ С‚Р°Р»Р°Рї РµС‚СѓС– РјТЇРјРєС–РЅ.',
+          'Действия ограничены по частоте. Проверки на мошенничество могут потребовать верификации.',
+          'Әрекеттер жиілікпен шектелген. Алаяқтық тексерулері верификация талап етуі мүмкін.',
           'Rate-limited actions. Fraud checks may require review.',
         )}
       </div>
@@ -516,7 +516,7 @@ export function PaymentCheckoutPage() {
   );
 }
 
-// в”Ђв”Ђв”Ђ 3) Payment Confirmation Modal в”Ђв”Ђв”Ђ
+// ─── 3) Payment Confirmation Modal ───
 export function PaymentConfirmationPage() {
   const { language } = useI18n();
   const l = language as L;
@@ -526,9 +526,9 @@ export function PaymentConfirmationPage() {
     <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
       <Stepper
         steps={[
-          ['Р”РµС‚Р°Р»Рё', 'РњУ™Р»С–РјРµС‚С‚РµСЂ', 'Details'],
-          ['РћРїР»Р°С‚Р°', 'РўУ©Р»РµРј', 'Payment'],
-          ['РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ', 'Р Р°СЃС‚Р°Сѓ', 'Confirmation'],
+          ['Детали', 'Мәліметтер', 'Details'],
+          ['Оплата', 'Төлем', 'Payment'],
+          ['Подтверждение', 'Растау', 'Confirmation'],
         ]}
         current={2}
         lang={l}
@@ -545,7 +545,7 @@ export function PaymentConfirmationPage() {
             border: '1px solid var(--eco-border)',
           }}
         >
-          {tx(l, 'РЈСЃРїРµС…', 'РЎУ™С‚С‚С–Р»С–Рє', 'Success')}
+          {tx(l, 'Успех', 'Сәттілік', 'Success')}
         </button>
         <button
           onClick={() => setState('failed')}
@@ -556,7 +556,7 @@ export function PaymentConfirmationPage() {
             border: '1px solid var(--eco-border)',
           }}
         >
-          {tx(l, 'РћС€РёР±РєР°', 'ТљР°С‚Рµ', 'Failed')}
+          {tx(l, 'Ошибка', 'Қате', 'Failed')}
         </button>
       </div>
 
@@ -572,7 +572,7 @@ export function PaymentConfirmationPage() {
             </div>
             <div>
               <h2 className="text-[22px]" style={{ color: 'var(--eco-text)' }}>
-                {tx(l, 'РћРїР»Р°С‚Р° РїСЂРѕС€Р»Р° СѓСЃРїРµС€РЅРѕ', 'РўУ©Р»РµРј СЃУ™С‚С‚С– У©С‚С‚С–', 'Payment Successful')}
+                {tx(l, 'Оплата прошла успешно', 'Төлем сәтті өтті', 'Payment Successful')}
               </h2>
               <p
                 className="text-[14px] mt-2 max-w-sm mx-auto"
@@ -580,9 +580,9 @@ export function PaymentConfirmationPage() {
               >
                 {tx(
                   l,
-                  'Р’Р°С€ РїР»Р°С‚С‘Р¶ РІ СЂР°Р·РјРµСЂРµ в‚ё5,400 РїСЂРёРЅСЏС‚. Р’С‹РїР»Р°С‚Р° РІР»Р°РґРµР»СЊС†Сѓ Р±СѓРґРµС‚ СѓРґРµСЂР¶Р°РЅР° РґРѕ СѓСЃС‚Р°РЅРѕРІР»РµРЅРЅРѕР№ РґР°С‚С‹ hold.',
-                  'в‚ё5,400 РєУ©Р»РµРјС–РЅРґРµРіС– С‚У©Р»РµРјС–ТЈС–Р· Т›Р°Р±С‹Р»РґР°РЅРґС‹. РРµСЃС–РЅРµ С‚У©Р»РµРј Р±РµР»РіС–Р»РµРЅРіРµРЅ hold РєТЇРЅС–РЅРµ РґРµР№С–РЅ Т±СЃС‚Р°Р»Р°РґС‹.',
-                  'Your payment of в‚ё5,400 has been received. The owner payout will be held until the scheduled hold release date.',
+                  'Ваш платёж в размере ₸5,400 принят. Выплата владельцу будет удержана до установленной даты hold.',
+                  '₸5,400 көлеміндегі төлеміңіз қабылданды. Иесіне төлем белгіленген hold күніне дейін ұсталады.',
+                  'Your payment of ₸5,400 has been received. The owner payout will be held until the scheduled hold release date.',
                 )}
               </p>
             </div>
@@ -591,7 +591,7 @@ export function PaymentConfirmationPage() {
             </div>
             <Link to="/payments/history" style={{ textDecoration: 'none' }}>
               <Button variant="primary" size="lg">
-                {tx(l, 'РџРµСЂРµР№С‚Рё Рє СЃС‚Р°С‚СѓСЃСѓ', 'РњУ™СЂС‚РµР±РµРіРµ У©С‚Сѓ', 'Go to Room Status')}{' '}
+                {tx(l, 'Перейти к статусу', 'Мәртебеге өту', 'Go to Room Status')}{' '}
                 <ArrowRight size={14} />
               </Button>
             </Link>
@@ -606,7 +606,7 @@ export function PaymentConfirmationPage() {
             </div>
             <div>
               <h2 className="text-[22px]" style={{ color: 'var(--eco-text)' }}>
-                {tx(l, 'РћРїР»Р°С‚Р° РЅРµ РїСЂРѕС€Р»Р°', 'РўУ©Р»РµРј У©С‚РїРµРґС–', 'Payment Failed')}
+                {tx(l, 'Оплата не прошла', 'Төлем өтпеді', 'Payment Failed')}
               </h2>
               <p
                 className="text-[14px] mt-2 max-w-sm mx-auto"
@@ -614,25 +614,25 @@ export function PaymentConfirmationPage() {
               >
                 {tx(
                   l,
-                  'РџСЂРѕРёР·РѕС€Р»Р° РѕС€РёР±РєР° РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ РїР»Р°С‚РµР¶Р°. Р’С‹ РјРѕР¶РµС‚Рµ Р±РµР·РѕРїР°СЃРЅРѕ РїРѕРІС‚РѕСЂРёС‚СЊ РїРѕРїС‹С‚РєСѓ: РґРІРѕР№РЅРѕРіРѕ СЃРїРёСЃР°РЅРёСЏ РЅРµ Р±СѓРґРµС‚.',
-                  'РўУ©Р»РµРјРґС– У©ТЈРґРµСѓ РєРµР·С–РЅРґРµ Т›Р°С‚Рµ РѕСЂС‹РЅ Р°Р»РґС‹. ТљР°Р№С‚Р° У™СЂРµРєРµС‚ Р¶Р°СЃР°Сѓ Т›Р°СѓС–РїСЃС–Р·: Т›РѕСЃ РµСЃРµРїС‚РµРЅ С€С‹Т“Р°СЂСѓ Р±РѕР»РјР°Р№РґС‹.',
+                  'Произошла ошибка при обработке платежа. Вы можете безопасно повторить попытку: двойного списания не будет.',
+                  'Төлемді өңдеу кезінде қате орын алды. Қайта әрекет жасау қауіпсіз: қос есептен шығару болмайды.',
                   'An error occurred processing your payment. You can safely retry: idempotent processing ensures no double charge.',
                 )}
               </p>
             </div>
             <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {tx(l, 'РљРѕРґ РѕС€РёР±РєРё:', 'ТљР°С‚Рµ РєРѕРґС‹:', 'Error code:')} ERR_GW_TIMEOUT
+              {tx(l, 'Код ошибки:', 'Қате коды:', 'Error code:')} ERR_GW_TIMEOUT
             </div>
             <div className="flex gap-3">
               <Link to="/rooms" style={{ textDecoration: 'none' }}>
                 <Button variant="primary" size="lg">
                   <RefreshCw size={14} />{' '}
-                  {tx(l, 'РџРѕРІС‚РѕСЂРёС‚СЊ РѕРїР»Р°С‚Сѓ', 'РўУ©Р»РµРјРґС– Т›Р°Р№С‚Р°Р»Р°Сѓ', 'Retry Payment')}
+                  {tx(l, 'Повторить оплату', 'Төлемді қайталау', 'Retry Payment')}
                 </Button>
               </Link>
               <Link to="/support/new" style={{ textDecoration: 'none' }}>
                 <Button variant="secondary" size="lg">
-                  {tx(l, 'РџРѕРґРґРµСЂР¶РєР°', 'ТљРѕР»РґР°Сѓ', 'Support')}
+                  {tx(l, 'Поддержка', 'Қолдау', 'Support')}
                 </Button>
               </Link>
             </div>
@@ -645,39 +645,39 @@ export function PaymentConfirmationPage() {
   );
 }
 
-// в”Ђв”Ђв”Ђ 4) Payment Pending / Hold Status в”Ђв”Ђв”Ђ
+// ─── 4) Payment Pending / Hold Status ───
 export function PaymentPendingPage() {
   const { language } = useI18n();
   const l = language as L;
 
   const timeline = [
     {
-      label: tx(l, 'РћРїР»Р°С‚Р° РїСЂРёРЅСЏС‚Р°', 'РўУ©Р»РµРј Т›Р°Р±С‹Р»РґР°РЅРґС‹', 'Payment Successful'),
+      label: tx(l, 'Оплата принята', 'Төлем қабылданды', 'Payment Successful'),
       done: true,
       time: '03 Apr 09:15',
     },
     {
       label: tx(
         l,
-        'РћР¶РёРґР°РЅРёРµ РїСЂРµРґРѕСЃС‚Р°РІР»РµРЅРёСЏ РґРѕСЃС‚СѓРїР°',
-        'ТљРѕР»Р¶РµС‚С–РјРґС–Р»С–Рє РєТЇС‚С–Р»СѓРґРµ',
+        'Ожидание предоставления доступа',
+        'Қолжетімділік күтілуде',
         'Waiting for owner access grant',
       ),
       done: false,
       active: true,
-      time: tx(l, 'SLA: 48С‡', 'SLA: 48СЃ', 'SLA: 48h'),
+      time: tx(l, 'SLA: 48ч', 'SLA: 48с', 'SLA: 48h'),
     },
     {
       label: tx(
         l,
-        'РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РїРѕР»СѓС‡РµРЅРёСЏ РґРѕСЃС‚СѓРїР°',
-        'ТљРѕР»Р¶РµС‚С–РјРґС–Р»С–РєС‚С– СЂР°СЃС‚Р°Сѓ',
+        'Подтверждение получения доступа',
+        'Қолжетімділікті растау',
         'Confirm access received',
       ),
       done: false,
       time: '',
     },
-    { label: tx(l, 'РђРєС‚РёРІР°С†РёСЏ', 'Р‘РµР»СЃРµРЅРґС–СЂСѓ', 'Activation'), done: false, time: '' },
+    { label: tx(l, 'Активация', 'Белсендіру', 'Activation'), done: false, time: '' },
   ];
 
   return (
@@ -687,7 +687,7 @@ export function PaymentPendingPage() {
         className="inline-flex items-center gap-1 text-[13px] mb-6"
         style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
       >
-        <ArrowLeft size={14} /> {tx(l, 'РњРѕРё РєРѕРјРЅР°С‚С‹', 'РњРµРЅС–ТЈ Р±У©Р»РјРµР»РµСЂС–Рј', 'My Rooms')}
+        <ArrowLeft size={14} /> {tx(l, 'Мои комнаты', 'Менің бөлмелерім', 'My Rooms')}
       </Link>
 
       <h1 className="text-[24px] mb-2" style={{ color: 'var(--eco-text)' }}>
@@ -710,7 +710,7 @@ export function PaymentPendingPage() {
         </div>
         <div className="flex-1">
           <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
-            {tx(l, 'Р’СЂРµРјСЏ РѕР¶РёРґР°РЅРёСЏ РґРѕСЃС‚СѓРїР°', 'ТљРѕР»Р¶РµС‚С–РјРґС–Р»С–Рє РєТЇС‚Сѓ СѓР°Т›С‹С‚С‹', 'Access Grant SLA Timer')}
+            {tx(l, 'Время ожидания доступа', 'Қолжетімділік күту уақыты', 'Access Grant SLA Timer')}
           </div>
           <div
             className="text-[22px] mt-0.5"
@@ -719,7 +719,7 @@ export function PaymentPendingPage() {
             38:45:12
           </div>
           <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-            {tx(l, 'РћСЃС‚Р°Р»РѕСЃСЊ РёР· 48 С‡Р°СЃРѕРІ', '48 СЃР°Т“Р°С‚С‚Р°РЅ Т›Р°Р»РґС‹', 'Remaining of 48 hours')}
+            {tx(l, 'Осталось из 48 часов', '48 сағаттан қалды', 'Remaining of 48 hours')}
           </div>
         </div>
       </Card>
@@ -727,7 +727,7 @@ export function PaymentPendingPage() {
       {/* Timeline */}
       <Card className="flex flex-col gap-0 mb-6">
         <h3 className="text-[15px] mb-4" style={{ color: 'var(--eco-text)' }}>
-          {tx(l, 'РЎС‚Р°С‚СѓСЃ РїСЂРѕС†РµСЃСЃР°', 'РџСЂРѕС†РµСЃСЃ РјУ™СЂС‚РµР±РµСЃС–', 'Process Status')}
+          {tx(l, 'Статус процесса', 'Процесс мәртебесі', 'Process Status')}
         </h3>
         {timeline.map((step, i) => (
           <div key={i} className="flex gap-3">
@@ -775,7 +775,7 @@ export function PaymentPendingPage() {
                     style={{ background: 'var(--eco-primary)' }}
                   />
                   <span className="text-[11px]" style={{ color: 'var(--eco-primary)' }}>
-                    {tx(l, 'Р’ РїСЂРѕС†РµСЃСЃРµ', 'РћСЂС‹РЅРґР°Р»СѓРґР°', 'In progress')}
+                    {tx(l, 'В процессе', 'Орындалуда', 'In progress')}
                   </span>
                 </div>
               )}
@@ -787,7 +787,7 @@ export function PaymentPendingPage() {
       <Link to="/support/new" style={{ textDecoration: 'none' }}>
         <Button variant="secondary" size="md" className="w-full">
           <MessageSquare size={14} />{' '}
-          {tx(l, 'РЎРѕР·РґР°С‚СЊ РѕР±СЂР°С‰РµРЅРёРµ РІ РїРѕРґРґРµСЂР¶РєСѓ', 'ТљРѕР»РґР°Сѓ СЃТ±СЂР°СѓС‹РЅ Р¶Р°СЃР°Сѓ', 'Create Support Ticket')}
+          {tx(l, 'Создать обращение в поддержку', 'Қолдау сұрауын жасау', 'Create Support Ticket')}
         </Button>
       </Link>
 
@@ -798,8 +798,8 @@ export function PaymentPendingPage() {
         <Shield size={11} className="mt-0.5 shrink-0" />
         {tx(
           l,
-          'Р•СЃР»Рё РґРѕСЃС‚СѓРї РЅРµ РїСЂРµРґРѕСЃС‚Р°РІР»РµРЅ РІ С‚РµС‡РµРЅРёРµ SLA, РІС‹ РјРѕР¶РµС‚Рµ Р·Р°РїСЂРѕСЃРёС‚СЊ РІРѕР·РІСЂР°С‚.',
-          'SLA С–С€С–РЅРґРµ Т›РѕР»Р¶РµС‚С–РјРґС–Р»С–Рє Р±РµСЂС–Р»РјРµСЃРµ, Т›Р°Р№С‚Р°СЂСѓРґС‹ СЃТ±СЂР°Р№ Р°Р»Р°СЃС‹Р·.',
+          'Если доступ не предоставлен в течение SLA, вы можете запросить возврат.',
+          'SLA ішінде қолжетімділік берілмесе, қайтаруды сұрай аласыз.',
           'If access is not granted within SLA, you may request a refund.',
         )}
       </div>
@@ -809,7 +809,7 @@ export function PaymentPendingPage() {
   );
 }
 
-// в”Ђв”Ђв”Ђ 5) Refund Status (history) в”Ђв”Ђв”Ђ
+// ─── 5) Refund Status (history) ───
 function refundStatusVariant(s: string): 'warning' | 'info' | 'success' | 'danger' | 'default' {
   const u = s.toUpperCase();
   if (u === 'SUCCESS' || u === 'COMPLETED' || u === 'SENT') return 'success';
@@ -821,17 +821,17 @@ function refundStatusVariant(s: string): 'warning' | 'info' | 'success' | 'dange
 
 const refundStatusLabel = (s: string, l: L): string => {
   const map: Record<string, [string, string, string]> = {
-    SUCCESS: ['Р’С‹РїРѕР»РЅРµРЅ', 'РћСЂС‹РЅРґР°Р»РґС‹', 'Success'],
-    COMPLETED: ['Р—Р°РІРµСЂС€С‘РЅ', 'РђСЏТ›С‚Р°Р»РґС‹', 'Completed'],
-    SENT: ['РћС‚РїСЂР°РІР»РµРЅ', 'Р–С–Р±РµСЂС–Р»РґС–', 'Sent'],
-    FAILED: ['РћС€РёР±РєР°', 'РЎУ™С‚СЃС–Р·', 'Failed'],
-    REJECTED: ['РћС‚РєР»РѕРЅС‘РЅ', 'ТљР°Р±С‹Р»РґР°РЅР±Р°РґС‹', 'Rejected'],
-    CANCELLED: ['РћС‚РјРµРЅС‘РЅ', 'Р‘Р°СЃ С‚Р°СЂС‚С‹Р»РґС‹', 'Cancelled'],
-    PENDING: ['РћР¶РёРґР°РµС‚', 'РљТЇС‚СѓРґРµ', 'Pending'],
-    REQUESTED: ['Р—Р°РїСЂРѕС€РµРЅ', 'РЎТ±СЂР°С‚С‹Р»РґС‹', 'Requested'],
-    IN_REVIEW: ['РќР° РїСЂРѕРІРµСЂРєРµ', 'РўРµРєСЃРµСЂСѓРґРµ', 'In review'],
-    APPROVED: ['РћРґРѕР±СЂРµРЅ', 'РњР°Т›Т±Р»РґР°РЅРґС‹', 'Approved'],
-    PROCESSING: ['РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚СЃСЏ', 'УЁТЈРґРµР»СѓРґРµ', 'Processing'],
+    SUCCESS: ['Выполнен', 'Орындалды', 'Success'],
+    COMPLETED: ['Завершён', 'Аяқталды', 'Completed'],
+    SENT: ['Отправлен', 'Жіберілді', 'Sent'],
+    FAILED: ['Ошибка', 'Сәтсіз', 'Failed'],
+    REJECTED: ['Отклонён', 'Қабылданбады', 'Rejected'],
+    CANCELLED: ['Отменён', 'Бас тартылды', 'Cancelled'],
+    PENDING: ['Ожидает', 'Күтуде', 'Pending'],
+    REQUESTED: ['Запрошен', 'Сұратылды', 'Requested'],
+    IN_REVIEW: ['На проверке', 'Тексеруде', 'In review'],
+    APPROVED: ['Одобрен', 'Мақұлданды', 'Approved'],
+    PROCESSING: ['Обрабатывается', 'Өңделуде', 'Processing'],
   };
   const entry = map[s.toUpperCase()];
   return entry ? tx(l, ...entry) : s;
@@ -866,8 +866,8 @@ export function RefundStatusPage() {
             ? err.message
             : tx(
                 l,
-                'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РІРѕР·РІСЂР°С‚С‹.',
-                'ТљР°Р№С‚Р°СЂСѓР»Р°СЂРґС‹ Р¶ТЇРєС‚РµСѓ РјТЇРјРєС–РЅ Р±РѕР»РјР°РґС‹.',
+                'Не удалось загрузить возвраты.',
+                'Қайтаруларды жүктеу мүмкін болмады.',
                 'Unable to load refunds right now.',
               ),
         );
@@ -887,17 +887,17 @@ export function RefundStatusPage() {
         className="inline-flex items-center gap-1 text-[13px] mb-6"
         style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
       >
-        <ArrowLeft size={14} /> {tx(l, 'РњРѕРё РєРѕРјРЅР°С‚С‹', 'РњРµРЅС–ТЈ Р±У©Р»РјРµР»РµСЂС–Рј', 'My Rooms')}
+        <ArrowLeft size={14} /> {tx(l, 'Мои комнаты', 'Менің бөлмелерім', 'My Rooms')}
       </Link>
 
       <h1 className="text-[24px] mb-2" style={{ color: 'var(--eco-text)' }}>
-        {tx(l, 'РСЃС‚РѕСЂРёСЏ РІРѕР·РІСЂР°С‚РѕРІ', 'ТљР°Р№С‚Р°СЂСѓР»Р°СЂ С‚Р°СЂРёС…С‹', 'Refund History')}
+        {tx(l, 'История возвратов', 'Қайтарулар тарихы', 'Refund History')}
       </h1>
       <p className="text-[13px] mb-6" style={{ color: 'var(--eco-text-tertiary)' }}>
         {tx(
           l,
-          'Р’СЃРµ РІРѕР·РІСЂР°С‚С‹, РёРЅРёС†РёРёСЂРѕРІР°РЅРЅС‹Рµ РїРѕ РІР°С€РёРј РїР»Р°С‚РµР¶Р°Рј.',
-          'РЎС–Р·РґС–ТЈ С‚У©Р»РµРјРґРµСЂС–ТЈС–Р· Р±РѕР№С‹РЅС€Р° Р±Р°СЂР»С‹Т› Т›Р°Р№С‚Р°СЂСѓР»Р°СЂ.',
+          'Все возвраты, инициированные по вашим платежам.',
+          'Сіздің төлемдеріңіз бойынша барлық қайтарулар.',
           'All refunds initiated on your payments.',
         )}
       </p>
@@ -911,8 +911,8 @@ export function RefundStatusPage() {
           >
             {tx(
               l,
-              'Р’РѕР№РґРёС‚Рµ, С‡С‚РѕР±С‹ СѓРІРёРґРµС‚СЊ РІРѕР·РІСЂР°С‚С‹',
-              'ТљР°Р№С‚Р°СЂСѓР»Р°СЂРґС‹ РєУ©СЂСѓ ТЇС€С–РЅ РєС–СЂС–ТЈС–Р·',
+              'Войдите, чтобы увидеть возвраты',
+              'Қайтаруларды көру үшін кіріңіз',
               'Sign in to view refunds',
             )}
           </Link>
@@ -937,11 +937,11 @@ export function RefundStatusPage() {
         </Card>
       ) : refunds.length === 0 ? (
         <EmptyState
-          title={tx(l, 'Р’РѕР·РІСЂР°С‚РѕРІ РЅРµС‚', 'ТљР°Р№С‚Р°СЂСѓР»Р°СЂ Р¶РѕТ›', 'No refunds')}
+          title={tx(l, 'Возвратов нет', 'Қайтарулар жоқ', 'No refunds')}
           description={tx(
             l,
-            'РљРѕРіРґР° РІР°Рј Р±СѓРґРµС‚ РёРЅРёС†РёРёСЂРѕРІР°РЅ РІРѕР·РІСЂР°С‚, РѕРЅ РїРѕСЏРІРёС‚СЃСЏ Р·РґРµСЃСЊ.',
-            'РЎС–Р·РіРµ Т›Р°Р№С‚Р°СЂСѓ Р±Р°СЃС‚Р°РјР°Р»Р°РЅТ“Р°РЅРґР°, РѕР» РѕСЃС‹ Р¶РµСЂРґРµ РїР°Р№РґР° Р±РѕР»Р°РґС‹.',
+            'Когда вам будет инициирован возврат, он появится здесь.',
+            'Сізге қайтару бастамаланғанда, ол осы жерде пайда болады.',
             'Refunds initiated for you will appear here.',
           )}
         />
@@ -962,14 +962,14 @@ export function RefundStatusPage() {
                   </Badge>
                 </div>
                 <div className="text-[18px]" style={{ color: 'var(--eco-primary)' }}>
-                  {r.currency === 'KZT' ? 'в‚ё' : `${r.currency} `}
+                  {r.currency === 'KZT' ? '₸' : `${r.currency} `}
                   {formatNumber(Number(r.amount))}
                 </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div>
                   <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                    {tx(l, 'РўСЂР°РЅР·Р°РєС†РёСЏ', 'РўСЂР°РЅР·Р°РєС†РёСЏ', 'Transaction')}
+                    {tx(l, 'Транзакция', 'Транзакция', 'Transaction')}
                   </div>
                   <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
                     #{r.paymentTransactionId}
@@ -977,7 +977,7 @@ export function RefundStatusPage() {
                 </div>
                 <div>
                   <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                    {tx(l, 'РЎРѕР·РґР°РЅ', 'Р–Р°СЃР°Р»Т“Р°РЅ', 'Created')}
+                    {tx(l, 'Создан', 'Жасалған', 'Created')}
                   </div>
                   <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
                     {formatDateTime(r.createdAt, l)}
@@ -986,7 +986,7 @@ export function RefundStatusPage() {
                 {r.providerRefundId && (
                   <div>
                     <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {tx(l, 'РџСЂРѕРІР°Р№РґРµСЂ', 'РџСЂРѕРІР°Р№РґРµСЂ', 'Provider Ref')}
+                      {tx(l, 'Провайдер', 'Провайдер', 'Provider Ref')}
                     </div>
                     <div className="text-[13px] truncate" style={{ color: 'var(--eco-text)' }}>
                       {r.providerRefundId}
@@ -996,7 +996,7 @@ export function RefundStatusPage() {
               </div>
               {r.reason && (
                 <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {tx(l, 'РџСЂРёС‡РёРЅР°:', 'РЎРµР±РµР±С–:', 'Reason:')} {r.reason}
+                  {tx(l, 'Причина:', 'Себебі:', 'Reason:')} {r.reason}
                 </div>
               )}
             </Card>
@@ -1016,9 +1016,9 @@ export function RefundStatusPage() {
         <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
           {tx(
             l,
-            'Р’РѕР·РІСЂР°С‚ Р±СѓРґРµС‚ Р·Р°С‡РёСЃР»РµРЅ РЅР° РёСЃС…РѕРґРЅС‹Р№ СЃРїРѕСЃРѕР± РѕРїР»Р°С‚С‹ РІ С‚РµС‡РµРЅРёРµ 3вЂ“10 СЂР°Р±РѕС‡РёС… РґРЅРµР№ РїРѕСЃР»Рµ РѕРґРѕР±СЂРµРЅРёСЏ.',
-            'ТљР°Р№С‚Р°СЂСѓ РјР°Т›Т±Р»РґР°РЅТ“Р°РЅРЅР°РЅ РєРµР№С–РЅ 3-10 Р¶Т±РјС‹СЃ РєТЇРЅС–РЅРґРµ Р±Р°СЃС‚Р°РїТ›С‹ С‚У©Р»РµРј С‚У™СЃС–Р»С–РЅРµ Р°СѓРґР°СЂС‹Р»Р°РґС‹.',
-            'Refund will be credited to the original payment method within 3вЂ“10 business days after approval.',
+            'Возврат будет зачислен на исходный способ оплаты в течение 3–10 рабочих дней после одобрения.',
+            'Қайтару мақұлданғаннан кейін 3-10 жұмыс күнінде бастапқы төлем тәсіліне аударылады.',
+            'Refund will be credited to the original payment method within 3–10 business days after approval.',
           )}
         </span>
       </div>
@@ -1026,7 +1026,7 @@ export function RefundStatusPage() {
       <Link to="/support/new" style={{ textDecoration: 'none' }}>
         <Button variant="secondary" size="md" className="w-full">
           <MessageSquare size={14} />{' '}
-          {tx(l, 'РЎРІСЏР·Р°С‚СЊСЃСЏ СЃ РїРѕРґРґРµСЂР¶РєРѕР№', 'ТљРѕР»РґР°СѓТ“Р° С…Р°Р±Р°СЂР»Р°СЃСѓ', 'Contact Support')}
+          {tx(l, 'Связаться с поддержкой', 'Қолдауға хабарласу', 'Contact Support')}
         </Button>
       </Link>
 
@@ -1035,7 +1035,7 @@ export function RefundStatusPage() {
   );
 }
 
-// в”Ђв”Ђв”Ђ 6) Owner Payouts (history + methods) в”Ђв”Ђв”Ђ
+// ─── 6) Owner Payouts (history + methods) ───
 function payoutStatusVariant(s: string): 'warning' | 'info' | 'success' | 'danger' | 'default' {
   const u = s.toUpperCase();
   if (u === 'SUCCESS' || u === 'SENT' || u === 'PROCESSED') return 'success';
@@ -1092,11 +1092,11 @@ function PayoutMethodsCard({
     <Card className="flex flex-col gap-4 mb-6">
       <div className="flex items-center justify-between">
         <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
-          {tx(l, 'РЎРїРѕСЃРѕР±С‹ РІС‹РїР»Р°С‚С‹', 'РўУ©Р»РµРј С‚У™СЃС–Р»РґРµСЂС–', 'Payout Methods')}
+          {tx(l, 'Способы выплаты', 'Төлем тәсілдері', 'Payout Methods')}
         </h3>
         {!adding && (
           <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
-            <Plus size={13} /> {tx(l, 'Р”РѕР±Р°РІРёС‚СЊ', 'ТљРѕСЃСѓ', 'Add')}
+            <Plus size={13} /> {tx(l, 'Добавить', 'Қосу', 'Add')}
           </Button>
         )}
       </div>
@@ -1109,7 +1109,7 @@ function PayoutMethodsCard({
         </div>
       ) : methods.length === 0 && !adding ? (
         <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-          {tx(l, 'РњРµС‚РѕРґ РІС‹РїР»Р°С‚С‹ РЅРµ Р·Р°РґР°РЅ.', 'РўУ©Р»РµРј С‚У™СЃС–Р»С– Р±РµР»РіС–Р»РµРЅР±РµРіРµРЅ.', 'No payout method yet.')}
+          {tx(l, 'Метод выплаты не задан.', 'Төлем тәсілі белгіленбеген.', 'No payout method yet.')}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -1123,11 +1123,11 @@ function PayoutMethodsCard({
                 <CreditCard size={16} style={{ color: 'var(--eco-text-tertiary)' }} />
                 <div className="min-w-0">
                   <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
-                    {m.providerName} В· {m.panMask || 'вЂ”'}
+                    {m.providerName} · {m.panMask || '—'}
                   </div>
                   <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                     {m.status}
-                    {m.isDefault ? ` В· ${tx(l, 'РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ', 'У™РґРµРїРєС–', 'default')}` : ''}
+                    {m.isDefault ? ` · ${tx(l, 'по умолчанию', 'әдепкі', 'default')}` : ''}
                   </div>
                 </div>
               </div>
@@ -1138,8 +1138,8 @@ function PayoutMethodsCard({
                 onClick={() => void remove(m.id)}
                 aria-label={tx(
                   l,
-                  'РЈРґР°Р»РёС‚СЊ СЃРїРѕСЃРѕР± РІС‹РїР»Р°С‚С‹',
-                  'РўУ©Р»РµРј С‚У™СЃС–Р»С–РЅ Р¶РѕСЋ',
+                  'Удалить способ выплаты',
+                  'Төлем тәсілін жою',
                   'Delete payout method',
                 )}
               >
@@ -1158,8 +1158,8 @@ function PayoutMethodsCard({
           <input
             placeholder={tx(
               l,
-              'РџСЂРѕРІР°Р№РґРµСЂСЃРєРёР№ С‚РѕРєРµРЅ РєР°СЂС‚С‹',
-              'РџСЂРѕРІР°Р№РґРµСЂ РєР°СЂС‚Р° С‚РѕРєРµРЅС–',
+              'Провайдерский токен карты',
+              'Провайдер карта токені',
               'Provider card token',
             )}
             value={token}
@@ -1175,8 +1175,8 @@ function PayoutMethodsCard({
           <input
             placeholder={tx(
               l,
-              'РњР°СЃРєР° РєР°СЂС‚С‹ (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ), РЅР°РїСЂ. **** 4821',
-              'РљР°СЂС‚Р° РјР°СЃРєР°СЃС‹ (РјС–РЅРґРµС‚С‚С– РµРјРµСЃ)',
+              'Маска карты (необязательно), напр. **** 4821',
+              'Карта маскасы (міндетті емес)',
               'PAN mask (optional), e.g. **** 4821',
             )}
             value={panMask}
@@ -1200,7 +1200,7 @@ function PayoutMethodsCard({
               }}
               disabled={busy}
             >
-              {tx(l, 'РћС‚РјРµРЅР°', 'Р‘Р°СЃ С‚Р°СЂС‚Сѓ', 'Cancel')}
+              {tx(l, 'Отмена', 'Бас тарту', 'Cancel')}
             </Button>
             <Button
               variant="primary"
@@ -1209,7 +1209,7 @@ function PayoutMethodsCard({
               disabled={!token.trim()}
               onClick={() => void submit()}
             >
-              {tx(l, 'РЎРѕС…СЂР°РЅРёС‚СЊ', 'РЎР°Т›С‚Р°Сѓ', 'Save')}
+              {tx(l, 'Сохранить', 'Сақтау', 'Save')}
             </Button>
           </div>
         </div>
@@ -1250,8 +1250,8 @@ function HeldBalanceCard({
           {error ??
             tx(
               l,
-              'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СѓРґРµСЂР¶РёРІР°РµРјС‹Р№ Р±Р°Р»Р°РЅСЃ.',
-              'Т°СЃС‚Р°Р»Т“Р°РЅ С‚РµТЈРіРµСЂС–РјРґС– Р¶ТЇРєС‚РµСѓ РјТЇРјРєС–РЅ Р±РѕР»РјР°РґС‹.',
+              'Не удалось загрузить удерживаемый баланс.',
+              'Ұсталған теңгерімді жүктеу мүмкін болмады.',
               'Unable to load the held balance.',
             )}
         </div>
@@ -1263,7 +1263,7 @@ function HeldBalanceCard({
     l === 'ru' ? 'ru-RU' : l === 'kz' ? 'kk-KZ' : 'en-US',
     { minimumFractionDigits: 2, maximumFractionDigits: 2 },
   );
-  const currencyPrefix = balance.currency === 'KZT' ? 'в‚ё' : `${balance.currency} `;
+  const currencyPrefix = balance.currency === 'KZT' ? '₸' : `${balance.currency} `;
 
   return (
     <Card className="mb-6">
@@ -1272,7 +1272,7 @@ function HeldBalanceCard({
           <div className="flex items-center gap-2 mb-1">
             <Shield size={16} style={{ color: 'var(--eco-primary)' }} />
             <span className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-              {tx(l, 'РЎРµР№С‡Р°СЃ СѓРґРµСЂР¶РёРІР°РµС‚СЃСЏ', 'ТљР°Р·С–СЂ Т±СЃС‚Р°Р»С‹РјРґР°', 'Currently held')}
+              {tx(l, 'Сейчас удерживается', 'Қазір ұсталымда', 'Currently held')}
             </span>
           </div>
           <div className="text-[30px] leading-tight" style={{ color: 'var(--eco-primary)' }}>
@@ -1281,15 +1281,15 @@ function HeldBalanceCard({
           </div>
         </div>
         <Badge variant={balance.heldPayoutCount > 0 ? 'info' : 'default'}>
-          {balance.heldPayoutCount} {tx(l, 'РІС‹РїР»Р°С‚ РІ hold', 'С‚У©Р»РµРј Т±СЃС‚Р°Р»С‹РјРґР°', 'payouts on hold')}
+          {balance.heldPayoutCount} {tx(l, 'выплат в hold', 'төлем ұсталымда', 'payouts on hold')}
         </Badge>
       </div>
 
       <p className="text-[12px] mt-3" style={{ color: 'var(--eco-text-tertiary)' }}>
         {tx(
           l,
-          'РЎСѓРјРјР° СѓСЃРїРµС€РЅС‹С… РїР»Р°С‚РµР¶РµР№ СѓС‡Р°СЃС‚РЅРёРєРѕРІ, РїСЂРµРґРЅР°Р·РЅР°С‡РµРЅРЅР°СЏ РІР°Рј Рё РІСЃС‘ РµС‰С‘ РЅР°С…РѕРґСЏС‰Р°СЏСЃСЏ РІ РїРµСЂРёРѕРґРµ hold. Р’РѕР·РІСЂР°С‚С‹ Рё РѕС‚РјРµРЅС‘РЅРЅС‹Рµ РІС‹РїР»Р°С‚С‹ РЅРµ СѓС‡РёС‚С‹РІР°СЋС‚СЃСЏ.',
-          'РЎС–Р·РіРµ Р°СЂРЅР°Р»Т“Р°РЅ Р¶У™РЅРµ hold РєРµР·РµТЈС–РЅРґРµРіС– Т›Р°С‚С‹СЃСѓС€С‹Р»Р°СЂРґС‹ТЈ СЃУ™С‚С‚С– С‚У©Р»РµРјРґРµСЂС–РЅС–ТЈ СЃРѕРјР°СЃС‹. ТљР°Р№С‚Р°СЂС‹РјРґР°СЂ РјРµРЅ Р¶РѕР№С‹Р»Т“Р°РЅ С‚У©Р»РµРјРґРµСЂ РµСЃРµРїС‚РµР»РјРµР№РґС–.',
+          'Сумма успешных платежей участников, предназначенная вам и всё ещё находящаяся в периоде hold. Возвраты и отменённые выплаты не учитываются.',
+          'Сізге арналған және hold кезеңіндегі қатысушылардың сәтті төлемдерінің сомасы. Қайтарымдар мен жойылған төлемдер есептелмейді.',
           'Successful member payments owed to you that are still inside the hold period. Refunded and reversed payouts are excluded.',
         )}
       </p>
@@ -1300,7 +1300,7 @@ function HeldBalanceCard({
           style={{ color: 'var(--eco-text-secondary)', borderColor: 'var(--eco-border)' }}
         >
           <Timer size={14} />
-          {tx(l, 'Р‘Р»РёР¶Р°Р№С€РµРµ РѕСЃРІРѕР±РѕР¶РґРµРЅРёРµ:', 'Р•ТЈ Р¶Р°Т›С‹РЅ Р±РѕСЃР°С‚Сѓ:', 'Next release:')}{' '}
+          {tx(l, 'Ближайшее освобождение:', 'Ең жақын босату:', 'Next release:')}{' '}
           {formatDateTime(balance.nextReleaseAt, l)}
         </div>
       )}
@@ -1342,7 +1342,7 @@ export function OwnerPayoutPage() {
           setPayoutsError(
             err instanceof ApiError
               ? err.message
-              : tx(l, 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РІС‹РїР»Р°С‚С‹.', 'РўУ©Р»РµРјРґРµСЂРґС– Р¶ТЇРєС‚РµСѓ РјТЇРјРєС–РЅ Р±РѕР»РјР°РґС‹.', 'Unable to load payouts.'),
+              : tx(l, 'Не удалось загрузить выплаты.', 'Төлемдерді жүктеу мүмкін болмады.', 'Unable to load payouts.'),
           );
       })
       .finally(() => {
@@ -1360,8 +1360,8 @@ export function OwnerPayoutPage() {
               ? err.message
               : tx(
                   l,
-                  'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЃРїРѕСЃРѕР±С‹ РІС‹РїР»Р°С‚С‹.',
-                  'РўУ©Р»РµРј С‚У™СЃС–Р»РґРµСЂС–РЅ Р¶ТЇРєС‚РµСѓ РјТЇРјРєС–РЅ Р±РѕР»РјР°РґС‹.',
+                  'Не удалось загрузить способы выплаты.',
+                  'Төлем тәсілдерін жүктеу мүмкін болмады.',
                   'Unable to load payout methods.',
                 ),
           );
@@ -1381,8 +1381,8 @@ export function OwnerPayoutPage() {
               ? err.message
               : tx(
                   l,
-                  'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СѓРґРµСЂР¶РёРІР°РµРјС‹Р№ Р±Р°Р»Р°РЅСЃ.',
-                  'Т°СЃС‚Р°Р»С‹РјРґР°Т“С‹ Р±Р°Р»Р°РЅСЃС‚С‹ Р¶ТЇРєС‚РµСѓ РјТЇРјРєС–РЅ Р±РѕР»РјР°РґС‹.',
+                  'Не удалось загрузить удерживаемый баланс.',
+                  'Ұсталымдағы балансты жүктеу мүмкін болмады.',
                   'Unable to load held balance.',
                 ),
           );
@@ -1401,7 +1401,7 @@ export function OwnerPayoutPage() {
       const m = await authorizedRequest((token) => registerPayoutMethodRequest(payload, token));
       setMethods((prev) => [m, ...prev]);
       toast.success(
-        tx(l, 'РЎРїРѕСЃРѕР± РІС‹РїР»Р°С‚С‹ РґРѕР±Р°РІР»РµРЅ', 'РўУ©Р»РµРј С‚У™СЃС–Р»С– Т›РѕСЃС‹Р»РґС‹', 'Payout method added'),
+        tx(l, 'Способ выплаты добавлен', 'Төлем тәсілі қосылды', 'Payout method added'),
       );
     } catch (err) {
       toast.error(
@@ -1409,8 +1409,8 @@ export function OwnerPayoutPage() {
           ? err.message
           : tx(
               l,
-              'РќРµ СѓРґР°Р»РѕСЃСЊ РґРѕР±Р°РІРёС‚СЊ СЃРїРѕСЃРѕР± РІС‹РїР»Р°С‚С‹',
-              'РўУ©Р»РµРј С‚У™СЃС–Р»С–РЅ Т›РѕСЃСѓ РјТЇРјРєС–РЅ Р±РѕР»РјР°РґС‹',
+              'Не удалось добавить способ выплаты',
+              'Төлем тәсілін қосу мүмкін болмады',
               'Failed to add payout method',
             ),
       );
@@ -1422,7 +1422,7 @@ export function OwnerPayoutPage() {
       await authorizedRequest((token) => deletePayoutMethodRequest(id, token));
       setMethods((prev) => prev.filter((m) => m.id !== id));
       toast.success(
-        tx(l, 'РЎРїРѕСЃРѕР± РІС‹РїР»Р°С‚С‹ СѓРґР°Р»С‘РЅ', 'РўУ©Р»РµРј С‚У™СЃС–Р»С– Р¶РѕР№С‹Р»РґС‹', 'Payout method removed'),
+        tx(l, 'Способ выплаты удалён', 'Төлем тәсілі жойылды', 'Payout method removed'),
       );
     } catch (err) {
       toast.error(
@@ -1430,8 +1430,8 @@ export function OwnerPayoutPage() {
           ? err.message
           : tx(
               l,
-              'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ СЃРїРѕСЃРѕР± РІС‹РїР»Р°С‚С‹',
-              'РўУ©Р»РµРј С‚У™СЃС–Р»С–РЅ Р¶РѕСЋ РјТЇРјРєС–РЅ Р±РѕР»РјР°РґС‹',
+              'Не удалось удалить способ выплаты',
+              'Төлем тәсілін жою мүмкін болмады',
               'Failed to remove payout method',
             ),
       );
@@ -1445,17 +1445,17 @@ export function OwnerPayoutPage() {
         className="inline-flex items-center gap-1 text-[13px] mb-6"
         style={{ color: 'var(--eco-text-tertiary)', textDecoration: 'none' }}
       >
-        <ArrowLeft size={14} /> {tx(l, 'РњРѕРё РєРѕРјРЅР°С‚С‹', 'РњРµРЅС–ТЈ Р±У©Р»РјРµР»РµСЂС–Рј', 'My Rooms')}
+        <ArrowLeft size={14} /> {tx(l, 'Мои комнаты', 'Менің бөлмелерім', 'My Rooms')}
       </Link>
 
       <h1 className="text-[24px] mb-2" style={{ color: 'var(--eco-text)' }}>
-        {tx(l, 'Р’С‹РїР»Р°С‚С‹ РІР»Р°РґРµР»СЊС†Сѓ', 'РРµРіРµ С‚У©Р»РµРјРґРµСЂ', 'Owner Payouts')}
+        {tx(l, 'Выплаты владельцу', 'Иеге төлемдер', 'Owner Payouts')}
       </h1>
       <p className="text-[13px] mb-6" style={{ color: 'var(--eco-text-tertiary)' }}>
         {tx(
           l,
-          'РСЃС‚РѕСЂРёСЏ РІС‹РїР»Р°С‚ Рё РЅР°СЃС‚СЂРѕР№РєР° СЃРїРѕСЃРѕР±РѕРІ РІС‹РїР»Р°С‚С‹.',
-          'РўУ©Р»РµРјРґРµСЂ С‚Р°СЂРёС…С‹ РјРµРЅ С‚У©Р»РµРј С‚У™СЃС–Р»РґРµСЂС–РЅ Р±Р°РїС‚Р°Сѓ.',
+          'История выплат и настройка способов выплаты.',
+          'Төлемдер тарихы мен төлем тәсілдерін баптау.',
           'Payout history and method management.',
         )}
       </p>
@@ -1469,8 +1469,8 @@ export function OwnerPayoutPage() {
           >
             {tx(
               l,
-              'Р’РѕР№РґРёС‚Рµ, С‡С‚РѕР±С‹ СѓРІРёРґРµС‚СЊ РІС‹РїР»Р°С‚С‹',
-              'РўУ©Р»РµРјРґРµСЂРґС– РєУ©СЂСѓ ТЇС€С–РЅ РєС–СЂС–ТЈС–Р·',
+              'Войдите, чтобы увидеть выплаты',
+              'Төлемдерді көру үшін кіріңіз',
               'Sign in to view payouts',
             )}
           </Link>
@@ -1489,7 +1489,7 @@ export function OwnerPayoutPage() {
           />
 
           <h3 className="text-[16px] mb-3" style={{ color: 'var(--eco-text)' }}>
-            {tx(l, 'РСЃС‚РѕСЂРёСЏ РІС‹РїР»Р°С‚', 'РўУ©Р»РµРјРґРµСЂ С‚Р°СЂРёС…С‹', 'Payout History')}
+            {tx(l, 'История выплат', 'Төлемдер тарихы', 'Payout History')}
           </h3>
 
           {loadingPayouts ? (
@@ -1512,11 +1512,11 @@ export function OwnerPayoutPage() {
             </Card>
           ) : payouts.length === 0 ? (
             <EmptyState
-              title={tx(l, 'Р’С‹РїР»Р°С‚ РїРѕРєР° РЅРµС‚', 'УР·С–СЂРіРµ С‚У©Р»РµРјРґРµСЂ Р¶РѕТ›', 'No payouts yet')}
+              title={tx(l, 'Выплат пока нет', 'Әзірге төлемдер жоқ', 'No payouts yet')}
               description={tx(
                 l,
-                'РљРѕРіРґР° СѓС‡Р°СЃС‚РЅРёРєРё РѕРїР»Р°С‚СЏС‚ Рё РїСЂРѕР№РґС‘С‚ РѕРєРЅРѕ СЃРїРѕСЂРѕРІ, РІС‹РїР»Р°С‚Р° РїРѕСЏРІРёС‚СЃСЏ Р·РґРµСЃСЊ.',
-                'ТљР°С‚С‹СЃСѓС€С‹Р»Р°СЂ С‚У©Р»РµРї, РґР°Сѓ С‚РµСЂРµР·РµСЃС– У©С‚РєРµРЅРЅРµРЅ РєРµР№С–РЅ, С‚У©Р»РµРј РѕСЃС‹ Р¶РµСЂРґРµ РїР°Р№РґР° Р±РѕР»Р°РґС‹.',
+                'Когда участники оплатят и пройдёт окно споров, выплата появится здесь.',
+                'Қатысушылар төлеп, дау терезесі өткеннен кейін, төлем осы жерде пайда болады.',
                 'Once members pay and the dispute window closes, payouts will appear here.',
               )}
             />
@@ -1535,7 +1535,7 @@ export function OwnerPayoutPage() {
                       <Badge variant={payoutStatusVariant(p.status)}>{p.status}</Badge>
                     </div>
                     <div className="text-[18px]" style={{ color: 'var(--eco-primary)' }}>
-                      {p.currency === 'KZT' ? 'в‚ё' : `${p.currency} `}
+                      {p.currency === 'KZT' ? '₸' : `${p.currency} `}
                       {formatNumber(Number(p.amount))}
                     </div>
                   </div>
@@ -1543,7 +1543,7 @@ export function OwnerPayoutPage() {
                     {p.roomId != null && (
                       <div>
                         <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                          {tx(l, 'РљРѕРјРЅР°С‚Р°', 'Р‘У©Р»РјРµ', 'Room')}
+                          {tx(l, 'Комната', 'Бөлме', 'Room')}
                         </div>
                         <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
                           #{p.roomId}
@@ -1552,7 +1552,7 @@ export function OwnerPayoutPage() {
                     )}
                     <div>
                       <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                        {tx(l, 'РЎРѕР·РґР°РЅР°', 'Р–Р°СЃР°Р»Т“Р°РЅ', 'Created')}
+                        {tx(l, 'Создана', 'Жасалған', 'Created')}
                       </div>
                       <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
                         {formatDateTime(p.createdAt, l)}
@@ -1561,7 +1561,7 @@ export function OwnerPayoutPage() {
                     {p.processedAt && (
                       <div>
                         <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                          {tx(l, 'РћР±СЂР°Р±РѕС‚Р°РЅР°', 'УЁТЈРґРµР»РіРµРЅ', 'Processed')}
+                          {tx(l, 'Обработана', 'Өңделген', 'Processed')}
                         </div>
                         <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
                           {formatDateTime(p.processedAt, l)}
@@ -1571,12 +1571,12 @@ export function OwnerPayoutPage() {
                   </div>
                   {p.failureReason && (
                     <div className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
-                      {tx(l, 'РћС€РёР±РєР°:', 'ТљР°С‚Рµ:', 'Failure:')} {p.failureReason}
+                      {tx(l, 'Ошибка:', 'Қате:', 'Failure:')} {p.failureReason}
                     </div>
                   )}
                   {p.providerPayoutId && (
                     <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {tx(l, 'РџСЂРѕРІР°Р№РґРµСЂ:', 'РџСЂРѕРІР°Р№РґРµСЂ:', 'Provider:')} {p.providerPayoutId}
+                      {tx(l, 'Провайдер:', 'Провайдер:', 'Provider:')} {p.providerPayoutId}
                     </div>
                   )}
                 </Card>
@@ -1598,8 +1598,8 @@ export function OwnerPayoutPage() {
         <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
           {tx(
             l,
-            'Р’С‹РїР»Р°С‚Р° РґРѕСЃС‚СѓРїРЅР° РїРѕСЃР»Рµ РїСЂРѕС…РѕР¶РґРµРЅРёСЏ РІРµСЂРёС„РёРєР°С†РёРё Рё РѕРєРЅР° РґР»СЏ СЃРїРѕСЂРѕРІ. Р­С‚Рѕ Р·Р°С‰РёС‰Р°РµС‚ РѕР±Рµ СЃС‚РѕСЂРѕРЅС‹.',
-            'РўУ©Р»РµРј РІРµСЂРёС„РёРєР°С†РёСЏ РјРµРЅ РґР°Сѓ С‚РµСЂРµР·РµСЃС–РЅРµРЅ РєРµР№С–РЅ Т›РѕР»Р¶РµС‚С–РјРґС–. Р‘Т±Р» РµРєС– С‚Р°СЂР°РїС‚С‹ Т›РѕСЂТ“Р°Р№РґС‹.',
+            'Выплата доступна после прохождения верификации и окна для споров. Это защищает обе стороны.',
+            'Төлем верификация мен дау терезесінен кейін қолжетімді. Бұл екі тарапты қорғайды.',
             'Payout available after verification and dispute window. This protects both parties.',
           )}
         </span>

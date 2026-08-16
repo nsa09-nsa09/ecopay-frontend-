@@ -66,7 +66,7 @@ function AdminGlobalSearch({ variant, onResultPicked }: AdminGlobalSearchProps) 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // Debounce input в†’ 300ms after typing stops we kick off the search.
+  // Debounce input → 300ms after typing stops we kick off the search.
   useEffect(() => {
     const id = window.setTimeout(() => setDebounced(query.trim()), 300);
     return () => window.clearTimeout(id);
@@ -185,7 +185,7 @@ function AdminGlobalSearch({ variant, onResultPicked }: AdminGlobalSearchProps) 
               key={`room-${r.id}`}
               primary={r.title || `R-${r.id}`}
               secondary={
-                [r.serviceName, r.ownerDisplayName, r.status].filter(Boolean).join(' В· ') ||
+                [r.serviceName, r.ownerDisplayName, r.status].filter(Boolean).join(' · ') ||
                 `R-${r.id}`
               }
               onClick={() => handlePick(`/admin/rooms?selected=${r.id}`)}
@@ -199,7 +199,7 @@ function AdminGlobalSearch({ variant, onResultPicked }: AdminGlobalSearchProps) 
             <SearchResultRow
               key={`user-${u.id}`}
               primary={u.displayName || u.email || `U-${u.id}`}
-              secondary={[u.email, u.role, u.status].filter(Boolean).join(' В· ') || `U-${u.id}`}
+              secondary={[u.email, u.role, u.status].filter(Boolean).join(' · ') || `U-${u.id}`}
               onClick={() => handlePick(`/admin/users?selected=${u.id}`)}
             />
           ))}
@@ -211,7 +211,7 @@ function AdminGlobalSearch({ variant, onResultPicked }: AdminGlobalSearchProps) 
             <SearchResultRow
               key={`feedback-${f.id}`}
               primary={f.subject || f.message.slice(0, 60) || `F-${f.id}`}
-              secondary={[f.type, f.status].filter(Boolean).join(' В· ') || `F-${f.id}`}
+              secondary={[f.type, f.status].filter(Boolean).join(' · ') || `F-${f.id}`}
               onClick={() => handlePick(`/admin/feedback?selected=${f.id}`)}
             />
           ))}
@@ -355,9 +355,9 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         if (!cancelled) setKpis(data);
       } catch (err) {
         if (cancelled) return;
-        // Silently ignore вЂ” badges are nice-to-have and shouldn't surface as toasts here.
+        // Silently ignore — badges are nice-to-have and shouldn't surface as toasts here.
         if (!(err instanceof ApiError)) {
-          // network errors etc вЂ” drop
+          // network errors etc — drop
         }
         setKpis(null);
       }
@@ -397,7 +397,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         />
       )}
 
-      {/* Sidebar вЂ” fixed/drawer on mobile, sticky column on lg+ */}
+      {/* Sidebar — fixed/drawer on mobile, sticky column on lg+ */}
       <aside
         className={`fixed lg:sticky inset-y-0 left-0 z-50 lg:z-auto w-64 lg:w-56 shrink-0 flex flex-col border-r h-screen lg:top-0 transform transition-transform duration-200 lg:transform-none ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
@@ -475,7 +475,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           style={{ background: 'var(--eco-bg)', borderColor: 'var(--eco-border)' }}
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            {/* Hamburger вЂ” mobile/tablet only */}
+            {/* Hamburger — mobile/tablet only */}
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden p-2 rounded-lg cursor-pointer shrink-0"
@@ -489,7 +489,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
               <Menu size={18} />
             </button>
 
-            {/* Search вЂ” icon button on mobile (opens overlay), full input on md+. */}
+            {/* Search — icon button on mobile (opens overlay), full input on md+. */}
             <button
               type="button"
               onClick={() => setMobileSearchOpen(true)}
@@ -508,7 +508,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2 lg:gap-3 shrink-0">
-            {/* Notifications: no fake red dot вЂ” surfaced only via real data later */}
+            {/* Notifications: no fake red dot — surfaced only via real data later */}
             <button
               className="relative p-2 rounded-lg cursor-pointer"
               style={{ background: 'var(--eco-surface)', border: 'none' }}
@@ -587,7 +587,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         <main className="flex-1 p-4 lg:p-6">{children}</main>
       </div>
 
-      {/* Mobile search overlay вЂ” full-width sheet anchored to the top so it
+      {/* Mobile search overlay — full-width sheet anchored to the top so it
           stays usable inside the on-screen keyboard layout. */}
       {mobileSearchOpen && (
         <div

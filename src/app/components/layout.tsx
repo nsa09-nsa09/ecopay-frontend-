@@ -286,7 +286,7 @@ export function AppLayout() {
     if (lastTrackedPath.current === path) return;
     lastTrackedPath.current = path;
     void trackVisitRequest(path).catch(() => {
-      // Swallow вЂ” analytics must never break the UI.
+      // Swallow — analytics must never break the UI.
     });
   }, [location.pathname]);
 
@@ -315,11 +315,11 @@ export function AppLayout() {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`
-    : 'вЂ”';
+    : '—';
   const heldLabel =
-    language === 'ru' ? 'РќР° СѓРґРµСЂР¶Р°РЅРёРё' : language === 'kz' ? 'Т°СЃС‚Р°Р»С‹РјРґР°' : 'On hold';
+    language === 'ru' ? 'На удержании' : language === 'kz' ? 'Ұсталымда' : 'On hold';
 
-  // /rooms is gated by auth вЂ” hide the entry for guests so they don't land on
+  // /rooms is gated by auth — hide the entry for guests so they don't land on
   // the empty-state screen by accident. /browse is decommissioned; room
   // discovery now happens via service-match on the catalog tiles.
   const navItems = useMemo(() => {
@@ -336,8 +336,8 @@ export function AppLayout() {
   }, [t, isAuthenticated]);
 
   const languageLabels = {
-    ru: 'Р СѓСЃ',
-    kz: 'ТљР°Р·',
+    ru: 'Рус',
+    kz: 'Қаз',
     en: 'Eng',
   };
 
@@ -629,7 +629,7 @@ export function AppLayout() {
         )}
       </nav>
 
-      {/* Mobile search overlay вЂ” sheet anchored to the top so it remains
+      {/* Mobile search overlay — sheet anchored to the top so it remains
           usable inside the on-screen keyboard. */}
       {mobileSearchOpen && (
         <div
