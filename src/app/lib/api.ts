@@ -2492,7 +2492,7 @@ export interface PublicServiceReviewDto {
   authorPublicId: string;
   createdAt: string;
   verifiedExperience?: boolean | null;
-  featuredOrder?: number | null;
+  homepagePosition?: number | null;
 }
 
 export interface ServiceReviewDto {
@@ -2504,7 +2504,7 @@ export interface ServiceReviewDto {
   text: string;
   featured: boolean;
   verifiedExperience?: boolean | null;
-  featuredOrder?: number | null;
+  homepagePosition?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -2519,17 +2519,17 @@ export interface AdminServiceReviewDto {
   text: string;
   featured: boolean;
   verifiedExperience?: boolean | null;
-  featuredOrder?: number | null;
+  homepagePosition?: number | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface PublicHomeStatsDto {
   totalUsers?: number | string | null;
-  averageVerifiedRating?: number | string | null;
+  completedOrActiveMemberships?: number | string | null;
   verifiedReviewCount?: number | string | null;
-  activeConnections?: number | string | null;
-  completedConnections?: number | string | null;
+  averageVerifiedRating?: number | string | null;
+  activeRooms?: number | string | null;
 }
 
 export interface ServiceReviewPayload {
@@ -2587,22 +2587,15 @@ export function adminGetServiceReviews(
   );
 }
 
-export function adminSetServiceReviewFeatured(id: number, featured: boolean, accessToken: string) {
-  return requestJson<AdminServiceReviewDto>(
-    `/admin/service-reviews/${id}/featured`,
-    { method: 'PATCH', body: JSON.stringify({ featured }) },
-    accessToken,
-  );
-}
-
-export function adminUpdateServiceReview(
+export function adminSetServiceReviewFeatured(
   id: number,
-  payload: { rating?: number; text?: string },
+  featured: boolean,
+  homepagePosition: number | null,
   accessToken: string,
 ) {
   return requestJson<AdminServiceReviewDto>(
-    `/admin/service-reviews/${id}`,
-    { method: 'PUT', body: JSON.stringify(payload) },
+    `/admin/service-reviews/${id}/featured`,
+    { method: 'PATCH', body: JSON.stringify({ featured, homepagePosition }) },
     accessToken,
   );
 }

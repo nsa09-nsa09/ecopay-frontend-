@@ -266,6 +266,12 @@ export function AboutPage() {
             {t('contactGetInTouch')}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Link to="/support" style={{ textDecoration: 'none' }}>
+              <ContactTile
+                icon={<ShieldCheck size={18} style={{ color: 'var(--eco-primary)' }} />}
+                text="Связаться с поддержкой"
+              />
+            </Link>
             {contactEmail && (
               <ContactTile
                 icon={<Mail size={18} style={{ color: 'var(--eco-primary)' }} />}

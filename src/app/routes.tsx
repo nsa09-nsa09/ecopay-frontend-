@@ -360,6 +360,7 @@ export const router = createBrowserRouter([
           { path: 'privacy', Component: PrivacyPage },
           { path: 'how-it-works', Component: HowItWorksPage },
           { path: 'security', Component: SecurityPage },
+          { path: 'sceurity', element: <Navigate to="/security" replace /> },
           // Freedom Pay redirect-back targets (success_url / failure_url) — wired to
           // the live reconciliation page.
           { path: 'payment/confirmation', Component: PaymentReturnPage },

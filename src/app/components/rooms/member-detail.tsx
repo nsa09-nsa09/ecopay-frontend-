@@ -40,6 +40,10 @@ const formatCurrency = (v: number | string | null | undefined, currency = 'KZT')
   const formatted = moneyFormatter.format(Number(v ?? 0));
   return currency === 'KZT' ? `₸${formatted}` : `${currency} ${formatted}`;
 };
+const toFiniteNumber = (v: number | string | null | undefined) => {
+  const parsed = Number(v);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 const formatDateTime = (v: string | null | undefined, l: Language) =>
   v ? formatAlmatyDateTime(v, l) : null;
 
@@ -176,6 +180,17 @@ export function MemberDetailPage() {
 
   const handlePay = async () => {
     if (!membership) return;
+    if (!room?.settlementCurrency || room.shareKzt == null || room.payableTotalKzt == null) {
+      setPayError(
+        tx(
+          language,
+          'Payment amount is not available yet. Refresh the page or contact support.',
+          'Payment amount is not available yet. Refresh the page or contact support.',
+          'Payment amount is not available yet. Refresh the page or contact support.',
+        ),
+      );
+      return;
+    }
     if (room && ['CANCELLED', 'BLOCKED', 'COMPLETED'].includes(room.status)) {
       setPayError(
         tx(
@@ -338,13 +353,11 @@ export function MemberDetailPage() {
   const canConfirm = membership.status === 'PENDING' && ownerGranted && !memberConfirmed;
   const roomPaymentClosed = ['CANCELLED', 'BLOCKED', 'COMPLETED'].includes(room.status);
 
-  const settlementCurrency = room.settlementCurrency ?? 'KZT';
-  const payShare = room.shareKzt ?? room.pricePerMember;
-  const payTotal = room.payableTotalKzt ?? room.pricePerMemberTotal ?? payShare;
-  const payCommission =
-    room.commissionKzt ??
-    room.pricePerMemberCommission ??
-    Math.max(0, Number(payTotal ?? 0) - Number(payShare ?? 0));
+  const settlementCurrency = room.settlementCurrency ?? null;
+  const payShare = room.shareKzt ?? null;
+  const payTotal = room.payableTotalKzt ?? null;
+  const payCommission = room.commissionKzt ?? null;
+  const canStartPayment = settlementCurrency != null && payShare != null && payTotal != null;
   const originalTariff =
     room.originalTariffPrice != null && room.originalTariffCurrency
       ? formatCurrency(room.originalTariffPrice, room.originalTariffCurrency)
@@ -507,14 +520,20 @@ export function MemberDetailPage() {
                 <span style={{ color: 'var(--eco-text-secondary)' }}>
                   {tx(language, 'Ваша доля', 'Сіздің үлесіңіз', 'Your share')}
                 </span>
-                <span style={{ color: 'var(--eco-text)' }}>{formatCurrency(payShare, settlementCurrency)}</span>
+                <span style={{ color: 'var(--eco-text)' }}>
+                  {canStartPayment
+                    ? formatCurrency(payShare, settlementCurrency)
+                    : tx(language, 'Unavailable', 'Unavailable', 'Unavailable')}
+                </span>
               </div>
-              {Number(payCommission ?? 0) > 0 && (
+              {toFiniteNumber(payCommission) != null && Number(payCommission) > 0 && (
                 <div className="flex justify-between text-[14px] mb-1">
                   <span style={{ color: 'var(--eco-text-secondary)' }}>
                     {tx(language, 'Комиссия EcoPay', 'EcoPay комиссиясы', 'EcoPay fee')}
                   </span>
-                  <span style={{ color: 'var(--eco-text)' }}>{formatCurrency(payCommission, settlementCurrency)}</span>
+                  <span style={{ color: 'var(--eco-text)' }}>
+                    {formatCurrency(payCommission, settlementCurrency ?? 'KZT')}
+                  </span>
                 </div>
               )}
               <div
@@ -525,7 +544,9 @@ export function MemberDetailPage() {
                   {tx(language, 'Итого к оплате', 'Барлығы төлеуге', 'Total to pay')}
                 </span>
                 <span style={{ color: 'var(--eco-text)', fontWeight: 600 }}>
-                  {formatCurrency(payTotal, settlementCurrency)}
+                  {canStartPayment
+                    ? formatCurrency(payTotal, settlementCurrency)
+                    : tx(language, 'Unavailable', 'Unavailable', 'Unavailable')}
                 </span>
               </div>
               <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>

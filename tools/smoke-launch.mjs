@@ -10,6 +10,11 @@ const checks = [
       "path: 'payment/failure'",
       "path: 'payment/payout'",
       "path: 'payments/history'",
+      "path: 'how-it-works'",
+      "path: 'security'",
+      "path: 'about'",
+      "path: 'sceurity'",
+      'to="/security"',
     ],
     mustNotInclude: [
       "path: 'rooms/full'",

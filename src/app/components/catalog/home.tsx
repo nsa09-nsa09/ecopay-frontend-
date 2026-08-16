@@ -807,8 +807,8 @@ export function HomePage() {
     const totalUsers = positiveNumber(homeStats.totalUsers);
     const averageRating = positiveNumber(homeStats.averageVerifiedRating);
     const reviewCount = positiveNumber(homeStats.verifiedReviewCount);
-    const activeConnections = positiveNumber(homeStats.activeConnections);
-    const completedConnections = positiveNumber(homeStats.completedConnections);
+    const completedOrActiveMemberships = positiveNumber(homeStats.completedOrActiveMemberships);
+    const activeRooms = positiveNumber(homeStats.activeRooms);
 
     const stats: Array<{ value: string; label: string }> = [];
     if (totalUsers) {
@@ -829,24 +829,20 @@ export function HomePage() {
         ),
       });
     }
-    if (activeConnections) {
+    if (completedOrActiveMemberships) {
       stats.push({
-        value: formatNumber(Math.round(activeConnections)),
-        label: tx(lang, 'active subscriptions', 'active subscriptions', 'active subscriptions'),
+        value: formatNumber(Math.round(completedOrActiveMemberships)),
+        label: tx(lang, 'memberships', 'memberships', 'memberships'),
       });
-    } else if (completedConnections) {
+    }
+    if (activeRooms) {
       stats.push({
-        value: formatNumber(Math.round(completedConnections)),
-        label: tx(
-          lang,
-          'completed subscriptions',
-          'completed subscriptions',
-          'completed subscriptions',
-        ),
+        value: formatNumber(Math.round(activeRooms)),
+        label: tx(lang, 'active rooms', 'active rooms', 'active rooms'),
       });
     }
 
-    return stats.slice(0, 3);
+    return stats;
   }, [homeStats, lang]);
 
   const gridReviews = useMemo(
@@ -878,23 +874,6 @@ export function HomePage() {
           <span className="eco-blob eco-blob-3" />
         </div>
         <div className="relative max-w-[860px] mx-auto text-center">
-          <div
-            className="animate-eco-fade-in inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[13px] mb-6"
-            style={{
-              background: 'var(--eco-surface-raised)',
-              color: 'var(--eco-brand-700)',
-              fontWeight: 500,
-              border: '1px solid var(--eco-brand-100)',
-            }}
-          >
-            <ShieldCheck size={15} />
-            {tx(
-              lang,
-              'Защищённое совместное использование подписок',
-              'Қорғалған ортақ жазылымдар',
-              'Protected subscription sharing',
-            )}
-          </div>
 
           <h1
             className="animate-eco-fade-in text-[32px] sm:text-[44px] lg:text-[56px] leading-[1.1] tracking-tight m-0"

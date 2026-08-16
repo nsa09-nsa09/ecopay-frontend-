@@ -27,6 +27,7 @@ const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
 
 type FeaturedFilter = 'all' | 'featured' | 'not_featured';
+const HOMEPAGE_SLOTS = [1, 2, 3, 4, 5, 6];
 
 export function AdminServiceReviewsPage() {
   const { t, language } = useI18n();
@@ -68,8 +69,10 @@ export function AdminServiceReviewsPage() {
     void load();
   }, [load]);
 
-  const toggleFeatured = async (review: AdminServiceReviewDto) => {
-    if (!review.featured && review.verifiedExperience === false) {
+  const setHomepageSlot = async (review: AdminServiceReviewDto, slotValue: string) => {
+    const homepagePosition = slotValue ? Number(slotValue) : null;
+    const featured = homepagePosition != null;
+    if (featured && review.verifiedExperience === false) {
       show(
         'error',
         tx(
@@ -84,7 +87,7 @@ export function AdminServiceReviewsPage() {
     setPendingId(review.id);
     try {
       await authorizedRequest((token) =>
-        adminSetServiceReviewFeatured(review.id, !review.featured, token),
+        adminSetServiceReviewFeatured(review.id, featured, homepagePosition, token),
       );
       show('success', t('actionCompletedAndLogged'));
       void load();
@@ -94,6 +97,8 @@ export function AdminServiceReviewsPage() {
       setPendingId(null);
     }
   };
+
+  const removeFromHomepage = (review: AdminServiceReviewDto) => setHomepageSlot(review, '');
 
   const handleDelete = async () => {
     if (!deleting) return;
@@ -111,8 +116,8 @@ export function AdminServiceReviewsPage() {
     () =>
       [...homepageReviews].sort(
         (a, b) =>
-          (a.featuredOrder ?? Number.MAX_SAFE_INTEGER) -
-            (b.featuredOrder ?? Number.MAX_SAFE_INTEGER) ||
+          (a.homepagePosition ?? Number.MAX_SAFE_INTEGER) -
+            (b.homepagePosition ?? Number.MAX_SAFE_INTEGER) ||
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       ),
     [homepageReviews],
@@ -121,12 +126,9 @@ export function AdminServiceReviewsPage() {
   const homepagePosition = useCallback(
     (review: AdminServiceReviewDto) => {
       if (!review.featured) return null;
-      return (
-        review.featuredOrder ??
-        sortedHomepageReviews.findIndex((homepageReview) => homepageReview.id === review.id) + 1
-      );
+      return review.homepagePosition ?? null;
     },
-    [sortedHomepageReviews],
+    [],
   );
 
   return (
@@ -176,7 +178,10 @@ export function AdminServiceReviewsPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
               {Array.from({ length: 6 }).map((_, index) => {
-                const review = sortedHomepageReviews[index] ?? null;
+                const review =
+                  sortedHomepageReviews.find(
+                    (homepageReview) => homepageReview.homepagePosition === index + 1,
+                  ) ?? null;
                 return (
                   <div
                     key={`homepage-slot-${index}`}
@@ -213,7 +218,7 @@ export function AdminServiceReviewsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => void toggleFeatured(review)}
+                          onClick={() => void removeFromHomepage(review)}
                           disabled={pendingId === review.id}
                         >
                           Remove from homepage
@@ -294,21 +299,24 @@ export function AdminServiceReviewsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <label
-                      className="flex items-center gap-1.5 text-[12px] cursor-pointer"
-                      style={{ color: 'var(--eco-text-secondary)' }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={review.featured}
+                    <div className="w-44">
+                      <Select
+                        aria-label={t('adminServiceReviewFeatureToggle')}
+                        value={review.featured ? String(review.homepagePosition ?? '') : ''}
                         disabled={
                           pendingId === review.id ||
                           (!review.featured && review.verifiedExperience === false)
                         }
-                        onChange={() => void toggleFeatured(review)}
+                        onChange={(event) => void setHomepageSlot(review, event.target.value)}
+                        options={[
+                          { value: '', label: 'Not on homepage' },
+                          ...HOMEPAGE_SLOTS.map((slot) => ({
+                            value: String(slot),
+                            label: `Slot ${slot}`,
+                          })),
+                        ]}
                       />
-                      {t('adminServiceReviewFeatureToggle')}
-                    </label>
+                    </div>
                     <Button variant="ghost" size="sm" onClick={() => setDeleting(review)}>
                       <Trash2 size={12} /> {t('catalogDelete')}
                     </Button>

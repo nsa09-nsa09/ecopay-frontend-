@@ -37,7 +37,7 @@ async function mockApi(page: Page, role: 'USER' | 'ADMIN' | 'ANON' = 'USER') {
       text: 'The room invitation arrived after payment and support stayed visible.',
       featured: true,
       verifiedExperience: true,
-      featuredOrder: 1,
+      homepagePosition: 1,
       createdAt: '2026-08-14T00:00:00Z',
       updatedAt: '2026-08-14T00:00:00Z',
     },
@@ -51,7 +51,7 @@ async function mockApi(page: Page, role: 'USER' | 'ADMIN' | 'ANON' = 'USER') {
       text: 'Saved draft review awaiting a verified EcoPay experience.',
       featured: false,
       verifiedExperience: false,
-      featuredOrder: null,
+      homepagePosition: null,
       createdAt: '2026-08-13T00:00:00Z',
       updatedAt: '2026-08-13T00:00:00Z',
     },
@@ -102,9 +102,10 @@ async function mockApi(page: Page, role: 'USER' | 'ADMIN' | 'ANON' = 'USER') {
     if (path.includes('/public/home-stats')) {
       return body({
         totalUsers: 124,
+        completedOrActiveMemberships: 31,
         averageVerifiedRating: 4.7,
         verifiedReviewCount: 18,
-        activeConnections: 31,
+        activeRooms: 7,
       });
     }
     if (path.includes('/service-reviews/featured')) {
@@ -116,7 +117,7 @@ async function mockApi(page: Page, role: 'USER' | 'ADMIN' | 'ANON' = 'USER') {
           rating: 5,
           text: 'EcoPay matched me with a real room and the payment status was clear.',
           verifiedExperience: true,
-          featuredOrder: 1,
+          homepagePosition: 1,
           createdAt: '2026-08-15T00:00:00Z',
         },
       ]);
@@ -235,9 +236,14 @@ async function mockApi(page: Page, role: 'USER' | 'ADMIN' | 'ANON' = 'USER') {
     }
     if (path.includes('/admin/service-reviews/') && path.includes('/featured')) {
       const id = Number(path.match(/service-reviews\/(\d+)/)?.[1]);
-      const payload = route.request().postDataJSON() as { featured: boolean };
+      const payload = route.request().postDataJSON() as {
+        featured: boolean;
+        homepagePosition: number | null;
+      };
       adminReviews = adminReviews.map((review) =>
-        review.id === id ? { ...review, featured: payload.featured } : review,
+        review.id === id
+          ? { ...review, featured: payload.featured, homepagePosition: payload.homepagePosition }
+          : review,
       );
       return body(adminReviews.find((review) => review.id === id));
     }
@@ -260,6 +266,21 @@ test('unauthenticated protected route redirects toward login', async ({ page }) 
   await mockApi(page, 'ANON');
   await page.goto('/admin/finance');
   await expect(page).toHaveURL(/admin-login|login/);
+});
+
+test('public static routes support direct navigation', async ({ page }) => {
+  await mockApi(page, 'ANON');
+  for (const path of ['/how-it-works', '/security', '/about'] as const) {
+    const response = await page.goto(path);
+    expect(response?.status() ?? 200).toBeLessThan(400);
+    await expect(page.locator('#root')).not.toBeEmpty();
+    await expect(page).toHaveURL(new RegExp(`${path}$`));
+  }
+
+  const response = await page.goto('/sceurity');
+  expect(response?.status() ?? 200).toBeLessThan(400);
+  await expect(page.locator('#root')).not.toBeEmpty();
+  await expect(page).toHaveURL(/\/security$/);
 });
 
 test('room payment CTA shows KZT settlement breakdown', async ({ page }) => {
