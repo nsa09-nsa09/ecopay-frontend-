@@ -80,14 +80,7 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await login(email, password);
-      if (result.kind === 'twoFactor') {
-        navigate('/admin-login', {
-          replace: true,
-          state: { challenge: result.challenge },
-        });
-        return;
-      }
+      await login(email, password);
       navigate(redirectTarget);
     } catch (err) {
       if (err instanceof ApiError) {

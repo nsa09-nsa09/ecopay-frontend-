@@ -36,10 +36,6 @@ function safeRedirectTarget(rawSearch: string): string | null {
 export function AdminLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const incomingChallenge = (
-    location.state as { challenge?: TwoFactorChallenge } | null
-  )?.challenge;
-  const initialChallenge = incomingChallenge?.requiresTwoFactor ? incomingChallenge : null;
   const { t } = useI18n();
   const {
     staffLogin,
@@ -51,7 +47,7 @@ export function AdminLoginPage() {
     logout,
   } = useAuth();
 
-  const [stage, setStage] = useState<Stage>(initialChallenge ? 'twoFactor' : 'credentials');
+  const [stage, setStage] = useState<Stage>('credentials');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -61,18 +57,11 @@ export function AdminLoginPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   // Challenge lives in component state only — never persisted. Going back
   // to the credentials stage clears it (see handleBackToCredentials).
-  const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(initialChallenge);
-  const [resendCooldown, setResendCooldown] = useState(initialChallenge ? 30 : 0);
+  const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [resendSupported, setResendSupported] = useState(true);
 
   const redirectTarget = useMemo(() => safeRedirectTarget(location.search), [location.search]);
-
-  useEffect(() => {
-    if (!initialChallenge) return;
-    // The challenge is now held in component memory. Remove it from browser
-    // history so a later back/forward navigation cannot replay the 2FA screen.
-    navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
-  }, []);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
