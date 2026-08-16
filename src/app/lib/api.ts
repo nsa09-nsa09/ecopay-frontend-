@@ -549,7 +549,7 @@ export function loginRequest(identifier: string, password: string) {
   const body = isPhoneIdentifier(identifier)
     ? { phone: normalizePhone(identifier), password }
     : { email: identifier.trim(), password };
-  return requestJson<AuthResponse>('/auth/login', {
+  return requestJson<StaffLoginResponse>('/auth/login', {
     method: 'POST',
     credentials: 'include',
     body: JSON.stringify(body),

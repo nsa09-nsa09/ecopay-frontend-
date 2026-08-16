@@ -124,7 +124,17 @@ export function LoginPage() {
     try {
       // Submit the canonical form so a stray capital or pasted space can't
       // miss the stored row.
-      await login(isEmailIdentifier ? emailField.normalized : identifier, password);
+      const result = await login(
+        isEmailIdentifier ? emailField.normalized : identifier,
+        password,
+      );
+      if (result.kind === 'twoFactor') {
+        navigate('/admin-login', {
+          replace: true,
+          state: { challenge: result.challenge },
+        });
+        return;
+      }
       navigate(redirectTarget);
     } catch (err) {
       if (err instanceof ApiError) {
