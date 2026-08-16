@@ -79,7 +79,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isReady: boolean;
-  login: (email: string, password: string) => Promise<User>;
+  login: (email: string, password: string) => Promise<StaffLoginResult>;
   staffLogin: (email: string, password: string) => Promise<StaffLoginResult>;
   verifyStaffTwoFactor: (challengeId: string, code: string) => Promise<User>;
   resendStaffTwoFactor: (challengeId: string) => Promise<void>;
@@ -242,11 +242,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const response = await loginRequest(email, password);
+    if (isTwoFactorChallenge(response)) {
+      return { kind: 'twoFactor' as const, challenge: response };
+    }
     commitSession({
       accessToken: response.accessToken,
       user: response.user,
     });
-    return response.user;
+    return { kind: 'session' as const, user: response.user };
   };
 
   const isStaff = (role: string | undefined | null) => role === 'ADMIN' || role === 'SUPPORT';

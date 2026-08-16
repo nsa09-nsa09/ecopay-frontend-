@@ -480,7 +480,7 @@ export function trackVisitRequest(path: string): Promise<void> {
 }
 
 export function loginRequest(email: string, password: string) {
-  return requestJson<AuthResponse>('/auth/login', {
+  return requestJson<StaffLoginResponse>('/auth/login', {
     method: 'POST',
     credentials: 'include',
     body: JSON.stringify({ email, password }),
