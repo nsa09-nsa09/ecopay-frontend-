@@ -101,18 +101,79 @@ jobs:
           script: |
             set -euo pipefail
             cd /opt/ecopay
-            export FRONTEND_IMAGE="${{ env.IMAGE }}:${{ github.sha }}"
-            docker compose pull ${{ steps.target.outputs.service }}
-            docker compose up -d ${{ steps.target.outputs.service }}
+
+            SERVICE="${{ steps.target.outputs.service }}"
+            IMAGE="${{ env.IMAGE }}:${{ github.sha }}"
+            OVERRIDE="$(mktemp)"
+            trap 'rm -f "$OVERRIDE"' EXIT
+
+            OLD_CID="$(docker compose ps -q "$SERVICE" || true)"
+            OLD_IMAGE=""
+            if [ -n "$OLD_CID" ]; then
+              OLD_IMAGE="$(docker inspect -f '{{.Config.Image}}' "$OLD_CID" 2>/dev/null || true)"
+            fi
+            echo "Old running image: ${OLD_IMAGE:-none}"
+            echo "Expected SHA image: $IMAGE"
+
+            cat > "$OVERRIDE" <<EOF
+            services:
+              ${SERVICE}:
+                image: ${IMAGE}
+            EOF
+
+            echo "Resolved compose images:"
+            docker compose -f docker-compose.yml -f "$OVERRIDE" config --images
+            RESOLVED_IMAGE="$(
+              docker compose -f docker-compose.yml -f "$OVERRIDE" config |
+                awk -v svc="$SERVICE" '
+                  $0 ~ "^  " svc ":$" { in_service = 1; next }
+                  in_service && $0 ~ "^  [A-Za-z0-9_.-]+:" { exit }
+                  in_service && $1 == "image:" { print $2; exit }
+                '
+            )"
+            if [ "$RESOLVED_IMAGE" != "$IMAGE" ]; then
+              echo "Compose image resolution mismatch for $SERVICE: expected $IMAGE, got ${RESOLVED_IMAGE:-empty}"
+              docker compose -f docker-compose.yml -f "$OVERRIDE" config --images
+              exit 1
+            fi
+
+            docker compose -f docker-compose.yml -f "$OVERRIDE" pull "$SERVICE"
+            docker compose -f docker-compose.yml -f "$OVERRIDE" up -d --no-deps "$SERVICE"
+
+            CID="$(docker compose -f docker-compose.yml -f "$OVERRIDE" ps -q "$SERVICE")"
+            ACTUAL="$(docker inspect -f '{{.Config.Image}}' "$CID")"
+            if [ "$ACTUAL" != "$IMAGE" ]; then
+              echo "Running image mismatch for $SERVICE: expected $IMAGE, got $ACTUAL"
+              docker compose -f docker-compose.yml -f "$OVERRIDE" ps "$SERVICE"
+              docker compose -f docker-compose.yml -f "$OVERRIDE" logs --no-color --tail=100 "$SERVICE"
+              exit 1
+            fi
+
+            HEALTHY=false
             for i in $(seq 1 30); do
-              if docker compose exec -T ${{ steps.target.outputs.service }} sh -c "wget -qO- http://127.0.0.1/healthz" | grep -q '^ok'; then
-                exit 0
+              if docker compose -f docker-compose.yml -f "$OVERRIDE" exec -T "$SERVICE" sh -c "wget -qO- http://127.0.0.1/healthz" | grep -qx 'ok'; then
+                HEALTHY=true
+                break
               fi
               sleep 5
             done
-            docker compose ps ${{ steps.target.outputs.service }}
-            docker compose logs --no-color --tail=100 ${{ steps.target.outputs.service }}
-            exit 1
+            if [ "$HEALTHY" != "true" ]; then
+              echo "Internal /healthz failed for $SERVICE"
+              echo "Actual image: $ACTUAL"
+              docker compose -f docker-compose.yml -f "$OVERRIDE" ps "$SERVICE"
+              docker compose -f docker-compose.yml -f "$OVERRIDE" logs --no-color --tail=100 "$SERVICE"
+              exit 1
+            fi
+
+            if ! docker compose -f docker-compose.yml -f "$OVERRIDE" exec -T "$SERVICE" sh -c "wget -qO- http://127.0.0.1/" | grep -qi '<div id="root"'; then
+              echo "Internal SPA root smoke failed for $SERVICE"
+              echo "Actual image: $ACTUAL"
+              docker compose -f docker-compose.yml -f "$OVERRIDE" ps "$SERVICE"
+              docker compose -f docker-compose.yml -f "$OVERRIDE" logs --no-color --tail=100 "$SERVICE"
+              exit 1
+            fi
+
+            docker image prune -f
 
       - name: Public HTTP smoke
         env:
