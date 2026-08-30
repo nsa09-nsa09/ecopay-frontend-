@@ -19,9 +19,9 @@ const translations: Translations = {
     en: 'EcoPay - pay less for family subscriptions',
   },
   metaDescription: {
-    ru: 'EcoPay - делите семейные подписки и платите в 2–6 раз меньше. Защищённые платежи и 30-дневный hold.',
-    kz: 'EcoPay - отбасылық жазылымдарды бөлісіп, 2–6 есе аз төлеңіз. Қорғалған төлемдер және 30 күндік hold.',
-    en: 'EcoPay - share family subscriptions and pay 2–6x less. Protected payments with a 30-day hold.',
+    ru: 'EcoPay - делите семейные подписки и платите в 2–6 раз меньше. EcoPay временно удерживает деньги до выплаты владельцу.',
+    kz: 'EcoPay - отбасылық жазылымдарды бөлісіп, 2–6 есе аз төлеңіз. EcoPay ақшаны иесіне аударғанға дейін уақытша ұстайды.',
+    en: 'EcoPay - share family subscriptions and pay 2–6x less. EcoPay temporarily holds funds until the owner payout.',
   },
 
   // ===== Navigation & Header =====
@@ -1137,7 +1137,7 @@ adminAboutApexLink: {
   paymentPendingHoldDesc: {
     ru: 'Средства зарезервированы. Подтверждение — до 15 минут.',
     kz: 'Қаражат сақталды. Растау 15 минутқа дейін.',
-    en: 'Funds on hold. Confirmation may take up to 15 minutes.',
+    en: 'Funds are reserved. Confirmation may take up to 15 minutes.',
   },
   paymentPendingHoldCta: { ru: 'Проверить статус', kz: 'Мәртебені тексеру', en: 'Check status' },
   paymentRetrySafe: { ru: 'Безопасный повтор', kz: 'Қауіпсіз қайталау', en: 'Safe to retry' },
@@ -3179,19 +3179,19 @@ paymentIntentValid24h: {
   },
 
   howItWorksStep2Title: {
-    ru: 'Укажите идентификатор',
-    kz: 'Идентификаторыңызды енгізіңіз',
-    en: 'Enter Your Identifier',
+    ru: 'Укажите номер телефона',
+    kz: 'Телефон нөмірін көрсетіңіз',
+    en: 'Enter the phone number',
   },
   howItWorksStep2Desc: {
-    ru: 'Укажите телеком-идентификатор (номер телефона или ID аккаунта), чтобы владелец тарифа смог добавить вас. Контактные данные остаются приватными: передаются только проверенные идентификаторы.',
-    kz: 'Телеком идентификаторыңызды (телефон нөмірі немесе тіркелгі ID-сі) енгізіңіз, сонда иесі сізді тарифіне қоса алады. Байланыс деректеріңіз құпия қалады, тек тексерілген идентификаторлар ғана беріледі.',
-    en: 'Provide your telecom identifier (phone number or account ID) so the plan owner can add you to their family plan. Your contact info stays private: only verified identifiers are shared.',
+    ru: 'Введите номер, который нужно добавить в семейный тариф. Это может быть ваш номер или номер близкого человека.',
+    kz: 'Отбасылық тарифке қосылатын нөмірді енгізіңіз. Бұл өз нөміріңіз немесе жақын адамыңыздың нөмірі болуы мүмкін.',
+    en: 'Enter the number that should be added to the family plan. It can be your number or a close family member’s number.',
   },
   howItWorksStep2Detail1: {
-    ru: 'Безопасная отправка идентификатора',
-    kz: 'Идентификаторды қауіпсіз жіберу',
-    en: 'Secure identifier submission',
+    ru: 'Безопасная отправка номера',
+    kz: 'Нөмірді қауіпсіз жіберу',
+    en: 'Secure phone number submission',
   },
   howItWorksStep2Detail2: {
     ru: 'Без передачи личных контактов',
@@ -3205,14 +3205,14 @@ paymentIntentValid24h: {
   },
 
   howItWorksStep3Title: {
-    ru: 'Оплатите свою долю',
-    kz: 'Өз үлесіңізді төлеңіз',
-    en: 'Pay Your Share',
+    ru: 'Оплатите место в подписке',
+    kz: 'Жазылымдағы орынды төлеңіз',
+    en: 'Pay for your subscription spot',
   },
   howItWorksStep3Desc: {
-    ru: 'Безопасно оплатите ежемесячную долю через платформу. Выплата владельцу находится на hold до установленной даты; спор или возврат может остановить выплату.',
-    kz: 'Ай сайынғы үлесіңізді платформа арқылы қауіпсіз төлеңіз. Иесіне төлем белгіленген күнге дейін hold-та болады; дау немесе қайтарым төлемді тоқтатуы мүмкін.',
-    en: 'Pay your monthly share securely through the platform. The owner payout stays on hold until the scheduled release date; a dispute or refund may stop it.',
+    ru: 'Безопасно оплатите место через платформу. EcoPay временно удерживает деньги до выплаты владельцу; спор или возврат может остановить выплату.',
+    kz: 'Платформа арқылы орныңызды қауіпсіз төлеңіз. EcoPay ақшаны иесіне аударғанға дейін уақытша ұстайды; дау немесе қайтарым аударымды тоқтатуы мүмкін.',
+    en: 'Pay for your spot securely through the platform. EcoPay temporarily holds the money until the owner payout; a dispute or refund can stop the payout.',
   },
   howItWorksStep3Detail1: {
     ru: 'Безопасная обработка платежей',
@@ -3220,9 +3220,9 @@ paymentIntentValid24h: {
     en: 'Secure payment processing',
   },
   howItWorksStep3Detail2: {
-    ru: 'Защита через hold',
-    kz: 'Hold арқылы қорғау',
-    en: 'Hold protection',
+    ru: 'Деньги временно удерживает EcoPay',
+    kz: 'Ақшаны EcoPay уақытша ұстайды',
+    en: 'EcoPay temporarily holds the money',
   },
   howItWorksStep3Detail3: { ru: 'Прозрачные цены', kz: 'Айқын бағалар', en: 'Transparent pricing' },
 

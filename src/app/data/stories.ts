@@ -154,9 +154,9 @@ export const mockStories: Story[] = [
           en: 'Your money is protected',
         },
         text: {
-          ru: 'Оплата удерживается на hold, пока владелец не выдаст доступ, а вы его не подтвердите.',
-          kz: 'Төлем иесі қолжетімділік бергенше және сіз оны растағанша hold-та ұсталады.',
-          en: 'Payment is accepted, and the owner payout stays on hold until the scheduled release date.',
+          ru: 'EcoPay временно удерживает деньги до выплаты владельцу, пока он выдаёт доступ, а вы его подтверждаете.',
+          kz: 'Иесі қолжетімділік беріп, сіз оны растағанша EcoPay ақшаны иесіне аударғанға дейін уақытша ұстайды.',
+          en: 'EcoPay temporarily holds the money until the owner payout while access is shared and confirmed.',
         },
         cta: {
           label: { ru: 'Подробнее', kz: 'Толығырақ', en: 'Learn more' },
@@ -235,9 +235,9 @@ export const mockStories: Story[] = [
           en: 'Ad-free and background play',
         },
         text: {
-          ru: 'YouTube и YouTube Music без рекламы для всей семейной группы. Ваша доля — от 790 ₸.',
-          kz: 'Бүкіл отбасы тобы үшін жарнамасыз YouTube және YouTube Music. Сіздің үлесіңіз — 790 ₸-ден.',
-          en: 'Ad-free YouTube and YouTube Music for the whole family group. Your share from 790 ₸.',
+          ru: 'YouTube и YouTube Music без рекламы для всей семейной группы. Стоимость вашего места — от 790 ₸.',
+          kz: 'Бүкіл отбасы тобы үшін жарнамасыз YouTube және YouTube Music. Орныңыздың құны — 790 ₸-ден.',
+          en: 'Ad-free YouTube and YouTube Music for the whole family group. Your seat starts from 790 ₸.',
         },
         cta: {
           label: { ru: 'Смотреть тарифы', kz: 'Тарифтерді көру', en: 'See plans' },

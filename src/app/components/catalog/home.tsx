@@ -240,9 +240,9 @@ const howItWorksSteps: Array<{
     icon: CreditCard,
     title: { ru: 'Я плачу', kz: 'Мен төлеймін', en: 'I pay' },
     body: {
-      ru: 'Внесите платёж безопасно — деньги под защитой hold.',
-      kz: 'Қауіпсіз төлеңіз — ақша hold қорғауында.',
-      en: 'Pay securely — funds stay protected in the hold.',
+      ru: 'Внесите платёж безопасно — деньги временно удерживаются EcoPay до выплаты владельцу.',
+      kz: 'Қауіпсіз төлеңіз — ақшаны EcoPay иесіне аударғанға дейін уақытша ұстайды.',
+      en: 'Pay securely — EcoPay temporarily holds the money until the owner payout.',
     },
   },
   {
@@ -297,9 +297,9 @@ const faqs = [
       en: 'What if access is not provided?',
     },
     a: {
-      ru: 'После оплаты деньги остаются в hold 30 дней. Если доступ не выдали, он не работает или вас удалили из подписки, можно открыть спор.',
-      kz: 'Төлемнен кейін ақша 30 күн hold-та қалады. Қолжетімділік берілмесе немесе жұмыс істемесе, дау аша аласыз.',
-      en: 'After payment, funds stay in a 30-day hold. If access is missing, broken, or revoked, you can open a dispute.',
+      ru: 'После оплаты деньги временно удерживаются EcoPay до выплаты владельцу. Если доступ не выдали, он не работает или вас удалили из подписки, можно открыть спор.',
+      kz: 'Төлемнен кейін EcoPay ақшаны иесіне аударғанға дейін уақытша ұстайды. Қолжетімділік берілмесе немесе жұмыс істемесе, дау аша аласыз.',
+      en: 'After payment, EcoPay temporarily holds the money until the owner payout. If access is missing, broken, or revoked, you can open a dispute.',
     },
   },
 ];
@@ -1234,9 +1234,9 @@ export function HomePage() {
               >
                 {tx(
                   lang,
-                  'Деньги не переводятся владельцу сразу — EcoPay удерживает средства 30 дней, а споры замораживают выплату.',
-                  'Ақша иесіне бірден аударылмайды — EcoPay қаражатты 30 күн ұстайды, даулар төлемді тоқтатады.',
-                  'Funds are not released immediately — EcoPay holds them for 30 days, and disputes freeze payouts.',
+                  'Деньги не переводятся владельцу сразу — EcoPay временно удерживает их до выплаты, а споры замораживают выплату.',
+                  'Ақша иесіне бірден аударылмайды — EcoPay оны аударымға дейін уақытша ұстайды, даулар төлемді тоқтатады.',
+                  'Funds are not released immediately — EcoPay temporarily holds them until owner payout, and disputes freeze payouts.',
                 )}
               </p>
             </div>

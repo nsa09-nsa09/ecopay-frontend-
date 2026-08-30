@@ -260,9 +260,9 @@ export function PaymentReturnPage() {
               >
                 {tx(
                   language,
-                  `Ваш платёж ${formatMoney(settlementAmount(intent), settlementCurrency(intent))} получен. Выплата владельцу находится на hold до установленной даты; спор или возврат может остановить выплату.`,
-                  `${formatMoney(settlementAmount(intent), settlementCurrency(intent))} төлеміңіз қабылданды. Иесіне төлем белгіленген күнге дейін hold-та болады; дау немесе қайтарым оны тоқтатуы мүмкін.`,
-                  `Your payment of ${formatMoney(settlementAmount(intent), settlementCurrency(intent))} has been received. Funds are held for the configured payout hold period; a dispute or refund may stop the payout.`,
+                  `Ваш платёж ${formatMoney(settlementAmount(intent), settlementCurrency(intent))} получен. EcoPay временно удерживает деньги до выплаты владельцу; спор или возврат может остановить выплату.`,
+                  `${formatMoney(settlementAmount(intent), settlementCurrency(intent))} төлеміңіз қабылданды. EcoPay ақшаны иесіне аударғанға дейін уақытша ұстайды; дау немесе қайтарым аударымды тоқтатуы мүмкін.`,
+                  `Your payment of ${formatMoney(settlementAmount(intent), settlementCurrency(intent))} has been received. EcoPay temporarily holds the money until the owner payout; a dispute or refund may stop the payout.`,
                 )}
               </p>
             </div>

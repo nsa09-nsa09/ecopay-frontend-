@@ -516,9 +516,9 @@ export function CreateRoomPage() {
               <div className="text-[13px] mt-0.5" style={{ color: 'var(--eco-text-secondary)' }}>
                 {tx(
                   language,
-                  'Платежи участников зачисляются владельцу ежемесячно, поэтому для создания комнаты нужно подключить карту. Деньги удерживаются 30 дней после оплаты, затем переводятся на эту карту.',
-                  'Қатысушылардың төлемдері иесіне ай сайын аударылады, сондықтан бөлме жасау үшін карта қосу қажет. Ақша төлемнен кейін 30 күн ұсталып, сосын осы картаға аударылады.',
-                  'Member payments are paid out to you monthly, so you need a connected card to create a room. Funds are held for 30 days after payment, then sent to this card.',
+                  'Платежи участников зачисляются владельцу ежемесячно, поэтому для создания комнаты нужно подключить карту. EcoPay временно удерживает деньги до выплаты владельцу, затем переводит их на эту карту.',
+                  'Қатысушылардың төлемдері иесіне ай сайын аударылады, сондықтан бөлме жасау үшін карта қосу қажет. EcoPay ақшаны иесіне аударғанға дейін уақытша ұстап, кейін осы картаға аударады.',
+                  'Member payments are paid out to you monthly, so you need a connected card to create a room. EcoPay temporarily holds the money until owner payout, then sends it to this card.',
                 )}
               </div>
               {awaitingCard ? (

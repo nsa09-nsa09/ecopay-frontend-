@@ -65,6 +65,35 @@ import {
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
 
+function profileRoleLabel(role: string | null | undefined, language: Language): string {
+  switch ((role ?? '').toUpperCase()) {
+    case 'USER':
+      return tx(language, 'Пользователь', 'Пайдаланушы', 'User');
+    case 'SUPPORT':
+      return tx(language, 'Поддержка', 'Қолдау', 'Support');
+    case 'ADMIN':
+      return tx(language, 'Администратор', 'Әкімші', 'Admin');
+    default:
+      return tx(language, 'Пользователь', 'Пайдаланушы', 'User');
+  }
+}
+
+function profileStatusLabel(status: string | null | undefined, language: Language): string {
+  switch ((status ?? '').toUpperCase()) {
+    case 'ACTIVE':
+      return tx(language, 'Активен', 'Белсенді', 'Active');
+    case 'PENDING':
+      return tx(language, 'На проверке', 'Тексеруде', 'Pending');
+    case 'BLOCKED':
+    case 'BANNED':
+      return tx(language, 'Заблокирован', 'Бұғатталған', 'Blocked');
+    case 'DELETED':
+      return tx(language, 'Удалён', 'Жойылған', 'Deleted');
+    default:
+      return tx(language, 'Статус уточняется', 'Мәртебесі анықталуда', 'Status pending');
+  }
+}
+
 export function ProfilePage() {
   const { user, isAuthenticated, isReady, updateProfile, authorizedRequest, logout } = useAuth();
   const { language, t } = useI18n();
@@ -257,9 +286,9 @@ export function ProfilePage() {
             <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
               {tx(
                 language,
-                'Просматривайте удерживаемые средства и управляйте выплатами.',
-                'Ұсталымдағы қаражатты көріп, төлемдерді басқарыңыз.',
-                'View money currently on hold and manage your payouts.',
+                'Просматривайте деньги, которые EcoPay временно удерживает до выплаты владельцу, и управляйте выплатами.',
+                'EcoPay иесіне аударғанға дейін уақытша ұстайтын ақшаны көріп, аударымдарды басқарыңыз.',
+                'View money EcoPay temporarily holds until owner payout and manage your payouts.',
               )}
             </p>
             <Link to="/payment/payout" style={{ textDecoration: 'none' }}>
@@ -279,14 +308,14 @@ export function ProfilePage() {
               <span style={{ color: 'var(--eco-text-secondary)' }}>
                 {tx(language, 'Роль', 'Рөл', 'Role')}
               </span>
-              <Badge>{user.role}</Badge>
+              <Badge>{profileRoleLabel(user.role, language)}</Badge>
             </div>
             <div className="flex items-center justify-between text-[13px]">
               <span style={{ color: 'var(--eco-text-secondary)' }}>
                 {tx(language, 'Статус', 'Мәртебесі', 'Status')}
               </span>
               <Badge variant={user.status === 'ACTIVE' ? 'success' : 'default'}>
-                {user.status}
+                {profileStatusLabel(user.status, language)}
               </Badge>
             </div>
           </Card>

@@ -309,7 +309,7 @@ export function PriceBreakdownCard() {
   const items = [
     { label: "Plan cost", value: "₸4,990" },
     { label: "Members (4)", value: "÷4" },
-    { label: "Your share", value: "₸1,248", bold: true },
+    { label: "Your seat", value: "₸1,248", bold: true },
     { label: "Service fee", value: "₸99" },
   ];
   return (

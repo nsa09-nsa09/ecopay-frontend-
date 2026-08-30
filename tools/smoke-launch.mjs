@@ -42,8 +42,13 @@ const checks = [
     mustInclude: [
       'email: email.trim()',
       "requestJson<AuthResponse>('/auth/register'",
-      "requestJson<AuthResponse>('/auth/login'",
-      "requestJson<User>('/auth/phone/request-code'",
+      "requestJson<StaffLoginResponse>('/auth/login'",
+      "'/auth/phone/request-code'",
+      "'/auth/phone/verify'",
+    ],
+    mustMatch: [
+      /export function loginRequest\(email: string, password: string\)[\s\S]*body: JSON\.stringify\(\{ email: email\.trim\(\), password \}\)/,
+      /export function registerRequest\([\s\S]*email: string,[\s\S]*body: JSON\.stringify\(\{[\s\S]*email: email\.trim\(\),[\s\S]*password,/,
     ],
     mustNotInclude: [
       'isPhoneIdentifier',
@@ -58,35 +63,40 @@ const checks = [
   },
   {
     file: 'src/app/components/auth/login.tsx',
-    mustInclude: ['VerifyCodeStep', 'useEmailField', 'verifyEmailCode'],
-    mustNotInclude: ['VerifyPhoneStep', 'PHONE_NOT_VERIFIED', 'normalizePhone'],
+    mustInclude: ['VerifyCodeStep', 'useEmailField', 'EMAIL_NOT_VERIFIED'],
+    mustNotInclude: ['VerifyPhoneStep', 'verifyPhoneCode', 'PHONE_NOT_VERIFIED', 'normalizePhone'],
   },
   {
     file: 'src/app/lib/contact-identifier.ts',
     mustInclude: [
       "IdentifierType = 'EMAIL' | 'PHONE'",
-      "EMAIL: ['EMAIL']",
-      "PHONE: ['PHONE']",
+      'switch (accessType)',
+      "case 'EMAIL':",
+      "return ['EMAIL'];",
+      "case 'PHONE':",
+      "return ['PHONE'];",
       'normalizePhone',
     ],
     mustNotInclude: ["'SIM'", "'ESIM'", "'ACCOUNT'"],
   },
   {
     file: 'src/app/components/i18n-provider.tsx',
-    mustInclude: [
-      'function localizedOrFallback',
-      "return ['kz', 'ru', 'en']",
-    ],
+    mustInclude: ['function localizedOrFallback'],
+    mustMatch: [/language === 'kz'\s*\?\s*\['kz', 'ru', 'en'\]\s*:\s*\[language, 'en'\]/],
   },
   {
     file: 'src/app/components/payments/payment-return.tsx',
     mustInclude: [
       'confirmPaymentSuccessRequest',
       'getPaymentIntentRequest',
-      'Funds are held for the configured payout hold period',
+      'EcoPay temporarily holds the money until the owner payout',
       'Do not pay again',
     ],
-    mustNotInclude: ['held in escrow', 'until the owner grants access and you confirm it'],
+    mustNotInclude: [
+      'held in escrow',
+      'until the owner grants access and you confirm it',
+      'payout hold period',
+    ],
   },
 ];
 
@@ -97,6 +107,12 @@ for (const check of checks) {
   for (const needle of check.mustInclude ?? []) {
     if (!content.includes(needle)) {
       console.error(`[smoke] ${check.file} is missing: ${needle}`);
+      failed = true;
+    }
+  }
+  for (const pattern of check.mustMatch ?? []) {
+    if (!pattern.test(content)) {
+      console.error(`[smoke] ${check.file} does not match: ${pattern}`);
       failed = true;
     }
   }

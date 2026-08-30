@@ -164,7 +164,7 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
 
   await page.route('**/api/**', async (route) => {
     const url = new URL(route.request().url());
-    const path = url.pathname.replace('/api/v1', '');
+    const path = url.pathname.replace(/^\/api(?:\/v1)?/, '');
     const method = route.request().method();
     const body = (data: unknown, status = 200) =>
       route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(data) });
@@ -421,8 +421,8 @@ test('registration is email-only and opens email code confirmation', async ({ pa
   const api = await mockApi(page, 'ANON');
 
   await page.goto('/register');
-  await page.getByLabel('Display Name').fill('New Member');
-  await page.getByLabel('Email').fill('New.Member@Example.Test');
+  await page.getByPlaceholder('e.g. Aidar').fill('New Member');
+  await page.getByPlaceholder('your@email.com').fill('New.Member@Example.Test');
   await page.locator('input[type="password"]').first().fill('Secret123');
   await page.locator('input[type="password"]').last().fill('Secret123');
   await page.getByRole('checkbox').click();
@@ -437,29 +437,31 @@ test('registration is email-only and opens email code confirmation', async ({ pa
     termsAccepted: true,
   });
   expect(api.registerPayloads[0]).not.toHaveProperty('phone');
-  await expect(page.getByLabel('Email')).toHaveCount(0);
-  await expect(page.getByLabel(/phone/i)).toHaveCount(0);
+  await expect(page.getByPlaceholder('your@email.com')).toHaveCount(0);
+  await expect(page.getByPlaceholder(/phone/i)).toHaveCount(0);
 });
 
 test('login submits email only and never offers phone auth', async ({ page }) => {
   const api = await mockApi(page);
 
   await page.goto('/login');
-  await page.getByLabel('Email').fill('Member@Example.Test');
+  await page.getByPlaceholder('your@email.com').fill('Member@Example.Test');
   await page.locator('input[type="password"]').fill('secret123');
+  await expect(page.getByRole('main').getByText(/phone|номер телефона|телефон нөмірі/i)).toHaveCount(
+    0,
+  );
   await page.getByRole('main').getByRole('button', { name: 'Sign In' }).click();
 
   await expect(page).toHaveURL(/\/profile$/);
   expect(api.loginPayloads).toEqual([{ email: 'member@example.test', password: 'secret123' }]);
   expect(api.loginPayloads[0]).not.toHaveProperty('phone');
-  await expect(page.getByText(/phone|номер телефона|телефон нөмірі/i)).toHaveCount(0);
 });
 
 test('backend field errors are localized instead of shown raw', async ({ page }) => {
   await mockApi(page, 'USER', 'ru');
 
   await page.goto('/login');
-  await page.getByLabel('Эл. почта').fill('field-errors@example.test');
+  await page.getByPlaceholder('ваш@email.com').fill('field-errors@example.test');
   await page.locator('input[type="password"]').fill('Secret123');
   await page.getByRole('main').getByRole('button', { name: 'Войти' }).click();
 
@@ -473,9 +475,9 @@ test('PHONE room join uses PHONE payload and normalizes human phone input', asyn
 
   await page.goto('/room/101');
   await page.getByRole('button', { name: 'Присоединиться' }).click();
-  await expect(page.getByLabel('Номер телефона')).toBeVisible();
+  await expect(page.getByPlaceholder('+7 700 000 00 00')).toBeVisible();
   await expect(page.getByText(/SIM|eSIM|Account|аккаунт/i)).toHaveCount(0);
-  await page.getByLabel('Номер телефона').fill('+7 705 123 45 67');
+  await page.getByPlaceholder('+7 700 000 00 00').fill('+7 705 123 45 67');
   await page.getByRole('checkbox').click();
   await page.getByRole('button', { name: 'Продолжить' }).click();
   await page.getByRole('button', { name: 'Отправить заявку' }).click();
@@ -498,7 +500,7 @@ test('same account can submit different phone numbers in different PHONE rooms',
 
   await page.goto('/room/101');
   await page.getByRole('button', { name: 'Join Room' }).click();
-  await page.getByLabel('Phone number').fill('+7 701 111 22 33');
+  await page.getByPlaceholder('+7 700 000 00 00').fill('+7 701 111 22 33');
   await page.getByRole('checkbox').click();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Submit request' }).click();
@@ -506,8 +508,8 @@ test('same account can submit different phone numbers in different PHONE rooms',
 
   await page.goto('/room/202');
   await page.getByRole('button', { name: 'Join Room' }).click();
-  await expect(page.getByLabel('Phone number')).toHaveValue('');
-  await page.getByLabel('Phone number').fill('+7 702 444 55 66');
+  await expect(page.getByPlaceholder('+7 700 000 00 00')).toHaveValue('');
+  await page.getByPlaceholder('+7 700 000 00 00').fill('+7 702 444 55 66');
   await page.getByRole('checkbox').click();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Submit request' }).click();
@@ -538,6 +540,30 @@ test('public static routes support direct navigation', async ({ page }) => {
   expect(response?.status() ?? 200).toBeLessThan(400);
   await expect(page.locator('#root')).not.toBeEmpty();
   await expect(page).toHaveURL(/\/security$/);
+});
+
+test('/how-it-works ru avoids obsolete identifier and hold wording', async ({ page }) => {
+  await mockApi(page, 'ANON', 'ru');
+
+  await page.goto('/how-it-works');
+  const content = await page.locator('#root').textContent();
+
+  await expect(page.getByRole('heading', { name: 'Укажите номер телефона' })).toBeVisible();
+  expect(content).not.toContain('ID аккаунта');
+  expect(content).not.toContain('идентификатор');
+  expect(content).not.toContain('hold');
+});
+
+test('/profile ru localizes role and status badges', async ({ page }) => {
+  await mockApi(page, 'USER', 'ru');
+  await seedSession(page);
+
+  await page.goto('/profile');
+
+  await expect(page.getByText('Пользователь')).toBeVisible();
+  await expect(page.getByText('Активен')).toBeVisible();
+  await expect(page.getByText('USER', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('ACTIVE', { exact: true })).toHaveCount(0);
 });
 
 test('room payment CTA shows KZT settlement breakdown without raw status leaks', async ({ page }) => {

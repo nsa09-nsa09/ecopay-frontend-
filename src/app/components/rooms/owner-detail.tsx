@@ -269,9 +269,9 @@ export function OwnerDetailPage() {
           ? err.message
           : tx(
               language,
-              'Не удалось показать идентификатор.',
-              'Идентификаторды көрсету мүмкін болмады.',
-              'Unable to reveal the identifier.',
+              'Не удалось показать данные для подключения.',
+              'Қосылу деректерін көрсету мүмкін болмады.',
+              'Unable to reveal the connection details.',
             ),
       );
     } finally {
@@ -288,14 +288,14 @@ export function OwnerDetailPage() {
     if (!revealedIdentifier) return;
     try {
       await navigator.clipboard.writeText(revealedIdentifier.value);
-      toast.success(tx(language, 'Идентификатор скопирован', 'Идентификатор көшірілді', 'Identifier copied'));
+      toast.success(tx(language, 'Данные скопированы', 'Деректер көшірілді', 'Details copied'));
     } catch {
       toast.error(
         tx(
           language,
-          'Не удалось скопировать идентификатор',
-          'Идентификаторды көшіру мүмкін болмады',
-          'Could not copy identifier',
+          'Не удалось скопировать данные',
+          'Деректерді көшіру мүмкін болмады',
+          'Could not copy details',
         ),
       );
     }
@@ -480,18 +480,18 @@ export function OwnerDetailPage() {
                                 }}
                                 title={tx(
                                   language,
-                                  'Показать идентификатор (логируется)',
-                                  'Идентификаторды көрсету (журналға жазылады)',
-                                  'Reveal full identifier (logged)',
+                                  'Показать данные для подключения (логируется)',
+                                  'Қосылу деректерін көрсету (журналға жазылады)',
+                                  'Reveal connection details (logged)',
                                 )}
                               >
                                 <Eye size={14} style={{ color: 'var(--eco-primary)' }} />
                                 <span style={{ color: 'var(--eco-primary)' }}>
                                   {tx(
                                     language,
-                                    'Показать идентификатор',
-                                    'Идентификаторды көрсету',
-                                    'Reveal identifier',
+                                    'Показать данные для подключения',
+                                    'Қосылу деректерін көрсету',
+                                    'Reveal connection details',
                                   )}
                                 </span>
                                 <span
@@ -676,18 +676,18 @@ export function OwnerDetailPage() {
         onClose={closeRevealModal}
         title={tx(
           language,
-          'Показать идентификатор',
-          'Идентификаторды көрсету',
-          'Reveal Full Identifier',
+          'Показать данные для подключения',
+          'Қосылу деректерін көрсету',
+          'Reveal Connection Details',
         )}
       >
         <div className="flex flex-col gap-4">
           <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
             {tx(
               language,
-              `Укажите причину просмотра идентификатора пользователя ${revealTarget?.userDisplayName ?? ''}. Действие фиксируется в логе безопасности.`,
-              `${revealTarget?.userDisplayName ?? ''} идентификаторын көрудің себебін көрсетіңіз. Әрекет қауіпсіздік журналында жазылады.`,
-              `Provide a reason for viewing ${revealTarget?.userDisplayName ?? ''}'s full telecom identifier. This action is logged for security.`,
+              `Укажите причину просмотра данных для подключения пользователя ${revealTarget?.userDisplayName ?? ''}. Действие фиксируется в логе безопасности.`,
+              `${revealTarget?.userDisplayName ?? ''} пайдаланушысының қосылу деректерін көру себебін көрсетіңіз. Әрекет қауіпсіздік журналында жазылады.`,
+              `Provide a reason for viewing ${revealTarget?.userDisplayName ?? ''}'s connection details. This action is logged for security.`,
             )}
           </div>
           <div className="flex flex-col gap-1.5">
@@ -703,9 +703,9 @@ export function OwnerDetailPage() {
               }}
               placeholder={tx(
                 language,
-                'напр., Активация eSIM для участника',
-                'мысалы, қатысушыға eSIM белсендіру',
-                'e.g., Activating eSIM for member',
+                'например, Добавить участника по его номеру',
+                'мысалы, қатысушыны нөмірі бойынша қосу',
+                'e.g., Add the member by phone number',
               )}
               value={revealReasonDetails}
               maxLength={180}
@@ -760,7 +760,12 @@ export function OwnerDetailPage() {
             loading={revealing}
             onClick={confirmReveal}
           >
-            {tx(language, 'Показать идентификатор', 'Идентификаторды көрсету', 'Reveal Identifier')}
+            {tx(
+              language,
+              'Показать данные для подключения',
+              'Қосылу деректерін көрсету',
+              'Reveal connection details',
+            )}
           </Button>
         </div>
       </Modal>

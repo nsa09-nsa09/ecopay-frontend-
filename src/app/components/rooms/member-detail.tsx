@@ -571,9 +571,9 @@ export function MemberDetailPage() {
               <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                 {tx(
                   language,
-                  'Оплатите место, чтобы закрепить его за собой. Выплата владельцу удерживается до установленной даты.',
-                  'Орынды өзіңізге бекіту үшін төлем жасаңыз. Иесіне төлем белгіленген күнге дейін ұсталады.',
-                  'Pay to reserve your seat. The owner payout stays on hold until the scheduled release date.',
+                  'Оплатите место, чтобы закрепить его за собой. EcoPay временно удерживает деньги до выплаты владельцу.',
+                  'Орынды өзіңізге бекіту үшін төлем жасаңыз. EcoPay ақшаны иесіне аударғанға дейін уақытша ұстайды.',
+                  'Pay to reserve your seat. EcoPay temporarily holds the money until the owner payout.',
                 )}
               </div>
             </div>

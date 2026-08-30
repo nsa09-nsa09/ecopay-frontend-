@@ -104,7 +104,7 @@ const paymentStatusVariant: Record<
 const paymentStatusLabel = (s: PaymentStatus, l: L): string => {
   const map: Record<PaymentStatus, [string, string, string]> = {
     PENDING: ['Ожидает оплаты', 'Төлем күтілуде', 'Pending Payment'],
-    HOLD: ['Средства удерживаются', 'Қаражат ұсталды', 'Funds on Hold'],
+    HOLD: ['Деньги временно удерживает EcoPay', 'Ақшаны EcoPay уақытша ұстайды', 'Temporarily held by EcoPay'],
     ACTIVE: ['Активно', 'Белсенді', 'Active'],
     REFUNDED: ['Возврат', 'Қайтарым', 'Refunded'],
     PAYOUT_SENT: ['Выплата отправлена', 'Аударым жіберілді', 'Payout Sent'],
@@ -307,9 +307,9 @@ export function PaymentRoomDetailsPage() {
           <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
             {tx(
               l,
-              'Выплата владельцу может быть удержана до установленной даты hold.',
-              'Иесіне төлем белгіленген hold күніне дейін ұстала алады.',
-              'The owner payout may be held until the scheduled hold release date.',
+              'EcoPay временно удерживает деньги до выплаты владельцу.',
+              'EcoPay ақшаны иесіне аударғанға дейін уақытша ұстайды.',
+              'EcoPay temporarily holds the money until the owner payout.',
             )}
           </span>
         </div>
@@ -398,7 +398,7 @@ export function PaymentCheckoutPage() {
           </span>
         </div>
         <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-          {tx(l, 'Ваша доля + комиссия', 'Сіздің үлесіңіз + комиссия', 'Your share + platform fee')}
+          {tx(l, 'Стоимость вашего места + комиссия EcoPay', 'Орныңыздың құны + EcoPay комиссиясы', 'Your spot cost + EcoPay fee')}
         </div>
       </Card>
 
@@ -575,9 +575,9 @@ export function PaymentConfirmationPage() {
               >
                 {tx(
                   l,
-                  'Ваш платёж в размере ₸5,400 принят. Выплата владельцу будет удержана до установленной даты hold.',
-                  '₸5,400 көлеміндегі төлеміңіз қабылданды. Иесіне төлем белгіленген hold күніне дейін ұсталады.',
-                  'Your payment of ₸5,400 has been received. The owner payout will be held until the scheduled hold release date.',
+                  'Ваш платёж в размере ₸5,400 принят. EcoPay временно удерживает деньги до выплаты владельцу.',
+                  '₸5,400 көлеміндегі төлеміңіз қабылданды. EcoPay ақшаны иесіне аударғанға дейін уақытша ұстайды.',
+                  'Your payment of ₸5,400 has been received. EcoPay temporarily holds the money until the owner payout.',
                 )}
               </p>
             </div>
@@ -1042,6 +1042,8 @@ function payoutStatusVariant(s: string): 'warning' | 'info' | 'success' | 'dange
 
 function payoutStatusLabel(s: string, l: L): string {
   const map: Record<string, [string, string, string]> = {
+    ACTIVE: ['Активен', 'Белсенді', 'Active'],
+    INACTIVE: ['Неактивен', 'Белсенді емес', 'Inactive'],
     SUCCESS: ['Успешно', 'Сәтті', 'Success'],
     SENT: ['Отправлена', 'Жіберілді', 'Sent'],
     PROCESSED: ['Обработана', 'Өңделді', 'Processed'],
@@ -1050,24 +1052,11 @@ function payoutStatusLabel(s: string, l: L): string {
     PENDING: ['Ожидает', 'Күтуде', 'Pending'],
     QUEUED: ['В очереди', 'Кезекте', 'Queued'],
     PROCESSING: ['Обрабатывается', 'Өңделуде', 'Processing'],
+    DISABLED: ['Отключён', 'Өшірілген', 'Disabled'],
+    DELETED: ['Удалён', 'Жойылған', 'Deleted'],
   };
   const entry = map[s.toUpperCase()];
-  return entry ? tx(l, ...entry) : s.replace(/_/g, ' ');
-}
-
-function payoutStatusLabel(s: string, l: L): string {
-  const map: Record<string, [string, string, string]> = {
-    SUCCESS: ['Успешно', 'Сәтті', 'Success'],
-    SENT: ['Отправлена', 'Жіберілді', 'Sent'],
-    PROCESSED: ['Обработана', 'Өңделді', 'Processed'],
-    FAILED: ['Ошибка', 'Сәтсіз', 'Failed'],
-    REJECTED: ['Отклонена', 'Қабылданбады', 'Rejected'],
-    PENDING: ['Ожидает', 'Күтуде', 'Pending'],
-    QUEUED: ['В очереди', 'Кезекте', 'Queued'],
-    PROCESSING: ['Обрабатывается', 'Өңделуде', 'Processing'],
-  };
-  const entry = map[s.toUpperCase()];
-  return entry ? tx(l, ...entry) : s.replace(/_/g, ' ');
+  return entry ? tx(l, ...entry) : tx(l, 'Статус уточняется', 'Мәртебесі анықталуда', 'Status pending');
 }
 
 function PayoutMethodsCard({
@@ -1151,7 +1140,7 @@ function PayoutMethodsCard({
                     {m.providerName} · {m.panMask || '—'}
                   </div>
                   <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                    {m.status}
+                    {payoutStatusLabel(m.status, l)}
                     {m.isDefault ? ` · ${tx(l, 'по умолчанию', 'әдепкі', 'default')}` : ''}
                   </div>
                 </div>
@@ -1307,7 +1296,7 @@ function HeldBalanceCard({
         </div>
         <Badge variant={balance.heldPayoutCount > 0 ? 'info' : 'default'}>
           {balance.heldPayoutCount}{' '}
-          {tx(l, 'выплат удерживается', 'аударым ұсталымда', 'payouts on hold')}
+          {tx(l, 'выплат временно удерживается', 'аударым уақытша ұсталып тұр', 'payouts temporarily held')}
         </Badge>
       </div>
 
@@ -1316,7 +1305,7 @@ function HeldBalanceCard({
           l,
           'Сумма успешных платежей участников, предназначенная вам и пока удерживаемая до даты выплаты. Возвраты и отменённые выплаты не учитываются.',
           'Сізге арналған және аударым күніне дейін ұсталып тұрған қатысушылардың сәтті төлемдері. Қайтарулар мен тоқтатылған аударымдар есептелмейді.',
-          'Successful member payments owed to you that are still inside the hold period. Refunded and reversed payouts are excluded.',
+          'Successful member payments owed to you that EcoPay is temporarily holding until payout. Refunded and reversed payouts are excluded.',
         )}
       </p>
 

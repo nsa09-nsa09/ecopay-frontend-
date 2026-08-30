@@ -317,7 +317,7 @@ export function AppLayout() {
       })}`
     : '—';
   const heldLabel =
-    language === 'ru' ? 'На удержании' : language === 'kz' ? 'Ұсталымда' : 'On hold';
+    language === 'ru' ? 'Удерживает EcoPay' : language === 'kz' ? 'EcoPay ұстап тұр' : 'Held by EcoPay';
 
   // /rooms is gated by auth — hide the entry for guests so they don't land on
   // the empty-state screen by accident. /browse is decommissioned; room

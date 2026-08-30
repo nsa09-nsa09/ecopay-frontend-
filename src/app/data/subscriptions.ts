@@ -231,7 +231,7 @@ export function paymentStatusRu(status: PaymentStatus) {
   const map: Record<PaymentStatus, string> = {
     pending: 'Платёж создан',
     paid: 'Оплачено',
-    hold_30_days: 'Hold 30 дней',
+    hold_30_days: 'Временно удерживается',
     released: 'Выплачено владельцу',
     refunded: 'Возврат участнику',
     disputed: 'Открыт спор',
@@ -242,7 +242,7 @@ export function paymentStatusRu(status: PaymentStatus) {
 export function participationStatusRu(status: ParticipationStatus) {
   const map: Record<ParticipationStatus, string> = {
     pending_payment: 'Ожидается оплата',
-    paid_hold: 'Оплата в hold',
+    paid_hold: 'Оплата временно удерживается',
     access_pending: 'Ожидается доступ',
     access_confirmed: 'Доступ подтверждён',
     active: 'Активно',

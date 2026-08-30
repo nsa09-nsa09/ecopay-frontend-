@@ -32,9 +32,9 @@ const blocks: SecurityBlock[] = [
     items: [
       {
         icon: KeyRound,
-        ru: "Шифрование AES-256 для чувствительных данных, включая идентификаторы подключения.",
-        kz: "Құпия деректер, соның ішінде қосылу идентификаторлары AES-256 арқылы шифрланады.",
-        en: "AES-256 encryption for sensitive data, including connection identifiers.",
+        ru: "Шифрование AES-256 для чувствительных данных, включая данные для подключения.",
+        kz: "Құпия деректер, соның ішінде қосылу деректері AES-256 арқылы шифрланады.",
+        en: "AES-256 encryption for sensitive data, including connection details.",
       },
       {
         icon: Lock,
@@ -68,9 +68,9 @@ const blocks: SecurityBlock[] = [
       },
       {
         icon: RefreshCcw,
-        ru: "30-дневный hold: деньги не уходят владельцу, пока вы не получите доступ.",
-        kz: "30 күндік hold: қолжетімділік алғанша ақша иесіне жіберілмейді.",
-        en: "30-day hold: owner payouts are not released before the scheduled hold date.",
+        ru: "EcoPay временно удерживает деньги до выплаты владельцу, чтобы у вас было время проверить доступ.",
+        kz: "EcoPay қолжетімділікті тексеруге уақыт болуы үшін ақшаны иесіне аударғанға дейін уақытша ұстайды.",
+        en: "EcoPay temporarily holds the money until owner payout, giving you time to check access.",
       },
     ],
   },
