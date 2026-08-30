@@ -31,7 +31,51 @@ const checks = [
       'const SESSION_HINT_KEY',
       'refreshRequest()',
       'authorizedRequest',
-      'verifyPhoneCode',
+      'verifyEmailCode',
+      'login: (email: string, password: string)',
+      'register: (',
+    ],
+    mustNotInclude: ['verifyPhoneCode'],
+  },
+  {
+    file: 'src/app/lib/api.ts',
+    mustInclude: [
+      'email: email.trim()',
+      "requestJson<AuthResponse>('/auth/register'",
+      "requestJson<AuthResponse>('/auth/login'",
+      "requestJson<User>('/auth/phone/request-code'",
+    ],
+    mustNotInclude: [
+      'isPhoneIdentifier',
+      '/auth/verify-phone-code',
+      '/auth/resend-phone-code',
+    ],
+  },
+  {
+    file: 'src/app/components/auth/register.tsx',
+    mustInclude: ['VerifyCodeStep', 'useEmailField', 'serverEmailErrorCode'],
+    mustNotInclude: ['VerifyPhoneStep', 'normalizePhone', 'phoneVerified'],
+  },
+  {
+    file: 'src/app/components/auth/login.tsx',
+    mustInclude: ['VerifyCodeStep', 'useEmailField', 'verifyEmailCode'],
+    mustNotInclude: ['VerifyPhoneStep', 'PHONE_NOT_VERIFIED', 'normalizePhone'],
+  },
+  {
+    file: 'src/app/lib/contact-identifier.ts',
+    mustInclude: [
+      "IdentifierType = 'EMAIL' | 'PHONE'",
+      "EMAIL: ['EMAIL']",
+      "PHONE: ['PHONE']",
+      'normalizePhone',
+    ],
+    mustNotInclude: ["'SIM'", "'ESIM'", "'ACCOUNT'"],
+  },
+  {
+    file: 'src/app/components/i18n-provider.tsx',
+    mustInclude: [
+      'function localizedOrFallback',
+      "return ['kz', 'ru', 'en']",
     ],
   },
   {

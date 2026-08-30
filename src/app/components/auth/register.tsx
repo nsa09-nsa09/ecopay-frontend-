@@ -5,13 +5,17 @@ import { Checkbox } from '../ui/checkbox';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
 import { useI18n, type Language } from '../i18n-provider';
 import { useAuth } from './auth-provider';
-import { VerifyPhoneStep } from './verify-phone-step';
+import { VerifyCodeStep } from './verify-code-step';
+import { ApiError, getLegalDocumentRequest, type LegalDocumentDto } from '../../lib/api';
+import { localizeFieldErrors } from '../../lib/field-errors';
+import { useEmailField } from './use-email-field';
 import {
-  ApiError,
-  getLegalDocumentRequest,
-  normalizePhone,
-  type LegalDocumentDto,
-} from '../../lib/api';
+  EmailFieldStatusHint,
+  EmailSuggestion,
+  emailFormatErrorText,
+  serverEmailErrorText,
+} from './email-field-messages';
+import { serverEmailErrorCode } from '../../lib/email-validation';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -42,14 +46,10 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const redirectTarget = new URLSearchParams(location.search).get('redirect') || '/profile';
 
-  // Once registration succeeds without an auto-verified session, we switch to
-  // the SMS-code confirmation step and stop rendering the sign-up form.
-  const [pendingPhone, setPendingPhone] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   const [displayName, setDisplayName] = useState('');
-  // Registration is phone-based: email is optional and added later in the
-  // profile (needed only for password recovery / email notifications).
-  const [phone, setPhone] = useState('');
+  const emailField = useEmailField();
   const [show, setShow] = useState(false);
   const [pw, setPw] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -106,16 +106,9 @@ export function RegisterPage() {
       return;
     }
 
-    const normalizedPhone = normalizePhone(phone);
-    if (!/^\+7\d{10}$/.test(normalizedPhone)) {
-      setFieldErrors({
-        phone: tx(
-          language,
-          'Введите номер в формате +7XXXXXXXXXX',
-          '+7XXXXXXXXXX форматында нөмір енгізіңіз',
-          'Enter the number in +7XXXXXXXXXX format',
-        ),
-      });
+    const emailCheck = emailField.validateNow();
+    if (!emailCheck.ok) {
+      setFieldErrors({ email: emailFormatErrorText(emailCheck.error!, language) });
       return;
     }
 
@@ -124,7 +117,7 @@ export function RegisterPage() {
     try {
       const result = await register(
         displayName,
-        { phone: normalizedPhone },
+        emailCheck.normalized,
         pw,
         true,
         terms?.version,
@@ -133,13 +126,17 @@ export function RegisterPage() {
       if (result.kind === 'session') {
         navigate(redirectTarget);
       } else {
-        // SMS confirmation required — advance to the code-entry step.
-        setPendingPhone(result.identifier);
+        setPendingEmail(result.identifier);
       }
     } catch (err) {
       if (err instanceof ApiError) {
+        const emailCode = serverEmailErrorCode(err.errors);
         setError(err.message);
-        setFieldErrors(err.errors);
+        setFieldErrors({
+          ...localizeFieldErrors(err.errors, language),
+          ...(emailCode ? { email: serverEmailErrorText(emailCode, language) } : {}),
+        });
+        if (err.errors.suggestion) emailField.setValue(err.errors.suggestion);
       } else {
         setError(t('unableToCreateAccount'));
       }
@@ -150,14 +147,12 @@ export function RegisterPage() {
 
   const canSubmit = accepted && !loading;
 
-  // Second stage: the account exists but is unverified. Show the SMS-code form
-  // and hand off to the profile once the code checks out.
-  if (pendingPhone) {
+  if (pendingEmail) {
     return (
-      <VerifyPhoneStep
-        phone={pendingPhone}
+      <VerifyCodeStep
+        email={pendingEmail}
         onVerified={() => navigate(redirectTarget)}
-        onBack={() => setPendingPhone(null)}
+        onBack={() => setPendingEmail(null)}
       />
     );
   }
@@ -183,19 +178,27 @@ export function RegisterPage() {
               error={fieldErrors.displayName}
             />
             <Input
-              label={tx(language, 'Телефон', 'Телефон', 'Phone')}
-              type="tel"
-              placeholder="+7 700 123 45 67"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              error={fieldErrors.phone}
-              hint={tx(
-                language,
-                'Пришлём SMS с кодом подтверждения. Email можно добавить позже в профиле.',
-                'Растау коды бар SMS жібереміз. Email-ді кейін профильде қосуға болады.',
-                'We will text you a confirmation code. You can add an email later in your profile.',
-              )}
+              label={t('email')}
+              type="email"
+              placeholder={t('yourEmail')}
+              value={emailField.value}
+              onChange={(event) => emailField.setValue(event.target.value)}
+              error={
+                fieldErrors.email ??
+                (emailField.error ? emailFormatErrorText(emailField.error, language) : undefined)
+              }
+              autoComplete="email"
             />
+            {!fieldErrors.email && !emailField.suggestion && (
+              <EmailFieldStatusHint status={emailField.status} />
+            )}
+            {emailField.suggestion && (
+              <EmailSuggestion
+                suggestion={emailField.suggestion}
+                onAccept={emailField.acceptSuggestion}
+                onDismiss={emailField.dismissSuggestion}
+              />
+            )}
             <div className="flex flex-col gap-1.5">
               <label style={{ color: 'var(--eco-text)', fontSize: 14 }}>{t('password')}</label>
               <div className="relative">

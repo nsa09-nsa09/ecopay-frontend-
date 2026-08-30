@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { Button, Input, Card } from '../ds-primitives';
-import { Mail, ArrowLeft, Info } from 'lucide-react';
+import { Mail, ArrowLeft } from 'lucide-react';
 import { useI18n, type Language } from '../i18n-provider';
 import { useAuth } from './auth-provider';
 import { ApiError } from '../../lib/api';
+import { localizeFieldErrors } from '../../lib/field-errors';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -30,7 +31,7 @@ export function ForgotPasswordPage() {
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
-        setFieldErrors(err.errors);
+        setFieldErrors(localizeFieldErrors(err.errors, language));
       } else {
         setError(
           tx(
@@ -110,22 +111,6 @@ export function ForgotPasswordPage() {
             </Button>
           </form>
         </Card>
-        {/* Phone-registered accounts may have no email at all — explain why the
-            form can't help them instead of failing silently. */}
-        <div
-          className="mt-4 rounded-lg px-3 py-2.5 flex items-start gap-2"
-          style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
-        >
-          <Info size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--eco-text-tertiary)' }} />
-          <p className="text-[12px] leading-snug" style={{ color: 'var(--eco-text-secondary)' }}>
-            {tx(
-              language,
-              'Сброс пароля работает только через подтверждённый email. Если вы регистрировались по телефону и не добавили почту в профиле, войдите по номеру телефона — или обратитесь в поддержку.',
-              'Құпиясөзді қалпына келтіру тек расталған email арқылы жұмыс істейді. Телефон арқылы тіркеліп, профильге пошта қоспаған болсаңыз, телефон нөміріңізбен кіріңіз немесе қолдау қызметіне хабарласыңыз.',
-              'Password reset only works through a verified email. If you signed up by phone and never added an email in your profile, sign in with your phone number — or contact support.',
-            )}
-          </p>
-        </div>
         <div className="text-center mt-4">
           <Link
             to="/login"

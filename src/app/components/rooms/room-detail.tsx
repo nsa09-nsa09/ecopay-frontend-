@@ -5,6 +5,7 @@ import {
   Badge,
   Button,
   RoomStatusBadge,
+  MemberStatusBadge,
   Modal,
   Input,
   Stepper,
@@ -45,15 +46,9 @@ function formatMoney(value: number | null | undefined) {
 const contactCopyKeys: Record<IdentifierType, { label: string; placeholder: string }> = {
   EMAIL: { label: 'joinContactEmailLabel', placeholder: 'joinContactEmailPlaceholder' },
   PHONE: { label: 'joinContactPhoneLabel', placeholder: 'joinContactPhonePlaceholder' },
-  SIM: { label: 'joinContactPhoneLabel', placeholder: 'joinContactPhonePlaceholder' },
-  ESIM: { label: 'joinContactPhoneLabel', placeholder: 'joinContactPhonePlaceholder' },
-  ACCOUNT: { label: 'joinContactAccountLabel', placeholder: 'joinContactAccountPlaceholder' },
 };
 
-/** SIM/eSIM are brand names, not phrases — everything else goes through the dictionary. */
 function contactTypeOptionLabel(type: IdentifierType, t: (key: string) => string) {
-  if (type === 'SIM') return 'SIM';
-  if (type === 'ESIM') return 'eSIM';
   return t(contactCopyKeys[type].label);
 }
 
@@ -62,7 +57,6 @@ function contactErrorKey(type: IdentifierType, error: 'required' | 'invalid') {
     return type === 'EMAIL' ? 'joinContactEmailRequired' : 'joinContactPhoneRequired';
   }
   if (type === 'EMAIL') return 'joinContactEmailInvalid';
-  if (type === 'ACCOUNT') return 'joinContactAccountInvalid';
   return 'joinContactPhoneInvalid';
 }
 
@@ -137,6 +131,16 @@ export function RoomDetailPage() {
     };
   }, [roomId, language]);
 
+  useEffect(() => {
+    setIdentifierType(null);
+    setIdentifierValue('');
+    setConsent(false);
+    setJoinOpen(false);
+    setJoinDone(false);
+    setJoinError(null);
+    setJoinStep(0);
+  }, [roomId]);
+
   if (loading) {
     return (
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
@@ -173,7 +177,9 @@ export function RoomDetailPage() {
   const contactError = validateIdentifier(contactType, identifierValue);
   const contactCopy = contactCopyKeys[contactType];
 
-  const ownerName = summary?.ownerDisplayName ?? `User #${room.ownerUserId}`;
+  const ownerName =
+    summary?.ownerDisplayName ??
+    tx(language, `Пользователь #${room.ownerUserId}`, `Пайдаланушы #${room.ownerUserId}`, `User #${room.ownerUserId}`);
   const ownerProfileHandle =
     room.ownerSlug ??
     room.ownerPublicId ??
@@ -310,7 +316,7 @@ export function RoomDetailPage() {
                   icon: Users,
                 },
                 {
-                  label: tx(language, 'Ваша доля', 'Сіздің үлесіңіз', 'Your share'),
+                  label: tx(language, 'Цена для вас', 'Сіз үшін баға', 'Your price'),
                   value: `${formatMoney(room.pricePerMember)}${tx(language, '/период', '/кезең', '/period')}`,
                   highlight: true,
                 },
@@ -325,6 +331,16 @@ export function RoomDetailPage() {
                   >
                     {item.value}
                   </div>
+                  {item.highlight && (
+                    <div className="text-[11px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
+                      {tx(
+                        language,
+                        'Столько вы платите за одно место в семейной подписке.',
+                        'Отбасылық жазылымдағы бір орын үшін төлейтін сомаңыз.',
+                        'What you pay for one spot in the family plan.',
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -349,7 +365,7 @@ export function RoomDetailPage() {
                 value: `÷${room.maxMembers}`,
               },
               {
-                label: tx(language, 'Ваша доля', 'Сіздің үлесіңіз', 'Your share'),
+                label: tx(language, 'Цена для вас', 'Сіз үшін баға', 'Your price'),
                 value: formatMoney(room.pricePerMember),
                 bold: true,
               },
@@ -635,7 +651,7 @@ export function RoomDetailPage() {
                 'Сіздің мүшелігіңіз қазір',
                 'Your membership is now',
               )}{' '}
-              <Badge variant="info">APPLIED</Badge>.{' '}
+              <MemberStatusBadge status="APPLIED" />.{' '}
               {tx(
                 language,
                 'Завершите оплату, чтобы закрепить место.',

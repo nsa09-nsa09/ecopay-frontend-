@@ -5,6 +5,7 @@ import { Button, Card, Input } from '../ds-primitives';
 import { useAuth } from './auth-provider';
 import { ApiError } from '../../lib/api';
 import { useI18n, type Language } from '../i18n-provider';
+import { localizeFieldErrors } from '../../lib/field-errors';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -73,7 +74,7 @@ export function ResetPasswordConfirmPage() {
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
-        setFieldErrors(err.errors);
+        setFieldErrors(localizeFieldErrors(err.errors, language));
       } else {
         setError(
           tx(

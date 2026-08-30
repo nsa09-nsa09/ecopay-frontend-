@@ -40,6 +40,7 @@ import {
   type MemberDashboardDto,
 } from '../../lib/api';
 import { serverEmailErrorCode } from '../../lib/email-validation';
+import { localizeFieldErrors } from '../../lib/field-errors';
 import { useEmailField, useResendCountdown } from '../auth/use-email-field';
 import {
   EmailFieldStatusHint,
@@ -190,7 +191,7 @@ export function ProfilePage() {
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
-        setFieldErrors(err.errors);
+        setFieldErrors(localizeFieldErrors(err.errors, language));
       } else {
         setError(
           tx(
@@ -606,7 +607,7 @@ function PhoneVerificationCard() {
     } catch (err) {
       if (err instanceof ApiError) {
         setError(phoneErrorMessage(err.status, language));
-        setFieldErrors(err.errors);
+        setFieldErrors(localizeFieldErrors(err.errors, language));
         // The server refused because a code is still fresh: run the timer out
         // rather than leaving a button that keeps failing.
         if (err.status === 429) cooldown.start();
@@ -649,7 +650,7 @@ function PhoneVerificationCard() {
     } catch (err) {
       if (err instanceof ApiError) {
         setError(phoneErrorMessage(err.status, language));
-        setFieldErrors(err.errors);
+        setFieldErrors(localizeFieldErrors(err.errors, language));
         // Expired or attempts exhausted: the current code is dead, so drop back
         // to the request step instead of letting the user retype into a corpse.
         if (err.status === 410 || err.status === 429) {
@@ -1013,9 +1014,8 @@ function FindUserCard() {
 }
 
 /**
- * Email is optional now (phone registration): this card covers all three
- * states — no email yet (add one), unverified (resend the registration email),
- * and verified (badge + change flow). Adding/changing goes through
+ * Email is the primary sign-in identifier; this card covers the profile email
+ * states: missing, unverified, and verified. Adding/changing goes through
  * /users/me/email/request + /confirm: the account keeps its current address
  * until the emailed one-time code is confirmed.
  */

@@ -47,6 +47,17 @@ const toFiniteNumber = (v: number | string | null | undefined) => {
 };
 const formatDateTime = (v: string | null | undefined, l: Language) =>
   v ? formatAlmatyDateTime(v, l) : null;
+const unavailableText = (l: Language) => tx(l, 'Недоступно', 'Қолжетімсіз', 'Unavailable');
+const identifierTypeLabel = (type: string | null | undefined, l: Language) => {
+  switch (type) {
+    case 'EMAIL':
+      return tx(l, 'email', 'email', 'email');
+    case 'PHONE':
+      return tx(l, 'номер телефона', 'телефон нөмірі', 'phone number');
+    default:
+      return tx(l, 'контакт', 'байланыс', 'contact');
+  }
+};
 
 const POST_PAYMENT = new Set(['PENDING', 'ACTIVE']);
 const COMPENSATION_PAYMENT = new Set([
@@ -113,7 +124,14 @@ export function MemberDetailPage() {
       return;
     }
     if (!isAuthenticated) {
-      setError(tx(language, 'Sign in required.', 'Sign in required.', 'Sign in to view this membership.'));
+      setError(
+        tx(
+          language,
+          'Войдите, чтобы посмотреть участие.',
+          'Қатысуды көру үшін кіріңіз.',
+          'Sign in to view this membership.',
+        ),
+      );
       setLoading(false);
       return;
     }
@@ -185,8 +203,8 @@ export function MemberDetailPage() {
       setPayError(
         tx(
           language,
-          'Payment amount is not available yet. Refresh the page or contact support.',
-          'Payment amount is not available yet. Refresh the page or contact support.',
+          'Сумма оплаты пока недоступна. Обновите страницу или напишите в поддержку.',
+          'Төлем сомасы әзірге қолжетімсіз. Бетті жаңартыңыз немесе қолдауға жазыңыз.',
           'Payment amount is not available yet. Refresh the page or contact support.',
         ),
       );
@@ -519,12 +537,12 @@ export function MemberDetailPage() {
               )}
               <div className="flex justify-between text-[14px] mb-1">
                 <span style={{ color: 'var(--eco-text-secondary)' }}>
-                  {tx(language, 'Ваша доля', 'Сіздің үлесіңіз', 'Your share')}
+                  {tx(language, 'Стоимость вашего места', 'Орныңыздың құны', 'Cost of your spot')}
                 </span>
                 <span style={{ color: 'var(--eco-text)' }}>
                   {canStartPayment
                     ? formatCurrency(payShare, settlementCurrency)
-                    : tx(language, 'Unavailable', 'Unavailable', 'Unavailable')}
+                    : unavailableText(language)}
                 </span>
               </div>
               {toFiniteNumber(payCommission) != null && Number(payCommission) > 0 && (
@@ -547,14 +565,14 @@ export function MemberDetailPage() {
                 <span style={{ color: 'var(--eco-text)', fontWeight: 600 }}>
                   {canStartPayment
                     ? formatCurrency(payTotal, settlementCurrency)
-                    : tx(language, 'Unavailable', 'Unavailable', 'Unavailable')}
+                    : unavailableText(language)}
                 </span>
               </div>
               <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                 {tx(
                   language,
-                  'Оплатите долю, чтобы закрепить место. Выплата владельцу будет на hold до установленной даты.',
-                  'Орынды сақтау үшін үлесіңізді төлеңіз. Иесіне төлем белгіленген күнге дейін hold-та болады.',
+                  'Оплатите место, чтобы закрепить его за собой. Выплата владельцу удерживается до установленной даты.',
+                  'Орынды өзіңізге бекіту үшін төлем жасаңыз. Иесіне төлем белгіленген күнге дейін ұсталады.',
                   'Pay to reserve your seat. The owner payout stays on hold until the scheduled release date.',
                 )}
               </div>
@@ -718,16 +736,16 @@ export function MemberDetailPage() {
               <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
                 {tx(
                   language,
-                  'Приватность и идентификатор',
-                  'Құпиялылық және идентификатор',
-                  'Privacy & Identifier',
+                  'Приватность контакта',
+                  'Байланыс құпиялылығы',
+                  'Contact privacy',
                 )}
               </h3>
             </div>
             <div className="p-4 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
               <div className="text-[14px] mb-2" style={{ color: 'var(--eco-text)' }}>
-                {tx(language, 'Ваш идентификатор', 'Сіздің идентификаторыңыз', 'Your identifier')}
-                {membership.identifierType ? ` (${membership.identifierType.toLowerCase()})` : ''}
+                {tx(language, 'Ваш контакт для комнаты', 'Бөлмеге арналған байланысыңыз', 'Your room contact')}
+                {membership.identifierType ? ` (${identifierTypeLabel(membership.identifierType, language)})` : ''}
               </div>
               <div
                 className="text-[18px] tracking-wider mb-3"
@@ -738,9 +756,9 @@ export function MemberDetailPage() {
               <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                 {tx(
                   language,
-                  'Полный идентификатор виден владельцу только после успешной оплаты. Данные хранятся зашифрованными.',
-                  'Толық идентификатор тек сәтті төлемнен кейін иесіне көрінеді. Деректер шифрланып сақталады.',
-                  'Visible to the room owner only after successful payment. Your full identifier is encrypted and stored securely.',
+                  'Полный контакт виден владельцу только после успешной оплаты. Данные хранятся зашифрованными.',
+                  'Толық байланыс тек сәтті төлемнен кейін иесіне көрінеді. Деректер шифрланып сақталады.',
+                  'Visible to the room owner only after successful payment. Your full contact is encrypted and stored securely.',
                 )}
               </div>
             </div>
@@ -782,7 +800,12 @@ export function MemberDetailPage() {
           </h3>
           {[
             {
-              label: tx(language, 'Ваша доля', 'Сіздің үлесіңіз', 'Your share'),
+              label: tx(
+                language,
+                'Ваша оплата за период',
+                'Кезең үшін төлеміңіз',
+                'Your payment for this period',
+              ),
               value: `${formatMoney(room.pricePerMember)}/${(room.periodType ?? '').toLowerCase()}`,
             },
             { label: tx(language, 'Места', 'Орындар', 'Seats'), value: `${room.maxMembers}` },

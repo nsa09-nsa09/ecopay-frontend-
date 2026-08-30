@@ -6,10 +6,10 @@ import { formatDateTime } from '../../lib/datetime';
 import { useAuth } from './auth-provider';
 import { consumePersistedBanEvent } from './auth-provider';
 import { VerifyCodeStep } from './verify-code-step';
-import { VerifyPhoneStep } from './verify-phone-step';
 import { Ban } from 'lucide-react';
-import { ApiError, normalizePhone } from '../../lib/api';
-import { looksLikeEmail, serverEmailErrorCode } from '../../lib/email-validation';
+import { ApiError } from '../../lib/api';
+import { serverEmailErrorCode } from '../../lib/email-validation';
+import { localizeFieldErrors } from '../../lib/field-errors';
 import { useEmailField } from './use-email-field';
 import {
   EmailFieldStatusHint,
@@ -26,12 +26,6 @@ const tx = (l: Language, ru: string, kz: string, en: string) =>
 // without depending on the localized message text.
 function isEmailNotVerified(err: ApiError): boolean {
   return err.status === 403 && err.errors?.code === 'EMAIL_NOT_VERIFIED';
-}
-
-// Same marker convention for phone-registered accounts that never confirmed
-// their SMS code (GlobalExceptionHandler#handlePhoneNotVerified).
-function isPhoneNotVerified(err: ApiError): boolean {
-  return err.status === 403 && err.errors?.code === 'PHONE_NOT_VERIFIED';
 }
 
 interface BanInfo {
@@ -68,16 +62,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const redirectTarget = new URLSearchParams(location.search).get('redirect') || '/profile';
 
-  // One field for both identifiers: phone-registered users type their +7…
-  // number, email users their address. loginRequest routes accordingly.
-  //
-  // The hook only judges input containing '@' — a phone number must not be
-  // flagged as a malformed email — and it debounces, so we never scold someone
-  // mid-keystroke.
-  const emailField = useEmailField('', { onlyWhenEmailLike: true });
-  const identifier = emailField.value;
-  const setIdentifier = emailField.setValue;
-  const isEmailIdentifier = looksLikeEmail(identifier);
+  const emailField = useEmailField();
 
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -87,9 +72,6 @@ export function LoginPage() {
   // When set, the account exists but its email isn't verified — show the code
   // step (which resends a fresh code and logs the user in on success).
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
-  // Same for phone-registered accounts that never confirmed the SMS code.
-  const [unverifiedPhone, setUnverifiedPhone] = useState<string | null>(null);
-
   useEffect(() => {
     // Order of precedence: query params (just-arrived realtime redirect),
     // then sessionStorage (deep-link survival), then nothing.
@@ -108,15 +90,10 @@ export function LoginPage() {
     setFieldErrors({});
     setBanInfo(null);
 
-    // Catch a malformed address before spending a request on it — a failed
-    // round trip would come back as "invalid credentials", which sends the
-    // user hunting for a password problem they don't have.
-    if (isEmailIdentifier) {
-      const check = emailField.validateNow();
-      if (!check.ok) {
-        setFieldErrors({ email: emailFormatErrorText(check.error!, language) });
-        return;
-      }
+    const check = emailField.validateNow();
+    if (!check.ok) {
+      setFieldErrors({ email: emailFormatErrorText(check.error!, language) });
+      return;
     }
 
     setLoading(true);
@@ -124,10 +101,7 @@ export function LoginPage() {
     try {
       // Submit the canonical form so a stray capital or pasted space can't
       // miss the stored row.
-      const result = await login(
-        isEmailIdentifier ? emailField.normalized : identifier,
-        password,
-      );
+      const result = await login(check.normalized, password);
       if (result.kind === 'twoFactor') {
         navigate('/admin-login', {
           replace: true,
@@ -144,8 +118,6 @@ export function LoginPage() {
           setBanInfo(ban);
         } else if (isEmailNotVerified(err)) {
           setUnverifiedEmail(emailField.normalized);
-        } else if (isPhoneNotVerified(err)) {
-          setUnverifiedPhone(normalizePhone(identifier));
         } else if (emailCode) {
           // Server-side format/domain rejection: show it on the field, with
           // the correction it suggested if there is one.
@@ -153,7 +125,7 @@ export function LoginPage() {
           if (err.errors.suggestion) emailField.setValue(err.errors.suggestion);
         } else {
           setError(err.message);
-          setFieldErrors(err.errors);
+          setFieldErrors(localizeFieldErrors(err.errors, language));
         }
       } else {
         setError(t('unableToSignIn'));
@@ -172,18 +144,6 @@ export function LoginPage() {
         autoResendOnMount
         onVerified={() => navigate(redirectTarget)}
         onBack={() => setUnverifiedEmail(null)}
-      />
-    );
-  }
-
-  // Phone-registered account that never confirmed its SMS code: divert to the
-  // SMS step ("resend" there requests a fresh code if the original expired).
-  if (unverifiedPhone) {
-    return (
-      <VerifyPhoneStep
-        phone={unverifiedPhone}
-        onVerified={() => navigate(redirectTarget)}
-        onBack={() => setUnverifiedPhone(null)}
       />
     );
   }
@@ -233,27 +193,18 @@ export function LoginPage() {
         <Card>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <Input
-              label={tx(language, 'Телефон или email', 'Телефон немесе email', 'Phone or email')}
-              type="text"
-              placeholder={tx(
-                language,
-                '+7 700 123 45 67 или you@mail.kz',
-                '+7 700 123 45 67 немесе you@mail.kz',
-                '+7 700 123 45 67 or you@mail.kz',
-              )}
-              value={identifier}
-              onChange={(event) => setIdentifier(event.target.value)}
+              label={t('email')}
+              type="email"
+              placeholder={t('yourEmail')}
+              value={emailField.value}
+              onChange={(event) => emailField.setValue(event.target.value)}
               error={
                 fieldErrors.email ??
-                fieldErrors.phone ??
                 (emailField.error ? emailFormatErrorText(emailField.error, language) : undefined)
               }
-              autoComplete="username"
+              autoComplete="email"
             />
-            {/* Inline state for the email case only; a phone number stays unjudged.
-                Suppressed while a typo suggestion is up: "looks good" next to
-                "did you mean…?" reads as two contradictory verdicts. */}
-            {isEmailIdentifier && !fieldErrors.email && !emailField.suggestion && (
+            {!fieldErrors.email && !emailField.suggestion && (
               <EmailFieldStatusHint status={emailField.status} />
             )}
             {emailField.suggestion && (

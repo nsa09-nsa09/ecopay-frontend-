@@ -3674,6 +3674,20 @@ function interpolate(template: string, params?: Record<string, string | number>)
   });
 }
 
+function localizedOrFallback(
+  translation: Partial<Record<Language, string>> | undefined,
+  language: Language,
+  key: string,
+): string {
+  if (!translation) return key;
+  const order: Language[] = language === 'kz' ? ['kz', 'ru', 'en'] : [language, 'en'];
+  for (const candidate of order) {
+    const value = translation[candidate];
+    if (value) return value;
+  }
+  return key;
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(getInitialLanguage);
 
@@ -3718,10 +3732,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       const fewTr = translations[`${key}_few`];
       const manyTr = translations[`${key}_many`];
       const forms: PluralForms = {
-        one: oneTr[language] || oneTr.en || key,
+        one: localizedOrFallback(oneTr, language, key),
       };
-      if (fewTr) forms.few = fewTr[language] || fewTr.en;
-      if (manyTr) forms.many = manyTr[language] || manyTr.en;
+      if (fewTr) forms.few = localizedOrFallback(fewTr, language, key);
+      if (manyTr) forms.many = localizedOrFallback(manyTr, language, key);
       return interpolate(plural(language, countValue, forms), params);
     }
 
@@ -3732,8 +3746,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       }
       return key;
     }
-    // Fallback order: current language -> English -> key
-    const raw = translation[language] || translation.en || key;
+    const raw = localizedOrFallback(translation, language, key);
     return interpolate(raw, params);
   };
 

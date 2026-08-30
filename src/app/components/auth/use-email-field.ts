@@ -13,8 +13,8 @@ const DEBOUNCE_MS = 500;
 export interface UseEmailFieldOptions {
   /**
    * When true, an input with no '@' is left unjudged (status stays 'empty').
-   * Used by the login form, whose single field also accepts a phone number —
-   * flagging "+7700…" as a malformed email would be nonsense.
+   * Useful for optional email-like fields where non-email text should not be
+   * judged until the user actually starts typing an address.
    */
   onlyWhenEmailLike?: boolean;
 }

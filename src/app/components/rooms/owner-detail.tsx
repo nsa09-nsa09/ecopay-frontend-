@@ -58,9 +58,9 @@ const formatDateTime = (v: string | null | undefined, l: Language) =>
 const POST_PAYMENT = new Set(['PENDING', 'ACTIVE']);
 const DEFAULT_REVEAL_TTL_SECONDS = 30;
 const OWNER_REVEAL_REASON_OPTIONS = [
-  { value: 'PROVIDE_SERVICE_ACCESS', label: 'Provide service access' },
-  { value: 'RETRY_SERVICE_INVITE', label: 'Retry service invite' },
-  { value: 'RESOLVE_ACCESS_CONFIGURATION', label: 'Resolve access configuration' },
+  { value: 'PROVIDE_SERVICE_ACCESS' },
+  { value: 'RETRY_SERVICE_INVITE' },
+  { value: 'RESOLVE_ACCESS_CONFIGURATION' },
 ];
 
 type RevealedIdentifierState = {
@@ -81,6 +81,35 @@ function rebaseInviteUrl(raw: string): string {
     return parsed.toString();
   } catch {
     return raw; // fallback: return as-is if URL is malformed
+  }
+}
+
+function identifierTypeLabel(type: string, language: Language): string {
+  switch (type) {
+    case 'EMAIL':
+      return tx(language, 'email', 'email', 'email');
+    case 'PHONE':
+      return tx(language, 'номер телефона', 'телефон нөмірі', 'phone number');
+    default:
+      return tx(language, 'контакт', 'байланыс', 'contact');
+  }
+}
+
+function revealReasonLabel(value: string, language: Language): string {
+  switch (value) {
+    case 'PROVIDE_SERVICE_ACCESS':
+      return tx(language, 'Выдать доступ', 'Қатынас беру', 'Provide access');
+    case 'RETRY_SERVICE_INVITE':
+      return tx(language, 'Повторить приглашение', 'Шақыруды қайталау', 'Retry invite');
+    case 'RESOLVE_ACCESS_CONFIGURATION':
+      return tx(
+        language,
+        'Настроить доступ',
+        'Қатынасты баптау',
+        'Resolve access setup',
+      );
+    default:
+      return tx(language, 'Другая причина', 'Басқа себеп', 'Other reason');
   }
 }
 
@@ -440,7 +469,7 @@ export function OwnerDetailPage() {
                                   fontFamily: 'monospace',
                                 }}
                               >
-                                ID: {revealed.value}
+                                {tx(language, 'Контакт', 'Байланыс', 'Contact')}: {revealed.value}
                               </span>
                             ) : (
                               <button
@@ -685,8 +714,11 @@ export function OwnerDetailPage() {
             />
           </div>
           <Select
-            label="Reason code"
-            options={OWNER_REVEAL_REASON_OPTIONS}
+            label={tx(language, 'Тип причины', 'Себеп түрі', 'Reason type')}
+            options={OWNER_REVEAL_REASON_OPTIONS.map((option) => ({
+              value: option.value,
+              label: revealReasonLabel(option.value, language),
+            }))}
             value={revealReasonCode}
             disabled={!!revealedIdentifier}
             onChange={(e) => setRevealReasonCode(e.target.value)}
@@ -697,7 +729,13 @@ export function OwnerDetailPage() {
               style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
             >
               <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                {revealedIdentifier.identifierType} · shown briefly
+                {identifierTypeLabel(revealedIdentifier.identifierType, language)} ·{' '}
+                {tx(
+                  language,
+                  'показано ненадолго',
+                  'қысқа уақытқа көрсетіледі',
+                  'shown briefly',
+                )}
               </div>
               <div
                 className="text-[15px] break-all"
@@ -707,7 +745,7 @@ export function OwnerDetailPage() {
               </div>
               <Button variant="secondary" size="sm" onClick={copyRevealedIdentifier}>
                 <Copy size={13} />
-                Copy
+                {tx(language, 'Скопировать', 'Көшіру', 'Copy')}
               </Button>
             </div>
           )}

@@ -83,12 +83,7 @@ function PaymentFooter({ lang }: { lang: L }) {
         )}
       </div>
       <div className="text-[11px] mt-3" style={{ color: 'var(--eco-text-tertiary)' }}>
-        {tx(
-          lang,
-          '© 2026 EcoPay',
-          '© 2026 EcoPay',
-          '© 2026 EcoPay',
-        )}
+        {tx(lang, '© 2026 EcoPay', '© 2026 EcoPay', '© 2026 EcoPay')}
       </div>
     </div>
   );
@@ -109,10 +104,10 @@ const paymentStatusVariant: Record<
 const paymentStatusLabel = (s: PaymentStatus, l: L): string => {
   const map: Record<PaymentStatus, [string, string, string]> = {
     PENDING: ['Ожидает оплаты', 'Төлем күтілуде', 'Pending Payment'],
-    HOLD: ['Средства удержаны', 'Қаражат ұсталды', 'Funds on Hold'],
+    HOLD: ['Средства удерживаются', 'Қаражат ұсталды', 'Funds on Hold'],
     ACTIVE: ['Активно', 'Белсенді', 'Active'],
     REFUNDED: ['Возврат', 'Қайтарым', 'Refunded'],
-    PAYOUT_SENT: ['Выплата отправлена', 'Төлем жіберілді', 'Payout Sent'],
+    PAYOUT_SENT: ['Выплата отправлена', 'Аударым жіберілді', 'Payout Sent'],
   };
   return tx(l, ...map[s]);
 };
@@ -896,8 +891,8 @@ export function RefundStatusPage() {
       <p className="text-[13px] mb-6" style={{ color: 'var(--eco-text-tertiary)' }}>
         {tx(
           l,
-          'Все возвраты, инициированные по вашим платежам.',
-          'Сіздің төлемдеріңіз бойынша барлық қайтарулар.',
+          'Все возвраты по вашим платежам.',
+          'Төлемдеріңіз бойынша барлық қайтарулар.',
           'All refunds initiated on your payments.',
         )}
       </p>
@@ -940,8 +935,8 @@ export function RefundStatusPage() {
           title={tx(l, 'Возвратов нет', 'Қайтарулар жоқ', 'No refunds')}
           description={tx(
             l,
-            'Когда вам будет инициирован возврат, он появится здесь.',
-            'Сізге қайтару бастамаланғанда, ол осы жерде пайда болады.',
+            'Когда по вашему платежу начнётся возврат, он появится здесь.',
+            'Төлеміңіз бойынша қайтару басталғанда, ол осында пайда болады.',
             'Refunds initiated for you will appear here.',
           )}
         />
@@ -1016,9 +1011,9 @@ export function RefundStatusPage() {
         <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
           {tx(
             l,
-            'Возврат будет зачислен на исходный способ оплаты в течение 3–10 рабочих дней после одобрения.',
-            'Қайтару мақұлданғаннан кейін 3-10 жұмыс күнінде бастапқы төлем тәсіліне аударылады.',
-            'Refund will be credited to the original payment method within 3–10 business days after approval.',
+            'Возврат будет зачислен на исходный способ оплаты в течение 3-10 рабочих дней после одобрения.',
+            'Қайтару мақұлданғаннан кейін 3-10 жұмыс күні ішінде бастапқы төлем тәсіліне аударылады.',
+            'Refund will be credited to the original payment method within 3-10 business days after approval.',
           )}
         </span>
       </div>
@@ -1043,6 +1038,36 @@ function payoutStatusVariant(s: string): 'warning' | 'info' | 'success' | 'dange
   if (u === 'PENDING' || u === 'QUEUED') return 'warning';
   if (u === 'PROCESSING') return 'info';
   return 'default';
+}
+
+function payoutStatusLabel(s: string, l: L): string {
+  const map: Record<string, [string, string, string]> = {
+    SUCCESS: ['Успешно', 'Сәтті', 'Success'],
+    SENT: ['Отправлена', 'Жіберілді', 'Sent'],
+    PROCESSED: ['Обработана', 'Өңделді', 'Processed'],
+    FAILED: ['Ошибка', 'Сәтсіз', 'Failed'],
+    REJECTED: ['Отклонена', 'Қабылданбады', 'Rejected'],
+    PENDING: ['Ожидает', 'Күтуде', 'Pending'],
+    QUEUED: ['В очереди', 'Кезекте', 'Queued'],
+    PROCESSING: ['Обрабатывается', 'Өңделуде', 'Processing'],
+  };
+  const entry = map[s.toUpperCase()];
+  return entry ? tx(l, ...entry) : s.replace(/_/g, ' ');
+}
+
+function payoutStatusLabel(s: string, l: L): string {
+  const map: Record<string, [string, string, string]> = {
+    SUCCESS: ['Успешно', 'Сәтті', 'Success'],
+    SENT: ['Отправлена', 'Жіберілді', 'Sent'],
+    PROCESSED: ['Обработана', 'Өңделді', 'Processed'],
+    FAILED: ['Ошибка', 'Сәтсіз', 'Failed'],
+    REJECTED: ['Отклонена', 'Қабылданбады', 'Rejected'],
+    PENDING: ['Ожидает', 'Күтуде', 'Pending'],
+    QUEUED: ['В очереди', 'Кезекте', 'Queued'],
+    PROCESSING: ['Обрабатывается', 'Өңделуде', 'Processing'],
+  };
+  const entry = map[s.toUpperCase()];
+  return entry ? tx(l, ...entry) : s.replace(/_/g, ' ');
 }
 
 function PayoutMethodsCard({
@@ -1092,7 +1117,7 @@ function PayoutMethodsCard({
     <Card className="flex flex-col gap-4 mb-6">
       <div className="flex items-center justify-between">
         <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
-          {tx(l, 'Способы выплаты', 'Төлем тәсілдері', 'Payout Methods')}
+          {tx(l, 'Способы выплат', 'Аударым тәсілдері', 'Payout Methods')}
         </h3>
         {!adding && (
           <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
@@ -1109,7 +1134,7 @@ function PayoutMethodsCard({
         </div>
       ) : methods.length === 0 && !adding ? (
         <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-          {tx(l, 'Метод выплаты не задан.', 'Төлем тәсілі белгіленбеген.', 'No payout method yet.')}
+          {tx(l, 'Способ выплат пока не задан.', 'Аударым тәсілі әлі көрсетілмеген.', 'No payout method yet.')}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -1138,8 +1163,8 @@ function PayoutMethodsCard({
                 onClick={() => void remove(m.id)}
                 aria-label={tx(
                   l,
-                  'Удалить способ выплаты',
-                  'Төлем тәсілін жою',
+                  'Удалить способ выплат',
+                  'Аударым тәсілін жою',
                   'Delete payout method',
                 )}
               >
@@ -1158,8 +1183,8 @@ function PayoutMethodsCard({
           <input
             placeholder={tx(
               l,
-              'Провайдерский токен карты',
-              'Провайдер карта токені',
+              'Токен карты от провайдера',
+              'Провайдер берген карта токені',
               'Provider card token',
             )}
             value={token}
@@ -1176,7 +1201,7 @@ function PayoutMethodsCard({
             placeholder={tx(
               l,
               'Маска карты (необязательно), напр. **** 4821',
-              'Карта маскасы (міндетті емес)',
+              'Карта маскасы (міндетті емес), мыс. **** 4821',
               'PAN mask (optional), e.g. **** 4821',
             )}
             value={panMask}
@@ -1200,7 +1225,7 @@ function PayoutMethodsCard({
               }}
               disabled={busy}
             >
-              {tx(l, 'Отмена', 'Бас тарту', 'Cancel')}
+              {tx(l, 'Отмена', 'Болдырмау', 'Cancel')}
             </Button>
             <Button
               variant="primary"
@@ -1281,15 +1306,16 @@ function HeldBalanceCard({
           </div>
         </div>
         <Badge variant={balance.heldPayoutCount > 0 ? 'info' : 'default'}>
-          {balance.heldPayoutCount} {tx(l, 'выплат в hold', 'төлем ұсталымда', 'payouts on hold')}
+          {balance.heldPayoutCount}{' '}
+          {tx(l, 'выплат удерживается', 'аударым ұсталымда', 'payouts on hold')}
         </Badge>
       </div>
 
       <p className="text-[12px] mt-3" style={{ color: 'var(--eco-text-tertiary)' }}>
         {tx(
           l,
-          'Сумма успешных платежей участников, предназначенная вам и всё ещё находящаяся в периоде hold. Возвраты и отменённые выплаты не учитываются.',
-          'Сізге арналған және hold кезеңіндегі қатысушылардың сәтті төлемдерінің сомасы. Қайтарымдар мен жойылған төлемдер есептелмейді.',
+          'Сумма успешных платежей участников, предназначенная вам и пока удерживаемая до даты выплаты. Возвраты и отменённые выплаты не учитываются.',
+          'Сізге арналған және аударым күніне дейін ұсталып тұрған қатысушылардың сәтті төлемдері. Қайтарулар мен тоқтатылған аударымдар есептелмейді.',
           'Successful member payments owed to you that are still inside the hold period. Refunded and reversed payouts are excluded.',
         )}
       </p>
@@ -1300,7 +1326,7 @@ function HeldBalanceCard({
           style={{ color: 'var(--eco-text-secondary)', borderColor: 'var(--eco-border)' }}
         >
           <Timer size={14} />
-          {tx(l, 'Ближайшее освобождение:', 'Ең жақын босату:', 'Next release:')}{' '}
+          {tx(l, 'Ближайшая выплата:', 'Ең жақын аударым:', 'Next release:')}{' '}
           {formatDateTime(balance.nextReleaseAt, l)}
         </div>
       )}
@@ -1342,7 +1368,12 @@ export function OwnerPayoutPage() {
           setPayoutsError(
             err instanceof ApiError
               ? err.message
-              : tx(l, 'Не удалось загрузить выплаты.', 'Төлемдерді жүктеу мүмкін болмады.', 'Unable to load payouts.'),
+              : tx(
+                  l,
+                  'Не удалось загрузить выплаты.',
+                  'Аударымдарды жүктеу мүмкін болмады.',
+                  'Unable to load payouts.',
+                ),
           );
       })
       .finally(() => {
@@ -1360,8 +1391,8 @@ export function OwnerPayoutPage() {
               ? err.message
               : tx(
                   l,
-                  'Не удалось загрузить способы выплаты.',
-                  'Төлем тәсілдерін жүктеу мүмкін болмады.',
+                  'Не удалось загрузить способы выплат.',
+                  'Аударым тәсілдерін жүктеу мүмкін болмады.',
                   'Unable to load payout methods.',
                 ),
           );
@@ -1382,7 +1413,7 @@ export function OwnerPayoutPage() {
               : tx(
                   l,
                   'Не удалось загрузить удерживаемый баланс.',
-                  'Ұсталымдағы балансты жүктеу мүмкін болмады.',
+                  'Ұсталған теңгерімді жүктеу мүмкін болмады.',
                   'Unable to load held balance.',
                 ),
           );
@@ -1401,7 +1432,7 @@ export function OwnerPayoutPage() {
       const m = await authorizedRequest((token) => registerPayoutMethodRequest(payload, token));
       setMethods((prev) => [m, ...prev]);
       toast.success(
-        tx(l, 'Способ выплаты добавлен', 'Төлем тәсілі қосылды', 'Payout method added'),
+        tx(l, 'Способ выплат добавлен', 'Аударым тәсілі қосылды', 'Payout method added'),
       );
     } catch (err) {
       toast.error(
@@ -1409,8 +1440,8 @@ export function OwnerPayoutPage() {
           ? err.message
           : tx(
               l,
-              'Не удалось добавить способ выплаты',
-              'Төлем тәсілін қосу мүмкін болмады',
+              'Не удалось добавить способ выплат',
+              'Аударым тәсілін қосу мүмкін болмады',
               'Failed to add payout method',
             ),
       );
@@ -1422,7 +1453,7 @@ export function OwnerPayoutPage() {
       await authorizedRequest((token) => deletePayoutMethodRequest(id, token));
       setMethods((prev) => prev.filter((m) => m.id !== id));
       toast.success(
-        tx(l, 'Способ выплаты удалён', 'Төлем тәсілі жойылды', 'Payout method removed'),
+        tx(l, 'Способ выплат удалён', 'Аударым тәсілі жойылды', 'Payout method removed'),
       );
     } catch (err) {
       toast.error(
@@ -1430,8 +1461,8 @@ export function OwnerPayoutPage() {
           ? err.message
           : tx(
               l,
-              'Не удалось удалить способ выплаты',
-              'Төлем тәсілін жою мүмкін болмады',
+              'Не удалось удалить способ выплат',
+              'Аударым тәсілін жою мүмкін болмады',
               'Failed to remove payout method',
             ),
       );
@@ -1449,13 +1480,13 @@ export function OwnerPayoutPage() {
       </Link>
 
       <h1 className="text-[24px] mb-2" style={{ color: 'var(--eco-text)' }}>
-        {tx(l, 'Выплаты владельцу', 'Иеге төлемдер', 'Owner Payouts')}
+        {tx(l, 'Выплаты владельцу', 'Иеге аударымдар', 'Owner Payouts')}
       </h1>
       <p className="text-[13px] mb-6" style={{ color: 'var(--eco-text-tertiary)' }}>
         {tx(
           l,
-          'История выплат и настройка способов выплаты.',
-          'Төлемдер тарихы мен төлем тәсілдерін баптау.',
+          'История выплат и настройка способов получения денег.',
+          'Аударымдар тарихы және ақша алу тәсілдерін баптау.',
           'Payout history and method management.',
         )}
       </p>
@@ -1470,7 +1501,7 @@ export function OwnerPayoutPage() {
             {tx(
               l,
               'Войдите, чтобы увидеть выплаты',
-              'Төлемдерді көру үшін кіріңіз',
+              'Аударымдарды көру үшін кіріңіз',
               'Sign in to view payouts',
             )}
           </Link>
@@ -1489,7 +1520,7 @@ export function OwnerPayoutPage() {
           />
 
           <h3 className="text-[16px] mb-3" style={{ color: 'var(--eco-text)' }}>
-            {tx(l, 'История выплат', 'Төлемдер тарихы', 'Payout History')}
+            {tx(l, 'История выплат', 'Аударымдар тарихы', 'Payout History')}
           </h3>
 
           {loadingPayouts ? (
@@ -1512,11 +1543,11 @@ export function OwnerPayoutPage() {
             </Card>
           ) : payouts.length === 0 ? (
             <EmptyState
-              title={tx(l, 'Выплат пока нет', 'Әзірге төлемдер жоқ', 'No payouts yet')}
+              title={tx(l, 'Выплат пока нет', 'Әзірге аударымдар жоқ', 'No payouts yet')}
               description={tx(
                 l,
-                'Когда участники оплатят и пройдёт окно споров, выплата появится здесь.',
-                'Қатысушылар төлеп, дау терезесі өткеннен кейін, төлем осы жерде пайда болады.',
+                'Когда участники оплатят места и пройдёт окно споров, выплата появится здесь.',
+                'Қатысушылар орындарды төлеп, дау мерзімі өткеннен кейін аударым осында пайда болады.',
                 'Once members pay and the dispute window closes, payouts will appear here.',
               )}
             />
@@ -1532,7 +1563,9 @@ export function OwnerPayoutPage() {
                       >
                         PO-{p.id}
                       </span>
-                      <Badge variant={payoutStatusVariant(p.status)}>{p.status}</Badge>
+                      <Badge variant={payoutStatusVariant(p.status)}>
+                        {payoutStatusLabel(p.status, l)}
+                      </Badge>
                     </div>
                     <div className="text-[18px]" style={{ color: 'var(--eco-primary)' }}>
                       {p.currency === 'KZT' ? '₸' : `${p.currency} `}
@@ -1598,8 +1631,8 @@ export function OwnerPayoutPage() {
         <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
           {tx(
             l,
-            'Выплата доступна после прохождения верификации и окна для споров. Это защищает обе стороны.',
-            'Төлем верификация мен дау терезесінен кейін қолжетімді. Бұл екі тарапты қорғайды.',
+            'Выплата доступна после проверки и окна споров. Это защищает обе стороны.',
+            'Аударым тексеруден және дау мерзімінен кейін қолжетімді. Бұл екі тарапты қорғайды.',
             'Payout available after verification and dispute window. This protects both parties.',
           )}
         </span>
