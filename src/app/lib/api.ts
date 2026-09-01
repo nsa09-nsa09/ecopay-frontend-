@@ -983,10 +983,7 @@ export function confirmMemberAccessRequest(roomId: string | number, accessToken:
 }
 
 export type RoomComplaintReason =
-  | 'ACCESS_NOT_PROVIDED'
-  | 'ACCESS_NOT_AS_DESCRIBED'
-  | 'OWNER_STOPPED_FULFILLING'
-  | 'OTHER';
+  'ACCESS_NOT_PROVIDED' | 'ACCESS_NOT_AS_DESCRIBED' | 'OWNER_STOPPED_FULFILLING' | 'OTHER';
 
 export interface CreateRoomComplaintPayload {
   reasonCode: RoomComplaintReason;
@@ -1814,6 +1811,44 @@ export interface FinanceRefundDto {
   disputeId: number | null;
 }
 
+export interface FinancePayoutDto {
+  id: number;
+  createdAt: string;
+  releaseAt: string | null;
+  processedAt: string | null;
+  nextRetryAt: string | null;
+  status: string;
+  amount: number | string;
+  currency: string | null;
+  roomId: number | null;
+  roomTitle: string | null;
+  ownerUserId: number | null;
+  ownerDisplayName: string | null;
+  triggeringPaymentIntentId: number | null;
+  payoutMethodId: number | null;
+  payoutMethodPanMask: string | null;
+  providerName: string | null;
+  providerPayoutId: string | null;
+  failureReason: string | null;
+  retryCount: number | null;
+}
+
+export interface FinanceWebhookDto {
+  id: number;
+  receivedAt: string;
+  lastAttemptAt: string | null;
+  processedAt: string | null;
+  nextRetryAt: string | null;
+  deadLetteredAt: string | null;
+  processingStatus: string;
+  callbackScript: string;
+  providerRequestId: string;
+  signatureValid: boolean | null;
+  attemptCount: number | null;
+  lastErrorCode: string | null;
+  errorMessage: string | null;
+}
+
 export function getAdminFinanceTransactionsRequest(
   accessToken: string,
   params: {
@@ -1844,6 +1879,41 @@ export function getAdminFinanceRefundsRequest(
 ) {
   return requestJson<PagedResponse<FinanceRefundDto>>(
     `/admin/finance/refunds${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function getAdminFinancePayoutsRequest(
+  accessToken: string,
+  params: {
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    size?: number;
+  } = {},
+) {
+  return requestJson<PagedResponse<FinancePayoutDto>>(
+    `/admin/finance/payouts${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function getAdminFinanceWebhooksRequest(
+  accessToken: string,
+  params: {
+    status?: string;
+    script?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    size?: number;
+  } = {},
+) {
+  return requestJson<PagedResponse<FinanceWebhookDto>>(
+    `/admin/finance/webhooks${toSearchParams(params)}`,
     {},
     accessToken,
   );
@@ -2896,7 +2966,11 @@ export function adminUploadStoryImage(id: number, file: File, accessToken: strin
 }
 
 export function adminDeleteStoryImage(id: number, accessToken: string) {
-  return requestJson<AdminStoryDto>(`/admin/stories/${id}/image`, { method: 'DELETE' }, accessToken);
+  return requestJson<AdminStoryDto>(
+    `/admin/stories/${id}/image`,
+    { method: 'DELETE' },
+    accessToken,
+  );
 }
 
 // ───────────────────────────────────────────────────────────────
