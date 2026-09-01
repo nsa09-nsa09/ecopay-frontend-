@@ -40,7 +40,7 @@ const PAYOUT_STATUSES = [
 ];
 const WEBHOOK_STATUSES = ['PENDING', 'PROCESSING', 'FAILED', 'PROCESSED', 'DEAD_LETTER'];
 const TAB_LABELS: Record<FinanceTab, string> = {
-  'payment-review': 'PAYMENTS',
+  'payment-review': 'PAYMENT REVIEW',
   refunds: 'REFUNDS',
   payouts: 'PAYOUTS',
   webhooks: 'WEBHOOKS',
