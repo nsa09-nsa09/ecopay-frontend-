@@ -226,6 +226,22 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
         activeRooms: 7,
       });
     }
+    if (path === '/admin/moderation/queue' && method === 'GET') {
+      return body([
+        {
+          id: 1,
+          entityType: 'ROOM_MEMBER',
+          entityId: '1190396672850886657',
+          roomId: '1190697228537528324',
+          roomMemberId: '1190396672850886657',
+          reasonCode: 'PENDING_TIMEOUT',
+          riskScore: 0,
+          assignedAdminId: null,
+          status: 'OPEN',
+          createdAt: '2026-07-07T00:00:00Z',
+        },
+      ]);
+    }
     if (path.includes('/service-reviews/featured')) {
       return body([
         {
@@ -548,7 +564,8 @@ test('/how-it-works ru avoids obsolete identifier and hold wording', async ({ pa
   await page.goto('/how-it-works');
   const content = await page.locator('#root').textContent();
 
-  await expect(page.getByRole('heading', { name: 'Укажите номер телефона' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Укажите данные для подключения' })).toBeVisible();
+  await expect(page.getByText('Если сервис подключает по приглашению')).toBeVisible();
   expect(content).not.toContain('ID аккаунта');
   expect(content).not.toContain('идентификатор');
   expect(content).not.toContain('hold');
@@ -595,6 +612,22 @@ test('admin finance operations opens for admin', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'PAYMENT REVIEW' })).toBeVisible();
 });
 
+test('/admin/moderation ru localizes queue codes and uses wide content', async ({ page }) => {
+  await page.setViewportSize({ width: 1748, height: 960 });
+  await mockApi(page, 'ADMIN', 'ru');
+  await seedSession(page, 'ADMIN');
+
+  await page.goto('/admin/moderation');
+
+  await expect(page.getByText('Таймаут ожидания')).toBeVisible();
+  await expect(page.getByText('Статус: Открыта')).toBeVisible();
+  await expect(page.getByText('PENDING_TIMEOUT')).toHaveCount(0);
+  await expect(page.getByText('Статус: OPEN')).toHaveCount(0);
+
+  const contentBox = await page.locator('main > div').first().boundingBox();
+  expect(contentBox?.width ?? 0).toBeGreaterThan(1300);
+});
+
 test('homepage uses backend reviews and real stats only', async ({ page }) => {
   await mockApi(page, 'ANON');
   await page.goto('/');
@@ -605,6 +638,29 @@ test('homepage uses backend reviews and real stats only', async ({ page }) => {
   await expect(page.getByText('EcoPay matched me with a real room')).toBeVisible();
   await expect(page.getByText('5000+ happy users')).toHaveCount(0);
   await expect(page.getByText(/Google and Trustpilot/i)).toHaveCount(0);
+});
+
+test('homepage ru localizes public stats and review section', async ({ page }) => {
+  await mockApi(page, 'ANON', 'ru');
+  await page.goto('/');
+  const content = (await page.locator('#root').textContent()) ?? '';
+
+  await expect(page.getByText('пользователей EcoPay')).toBeVisible();
+  await expect(page.getByText('18 проверенных отзывов')).toBeVisible();
+  await expect(page.getByText('участий в подписках')).toBeVisible();
+  await expect(page.getByText('активных комнат')).toBeVisible();
+  await expect(page.getByText('Проверенные отзывы EcoPay')).toBeVisible();
+
+  for (const english of [
+    'EcoPay users',
+    '18 verified reviews',
+    'memberships',
+    'active rooms',
+    'Verified EcoPay reviews',
+    'Selected by EcoPay moderators from real member reviews.',
+  ]) {
+    expect(content).not.toContain(english);
+  }
 });
 
 test('admin reviews show homepage slots without user text editor', async ({ page }) => {

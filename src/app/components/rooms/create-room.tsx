@@ -737,9 +737,9 @@ export function CreateRoomPage() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder={tx(
                 language,
-                'Shared room',
-                'Shared room',
-                'e.g. Shared room',
+                'Например, Семейный тариф',
+                'Мысалы, Отбасылық тариф',
+                'e.g. Family plan',
               )}
             />
             <div

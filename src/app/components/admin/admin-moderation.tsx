@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, Button, Badge } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
-import { useI18n } from '../i18n-provider';
+import { useI18n, type Language } from '../i18n-provider';
 import { formatDate } from '../../lib/datetime';
 import { useAuth } from '../auth/auth-provider';
 import {
@@ -22,6 +22,56 @@ type ActionState = {
   kind: ActionKind;
   item: ModerationQueueItemDto;
 };
+
+const localized = (
+  language: Language,
+  labels: { ru: string; kz: string; en: string },
+) => labels[language];
+
+function moderationStatusLabel(status: string | null | undefined, language: Language) {
+  if (!status) return localized(language, { ru: 'Не указан', kz: 'Көрсетілмеген', en: 'Not set' });
+  const labels: Record<string, { ru: string; kz: string; en: string }> = {
+    OPEN: { ru: 'Открыта', kz: 'Ашық', en: 'Open' },
+    IN_REVIEW: { ru: 'На проверке', kz: 'Тексеруде', en: 'In review' },
+    RESOLVED: { ru: 'Решена', kz: 'Шешілді', en: 'Resolved' },
+    REJECTED: { ru: 'Отклонена', kz: 'Қабылданбады', en: 'Rejected' },
+  };
+  return labels[status]?.[language] ?? status.replace(/_/g, ' ');
+}
+
+function reasonCodeLabel(code: string | null | undefined, language: Language) {
+  if (!code) return localized(language, { ru: 'Не указана', kz: 'Көрсетілмеген', en: 'Not set' });
+  const labels: Record<string, { ru: string; kz: string; en: string }> = {
+    ADMIN_REQUIRED: {
+      ru: 'Нужна проверка администратора',
+      kz: 'Әкімші тексеруі қажет',
+      en: 'Admin review required',
+    },
+    INVALID_IDENTIFIER: {
+      ru: 'Некорректные данные подключения',
+      kz: 'Қосылу деректері дұрыс емес',
+      en: 'Invalid connection details',
+    },
+    OPEN_DISPUTE: { ru: 'Есть открытый спор', kz: 'Ашық дау бар', en: 'Open dispute' },
+    SUPPORT_TICKET: {
+      ru: 'Есть обращение в поддержку',
+      kz: 'Қолдау өтініші бар',
+      en: 'Support ticket',
+    },
+    RISK_REVIEW: { ru: 'Риск-проверка', kz: 'Тәуекелді тексеру', en: 'Risk review' },
+    PENDING_TIMEOUT: {
+      ru: 'Таймаут ожидания',
+      kz: 'Күту уақыты аяқталды',
+      en: 'Pending timeout',
+    },
+    ACCESS_ISSUE: {
+      ru: 'Проблема с доступом',
+      kz: 'Қолжетімділік мәселесі',
+      en: 'Access issue',
+    },
+  };
+  return labels[code]?.[language] ?? code.replace(/_/g, ' ').toLowerCase();
+}
 
 function riskNumeric(value: number | string | null | undefined): number | null {
   if (value == null) return null;
@@ -119,7 +169,7 @@ export function AdminModerationPage() {
         );
         applyUpdate(updated);
         // Resolved items leave the active queue.
-        if (updated.status && updated.status !== 'OPEN' && updated.status !== 'ASSIGNED') {
+        if (updated.status && updated.status !== 'OPEN' && updated.status !== 'IN_REVIEW') {
           removeItem(updated.id);
         }
       } else if (action.kind === 'REJECT') {
@@ -127,7 +177,7 @@ export function AdminModerationPage() {
           rejectModerationItemRequest(action.item.id, reason, token),
         );
         applyUpdate(updated);
-        if (updated.status && updated.status !== 'OPEN' && updated.status !== 'ASSIGNED') {
+        if (updated.status && updated.status !== 'OPEN' && updated.status !== 'IN_REVIEW') {
           removeItem(updated.id);
         }
       } else if (action.kind === 'BLOCK') {
@@ -148,7 +198,7 @@ export function AdminModerationPage() {
   };
 
   const activeQueue = useMemo(
-    () => items.filter((it) => !it.status || it.status === 'OPEN' || it.status === 'ASSIGNED'),
+    () => items.filter((it) => !it.status || it.status === 'OPEN' || it.status === 'IN_REVIEW'),
     [items],
   );
 
@@ -175,7 +225,7 @@ export function AdminModerationPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-[1100px]">
+      <div className="w-full max-w-none">
         <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
           <div>
             <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
@@ -236,18 +286,18 @@ export function AdminModerationPage() {
           </Card>
         ) : (
           <div className="overflow-x-auto">
-            <div className="min-w-[900px] flex flex-col gap-3">
+            <div className="min-w-[1180px] flex flex-col gap-3">
               <div
-                className="grid grid-cols-12 gap-3 px-5 py-2 text-[12px]"
+                className="grid grid-cols-[minmax(150px,0.8fr)_minmax(300px,2fr)_minmax(190px,1.1fr)_minmax(90px,0.5fr)_minmax(160px,1fr)_minmax(130px,0.8fr)_minmax(190px,1fr)] gap-4 px-5 py-2 text-[12px]"
                 style={{ color: 'var(--eco-text-tertiary)' }}
               >
-                <div className="col-span-1">ID</div>
-                <div className="col-span-3">{t('colEntity')}</div>
-                <div className="col-span-2">{t('reasonCode')}</div>
-                <div className="col-span-1">{t('colScore')}</div>
-                <div className="col-span-2">{t('assignedTo')}</div>
-                <div className="col-span-1">{t('colSubmitted')}</div>
-                <div className="col-span-2">{t('colActions')}</div>
+                <div>{t('colId')}</div>
+                <div>{t('colEntity')}</div>
+                <div>{t('reasonCode')}</div>
+                <div>{t('colScore')}</div>
+                <div>{t('assignedTo')}</div>
+                <div>{t('colSubmitted')}</div>
+                <div>{t('colActions')}</div>
               </div>
 
               {activeQueue.map((item) => {
@@ -259,36 +309,42 @@ export function AdminModerationPage() {
                 const canBlock = item.roomId != null;
                 return (
                   <Card key={item.id} className="flex flex-col gap-3">
-                    <div className="grid grid-cols-12 gap-3 items-center">
+                    <div className="grid grid-cols-[minmax(150px,0.8fr)_minmax(300px,2fr)_minmax(190px,1.1fr)_minmax(90px,0.5fr)_minmax(160px,1fr)_minmax(130px,0.8fr)_minmax(190px,1fr)] gap-4 items-center">
                       <div
-                        className="col-span-1 text-[12px]"
+                        className="text-[12px] break-all"
                         style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
                       >
                         MQ-{item.id}
                       </div>
-                      <div className="col-span-3">
-                        <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+                      <div className="min-w-0">
+                        <div
+                          className="text-[13px] break-words"
+                          style={{ color: 'var(--eco-text)' }}
+                        >
                           {t(entityLabelKey(item.entityType))} #{item.entityId}
                         </div>
-                        <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                        <div
+                          className="text-[11px] break-all"
+                          style={{ color: 'var(--eco-text-tertiary)' }}
+                        >
                           {item.roomId ? `R-${item.roomId}` : ''}
                           {item.roomMemberId ? ` · M-${item.roomMemberId}` : ''}
                         </div>
                       </div>
-                      <div className="col-span-2">
+                      <div>
                         {item.reasonCode ? (
-                          <Badge variant="warning">{item.reasonCode}</Badge>
+                          <Badge variant="warning">{reasonCodeLabel(item.reasonCode, language)}</Badge>
                         ) : (
                           <span style={{ color: 'var(--eco-text-tertiary)' }}>—</span>
                         )}
                       </div>
-                      <div className="col-span-1">
+                      <div>
                         <span className="text-[14px]" style={{ color: riskColor(score) }}>
                           {score ?? '—'}
                         </span>
                       </div>
                       <div
-                        className="col-span-2 text-[12px]"
+                        className="text-[12px]"
                         style={{ color: 'var(--eco-text-secondary)' }}
                       >
                         {item.assignedAdminId
@@ -298,12 +354,12 @@ export function AdminModerationPage() {
                           : t('unassigned')}
                       </div>
                       <div
-                        className="col-span-1 text-[11px]"
+                        className="text-[11px]"
                         style={{ color: 'var(--eco-text-tertiary)' }}
                       >
                         {formatDate(item.createdAt, language)}
                       </div>
-                      <div className="col-span-2 flex gap-1.5 flex-wrap">
+                      <div className="flex gap-1.5 flex-wrap">
                         {!isMine && (
                           <Button
                             variant="secondary"
@@ -348,7 +404,7 @@ export function AdminModerationPage() {
                       style={{ color: 'var(--eco-text-tertiary)' }}
                     >
                       <Shield size={11} />
-                      {t('colStatus')}: {item.status}
+                      {t('colStatus')}: {moderationStatusLabel(item.status, language)}
                     </div>
                   </Card>
                 );

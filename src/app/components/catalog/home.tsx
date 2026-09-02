@@ -814,7 +814,7 @@ export function HomePage() {
     if (totalUsers) {
       stats.push({
         value: formatNumber(Math.round(totalUsers)),
-        label: tx(lang, 'EcoPay users', 'EcoPay users', 'EcoPay users'),
+        label: tx(lang, 'пользователей EcoPay', 'EcoPay қолданушысы', 'EcoPay users'),
       });
     }
     if (averageRating && reviewCount) {
@@ -823,8 +823,8 @@ export function HomePage() {
         value: `${averageRating.toFixed(averageRating % 1 ? 1 : 0)}/5`,
         label: tx(
           lang,
-          `${formattedCount} verified reviews`,
-          `${formattedCount} verified reviews`,
+          `${formattedCount} проверенных отзывов`,
+          `${formattedCount} расталған пікір`,
           `${formattedCount} verified reviews`,
         ),
       });
@@ -832,13 +832,13 @@ export function HomePage() {
     if (completedOrActiveMemberships) {
       stats.push({
         value: formatNumber(Math.round(completedOrActiveMemberships)),
-        label: tx(lang, 'memberships', 'memberships', 'memberships'),
+        label: tx(lang, 'участий в подписках', 'жазылымға қатысу', 'memberships'),
       });
     }
     if (activeRooms) {
       stats.push({
         value: formatNumber(Math.round(activeRooms)),
-        label: tx(lang, 'active rooms', 'active rooms', 'active rooms'),
+        label: tx(lang, 'активных комнат', 'белсенді бөлме', 'active rooms'),
       });
     }
 
@@ -1349,7 +1349,12 @@ export function HomePage() {
                 className="text-[24px] sm:text-[32px] m-0"
                 style={{ color: 'var(--eco-text)', fontWeight: 700 }}
               >
-                {tx(lang, 'Verified EcoPay reviews', 'Verified EcoPay reviews', 'Verified EcoPay reviews')}
+                {tx(
+                  lang,
+                  'Проверенные отзывы EcoPay',
+                  'EcoPay расталған пікірлері',
+                  'Verified EcoPay reviews',
+                )}
               </h2>
               <p
                 className="text-[14px] mt-3 m-0 mx-auto max-w-[560px]"
@@ -1357,8 +1362,8 @@ export function HomePage() {
               >
                 {tx(
                   lang,
-                  'Selected by EcoPay moderators from real member reviews.',
-                  'Selected by EcoPay moderators from real member reviews.',
+                  'Модераторы EcoPay выбирают их из реальных отзывов участников.',
+                  'EcoPay модераторлары оларды қатысушылардың шынайы пікірлерінен таңдайды.',
                   'Selected by EcoPay moderators from real member reviews.',
                 )}
               </p>

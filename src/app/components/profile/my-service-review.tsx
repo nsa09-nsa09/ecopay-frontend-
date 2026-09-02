@@ -93,8 +93,8 @@ export function MyServiceReviewCard() {
       setError(
         tx(
           language,
-          `Review can be up to ${REVIEW_MAX_LENGTH} characters.`,
-          `Review can be up to ${REVIEW_MAX_LENGTH} characters.`,
+          `Отзыв должен быть не длиннее ${REVIEW_MAX_LENGTH} символов.`,
+          `Пікір ${REVIEW_MAX_LENGTH} таңбадан аспауы керек.`,
           `Review can be up to ${REVIEW_MAX_LENGTH} characters.`,
         ),
       );
@@ -113,8 +113,8 @@ export function MyServiceReviewCard() {
       setInfo(
         tx(
           language,
-          'Your review was saved and will go through moderation again before homepage placement.',
-          'Your review was saved and will go through moderation again before homepage placement.',
+          'Отзыв сохранён. Перед показом на главной он снова пройдёт модерацию.',
+          'Пікір сақталды. Басты бетке шығар алдында ол қайта модерациядан өтеді.',
           'Your review was saved and will go through moderation again before homepage placement.',
         ),
       );
@@ -174,8 +174,8 @@ export function MyServiceReviewCard() {
           <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
             {tx(
               language,
-              'You can keep this review here; homepage placement is available after a verified EcoPay experience.',
-              'You can keep this review here; homepage placement is available after a verified EcoPay experience.',
+              'Отзыв сохранён здесь; на главную его можно будет вывести после подтверждённого опыта в EcoPay.',
+              'Пікір осында сақталады; EcoPay-дегі тәжірибе расталғаннан кейін оны басты бетке шығаруға болады.',
               'You can keep this review here; homepage placement is available after a verified EcoPay experience.',
             )}
           </p>
