@@ -26,7 +26,7 @@ import {
   Star,
   type LucideIcon,
 } from 'lucide-react';
-import { Badge, Button, Card, Select, Skeleton, WaveDivider } from '../ds-primitives';
+import { Badge, Button, Card, Modal, Select, Skeleton, WaveDivider } from '../ds-primitives';
 import { useI18n } from '../i18n-provider';
 import { useAuth } from '../auth/auth-provider';
 import { ServiceLogo } from './service-logo';
@@ -650,6 +650,8 @@ export function HomePage() {
 
   const [matchingKey, setMatchingKey] = useState<string | null>(null);
   const [matchError, setMatchError] = useState<string | null>(null);
+  const [intentService, setIntentService] = useState<DisplayService | null>(null);
+  const [noFreeService, setNoFreeService] = useState<DisplayService | null>(null);
 
   const [featuredReviews, setFeaturedReviews] = useState<PublicServiceReviewDto[]>([]);
   const [homeStats, setHomeStats] = useState<PublicHomeStatsDto | null>(null);
@@ -771,34 +773,46 @@ export function HomePage() {
     scrollToMarketplace();
   };
 
-  // A selected service matches an open room first, then opens room creation
-  // with the same backend service preselected when no room is available.
-  const handlePickService = async (service: DisplayService) => {
+  const createRoomTarget = (serviceId: number) =>
+    `/rooms/create?serviceId=${encodeURIComponent(String(serviceId))}&source=existing`;
+
+  // A service card click asks for the user's intent first. Looking for a seat
+  // should never turn someone into an owner just because no room is free.
+  const handlePickService = (service: DisplayService) => {
     setMatchError(null);
     if (!isAuthenticated) {
       navigate(`/login?redirect=${encodeURIComponent('/')}`);
       return;
     }
+    setIntentService(service);
+  };
+
+  const handleWantSeat = async (service: DisplayService) => {
+    setMatchError(null);
     const serviceId = service.serviceId;
     setMatchingKey(service.key);
     try {
       const result = await authorizedRequest((token) => matchRoomForService(serviceId, token));
       if (result.action === 'JOIN' && result.roomId != null) {
+        setIntentService(null);
+        setNoFreeService(null);
         navigate(`/room/${result.roomId}`);
       } else {
-        navigate('/rooms/create', { state: { serviceId, reason: 'no-free-rooms' } });
+        setIntentService(null);
+        setNoFreeService(service);
       }
     } catch (err) {
-      // Fall back to the create flow — owners can always start a new room when
-      // match cannot resolve, and we never want raw server text here.
-      if (err instanceof ApiError && err.code !== 'network') {
-        navigate('/rooms/create', { state: { serviceId, reason: 'no-free-rooms' } });
-      } else {
-        setMatchError(t('marketplaceLoadFailed'));
-      }
+      setMatchError(err instanceof ApiError ? err.message : t('marketplaceLoadFailed'));
     } finally {
       setMatchingKey(null);
     }
+  };
+
+  const handleHaveSubscription = (service: DisplayService) => {
+    setIntentService(null);
+    setNoFreeService(null);
+    const serviceId = service.serviceId;
+    navigate(createRoomTarget(serviceId), { state: { serviceId, source: 'existing' } });
   };
 
   const homeStatItems = useMemo(() => {
@@ -1544,6 +1558,107 @@ export function HomePage() {
           </div>
         </Reveal>
       </section>
+
+      <Modal
+        open={!!intentService}
+        onClose={() => {
+          if (!matchingKey) {
+            setIntentService(null);
+            setMatchError(null);
+          }
+        }}
+        title={tx(lang, 'Что вы хотите сделать?', 'Не істегіңіз келеді?', 'What would you like to do?')}
+      >
+        {intentService && (
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              className="w-full text-left rounded-lg p-4 cursor-pointer transition-shadow hover:shadow-sm disabled:opacity-60"
+              style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
+              disabled={!!matchingKey}
+              onClick={() => void handleWantSeat(intentService)}
+            >
+              <span className="block text-[15px]" style={{ color: 'var(--eco-text)', fontWeight: 600 }}>
+                {tx(lang, 'Хочу место в подписке', 'Жазылымнан орын іздеймін', 'I want a spot in a subscription')}
+              </span>
+              <span className="block text-[13px] mt-1" style={{ color: 'var(--eco-text-secondary)' }}>
+                {tx(
+                  lang,
+                  'Найдём свободное место у владельца семейной подписки.',
+                  'Отбасылық жазылым иесінен бос орын табамыз.',
+                  "We'll find an available spot from a family subscription owner.",
+                )}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="w-full text-left rounded-lg p-4 cursor-pointer transition-shadow hover:shadow-sm disabled:opacity-60"
+              style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
+              disabled={!!matchingKey}
+              onClick={() => handleHaveSubscription(intentService)}
+            >
+              <span className="block text-[15px]" style={{ color: 'var(--eco-text)', fontWeight: 600 }}>
+                {tx(lang, 'У меня уже есть подписка', 'Менде жазылым бар', 'I already have a subscription')}
+              </span>
+              <span className="block text-[13px] mt-1" style={{ color: 'var(--eco-text-secondary)' }}>
+                {tx(
+                  lang,
+                  'Укажите, сколько мест уже занято, а EcoPay поможет найти людей на остальные.',
+                  'Қанша орын бос емес екенін көрсетіңіз, EcoPay қалғанына адамдар табуға көмектеседі.',
+                  'Tell us how many spots are already taken, and EcoPay will help fill the rest.',
+                )}
+              </span>
+            </button>
+            {matchingKey === intentService.key && (
+              <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                {tx(lang, 'Ищем свободное место…', 'Бос орын іздеп жатырмыз…', 'Looking for an available spot…')}
+              </div>
+            )}
+            {matchError && (
+              <div className="rounded-lg p-3 flex flex-col gap-2" style={{ background: 'var(--eco-danger-100)' }}>
+                <span className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
+                  {matchError}
+                </span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={!!matchingKey}
+                  onClick={() => void handleWantSeat(intentService)}
+                >
+                  {t('retry')}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={!!noFreeService}
+        onClose={() => setNoFreeService(null)}
+        title={tx(lang, 'Свободных мест сейчас нет', 'Қазір бос орын жоқ', 'No spots available right now')}
+      >
+        {noFreeService && (
+          <div className="flex flex-col gap-4">
+            <p className="text-[13px] m-0" style={{ color: 'var(--eco-text-secondary)' }}>
+              {tx(
+                lang,
+                'Попробуйте другой тариф или вернитесь позже.',
+                'Басқа тарифті байқап көріңіз немесе кейінірек оралыңыз.',
+                'Try another plan or check back later.',
+              )}
+            </p>
+            <Button variant="secondary" onClick={() => handleHaveSubscription(noFreeService)}>
+              {tx(
+                lang,
+                'У меня уже есть подписка — найти участников',
+                'Менде жазылым бар — қатысушылар табу',
+                'I already have a subscription — find members',
+              )}
+            </Button>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -8,6 +8,10 @@ import { AccessTypeTag } from '../access-type';
 
 const moneyFormatter = new Intl.NumberFormat('ru-RU');
 const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
+const numberOrNull = (value: number | string | null | undefined) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+};
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -367,7 +371,18 @@ export function RoomsCatalogPage() {
                     className="inline-flex items-center gap-1.5"
                     style={{ color: 'var(--eco-text-secondary)' }}
                   >
-                    <Users size={13} /> {tx(language, 'Макс.', 'Макс.', 'Max')} {room.maxMembers}
+                    <Users size={13} />{' '}
+                    {numberOrNull(room.freeSeats) === 0
+                      ? tx(language, 'Мест нет', 'Орын жоқ', 'No spots')
+                      : numberOrNull(room.freeSeats) != null
+                        ? tx(
+                            language,
+                            `Свободно через EcoPay: ${numberOrNull(room.freeSeats)} мест`,
+                            `EcoPay арқылы бос: ${numberOrNull(room.freeSeats)} орын`,
+                            `Available through EcoPay: ${numberOrNull(room.freeSeats)} spots`,
+                          )
+                        : tx(language, 'Всего мест', 'Барлық орын', 'Total seats') +
+                          `: ${room.maxMembers}`}
                   </span>
                   <span style={{ color: 'var(--eco-primary)' }}>
                     {formatMoney(room.pricePerMember)}

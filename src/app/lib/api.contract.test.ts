@@ -5,7 +5,9 @@ import type {
   PaymentIntentResponseDto,
   PublicHomeStatsDto,
   PublicServiceReviewDto,
+  CreateRoomPayload,
   RoomResponseDto,
+  RoomSummaryDto,
   ServiceReviewDto,
 } from './api';
 
@@ -19,6 +21,17 @@ type _PaymentIntentHasPayableTotalKzt = Expect<HasKey<PaymentIntentResponseDto, 
 type _RoomHasShareKzt = Expect<HasKey<RoomResponseDto, 'shareKzt'>>;
 type _RoomHasCommissionKzt = Expect<HasKey<RoomResponseDto, 'commissionKzt'>>;
 type _RoomHasPayableTotalKzt = Expect<HasKey<RoomResponseDto, 'payableTotalKzt'>>;
+type _RoomHasExistingMembersCount = Expect<HasKey<RoomResponseDto, 'existingMembersCount'>>;
+type _RoomHasMarketplaceCapacity = Expect<HasKey<RoomResponseDto, 'marketplaceCapacity'>>;
+type _RoomHasFilledSeats = Expect<HasKey<RoomResponseDto, 'filledSeats'>>;
+type _RoomHasFreeSeats = Expect<HasKey<RoomResponseDto, 'freeSeats'>>;
+type _RoomSummaryHasExistingMembersCount = Expect<HasKey<RoomSummaryDto, 'existingMembersCount'>>;
+type _RoomSummaryHasMarketplaceCapacity = Expect<HasKey<RoomSummaryDto, 'marketplaceCapacity'>>;
+type _RoomSummaryHasFilledSeats = Expect<HasKey<RoomSummaryDto, 'filledSeats'>>;
+type _RoomSummaryHasFreeSeats = Expect<HasKey<RoomSummaryDto, 'freeSeats'>>;
+type _CreateRoomPayloadHasExistingMembersCount = Expect<
+  HasKey<CreateRoomPayload, 'existingMembersCount'>
+>;
 type _HistoryCanCarrySettlementCurrency = Expect<HasKey<PaymentHistoryItemDto, 'settlementCurrency'>>;
 type _PublicReviewHasHomepagePosition = Expect<HasKey<PublicServiceReviewDto, 'homepagePosition'>>;
 type _UserReviewHasHomepagePosition = Expect<HasKey<ServiceReviewDto, 'homepagePosition'>>;

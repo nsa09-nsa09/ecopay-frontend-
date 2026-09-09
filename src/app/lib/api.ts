@@ -74,6 +74,10 @@ export interface RoomSummaryDto {
   roomType: string;
   status: string;
   maxMembers: number;
+  existingMembersCount?: number | string | null;
+  marketplaceCapacity?: number | string | null;
+  filledSeats?: number | string | null;
+  freeSeats?: number | string | null;
   priceTotal: number;
   pricePerMember: number;
   originalTariffPrice?: number | string | null;
@@ -114,6 +118,10 @@ export interface RoomResponseDto {
   title: string;
   description: string | null;
   maxMembers: number;
+  existingMembersCount?: number | string | null;
+  marketplaceCapacity?: number | string | null;
+  filledSeats?: number | string | null;
+  freeSeats?: number | string | null;
   priceTotal: number;
   pricePerMember: number;
   originalTariffPrice?: number | string | null;
@@ -845,6 +853,7 @@ export interface CreateRoomPayload {
   // Required: seats, price, currency, and billing period are derived from the
   // admin-managed tariff plan server-side — the owner does not send them.
   tariffPlanId: number;
+  existingMembersCount?: number;
   roomType: string;
   title: string;
   description?: string | null;

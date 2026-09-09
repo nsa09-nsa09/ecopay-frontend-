@@ -38,7 +38,11 @@ function legalDocument(type: 'terms' | 'privacy') {
   };
 }
 
-function roomFixture(id: number, serviceAccessType: 'EMAIL' | 'PHONE' | 'BOTH' = 'EMAIL') {
+function roomFixture(
+  id: number,
+  serviceAccessType: 'EMAIL' | 'PHONE' | 'BOTH' = 'EMAIL',
+  overrides: Record<string, unknown> = {},
+) {
   const telecom = serviceAccessType === 'PHONE';
   return {
     id,
@@ -53,6 +57,10 @@ function roomFixture(id: number, serviceAccessType: 'EMAIL' | 'PHONE' | 'BOTH' =
     title: telecom ? `PHONE room ${id}` : 'Production room',
     description: null,
     maxMembers: 4,
+    existingMembersCount: 1,
+    marketplaceCapacity: 3,
+    filledSeats: 1,
+    freeSeats: 3,
     priceTotal: 10,
     pricePerMember: 2.5,
     originalTariffPrice: 10,
@@ -76,17 +84,26 @@ function roomFixture(id: number, serviceAccessType: 'EMAIL' | 'PHONE' | 'BOTH' =
     blockReason: null,
     createdAt: '2026-08-01T00:00:00Z',
     updatedAt: '2026-08-01T00:00:00Z',
+    ...overrides,
   };
 }
 
-function roomSummary(id: number, serviceAccessType: 'EMAIL' | 'PHONE' | 'BOTH' = 'EMAIL') {
-  const room = roomFixture(id, serviceAccessType);
+function roomSummary(
+  id: number,
+  serviceAccessType: 'EMAIL' | 'PHONE' | 'BOTH' = 'EMAIL',
+  overrides: Record<string, unknown> = {},
+) {
+  const room = roomFixture(id, serviceAccessType, overrides);
   return {
     id: room.id,
     title: room.title,
     roomType: room.roomType,
     status: room.status,
     maxMembers: room.maxMembers,
+    existingMembersCount: room.existingMembersCount,
+    marketplaceCapacity: room.marketplaceCapacity,
+    filledSeats: room.filledSeats,
+    freeSeats: room.freeSeats,
     priceTotal: room.priceTotal,
     pricePerMember: room.pricePerMember,
     originalTariffPrice: room.originalTariffPrice,
@@ -115,6 +132,8 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
     registerPayloads: [] as unknown[],
     loginPayloads: [] as unknown[],
     joinPayloads: [] as Array<{ roomId: number; payload: Record<string, unknown> }>,
+    createRoomPayloads: [] as Record<string, unknown>[],
+    matchResult: { action: 'JOIN' as 'JOIN' | 'CREATE', roomId: 101 as number | null },
   };
   let myServiceReview = {
     id: 101,
@@ -216,7 +235,42 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
       return body(sessionFor(role));
     }
     if (path.includes('/catalog/categories')) return body([]);
-    if (path.includes('/catalog/services')) return body([]);
+    if (path === '/catalog/services/1/match' && method === 'GET') {
+      return body(controls.matchResult);
+    }
+    if (path === '/catalog/services/1/tariffs' && method === 'GET') {
+      return body([
+        {
+          id: 11,
+          serviceId: 1,
+          name: 'Family 6',
+          periodType: 'MONTHLY',
+          maxMembers: 6,
+          basePriceTotal: 12000,
+          currency: 'KZT',
+          connectionType: 'INVITE',
+          operatorRules: '',
+          features: [],
+        },
+      ]);
+    }
+    if (path === '/catalog/services' && method === 'GET') {
+      return body([
+        {
+          id: 1,
+          categoryId: 1,
+          categoryName: 'Digital subscriptions',
+          name: 'Provider',
+          slug: 'provider',
+          providerType: 'DIGITAL',
+          accessType: 'EMAIL',
+          minPricePerMember: 2000,
+          currency: 'KZT',
+          tariffCount: 1,
+          logoUrl: null,
+        },
+      ]);
+    }
     if (path.includes('/public/home-stats')) {
       return body({
         totalUsers: 124,
@@ -287,12 +341,71 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
         calculatedAt: '2026-08-15T00:00:00Z',
       });
     }
+    if (path.includes('/payouts/methods')) {
+      return body([
+        {
+          id: 1,
+          providerName: 'FreedomPay',
+          panMask: '4242',
+          isDefault: true,
+          status: 'ACTIVE',
+          createdAt: '2026-08-15T00:00:00Z',
+        },
+      ]);
+    }
+    if (path === '/fx/rates') {
+      return body({ base: 'KZT', updatedAt: '2026-08-15T00:00:00Z', rates: { USD: 475 } });
+    }
+    if (path === '/rooms' && method === 'POST') {
+      const payload = route.request().postDataJSON() as Record<string, unknown>;
+      controls.createRoomPayloads.push(payload);
+      const existing = Number(payload.existingMembersCount ?? 1);
+      return body(
+        roomFixture(303, 'EMAIL', {
+          title: payload.title,
+          maxMembers: 6,
+          priceTotal: 12000,
+          pricePerMember: 2000,
+          originalTariffPrice: 12000,
+          originalTariffCurrency: 'KZT',
+          shareKzt: 2000,
+          commissionKzt: 800,
+          payableTotalKzt: 2800,
+          existingMembersCount: existing,
+          marketplaceCapacity: 6 - existing,
+          filledSeats: existing,
+          freeSeats: 6 - existing,
+          currency: 'KZT',
+          periodType: 'MONTHLY',
+        }),
+      );
+    }
     if (path === '/rooms' && method === 'GET') {
       return body({
-        items: [roomSummary(100), roomSummary(101, 'PHONE'), roomSummary(202, 'PHONE')],
+        items: [
+          roomSummary(100),
+          roomSummary(101, 'PHONE'),
+          roomSummary(202, 'PHONE'),
+          roomSummary(303, 'EMAIL', {
+            title: 'Mixed room',
+            maxMembers: 6,
+            existingMembersCount: 3,
+            marketplaceCapacity: 3,
+            filledSeats: 3,
+            freeSeats: 3,
+          }),
+          roomSummary(404, 'EMAIL', {
+            title: 'Full mixed room',
+            maxMembers: 6,
+            existingMembersCount: 3,
+            marketplaceCapacity: 3,
+            filledSeats: 6,
+            freeSeats: 0,
+          }),
+        ],
         page: 0,
         size: 100,
-        totalItems: 3,
+        totalItems: 5,
         totalPages: 1,
         hasNext: false,
         hasPrevious: false,
@@ -304,6 +417,86 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
       if ([100, 101, 202].includes(roomId)) {
         return body(roomFixture(roomId, roomId === 100 ? 'EMAIL' : 'PHONE'));
       }
+      if (roomId === 303) {
+        return body(
+          roomFixture(303, 'EMAIL', {
+            title: 'Mixed room',
+            maxMembers: 6,
+            existingMembersCount: 3,
+            marketplaceCapacity: 3,
+            filledSeats: 5,
+            freeSeats: 1,
+            shareKzt: 2000,
+            commissionKzt: 800,
+            payableTotalKzt: 2800,
+            currency: 'KZT',
+            originalTariffPrice: 12000,
+            originalTariffCurrency: 'KZT',
+          }),
+        );
+      }
+      if (roomId === 404) {
+        return body(
+          roomFixture(404, 'EMAIL', {
+            title: 'Full mixed room',
+            maxMembers: 6,
+            existingMembersCount: 3,
+            marketplaceCapacity: 3,
+            filledSeats: 6,
+            freeSeats: 0,
+          }),
+        );
+      }
+    }
+    if (path.startsWith('/rooms/303/members') && method === 'GET') {
+      return body({
+        items: [
+          {
+            id: '801',
+            roomId: 303,
+            userId: 21,
+            userDisplayName: 'Eco member one',
+            userEmail: 'one@example.test',
+            userReputation: 0,
+            userReputationLevel: null,
+            status: 'PENDING',
+            requiresAdminReview: false,
+            accessMethod: null,
+            ownerAccessConfirmedAt: null,
+            memberConfirmedAt: null,
+            activatedAt: null,
+            rejectedAt: null,
+            endedAt: null,
+            consentAcceptedAt: null,
+            createdAt: '2026-08-15T00:00:00Z',
+          },
+          {
+            id: '802',
+            roomId: 303,
+            userId: 22,
+            userDisplayName: 'Eco member two',
+            userEmail: 'two@example.test',
+            userReputation: 0,
+            userReputationLevel: null,
+            status: 'ACTIVE',
+            requiresAdminReview: false,
+            accessMethod: null,
+            ownerAccessConfirmedAt: '2026-08-15T00:00:00Z',
+            memberConfirmedAt: '2026-08-15T00:00:00Z',
+            activatedAt: '2026-08-15T00:00:00Z',
+            rejectedAt: null,
+            endedAt: null,
+            consentAcceptedAt: null,
+            createdAt: '2026-08-15T00:00:00Z',
+          },
+        ],
+        page: 0,
+        size: 50,
+        totalItems: 2,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
+      });
     }
     const joinMatch = path.match(/^\/rooms\/(\d+)\/members$/);
     if (joinMatch && method === 'POST') {
@@ -471,6 +664,163 @@ test('login submits email only and never offers phone auth', async ({ page }) =>
   await expect(page).toHaveURL(/\/profile$/);
   expect(api.loginPayloads).toEqual([{ email: 'member@example.test', password: 'secret123' }]);
   expect(api.loginPayloads[0]).not.toHaveProperty('phone');
+});
+
+test('service CTA opens explicit participant-or-owner intent choices', async ({ page }) => {
+  await mockApi(page);
+  await seedSession(page);
+
+  await page.goto('/');
+  await page.getByRole('button', { name: /Provider/ }).first().click();
+
+  await expect(page.getByText('I want a spot in a subscription')).toBeVisible();
+  await expect(page.getByText('I already have a subscription')).toBeVisible();
+  await expect(page.getByText('Member', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Owner', { exact: true })).toHaveCount(0);
+});
+
+test('want-a-spot service flow opens matched room on JOIN', async ({ page }) => {
+  const api = await mockApi(page);
+  api.matchResult = { action: 'JOIN', roomId: 101 };
+  await seedSession(page);
+
+  await page.goto('/');
+  await page.getByRole('button', { name: /Provider/ }).first().click();
+  await page.getByRole('button', { name: /I want a spot in a subscription/ }).click();
+
+  await expect(page).toHaveURL(/\/room\/101$/);
+});
+
+test('want-a-spot CREATE match shows empty state without opening create-room', async ({ page }) => {
+  const api = await mockApi(page, 'USER', 'ru');
+  api.matchResult = { action: 'CREATE', roomId: null };
+  await seedSession(page);
+
+  await page.goto('/');
+  await page.getByRole('button', { name: /Provider/ }).first().click();
+  await page.getByRole('button', { name: /Хочу место в подписке/ }).click();
+
+  await expect(page.getByText('Свободных мест сейчас нет')).toBeVisible();
+  await expect(page.getByText('Попробуйте другой тариф или вернитесь позже.')).toBeVisible();
+  await expect(page).not.toHaveURL(/\/rooms\/create/);
+});
+
+test('empty-state secondary owner CTA opens create room with selected service', async ({ page }) => {
+  const api = await mockApi(page, 'USER', 'ru');
+  api.matchResult = { action: 'CREATE', roomId: null };
+  await seedSession(page);
+
+  await page.goto('/');
+  await page.getByRole('button', { name: /Provider/ }).first().click();
+  await page.getByRole('button', { name: /Хочу место в подписке/ }).click();
+  await page.getByRole('button', { name: /У меня уже есть подписка/ }).click();
+
+  await expect(page).toHaveURL(/\/rooms\/create\?serviceId=1&source=existing$/);
+});
+
+test('existing-subscription intent opens create room with selected service', async ({ page }) => {
+  await mockApi(page);
+  await seedSession(page);
+
+  await page.goto('/');
+  await page.getByRole('button', { name: /Provider/ }).first().click();
+  await page.getByRole('button', { name: /I already have a subscription/ }).click();
+
+  await expect(page).toHaveURL(/\/rooms\/create\?serviceId=1&source=existing$/);
+});
+
+test('create room sends selected existing members count for a 6-seat tariff', async ({ page }) => {
+  const api = await mockApi(page);
+  await seedSession(page);
+
+  await page.goto('/rooms/create?serviceId=1&source=existing');
+  await page.locator('main select').nth(1).selectOption('11');
+
+  for (const count of ['1', '2', '3', '4', '5']) {
+    await expect(page.getByRole('button', { name: count, exact: true })).toBeVisible();
+  }
+  await expect(page.getByRole('button', { name: '6', exact: true })).toHaveCount(0);
+
+  await page.getByRole('button', { name: '3', exact: true }).click();
+  await expect(page.getByText('Already taken: 3 of 6')).toBeVisible();
+  await expect(page.getByText('EcoPay will help find 3 more people')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByPlaceholder('e.g. Family plan').fill('Owner family plan');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Publish Room' }).click();
+
+  await expect(page.getByText('Room Published')).toBeVisible();
+  expect(api.createRoomPayloads).toHaveLength(1);
+  expect(api.createRoomPayloads[0]).toMatchObject({ serviceId: 1, existingMembersCount: 3 });
+});
+
+test('room detail uses server seats and settlement amounts without client surcharge math', async ({
+  page,
+}) => {
+  await mockApi(page);
+  await seedSession(page);
+
+  await page.goto('/room/303');
+
+  await expect(page.getByText('Available through EcoPay')).toBeVisible();
+  await expect(page.getByText('1').first()).toBeVisible();
+  await expect(page.getByText('Cost of your spot')).toBeVisible();
+  await expect(page.getByText(/2\s*000/).first()).toBeVisible();
+  await expect(page.getByText('EcoPay fee')).toBeVisible();
+  await expect(page.getByText(/800/).first()).toBeVisible();
+  await expect(page.getByText('Total to pay')).toBeVisible();
+  await expect(page.getByText(/2\s*800/).first()).toBeVisible();
+  await expect(page.getByText(/3\s*100/)).toHaveCount(0);
+  await expect(page.getByText(/1\s*100/)).toHaveCount(0);
+});
+
+test('freeSeats zero disables concrete room join', async ({ page }) => {
+  await mockApi(page);
+  await seedSession(page);
+
+  await page.goto('/room/404');
+  const join = page.getByRole('button', { name: 'No spots' });
+
+  await expect(join).toBeDisabled();
+});
+
+test('owner detail uses server filled/free seats and does not create fake member cards', async ({
+  page,
+}) => {
+  await mockApi(page);
+  await seedSession(page);
+
+  await page.goto('/rooms/owner/303');
+
+  await expect(page.getByText('5 / 6 members')).toBeVisible();
+  await expect(page.getByText('Already in subscription')).toBeVisible();
+  await expect(page.getByText('Found through EcoPay')).toBeVisible();
+  await expect(page.getByText('Available').first()).toBeVisible();
+  await expect(page.getByText('Eco member one')).toBeVisible();
+  await expect(page.getByText('Eco member two')).toBeVisible();
+  await expect(page.getByText(/Eco member/)).toHaveCount(2);
+  await expect(page.getByText('Revenue')).toHaveCount(0);
+});
+
+test('new intent and create-room copy is localized in Kazakh', async ({ page }) => {
+  await mockApi(page, 'USER', 'kz');
+  await seedSession(page);
+
+  await page.goto('/');
+  await page.getByRole('button', { name: /Provider/ }).first().click();
+  await expect(page.getByText('Жазылымнан орын іздеймін')).toBeVisible();
+  await expect(page.getByText('Менде жазылым бар')).toBeVisible();
+
+  await page.getByRole('button', { name: /Менде жазылым бар/ }).click();
+  await page.locator('main select').nth(1).selectOption('11');
+  await expect(
+    page.getByText('Сізбен бірге жазылымды қазір қанша адам пайдаланады?'),
+  ).toBeVisible();
+  await page.getByRole('button', { name: '3', exact: true }).click();
+  await expect(page.getByText('6 орынның 3 орны бос емес')).toBeVisible();
+  await expect(page.getByText('EcoPay тағы 3 адам табуға көмектеседі')).toBeVisible();
 });
 
 test('backend field errors are localized instead of shown raw', async ({ page }) => {

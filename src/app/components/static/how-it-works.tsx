@@ -52,6 +52,17 @@ export function HowItWorksPage() {
     },
   ];
 
+  const scenarios = [
+    {
+      title: t('howItWorksScenarioFindTitle'),
+      description: t('howItWorksScenarioFindDesc'),
+    },
+    {
+      title: t('howItWorksScenarioOwnTitle'),
+      description: t('howItWorksScenarioOwnDesc'),
+    },
+  ];
+
   return (
     <div>
       {/* Hero */}
@@ -72,6 +83,25 @@ export function HowItWorksPage() {
         </div>
       </div>
       <WaveDivider flip />
+
+      <div className="max-w-[900px] mx-auto px-4 sm:px-6 pt-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {scenarios.map((scenario) => (
+            <div
+              key={scenario.title}
+              className="rounded-lg p-5"
+              style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
+            >
+              <h2 className="text-[18px] mb-2" style={{ color: 'var(--eco-text)' }}>
+                {scenario.title}
+              </h2>
+              <p className="text-[14px] m-0" style={{ color: 'var(--eco-text-secondary)' }}>
+                {scenario.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Steps */}
       <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-12">

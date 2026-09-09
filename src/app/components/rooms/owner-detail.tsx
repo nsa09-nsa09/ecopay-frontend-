@@ -47,6 +47,10 @@ const tx = (l: Language, ru: string, kz: string, en: string) =>
 
 const moneyFormatter = new Intl.NumberFormat('ru-RU');
 const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
+const numberOrNull = (value: number | string | null | undefined) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+};
 const formatDate = (v: string | null | undefined, l: Language) => {
   if (!v) return tx(l, '—', '—', 'TBD');
   return formatAlmatyDate(v, l);
@@ -118,7 +122,7 @@ export function OwnerDetailPage() {
   const { language, t } = useI18n();
   // Keep the id as a string: room ids are 64-bit and Number() would corrupt them.
   const roomId = id ?? '';
-  const { authorizedRequest } = useAuth();
+  const { isAuthenticated, isReady, authorizedRequest } = useAuth();
 
   const ACCESS_METHOD_OPTIONS = [
     { value: 'esim', label: tx(language, 'Активация eSIM', 'eSIM белсендіру', 'eSIM activation') },
@@ -191,6 +195,19 @@ export function OwnerDetailPage() {
   }, [revealedIdentifier]);
 
   useEffect(() => {
+    if (!isReady) return;
+    if (!isAuthenticated) {
+      setError(
+        tx(
+          language,
+          'Войдите, чтобы управлять комнатой.',
+          'Бөлмені басқару үшін кіріңіз.',
+          'Sign in to manage this room.',
+        ),
+      );
+      setLoading(false);
+      return;
+    }
     if (!roomId) {
       setError(tx(language, 'Комната не найдена.', 'Бөлме табылмады.', 'Room not found.'));
       setLoading(false);
@@ -237,7 +254,7 @@ export function OwnerDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [roomId, authorizedRequest, language]);
+  }, [roomId, authorizedRequest, language, isReady, isAuthenticated]);
 
   const confirmReveal = async () => {
     if (!revealTarget) return;
@@ -356,12 +373,11 @@ export function OwnerDetailPage() {
   }
 
   const isTelecom = room.roomType === 'TELECOM';
-  const occupied = Math.min(
-    room.maxMembers,
-    1 + members.filter((m) => POST_PAYMENT.has(m.status)).length,
-  );
+  const ecoPayMembersCount = members.filter((m) => POST_PAYMENT.has(m.status)).length;
+  const occupied = numberOrNull(room.filledSeats) ?? 0;
+  const freeSeats = numberOrNull(room.freeSeats) ?? 0;
+  const existingMembersCount = numberOrNull(room.existingMembersCount) ?? 0;
   const pendingCount = members.filter((m) => m.status === 'PENDING').length;
-  const revenue = occupied * Number(room.pricePerMember ?? 0);
 
   return (
     <div className="max-w-[1000px] mx-auto px-4 sm:px-6 py-8">
@@ -398,6 +414,34 @@ export function OwnerDetailPage() {
               <Badge variant="info">
                 {occupied} / {room.maxMembers} {tx(language, 'участников', 'қатысушы', 'members')}
               </Badge>
+            </div>
+            <div
+              className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-lg p-3"
+              style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
+            >
+              {[
+                {
+                  label: tx(language, 'Уже были в подписке', 'Жазылымда бұрыннан бар', 'Already in subscription'),
+                  value: existingMembersCount,
+                },
+                {
+                  label: tx(language, 'Нашли через EcoPay', 'EcoPay арқылы табылды', 'Found through EcoPay'),
+                  value: ecoPayMembersCount,
+                },
+                {
+                  label: tx(language, 'Свободно', 'Бос', 'Available'),
+                  value: freeSeats,
+                },
+              ].map((item) => (
+                <div key={item.label} className="flex flex-col gap-1">
+                  <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {item.label}
+                  </span>
+                  <span className="text-[16px]" style={{ color: 'var(--eco-text)', fontWeight: 600 }}>
+                    {item.value}
+                  </span>
+                </div>
+              ))}
             </div>
 
             {members.length === 0 ? (
@@ -635,14 +679,14 @@ export function OwnerDetailPage() {
                   icon: Users,
                 },
                 {
+                  label: tx(language, 'Свободно', 'Бос', 'Available'),
+                  value: `${freeSeats}`,
+                  icon: Users,
+                },
+                {
                   label: tx(language, 'Старт', 'Басталуы', 'Start'),
                   value: formatDate(room.startDate, language),
                   icon: Calendar,
-                },
-                {
-                  label: tx(language, 'Выручка', 'Кіріс', 'Revenue'),
-                  value: formatMoney(revenue),
-                  icon: CheckCircle2,
                 },
                 {
                   label: tx(language, 'Ожидают', 'Күтеді', 'Pending'),
@@ -665,7 +709,7 @@ export function OwnerDetailPage() {
       </div>
 
       {/* Chat opens once at least one guest has paid (owner + PENDING/ACTIVE member). */}
-      {occupied > 1 && (
+      {ecoPayMembersCount > 0 && (
         <div className="mt-6">
           <RoomChat roomId={roomId} />
         </div>

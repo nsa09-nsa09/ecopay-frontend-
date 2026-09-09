@@ -38,8 +38,13 @@ const tx = (l: Language, ru: string, kz: string, en: string) =>
 
 const moneyFormatter = new Intl.NumberFormat('ru-RU');
 
-function formatMoney(value: number | null | undefined) {
+function formatMoney(value: number | string | null | undefined) {
   return `₸${moneyFormatter.format(Number(value ?? 0))}`;
+}
+
+function numberOrNull(value: number | string | null | undefined) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 /** Label and placeholder for each contact the join form can ask for. */
@@ -186,9 +191,18 @@ export function RoomDetailPage() {
     summary?.ownerSlug ??
     summary?.ownerPublicId ??
     String(room.ownerUserId);
-  const totalDue = Number(room.pricePerMember ?? 0);
+  const shareKzt = room.shareKzt ?? null;
+  const commissionKzt = room.commissionKzt ?? null;
+  const payableTotalKzt = room.payableTotalKzt ?? null;
+  const settlementReady = shareKzt != null && commissionKzt != null && payableTotalKzt != null;
+  const totalDue = payableTotalKzt ?? room.pricePerMember ?? 0;
+  const filledSeats = numberOrNull(room.filledSeats);
+  const freeSeats = numberOrNull(room.freeSeats);
+  const hasNoFreeSeats = freeSeats === 0;
   const ctaLabel = isAuthenticated
-    ? tx(language, 'Присоединиться', 'Қосылу', 'Join Room')
+    ? hasNoFreeSeats
+      ? tx(language, 'Мест нет', 'Орын жоқ', 'No spots')
+      : tx(language, 'Присоединиться', 'Қосылу', 'Join Room')
     : tx(language, 'Войдите, чтобы присоединиться', 'Қосылу үшін кіріңіз', 'Sign in to join');
 
   const openJoinFlow = () => {
@@ -304,20 +318,28 @@ export function RoomDetailPage() {
             <h3 className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
               {tx(language, 'Параметры тарифа', 'Тариф параметрлері', 'Plan Summary')}
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               {[
                 {
                   label: tx(language, 'Стоимость тарифа', 'Тариф құны', 'Total plan cost'),
                   value: `${formatMoney(room.priceTotal)}${tx(language, '/период', '/кезең', '/period')}`,
                 },
                 {
-                  label: tx(language, 'Участники', 'Қатысушылар', 'Members'),
+                  label: tx(language, 'Всего мест', 'Барлық орын', 'Total seats'),
                   value: `${room.maxMembers}`,
                   icon: Users,
                 },
                 {
+                  label: tx(language, 'Уже занято', 'Бос емес', 'Already taken'),
+                  value: filledSeats != null ? `${filledSeats}` : '—',
+                },
+                {
+                  label: tx(language, 'Свободно через EcoPay', 'EcoPay арқылы бос', 'Available through EcoPay'),
+                  value: freeSeats != null ? `${freeSeats}` : '—',
+                },
+                {
                   label: tx(language, 'Цена для вас', 'Сіз үшін баға', 'Your price'),
-                  value: `${formatMoney(room.pricePerMember)}${tx(language, '/период', '/кезең', '/period')}`,
+                  value: `${formatMoney(totalDue)}${tx(language, '/период', '/кезең', '/period')}`,
                   highlight: true,
                 },
               ].map((item) => (
@@ -335,9 +357,9 @@ export function RoomDetailPage() {
                     <div className="text-[11px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
                       {tx(
                         language,
-                        'Столько вы платите за одно место в семейной подписке.',
-                        'Отбасылық жазылымдағы бір орын үшін төлейтін сомаңыз.',
-                        'What you pay for one spot in the family plan.',
+                        'Итоговая сумма к оплате в тенге.',
+                        'Теңгемен төленетін қорытынды сома.',
+                        'The final amount to pay in KZT.',
                       )}
                     </div>
                   )}
@@ -351,22 +373,25 @@ export function RoomDetailPage() {
               {tx(language, 'Расчёт стоимости', 'Құнның есебі', 'Price Breakdown')}
             </h3>
             {[
+              ...(room.originalTariffPrice != null && room.originalTariffCurrency
+                ? [
+                    {
+                      label: tx(language, 'Тариф', 'Тариф', 'Plan'),
+                      value: `${room.originalTariffCurrency} ${room.originalTariffPrice}`,
+                    },
+                  ]
+                : []),
               {
-                label: tx(language, 'Стоимость тарифа', 'Тариф құны', 'Plan cost'),
-                value: formatMoney(room.priceTotal),
+                label: tx(language, 'Стоимость вашего места', 'Орныңыздың құны', 'Cost of your spot'),
+                value: settlementReady ? formatMoney(shareKzt) : formatMoney(room.pricePerMember),
               },
               {
-                label: tx(
-                  language,
-                  `Делится на ${room.maxMembers} участников`,
-                  `${room.maxMembers} қатысушыға бөлінеді`,
-                  `Split between ${room.maxMembers} members`,
-                ),
-                value: `÷${room.maxMembers}`,
+                label: tx(language, 'Комиссия EcoPay', 'EcoPay комиссиясы', 'EcoPay fee'),
+                value: settlementReady ? formatMoney(commissionKzt) : '—',
               },
               {
-                label: tx(language, 'Цена для вас', 'Сіз үшін баға', 'Your price'),
-                value: formatMoney(room.pricePerMember),
+                label: tx(language, 'Итого к оплате', 'Барлығы төлеуге', 'Total to pay'),
+                value: formatMoney(totalDue),
                 bold: true,
               },
             ].map((row) => (
@@ -468,7 +493,7 @@ export function RoomDetailPage() {
               size="lg"
               className="w-full"
               onClick={openJoinFlow}
-              disabled={room.status !== 'OPEN'}
+              disabled={room.status !== 'OPEN' || hasNoFreeSeats}
             >
               {ctaLabel}
             </Button>
@@ -608,11 +633,31 @@ export function RoomDetailPage() {
                     <span style={{ color: 'var(--eco-text)' }}>{room.providerName}</span>
                   </div>
                   <div
+                    className="flex justify-between text-[13px]"
+                  >
+                    <span style={{ color: 'var(--eco-text-secondary)' }}>
+                      {tx(language, 'Стоимость вашего места', 'Орныңыздың құны', 'Cost of your spot')}
+                    </span>
+                    <span style={{ color: 'var(--eco-text)' }}>
+                      {settlementReady ? formatMoney(shareKzt) : formatMoney(room.pricePerMember)}
+                    </span>
+                  </div>
+                  <div
+                    className="flex justify-between text-[13px]"
+                  >
+                    <span style={{ color: 'var(--eco-text-secondary)' }}>
+                      {tx(language, 'Комиссия EcoPay', 'EcoPay комиссиясы', 'EcoPay fee')}
+                    </span>
+                    <span style={{ color: 'var(--eco-text)' }}>
+                      {settlementReady ? formatMoney(commissionKzt) : '—'}
+                    </span>
+                  </div>
+                  <div
                     className="border-t pt-2 flex justify-between text-[14px]"
                     style={{ borderColor: 'var(--eco-border)' }}
                   >
                     <span style={{ color: 'var(--eco-text)' }}>
-                      {tx(language, 'Стоимость вступления', 'Қосылу құны', 'Join cost')}
+                      {tx(language, 'Итого к оплате', 'Барлығы төлеуге', 'Total to pay')}
                     </span>
                     <span style={{ color: 'var(--eco-primary)' }}>{formatMoney(totalDue)}</span>
                   </div>

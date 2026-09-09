@@ -37,12 +37,16 @@ const CURRENCY_SYMBOLS: Record<SupportedCurrency, string> = {
 interface CreateRoomLocationState {
   serviceId?: number;
   reason?: 'no-free-rooms' | string;
+  source?: 'existing' | string;
 }
 
 export function CreateRoomPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const navState = (location.state as CreateRoomLocationState | null) ?? null;
+  const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const queryServiceId = queryParams.get('serviceId');
+  const preferredServiceId = navState?.serviceId ?? (queryServiceId ? Number(queryServiceId) : null);
   const { isAuthenticated, isReady, authorizedRequest, user } = useAuth();
   const { language, t } = useI18n();
 
@@ -70,6 +74,7 @@ export function CreateRoomPage() {
 
   const [serviceId, setServiceId] = useState<string>('');
   const [tariffPlanId, setTariffPlanId] = useState<string>('');
+  const [existingMembersCount, setExistingMembersCount] = useState(1);
   const [title, setTitle] = useState('');
   const [connectionType, setConnectionType] = useState('ESIM');
   const [restrictions, setRestrictions] = useState('');
@@ -93,9 +98,9 @@ export function CreateRoomPage() {
 
   useEffect(() => {
     if (isReady && !isAuthenticated) {
-      navigate('/login?redirect=/rooms/create');
+      navigate(`/login?redirect=${encodeURIComponent(`${location.pathname}${location.search}`)}`);
     }
-  }, [isReady, isAuthenticated, navigate]);
+  }, [isReady, isAuthenticated, navigate, location.pathname, location.search]);
 
   // Mirror the backend gate (an active default payout method must exist).
   useEffect(() => {
@@ -137,8 +142,8 @@ export function CreateRoomPage() {
         if (cancelled) return;
         setServices(list);
         const preferred =
-          navState?.serviceId != null
-            ? list.find((s) => String(s.id) === String(navState.serviceId))
+          preferredServiceId != null
+            ? list.find((s) => String(s.id) === String(preferredServiceId))
             : undefined;
         if (preferred) {
           setServiceId(String(preferred.id));
@@ -160,7 +165,7 @@ export function CreateRoomPage() {
     return () => {
       cancelled = true;
     };
-    // navState.serviceId is read once at mount; further changes don't reseed.
+    // preferredServiceId is read once at mount; further changes don't reseed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
@@ -220,6 +225,7 @@ export function CreateRoomPage() {
 
   const applyTariff = (id: string) => {
     setTariffPlanId(id);
+    setExistingMembersCount(1);
     const tariff = tariffs.find((t) => String(t.id) === id);
     if (tariff) {
       // Price, seats, currency and period are owned by the tariff (admin-set) —
@@ -239,6 +245,20 @@ export function CreateRoomPage() {
   const perMemberDerived = seatCount > 0 ? Math.round(totalNumeric / seatCount) : 0;
   const periodType = selectedTariff?.periodType ?? 'MONTHLY';
   const currency = (selectedTariff?.currency ?? 'KZT') as SupportedCurrency;
+  const existingMemberOptions = useMemo(
+    () => Array.from({ length: Math.max(0, seatCount - 1) }, (_, index) => index + 1),
+    [seatCount],
+  );
+  const seatsEcoPayCanFind = Math.max(0, seatCount - existingMembersCount);
+
+  useEffect(() => {
+    if (!selectedTariff) {
+      setExistingMembersCount(1);
+      return;
+    }
+    const maxExisting = Math.max(1, selectedTariff.maxMembers - 1);
+    setExistingMembersCount((current) => Math.min(Math.max(1, current), maxExisting));
+  }, [selectedTariff]);
 
   // FX rates: 1 unit of `code` = N tenge. For KZT (base) the rate is 1.
   const rateToKzt = (code: SupportedCurrency): number | null => {
@@ -366,6 +386,18 @@ export function CreateRoomPage() {
       setStep(0);
       return;
     }
+    if (selectedTariff && existingMembersCount >= selectedTariff.maxMembers) {
+      setSubmitError(
+        tx(
+          language,
+          'Выберите тариф, где есть хотя бы одно свободное место для участника EcoPay.',
+          'EcoPay қатысушысына кемінде бір бос орны бар тарифті таңдаңыз.',
+          'Choose a plan with at least one available spot for an EcoPay member.',
+        ),
+      );
+      setStep(0);
+      return;
+    }
     if (!title.trim()) {
       setSubmitError(
         tx(
@@ -399,6 +431,7 @@ export function CreateRoomPage() {
             categoryId: selectedService?.categoryId ?? null,
             serviceId: serviceIdNumber,
             tariffPlanId: tariffPlanIdNumber,
+            existingMembersCount,
             roomType,
             title: title.trim(),
             providerName: selectedService?.name ?? null,
@@ -656,7 +689,10 @@ export function CreateRoomPage() {
                     ]
               }
               value={serviceId}
-              onChange={(e) => setServiceId(e.target.value)}
+              onChange={(e) => {
+                setServiceId(e.target.value);
+                setExistingMembersCount(1);
+              }}
             />
             <Select
               label={tx(language, 'Тариф', 'Тариф', 'Plan')}
@@ -718,10 +754,86 @@ export function CreateRoomPage() {
                 ))}
               </div>
             )}
+            {selectedTariff && (
+              <div
+                className="rounded-lg p-3 flex flex-col gap-3"
+                style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
+              >
+                <div>
+                  <div className="text-[14px]" style={{ color: 'var(--eco-text)', fontWeight: 600 }}>
+                    {tx(
+                      language,
+                      'Сколько человек уже пользуются подпиской вместе с вами?',
+                      'Сізбен бірге жазылымды қазір қанша адам пайдаланады?',
+                      'How many people already use this subscription with you?',
+                    )}
+                  </div>
+                  <div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {tx(language, 'Считайте себя тоже.', 'Өзіңізді де санаңыз.', 'Count yourself too.')}
+                  </div>
+                </div>
+                {existingMemberOptions.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {existingMemberOptions.map((count) => (
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => setExistingMembersCount(count)}
+                        className="w-10 h-10 rounded-lg text-[14px] cursor-pointer transition-colors"
+                        style={{
+                          background:
+                            existingMembersCount === count
+                              ? 'var(--eco-primary)'
+                              : 'var(--eco-surface-raised)',
+                          color: existingMembersCount === count ? '#fff' : 'var(--eco-text)',
+                          border: `1px solid ${
+                            existingMembersCount === count
+                              ? 'var(--eco-primary)'
+                              : 'var(--eco-border)'
+                          }`,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {count}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
+                    {tx(
+                      language,
+                      'В этом тарифе нет свободного места для поиска участника.',
+                      'Бұл тарифте қатысушы іздеуге бос орын жоқ.',
+                      'This plan has no available spot to fill.',
+                    )}
+                  </div>
+                )}
+                {existingMemberOptions.length > 0 && (
+                  <div className="text-[13px] flex flex-col gap-1" style={{ color: 'var(--eco-text-secondary)' }}>
+                    <span>
+                      {tx(
+                        language,
+                        `Уже занято: ${existingMembersCount} из ${seatCount}`,
+                        `${seatCount} орынның ${existingMembersCount} орны бос емес`,
+                        `Already taken: ${existingMembersCount} of ${seatCount}`,
+                      )}
+                    </span>
+                    <span>
+                      {tx(
+                        language,
+                        `EcoPay поможет найти ещё ${seatsEcoPayCanFind} человек`,
+                        `EcoPay тағы ${seatsEcoPayCanFind} адам табуға көмектеседі`,
+                        `EcoPay will help find ${seatsEcoPayCanFind} more people`,
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
             <Button
               variant="primary"
               className="w-full"
-              disabled={!serviceId || !tariffPlanId}
+              disabled={!serviceId || !tariffPlanId || existingMemberOptions.length === 0}
               onClick={() => setStep(1)}
             >
               {tx(language, 'Продолжить', 'Жалғастыру', 'Continue')}
@@ -754,7 +866,7 @@ export function CreateRoomPage() {
                 {tx(language, 'Условия тарифа', 'Тариф шарттары', 'Plan terms')} ·{' '}
                 {selectedTariff?.name ?? '—'}
               </div>
-              {[
+              {[ 
                 {
                   label: tx(language, 'Число мест', 'Орын саны', 'Seats'),
                   value: String(seatCount),
@@ -774,6 +886,14 @@ export function CreateRoomPage() {
                 {
                   label: tx(language, 'Период', 'Кезең', 'Period'),
                   value: periodLabel(periodType),
+                },
+                {
+                  label: tx(language, 'Уже занято', 'Бос емес', 'Already taken'),
+                  value: `${existingMembersCount} / ${seatCount}`,
+                },
+                {
+                  label: tx(language, 'EcoPay найдёт', 'EcoPay табады', 'EcoPay will find'),
+                  value: `${seatsEcoPayCanFind}`,
                 },
               ].map((row) => (
                 <div key={row.label} className="flex justify-between text-[13px]">
@@ -886,6 +1006,14 @@ export function CreateRoomPage() {
               },
               { label: tx(language, 'Название', 'Атауы', 'Title'), value: title || '—' },
               { label: tx(language, 'Места', 'Орындар', 'Seats'), value: String(seatCount) },
+              {
+                label: tx(language, 'Уже занято', 'Бос емес', 'Already taken'),
+                value: `${existingMembersCount} / ${seatCount}`,
+              },
+              {
+                label: tx(language, 'EcoPay поможет найти', 'EcoPay табуға көмектеседі', 'EcoPay will help find'),
+                value: String(seatsEcoPayCanFind),
+              },
               {
                 label: tx(language, 'За участника', 'Қатысушы үшін', 'Per member'),
                 value:

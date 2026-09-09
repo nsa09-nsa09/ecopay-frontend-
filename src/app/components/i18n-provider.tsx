@@ -3153,6 +3153,26 @@ paymentIntentValid24h: {
     kz: 'Ортақ тарифтерге төрт қарапайым қадаммен қосылыңыз. Артық қиындықсыз үнемдеңіз.',
     en: 'Join shared telecom plans in four simple steps. Save money without the hassle.',
   },
+  howItWorksScenarioFindTitle: {
+    ru: 'Ищете место?',
+    kz: 'Орын іздеп жүрсіз бе?',
+    en: 'Looking for a spot?',
+  },
+  howItWorksScenarioFindDesc: {
+    ru: 'EcoPay найдёт свободную семейную подписку.',
+    kz: 'EcoPay бос орны бар отбасылық жазылымды табады.',
+    en: 'EcoPay will find an available family subscription.',
+  },
+  howItWorksScenarioOwnTitle: {
+    ru: 'Уже есть подписка?',
+    kz: 'Жазылымыңыз бар ма?',
+    en: 'Already have a subscription?',
+  },
+  howItWorksScenarioOwnDesc: {
+    ru: 'Укажите занятые места, и EcoPay поможет найти людей на остальные.',
+    kz: 'Бос емес орындарды көрсетіңіз, EcoPay қалғанына адамдар табуға көмектеседі.',
+    en: 'Enter the spots already taken, and EcoPay will help find people for the rest.',
+  },
   howItWorksStep1Title: {
     ru: 'Создайте или присоединитесь к комнате',
     kz: 'Бөлме құрыңыз немесе оған қосылыңыз',
