@@ -5,12 +5,12 @@ import { AlertTriangle, ArrowLeft, Lock, Check, CreditCard, Users } from 'lucide
 import {
   ApiError,
   createRoomRequest,
-  getFxRatesRequest,
+  getRoomPricingPreviewRequest,
   getPayoutMethodsRequest,
   getServices,
   getTariffs,
   initPayoutCardBindingRequest,
-  type FxRatesResponse,
+  type RoomPricingPreviewDto,
   type RoomResponseDto,
   type ServiceDto,
   type SupportedCurrency,
@@ -74,7 +74,7 @@ export function CreateRoomPage() {
 
   const [serviceId, setServiceId] = useState<string>('');
   const [tariffPlanId, setTariffPlanId] = useState<string>('');
-  const [existingMembersCount, setExistingMembersCount] = useState(1);
+  const [existingMembersCount, setExistingMembersCount] = useState<1 | 2>(1);
   const [title, setTitle] = useState('');
   const [connectionType, setConnectionType] = useState('ESIM');
   const [restrictions, setRestrictions] = useState('');
@@ -84,10 +84,8 @@ export function CreateRoomPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [published, setPublished] = useState<RoomResponseDto | null>(null);
 
-  // FX rates: the tariff's currency is fixed (admin-set); we still fetch live
-  // rates so non-KZT plans can show their KZT equivalent in the review step.
-  const [fxRates, setFxRates] = useState<FxRatesResponse | null>(null);
-  const [fxError, setFxError] = useState<string | null>(null);
+  const [pricingPreview, setPricingPreview] = useState<RoomPricingPreviewDto | null>(null);
+  const [pricingError, setPricingError] = useState<string | null>(null);
 
   // Owners are paid out monthly to a connected card, so the backend rejects room
   // creation without one. null = still checking; false = no active default card yet.
@@ -118,22 +116,6 @@ export function CreateRoomPage() {
       cancelled = true;
     };
   }, [isReady, isAuthenticated, authorizedRequest]);
-
-  useEffect(() => {
-    let cancelled = false;
-    getFxRatesRequest()
-      .then((res) => {
-        if (cancelled) return;
-        setFxRates(res);
-        setFxError(null);
-      })
-      .catch(() => {
-        if (!cancelled) setFxError(t('priceFxUnavailable'));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -242,43 +224,63 @@ export function CreateRoomPage() {
   // Pricing fields are derived from the selected tariff — never editable here.
   const seatCount = selectedTariff?.maxMembers ?? 0;
   const totalNumeric = Number(selectedTariff?.basePriceTotal ?? 0) || 0;
-  const perMemberDerived = seatCount > 0 ? Math.round(totalNumeric / seatCount) : 0;
   const periodType = selectedTariff?.periodType ?? 'MONTHLY';
   const currency = (selectedTariff?.currency ?? 'KZT') as SupportedCurrency;
   const existingMemberOptions = useMemo(
-    () => Array.from({ length: Math.max(0, seatCount - 1) }, (_, index) => index + 1),
+    () => (seatCount >= 3 ? ([1, 2] as const) : seatCount === 2 ? ([1] as const) : []),
     [seatCount],
   );
-  const seatsEcoPayCanFind = Math.max(0, seatCount - existingMembersCount);
+  const seatsEcoPayCanFind = pricingPreview?.marketplaceCapacity ?? 0;
 
   useEffect(() => {
     if (!selectedTariff) {
       setExistingMembersCount(1);
       return;
     }
-    const maxExisting = Math.max(1, selectedTariff.maxMembers - 1);
-    setExistingMembersCount((current) => Math.min(Math.max(1, current), maxExisting));
+    setExistingMembersCount((current) =>
+      current === 2 && selectedTariff.maxMembers >= 3 ? 2 : 1,
+    );
   }, [selectedTariff]);
 
-  // FX rates: 1 unit of `code` = N tenge. For KZT (base) the rate is 1.
-  const rateToKzt = (code: SupportedCurrency): number | null => {
-    if (code === 'KZT') return 1;
-    const rate = fxRates?.rates?.[code];
-    return typeof rate === 'number' && rate > 0 ? rate : null;
+  useEffect(() => {
+    if (!isAuthenticated || !tariffPlanId || !Number.isFinite(tariffPlanIdNumber)) {
+      setPricingPreview(null);
+      setPricingError(null);
+      return;
+    }
+    let cancelled = false;
+    setPricingPreview(null);
+    setPricingError(null);
+    authorizedRequest((token) =>
+      getRoomPricingPreviewRequest({ tariffPlanId: tariffPlanIdNumber, existingMembersCount }, token),
+    )
+      .then((preview) => {
+        if (!cancelled) setPricingPreview(preview);
+      })
+      .catch(() => {
+        if (!cancelled)
+          setPricingError(
+            tx(
+              language,
+              'Не удалось проверить расчёт. Обновите тариф и попробуйте снова.',
+              'Есепті тексеру мүмкін болмады. Тарифті жаңартып, қайталап көріңіз.',
+              'Unable to verify pricing. Refresh the plan and try again.',
+            ),
+          );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, tariffPlanId, tariffPlanIdNumber, existingMembersCount, authorizedRequest, language]);
+
+  const moneyFmt = (value: number | string) => {
+    const amount = Number(value);
+    const hasCents = Math.abs(amount % 1) > Number.EPSILON;
+    return new Intl.NumberFormat(language === 'en' ? 'en-US' : 'ru-RU', {
+      minimumFractionDigits: hasCents ? 2 : 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
   };
-
-  const currentRate = rateToKzt(currency);
-
-  const convertToKzt = (amount: number): number | null => {
-    if (currentRate == null) return null;
-    if (!Number.isFinite(amount)) return null;
-    return Math.round(amount * currentRate);
-  };
-
-  const perMemberKztEquivalent = convertToKzt(perMemberDerived);
-
-  const moneyFmt = (n: number) =>
-    new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n);
 
   const currencySymbol = CURRENCY_SYMBOLS[currency] ?? currency;
 
@@ -361,6 +363,23 @@ export function CreateRoomPage() {
 
   const handlePublish = async () => {
     setSubmitError(null);
+
+    if (
+      !pricingPreview ||
+      pricingPreview.existingMembersCount !== existingMembersCount ||
+      (existingMembersCount !== 1 && !(existingMembersCount === 2 && seatCount >= 3))
+    ) {
+      setSubmitError(
+        tx(
+          language,
+          'Расчёт устарел. Вернитесь к тарифу и обновите его.',
+          'Есеп ескірді. Тарифке оралып, оны жаңартыңыз.',
+          'Pricing is stale. Return to the plan and refresh it.',
+        ),
+      );
+      setStep(0);
+      return;
+    }
 
     if (hasPayoutCard === false) {
       setSubmitError(
@@ -446,7 +465,16 @@ export function CreateRoomPage() {
       setPublished(room);
     } catch (err) {
       if (err instanceof ApiError) {
-        setSubmitError(err.message);
+        setSubmitError(
+          err.status === 400 && /existingMembersCount/i.test(err.serverMessage ?? '')
+            ? tx(
+                language,
+                'Состав подписки изменился. Выберите доступный вариант и повторите публикацию.',
+                'Жазылым құрамы өзгерді. Қолжетімді нұсқаны таңдап, қайта жариялаңыз.',
+                'The subscription setup changed. Choose an available option and publish again.',
+              )
+            : err.message,
+        );
       } else {
         setSubmitError(
           tx(
@@ -739,10 +767,6 @@ export function CreateRoomPage() {
                     value: `${currencySymbol}${moneyFmt(totalNumeric)}`,
                   },
                   {
-                    label: tx(language, 'За участника', 'Қатысушы үшін', 'Per member'),
-                    value: `${currencySymbol}${moneyFmt(perMemberDerived)}`,
-                  },
-                  {
                     label: tx(language, 'Период', 'Кезең', 'Period'),
                     value: periodLabel(periodType),
                   },
@@ -779,7 +803,7 @@ export function CreateRoomPage() {
                         key={count}
                         type="button"
                         onClick={() => setExistingMembersCount(count)}
-                        className="w-10 h-10 rounded-lg text-[14px] cursor-pointer transition-colors"
+                        className="px-3 h-10 rounded-lg text-[14px] cursor-pointer transition-colors"
                         style={{
                           background:
                             existingMembersCount === count
@@ -794,7 +818,9 @@ export function CreateRoomPage() {
                           fontWeight: 600,
                         }}
                       >
-                        {count}
+                        {count === 1
+                          ? tx(language, 'Только я', 'Тек мен', 'Just me')
+                          : tx(language, 'Я + ещё 1 человек', 'Мен + тағы 1 адам', 'Me + 1 more person')}
                       </button>
                     ))}
                   </div>
@@ -830,10 +856,21 @@ export function CreateRoomPage() {
                 )}
               </div>
             )}
+            {pricingError && (
+              <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
+                {pricingError}
+              </p>
+            )}
             <Button
               variant="primary"
               className="w-full"
-              disabled={!serviceId || !tariffPlanId || existingMemberOptions.length === 0}
+              disabled={
+                !serviceId ||
+                !tariffPlanId ||
+                existingMemberOptions.length === 0 ||
+                !pricingPreview ||
+                !!pricingError
+              }
               onClick={() => setStep(1)}
             >
               {tx(language, 'Продолжить', 'Жалғастыру', 'Continue')}
@@ -876,14 +913,6 @@ export function CreateRoomPage() {
                   value: `${currencySymbol}${moneyFmt(totalNumeric)}`,
                 },
                 {
-                  label: tx(language, 'За участника', 'Қатысушы үшін', 'Per member'),
-                  value:
-                    `${currencySymbol}${moneyFmt(perMemberDerived)}/${periodLabel(periodType)}` +
-                    (currency !== 'KZT' && perMemberKztEquivalent != null
-                      ? ` (≈ ₸${moneyFmt(perMemberKztEquivalent)})`
-                      : ''),
-                },
-                {
                   label: tx(language, 'Период', 'Кезең', 'Period'),
                   value: periodLabel(periodType),
                 },
@@ -901,14 +930,6 @@ export function CreateRoomPage() {
                   <span style={{ color: 'var(--eco-text)' }}>{row.value}</span>
                 </div>
               ))}
-              {currency !== 'KZT' && fxError && (
-                <span
-                  className="text-[11px] break-words"
-                  style={{ color: 'var(--eco-warning-500)' }}
-                >
-                  {fxError}
-                </span>
-              )}
             </div>
             <div className="flex gap-3">
               <Button variant="ghost" onClick={() => setStep(0)}>
@@ -1014,20 +1035,79 @@ export function CreateRoomPage() {
                 label: tx(language, 'EcoPay поможет найти', 'EcoPay табуға көмектеседі', 'EcoPay will help find'),
                 value: String(seatsEcoPayCanFind),
               },
-              {
-                label: tx(language, 'За участника', 'Қатысушы үшін', 'Per member'),
-                value:
-                  `${currencySymbol}${moneyFmt(perMemberDerived)}/${periodLabel(periodType)}` +
-                  (currency !== 'KZT' && perMemberKztEquivalent != null
-                    ? ` (≈ ₸${moneyFmt(perMemberKztEquivalent)})`
-                    : ''),
-              },
             ].map((row) => (
               <div key={row.label} className="flex justify-between text-[13px]">
                 <span style={{ color: 'var(--eco-text-secondary)' }}>{row.label}</span>
                 <span style={{ color: 'var(--eco-text)' }}>{row.value}</span>
               </div>
             ))}
+            {pricingPreview && (
+              <div
+                className="rounded-lg p-3 flex flex-col gap-2"
+                style={{ background: 'var(--eco-brand-50)', border: '1px solid var(--eco-border)' }}
+              >
+                {[
+                  {
+                    label: tx(language, 'Тариф', 'Тариф', 'Plan'),
+                    value: `${moneyFmt(pricingPreview.originalTariffPrice)} ${pricingPreview.originalTariffCurrency} / ${pricingPreview.maxMembers} ${tx(language, 'мест', 'орын', 'seats')}`,
+                  },
+                  {
+                    label: tx(language, 'Уже в подписке', 'Жазылымда бар', 'Already subscribed'),
+                    value:
+                      pricingPreview.existingMembersCount === 1
+                        ? tx(language, 'Только вы', 'Тек сіз', 'Just you')
+                        : tx(language, 'Вы + 1 человек', 'Сіз + 1 адам', 'You + 1 person'),
+                  },
+                  {
+                    label: tx(language, 'EcoPay найдёт', 'EcoPay табады', 'EcoPay will find'),
+                    value: String(pricingPreview.marketplaceCapacity),
+                  },
+                ].map((row) => (
+                  <div key={row.label} className="flex justify-between gap-3 text-[13px]">
+                    <span style={{ color: 'var(--eco-text-secondary)' }}>{row.label}</span>
+                    <span className="text-right" style={{ color: 'var(--eco-text)' }}>{row.value}</span>
+                  </div>
+                ))}
+                <div className="border-t mt-1 pt-2" style={{ borderColor: 'var(--eco-border)' }}>
+                  <div className="text-[12px] mb-2" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {tx(language, 'Один участник', 'Бір қатысушы', 'One member')}
+                  </div>
+                  {[
+                    [tx(language, 'Доля', 'Үлес', 'Share'), pricingPreview.shareKzt],
+                    [tx(language, 'Комиссия EcoPay', 'EcoPay комиссиясы', 'EcoPay fee'), pricingPreview.commissionKzt],
+                    [tx(language, 'К оплате', 'Төлеуге', 'Total to pay'), pricingPreview.payableTotalKzt],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} className="flex justify-between text-[13px]">
+                      <span style={{ color: 'var(--eco-text-secondary)' }}>{label}</span>
+                      <span style={{ color: 'var(--eco-text)' }}>{moneyFmt(value)} ₸</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t mt-1 pt-2" style={{ borderColor: 'var(--eco-border)' }}>
+                  <div className="text-[12px] mb-2" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {tx(
+                      language,
+                      `Если заполнятся ${pricingPreview.marketplaceCapacity} места`,
+                      `${pricingPreview.marketplaceCapacity} орын толса`,
+                      `If all ${pricingPreview.marketplaceCapacity} spots fill`,
+                    )}
+                  </div>
+                  {[
+                    [tx(language, 'Участники заплатят', 'Қатысушылар төлейді', 'Members pay'), pricingPreview.potentialMemberPaymentsTotalKzt],
+                    [tx(language, 'Вам поступит', 'Сізге түседі', 'You receive'), pricingPreview.potentialOwnerPayoutKzt],
+                    [tx(language, 'Комиссия EcoPay', 'EcoPay комиссиясы', 'EcoPay fee'), pricingPreview.potentialEcoPayCommissionKzt],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} className="flex justify-between text-[13px]">
+                      <span style={{ color: 'var(--eco-text-secondary)' }}>{label}</span>
+                      <span style={{ color: 'var(--eco-text)' }}>{moneyFmt(value)} ₸</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {pricingError && (
+              <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>{pricingError}</p>
+            )}
             {submitError && (
               <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
                 {submitError}

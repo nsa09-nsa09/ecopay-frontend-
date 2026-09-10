@@ -373,10 +373,10 @@ export function OwnerDetailPage() {
   }
 
   const isTelecom = room.roomType === 'TELECOM';
-  const ecoPayMembersCount = members.filter((m) => POST_PAYMENT.has(m.status)).length;
   const occupied = numberOrNull(room.filledSeats) ?? 0;
   const freeSeats = numberOrNull(room.freeSeats) ?? 0;
   const existingMembersCount = numberOrNull(room.existingMembersCount) ?? 0;
+  const ecoPayMembersCount = Math.max(0, occupied - existingMembersCount);
   const pendingCount = members.filter((m) => m.status === 'PENDING').length;
 
   return (
@@ -425,11 +425,11 @@ export function OwnerDetailPage() {
                   value: existingMembersCount,
                 },
                 {
-                  label: tx(language, 'Нашли через EcoPay', 'EcoPay арқылы табылды', 'Found through EcoPay'),
+                  label: tx(language, 'Через EcoPay', 'EcoPay арқылы', 'Through EcoPay'),
                   value: ecoPayMembersCount,
                 },
                 {
-                  label: tx(language, 'Свободно', 'Бос', 'Available'),
+                  label: tx(language, 'Осталось найти', 'Табу қалды', 'Remaining to find'),
                   value: freeSeats,
                 },
               ].map((item) => (

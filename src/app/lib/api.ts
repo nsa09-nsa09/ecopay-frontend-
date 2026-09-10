@@ -68,6 +68,22 @@ export interface TariffPlanDto {
   features?: string[] | null;
 }
 
+export interface RoomPricingPreviewDto {
+  maxMembers: number;
+  existingMembersCount: 1 | 2;
+  marketplaceCapacity: number;
+  shareKzt: number | string;
+  commissionKzt: number | string;
+  payableTotalKzt: number | string;
+  potentialOwnerPayoutKzt: number | string;
+  potentialEcoPayCommissionKzt: number | string;
+  potentialMemberPaymentsTotalKzt: number | string;
+  originalTariffPrice: number | string;
+  originalTariffCurrency: string;
+  fxRateSnapshot?: number | string | null;
+  settlementCurrency: string;
+}
+
 export interface RoomSummaryDto {
   id: number;
   title: string;
@@ -889,6 +905,17 @@ export function createRoomRequest(payload: CreateRoomPayload, accessToken: strin
       method: 'POST',
       body: JSON.stringify(payload),
     },
+    accessToken,
+  );
+}
+
+export function getRoomPricingPreviewRequest(
+  payload: { tariffPlanId: number; existingMembersCount: 1 | 2 },
+  accessToken: string,
+) {
+  return requestJson<RoomPricingPreviewDto>(
+    '/rooms/pricing-preview',
+    { method: 'POST', body: JSON.stringify(payload) },
     accessToken,
   );
 }

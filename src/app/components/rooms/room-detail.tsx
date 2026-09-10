@@ -17,6 +17,7 @@ import {
   getRoom,
   getRooms,
   joinRoomRequest,
+  matchRoomForService,
   type RoomResponseDto,
   type RoomSummaryDto,
 } from '../../lib/api';
@@ -198,6 +199,11 @@ export function RoomDetailPage() {
   const totalDue = payableTotalKzt ?? room.pricePerMember ?? 0;
   const filledSeats = numberOrNull(room.filledSeats);
   const freeSeats = numberOrNull(room.freeSeats);
+  const existingMembersCount = numberOrNull(room.existingMembersCount);
+  const ecoPayFilledSeats =
+    filledSeats != null && existingMembersCount != null
+      ? Math.max(0, filledSeats - existingMembersCount)
+      : null;
   const hasNoFreeSeats = freeSeats === 0;
   const ctaLabel = isAuthenticated
     ? hasNoFreeSeats
@@ -253,7 +259,25 @@ export function RoomDetailPage() {
       setJoinDone(true);
     } catch (err) {
       if (err instanceof ApiError) {
-        setJoinError(err.message);
+        if (err.status === 409 && /ROOM_FULL|Room is full/i.test(err.serverMessage ?? '')) {
+          try {
+            const rematch = await authorizedRequest((token) =>
+              matchRoomForService(room.serviceId, token),
+            );
+            if (rematch.action === 'JOIN' && rematch.roomId != null && rematch.roomId !== room.id) {
+              setJoinOpen(false);
+              navigate(`/room/${rematch.roomId}`);
+              return;
+            }
+          } catch {
+            // The normal no-spots state below is still safe if rematching itself fails.
+          }
+          setRoom({ ...room, freeSeats: 0 });
+          setJoinOpen(false);
+          setJoinError(null);
+        } else {
+          setJoinError(err.message);
+        }
       } else {
         setJoinError(
           tx(
@@ -318,7 +342,7 @@ export function RoomDetailPage() {
             <h3 className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
               {tx(language, 'Параметры тарифа', 'Тариф параметрлері', 'Plan Summary')}
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {[
                 {
                   label: tx(language, 'Стоимость тарифа', 'Тариф құны', 'Total plan cost'),
@@ -330,11 +354,15 @@ export function RoomDetailPage() {
                   icon: Users,
                 },
                 {
-                  label: tx(language, 'Уже занято', 'Бос емес', 'Already taken'),
-                  value: filledSeats != null ? `${filledSeats}` : '—',
+                  label: tx(language, 'Уже были в подписке', 'Жазылымда бұрыннан бар', 'Already in subscription'),
+                  value: existingMembersCount != null ? `${existingMembersCount}` : '—',
                 },
                 {
-                  label: tx(language, 'Свободно через EcoPay', 'EcoPay арқылы бос', 'Available through EcoPay'),
+                  label: tx(language, 'Через EcoPay', 'EcoPay арқылы', 'Through EcoPay'),
+                  value: ecoPayFilledSeats != null ? `${ecoPayFilledSeats}` : '—',
+                },
+                {
+                  label: tx(language, 'Осталось через EcoPay', 'EcoPay арқылы қалды', 'Remaining through EcoPay'),
                   value: freeSeats != null ? `${freeSeats}` : '—',
                 },
                 {

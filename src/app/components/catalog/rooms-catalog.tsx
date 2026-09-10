@@ -390,6 +390,25 @@ export function RoomsCatalogPage() {
                   </span>
                 </div>
 
+                <div className="grid grid-cols-4 gap-1 text-center text-[11px]">
+                  {[
+                    [tx(language, 'Всего', 'Барлығы', 'Total'), room.maxMembers],
+                    [tx(language, 'Уже были', 'Бұрыннан', 'Existing'), numberOrNull(room.existingMembersCount)],
+                    [
+                      tx(language, 'EcoPay', 'EcoPay', 'EcoPay'),
+                      numberOrNull(room.filledSeats) != null && numberOrNull(room.existingMembersCount) != null
+                        ? Math.max(0, numberOrNull(room.filledSeats)! - numberOrNull(room.existingMembersCount)!)
+                        : null,
+                    ],
+                    [tx(language, 'Осталось', 'Қалды', 'Left'), numberOrNull(room.freeSeats)],
+                  ].map(([label, value]) => (
+                    <div key={String(label)}>
+                      <div style={{ color: 'var(--eco-text-tertiary)' }}>{label}</div>
+                      <div style={{ color: 'var(--eco-text)' }}>{value ?? '—'}</div>
+                    </div>
+                  ))}
+                </div>
+
                 <div className="flex items-center justify-between text-[12px]">
                   <span style={{ color: 'var(--eco-text-tertiary)' }}>
                     {tx(language, 'Владелец', 'Иесі', 'Owner')}:{' '}

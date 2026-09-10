@@ -6,6 +6,7 @@ import type {
   PublicHomeStatsDto,
   PublicServiceReviewDto,
   CreateRoomPayload,
+  RoomPricingPreviewDto,
   RoomResponseDto,
   RoomSummaryDto,
   ServiceReviewDto,
@@ -31,6 +32,12 @@ type _RoomSummaryHasFilledSeats = Expect<HasKey<RoomSummaryDto, 'filledSeats'>>;
 type _RoomSummaryHasFreeSeats = Expect<HasKey<RoomSummaryDto, 'freeSeats'>>;
 type _CreateRoomPayloadHasExistingMembersCount = Expect<
   HasKey<CreateRoomPayload, 'existingMembersCount'>
+>;
+type _PricingPreviewHasPotentialOwnerPayout = Expect<
+  HasKey<RoomPricingPreviewDto, 'potentialOwnerPayoutKzt'>
+>;
+type _PricingPreviewHasPotentialCommission = Expect<
+  HasKey<RoomPricingPreviewDto, 'potentialEcoPayCommissionKzt'>
 >;
 type _HistoryCanCarrySettlementCurrency = Expect<HasKey<PaymentHistoryItemDto, 'settlementCurrency'>>;
 type _PublicReviewHasHomepagePosition = Expect<HasKey<PublicServiceReviewDto, 'homepagePosition'>>;
