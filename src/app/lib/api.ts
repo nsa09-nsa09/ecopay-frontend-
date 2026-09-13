@@ -419,15 +419,6 @@ export function getFxRatesRequest() {
 // Member dashboard (current user's stats)
 // ============================================================
 
-export interface MemberDashboardEventDto {
-  id?: number;
-  eventType: string;
-  roomId?: number | null;
-  roomTitle?: string | null;
-  amountKzt?: number | string | null;
-  createdAt: string;
-}
-
 export interface MemberDashboardDto {
   joinedRoomsActive: number;
   joinedRoomsCompleted: number;
@@ -440,7 +431,6 @@ export interface MemberDashboardDto {
   reputationScore: number | string;
   reviewsReceived: number;
   disputesAsMember: number;
-  recentEvents: MemberDashboardEventDto[];
 }
 
 export function getMyDashboardRequest(accessToken: string) {
@@ -1599,6 +1589,7 @@ export interface SupportTicketResponse {
   id: number;
   userId: number;
   roomId: number | null;
+  roomTitle?: string | null;
   roomMemberId: number | null;
   subject: string;
   topic: string;
@@ -2129,7 +2120,7 @@ export function getReputationReviewsRequest(userId: ApiId) {
 // ============================================================
 
 export interface CreateSupportTicketPayload {
-  roomId?: number;
+  roomId?: ApiId;
   roomMemberId?: number;
   subject: string;
   topic: string;

@@ -51,16 +51,6 @@ import {
 import { MyServiceReviewCard } from './my-service-review';
 import { ReputationLevelBadge } from '../reputation/level-badge';
 import { reputationOutOfTen } from '../../lib/reputation';
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -1421,21 +1411,6 @@ function MemberDashboardCard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
-  const spendChartData = useMemo(() => {
-    if (!data || !Array.isArray(data.recentEvents)) return [];
-    const points = data.recentEvents
-      .filter((event) => event.amountKzt != null)
-      .map((event) => ({
-        period: formatDate(event.createdAt, language),
-        amount:
-          typeof event.amountKzt === 'string'
-            ? Number(event.amountKzt)
-            : Number(event.amountKzt ?? 0),
-      }));
-    // recent events arrive newest-first; reverse so the chart reads left→right.
-    return points.reverse();
-  }, [data, language]);
-
   const stats: MemberStat[] = data
     ? [
         {
@@ -1581,88 +1556,6 @@ function MemberDashboardCard() {
                 </div>
               );
             })}
-          </div>
-
-          {spendChartData.length > 0 && (
-            <div>
-              <div className="text-[13px] mb-2" style={{ color: 'var(--eco-text-secondary)' }}>
-                {t('memberSpendChartTitle')}
-              </div>
-              <div style={{ width: '100%', height: 180 }}>
-                <ResponsiveContainer>
-                  <LineChart
-                    data={spendChartData}
-                    margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid stroke="var(--eco-border)" strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="period"
-                      tick={{ fill: 'var(--eco-text-tertiary)', fontSize: 11 }}
-                    />
-                    <YAxis tick={{ fill: 'var(--eco-text-tertiary)', fontSize: 11 }} />
-                    <Tooltip
-                      contentStyle={{
-                        background: 'var(--eco-bg)',
-                        border: '1px solid var(--eco-border)',
-                        borderRadius: 8,
-                        fontSize: 12,
-                        color: 'var(--eco-text)',
-                      }}
-                      formatter={(v: number | string) => formatKzt(v)}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Line
-                      type="monotone"
-                      dataKey="amount"
-                      name={t('memberStatMonthlySpend')}
-                      stroke="var(--eco-primary)"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <div className="text-[13px] mb-2" style={{ color: 'var(--eco-text-secondary)' }}>
-              {t('memberRecentEvents')}
-            </div>
-            {data.recentEvents.length === 0 ? (
-              <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                {t('memberRecentEventsEmpty')}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {data.recentEvents.slice(0, 8).map((event, idx) => (
-                  <div
-                    key={event.id ?? `${event.createdAt}-${idx}`}
-                    className="flex items-start justify-between gap-3 text-[12px] py-2 border-b last:border-b-0"
-                    style={{ borderColor: 'var(--eco-border)' }}
-                  >
-                    <div className="min-w-0">
-                      <div style={{ color: 'var(--eco-text)' }}>
-                        {event.eventType}
-                        {event.roomTitle
-                          ? ` · ${event.roomTitle}`
-                          : event.roomId
-                            ? ` · #${event.roomId}`
-                            : ''}
-                      </div>
-                      <div style={{ color: 'var(--eco-text-tertiary)' }}>
-                        {formatDateTime(event.createdAt, language)}
-                      </div>
-                    </div>
-                    {event.amountKzt != null && (
-                      <div className="shrink-0" style={{ color: 'var(--eco-text)' }}>
-                        {formatKzt(event.amountKzt)}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </>
       )}

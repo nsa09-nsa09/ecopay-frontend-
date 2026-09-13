@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { Link } from 'react-router';
 import { Card, Button, Badge, Modal, Select } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n } from '../i18n-provider';
@@ -29,9 +30,11 @@ import {
 
 const PAGE_SIZE = 20;
 
-const statusVariant: Record<string, 'warning' | 'info' | 'success'> = {
+const statusVariant: Record<string, 'warning' | 'info' | 'success' | 'danger'> = {
   OPEN: 'warning',
   IN_PROGRESS: 'info',
+  WAITING_USER: 'warning',
+  ESCALATED: 'danger',
   CLOSED: 'success',
 };
 
@@ -263,6 +266,8 @@ export function AdminTicketsPage() {
   const statusOptions = [
     { value: 'OPEN', label: t('statusOpen') },
     { value: 'IN_PROGRESS', label: t('statusInProgress') },
+    { value: 'WAITING_USER', label: t('ticketStatus.WAITING_USER') },
+    { value: 'ESCALATED', label: t('ticketStatus.ESCALATED') },
     { value: 'CLOSED', label: t('statusClosed') },
   ];
 
@@ -442,8 +447,21 @@ export function AdminTicketsPage() {
                       <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                         T-{detail.id} · #{detail.userId}
                         {detail.topic ? ` · ${detail.topic}` : ''}
-                        {detail.roomId ? ` · ${t('rooms')} #${detail.roomId}` : ''}
                       </div>
+                      {detail.roomId && (
+                        <div
+                          className="text-[12px] mt-1"
+                          style={{ color: 'var(--eco-text-tertiary)' }}
+                        >
+                          {t('rooms')}:{' '}
+                          <Link
+                            to={`/admin/rooms?selected=${detail.roomId}`}
+                            style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+                          >
+                            {detail.roomTitle ? `${detail.roomTitle} · ` : ''}R-{detail.roomId}
+                          </Link>
+                        </div>
+                      )}
                     </div>
                     <Badge variant={statusVariant[detail.status] ?? 'default'}>
                       {t(`ticketStatus.${detail.status}`)}

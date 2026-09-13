@@ -4,12 +4,46 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/ecopay-logo-transparent.png" />
-    <meta name="description" content="EcoPay вЂ” РґРµР»РёС‚Рµ СЃРµРјРµР№РЅС‹Рµ РїРѕРґРїРёСЃРєРё Рё РїР»Р°С‚РёС‚Рµ РІ 2вЂ“6 СЂР°Р· РјРµРЅСЊС€Рµ. Р—Р°С‰РёС‰С‘РЅРЅС‹Рµ РїР»Р°С‚РµР¶Рё Рё 30-РґРЅРµРІРЅС‹Р№ hold." />
+    <meta name="description" content="EcoPay - делите семейные подписки и платите в 2–6 раз меньше. EcoPay временно удерживает деньги до выплаты владельцу." />
     <meta name="theme-color" content="#FF8C42" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
-    <title>EcoPay - РїР»Р°С‚РёС‚Рµ РјРµРЅСЊС€Рµ Р·Р° СЃРµРјРµР№РЅС‹Рµ РїРѕРґРїРёСЃРєРё</title>
+    <title>EcoPay - платите меньше за семейные подписки</title>
+    <script>
+      // Apply the persisted locale before React starts so the initial document
+      // metadata never flashes the Russian fallback for KZ/EN visitors.
+      (function () {
+        var lang = 'ru';
+        try {
+          var stored = window.localStorage.getItem('ecopay-language');
+          if (stored === 'kz' || stored === 'en' || stored === 'ru') lang = stored;
+        } catch (_) {
+          // Storage can be unavailable; the Russian HTML defaults stay valid.
+        }
+        var meta = document.querySelector('meta[name="description"]');
+        var metadata = {
+          ru: {
+            htmlLang: 'ru',
+            title: 'EcoPay - платите меньше за семейные подписки',
+            description: 'EcoPay - делите семейные подписки и платите в 2–6 раз меньше. EcoPay временно удерживает деньги до выплаты владельцу.'
+          },
+          kz: {
+            htmlLang: 'kk',
+            title: 'EcoPay - отбасылық жазылымдарға азырақ төлеңіз',
+            description: 'EcoPay - отбасылық жазылымдарды бөлісіп, 2–6 есе аз төлеңіз. EcoPay ақшаны иесіне аударғанға дейін уақытша ұстайды.'
+          },
+          en: {
+            htmlLang: 'en',
+            title: 'EcoPay - pay less for family subscriptions',
+            description: 'EcoPay - share family subscriptions and pay 2–6x less. EcoPay temporarily holds funds until the owner payout.'
+          }
+        }[lang];
+        document.documentElement.lang = metadata.htmlLang;
+        document.title = metadata.title;
+        if (meta) meta.setAttribute('content', metadata.description);
+      })();
+    </script>
   </head>
 
   <body>

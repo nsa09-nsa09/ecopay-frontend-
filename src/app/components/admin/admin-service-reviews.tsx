@@ -194,7 +194,7 @@ export function AdminServiceReviewsPage() {
                     <div className="flex items-center justify-between gap-2">
                       <Badge variant={review ? 'success' : 'default'}>Slot {index + 1}</Badge>
                       {review?.verifiedExperience === true && (
-                        <Badge variant="success">Verified</Badge>
+                        <Badge variant="success">{t('verified')}</Badge>
                       )}
                     </div>
                     {review ? (
@@ -285,7 +285,7 @@ export function AdminServiceReviewsPage() {
                         <Badge variant="success">{t('serviceReviewFeaturedBadge')}</Badge>
                       )}
                       <Badge variant={review.verifiedExperience === false ? 'default' : 'success'}>
-                        {review.verifiedExperience === false ? 'Unverified' : 'Verified'}
+                        {review.verifiedExperience === false ? t('notVerified') : t('verified')}
                       </Badge>
                       {homepagePosition(review) != null && (
                         <Badge variant="info">Homepage #{homepagePosition(review)}</Badge>

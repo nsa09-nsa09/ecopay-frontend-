@@ -1,7 +1,8 @@
-import { type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes, type SelectHTMLAttributes, useState, useRef, useEffect } from "react";
+import { type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes, type SelectHTMLAttributes, useState, useRef, useEffect, useId } from "react";
 import { Check, ChevronDown, X, AlertCircle, CheckCircle2, Info, Loader2 } from "lucide-react";
 import { BrandLogo } from "./brand-logo";
 import { useI18n, type Language } from "./i18n-provider";
+import { userStatusLabel } from "../lib/user-facing-enums";
 
 // ─── Wave SVG ───
 // The flipped variant uses a mirrored path instead of CSS scaleY(-1): negative
@@ -71,10 +72,13 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function Input({ label, error, hint, className = "", ...props }: InputProps) {
+  const generatedId = useId();
+  const inputId = props.id ?? generatedId;
   return (
     <div className="flex flex-col gap-1.5">
-      {label && <label style={{ color: "var(--eco-text)", fontSize: 14 }}>{label}</label>}
+      {label && <label htmlFor={inputId} style={{ color: "var(--eco-text)", fontSize: 14 }}>{label}</label>}
       <input
+        id={inputId}
         className={`eco-input ${error ? "eco-input-error" : ""} px-3 py-2 rounded-lg outline-none ${className}`}
         style={{ fontSize: 14 }}
         {...props}
@@ -98,12 +102,15 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export function Select({ label, options, groups, className = "", ...props }: SelectProps) {
+  const generatedId = useId();
+  const selectId = props.id ?? generatedId;
   const nonEmptyGroups = groups?.filter((g) => g.options.length > 0);
   return (
     <div className="flex flex-col gap-1.5">
-      {label && <label style={{ color: "var(--eco-text)", fontSize: 14 }}>{label}</label>}
+      {label && <label htmlFor={selectId} style={{ color: "var(--eco-text)", fontSize: 14 }}>{label}</label>}
       <div className="relative">
         <select
+          id={selectId}
           className={`eco-input w-full appearance-none px-3 py-2 pr-8 rounded-lg outline-none cursor-pointer ${className}`}
           style={{ fontSize: 14 }}
           {...props}
@@ -208,22 +215,7 @@ const roomStatusMap: Record<string, BadgeVariant> = {
   BLOCKED: "danger",
 };
 
-export const statusLabel = (status: string, lang: Language) => {
-  const labels: Record<string, { ru: string; kz: string; en: string }> = {
-    APPLIED: { ru: "Заявка", kz: "Өтінім", en: "Applied" },
-    PENDING: { ru: "Ожидает", kz: "Күтуде", en: "Pending" },
-    ACTIVE: { ru: "Активно", kz: "Белсенді", en: "Active" },
-    REJECTED: { ru: "Отклонено", kz: "Қабылданбады", en: "Rejected" },
-    BLOCKED: { ru: "Заблокировано", kz: "Бұғатталған", en: "Blocked" },
-    BLOCKED_BY_ADMIN: { ru: "Заблокировано", kz: "Бұғатталған", en: "Blocked" },
-    OPEN: { ru: "Открыта", kz: "Ашық", en: "Open" },
-    IN_VERIFICATION: { ru: "На проверке", kz: "Тексеруде", en: "In verification" },
-    COMPLETED: { ru: "Завершена", kz: "Аяқталды", en: "Completed" },
-    CANCELLED: { ru: "Отменена", kz: "Бас тартылды", en: "Cancelled" },
-  };
-
-  return labels[status]?.[lang] ?? status;
-};
+export const statusLabel = (status: string, lang: Language) => userStatusLabel(status, lang);
 
 export function MemberStatusBadge({ status }: { status: string }) {
   const { language } = useI18n();

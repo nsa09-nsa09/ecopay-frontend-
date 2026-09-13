@@ -13,6 +13,7 @@ import {
 } from '../../lib/api';
 import { formatAdminApiError } from './admin-action-ui';
 import { Shield, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { userEventLabel } from '../../lib/user-facing-enums';
 
 const PAGE_SIZE = 25;
 
@@ -268,7 +269,12 @@ export function AdminLogsPage() {
                         )}
                       </div>
                       <div className="col-span-2">
-                        <Badge variant="info">{log.actionType}</Badge>
+                        <div className="flex flex-col items-start gap-1">
+                          <Badge variant="info">{userEventLabel(log.actionType, language)}</Badge>
+                          <code className="text-[10px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                            {log.actionType}
+                          </code>
+                        </div>
                       </div>
                       <div
                         className="col-span-2 text-[12px] whitespace-nowrap"
@@ -355,7 +361,12 @@ export function AdminLogsPage() {
                         ) : null}
                       </div>
                       <div className="col-span-2">
-                        <Badge variant="info">{log.eventType}</Badge>
+                        <div className="flex flex-col items-start gap-1">
+                          <Badge variant="info">{userEventLabel(log.eventType, language)}</Badge>
+                          <code className="text-[10px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                            {log.eventType}
+                          </code>
+                        </div>
                       </div>
                       <div
                         className="col-span-2 text-[12px] whitespace-nowrap"

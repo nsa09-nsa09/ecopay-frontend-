@@ -219,8 +219,12 @@ export function AdminAboutPage() {
                 {t('adminAboutHint')}
               </p>
 
-              <FormRow label={t('adminAboutCompanyName')}>
-                <Input value={form.companyName} onChange={(e) => setCompanyName(e.target.value)} />
+              <FormRow label={t('adminAboutCompanyName')} htmlFor="admin-about-company-name">
+                <Input
+                  id="admin-about-company-name"
+                  value={form.companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                />
               </FormRow>
 
               <div className="flex flex-col gap-2">
@@ -234,8 +238,9 @@ export function AdminAboutPage() {
                 </p>
               </div>
 
-              <FormRow label={t('adminAboutPageTitle')}>
+              <FormRow label={t('adminAboutPageTitle')} htmlFor="admin-about-page-title">
                 <Input
+                  id="admin-about-page-title"
                   value={currentFields.title}
                   onChange={(e) =>
                     setLangField(activeLang, 'title', e.target.value.slice(0, TITLE_MAX))
@@ -245,8 +250,9 @@ export function AdminAboutPage() {
                 />
               </FormRow>
 
-              <FormRow label={t('adminAboutMission')}>
+              <FormRow label={t('adminAboutMission')} htmlFor="admin-about-mission">
                 <textarea
+                  id="admin-about-mission"
                   value={currentFields.mission}
                   onChange={(e) =>
                     setLangField(activeLang, 'mission', e.target.value.slice(0, MISSION_MAX))
@@ -266,8 +272,9 @@ export function AdminAboutPage() {
                 </span>
               </FormRow>
 
-              <FormRow label={t('adminAboutDescription')}>
+              <FormRow label={t('adminAboutDescription')} htmlFor="admin-about-description">
                 <textarea
+                  id="admin-about-description"
                   value={currentFields.description}
                   onChange={(e) =>
                     setLangField(
@@ -291,8 +298,9 @@ export function AdminAboutPage() {
                 </span>
               </FormRow>
 
-              <FormRow label={t('adminAboutContactEmail')}>
+              <FormRow label={t('adminAboutContactEmail')} htmlFor="admin-about-contact-email">
                 <Input
+                  id="admin-about-contact-email"
                   type="email"
                   value={form.contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
@@ -300,16 +308,18 @@ export function AdminAboutPage() {
                 />
               </FormRow>
 
-              <FormRow label={t('adminAboutContactPhone')}>
+              <FormRow label={t('adminAboutContactPhone')} htmlFor="admin-about-contact-phone">
                 <Input
+                  id="admin-about-contact-phone"
                   value={form.contactPhone}
                   onChange={(e) => setContactPhone(e.target.value)}
                   placeholder="+7 ..."
                 />
               </FormRow>
 
-              <FormRow label={t('adminAboutApexLink')}>
+              <FormRow label={t('adminAboutApexLink')} htmlFor="admin-about-apex-link">
                 <Input
+                  id="admin-about-apex-link"
                   value={form.apexLink}
                   onChange={(e) => setApexLink(e.target.value)}
                   placeholder="https://example.com"
@@ -339,14 +349,22 @@ export function AdminAboutPage() {
   );
 }
 
-function FormRow({ label, children }: { label: string; children: React.ReactNode }) {
+function FormRow({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+    <div className="flex flex-col gap-1">
+      <label htmlFor={htmlFor} className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
         {label}
-      </span>
+      </label>
       {children}
-    </label>
+    </div>
   );
 }
 

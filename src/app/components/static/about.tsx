@@ -269,7 +269,7 @@ export function AboutPage() {
             <Link to="/support" style={{ textDecoration: 'none' }}>
               <ContactTile
                 icon={<ShieldCheck size={18} style={{ color: 'var(--eco-primary)' }} />}
-                text="Связаться с поддержкой"
+                text={t('contactSupport')}
               />
             </Link>
             {contactEmail && (

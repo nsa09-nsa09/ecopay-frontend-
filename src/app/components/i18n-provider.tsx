@@ -1824,6 +1824,16 @@ adminAboutApexLink: {
 
   'ticketStatus.OPEN': { ru: 'Открыта', kz: 'Ашық', en: 'Open' },
   'ticketStatus.IN_PROGRESS': { ru: 'В работе', kz: 'Орындалуда', en: 'In Progress' },
+  'ticketStatus.WAITING_USER': {
+    ru: 'Ожидает ответа пользователя',
+    kz: 'Пайдаланушы жауабын күтуде',
+    en: 'Waiting for user',
+  },
+  'ticketStatus.ESCALATED': {
+    ru: 'Передана специалисту',
+    kz: 'Маманға жіберілді',
+    en: 'Escalated',
+  },
   'ticketStatus.RESOLVED': { ru: 'Решена', kz: 'Шешілді', en: 'Resolved' },
   'ticketStatus.CLOSED': { ru: 'Закрыта', kz: 'Жабық', en: 'Closed' },
 

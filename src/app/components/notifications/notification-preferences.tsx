@@ -39,7 +39,7 @@ function categoryLabel(category: string, language: Language): string {
     case 'ACCOUNT':
       return tx(language, 'Аккаунт', 'Аккаунт', 'Account');
     default:
-      return category;
+      return tx(language, 'Другие уведомления', 'Басқа хабарламалар', 'Other notifications');
   }
 }
 
@@ -125,7 +125,7 @@ function typeLabel(type: string, language: Language): string {
         'Account unbanned',
       );
     default:
-      return type;
+      return tx(language, 'Обновление', 'Жаңарту', 'Update');
   }
 }
 

@@ -133,6 +133,8 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
     loginPayloads: [] as unknown[],
     joinPayloads: [] as Array<{ roomId: number; payload: Record<string, unknown> }>,
     createRoomPayloads: [] as Record<string, unknown>[],
+    supportTicketPayloads: [] as Record<string, unknown>[],
+    adminAboutPayloads: [] as Record<string, unknown>[],
     matchResult: { action: 'JOIN' as 'JOIN' | 'CREATE', roomId: 101 as number | null },
     matchCalls: 0,
     joinFullOnce: false,
@@ -179,6 +181,43 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
       updatedAt: '2026-08-13T00:00:00Z',
     },
   ];
+  let siteAbout = {
+    companyName: 'EcoPay LLP',
+    title: 'EcoPay туралы',
+    mission: 'Shared plans made simple.',
+    description: 'Trusted subscription sharing.',
+    title_ru: 'Об EcoPay',
+    mission_ru: 'Семейные тарифы без лишних сложностей.',
+    description_ru: 'Надёжный сервис совместных подписок.',
+    title_kz: 'EcoPay туралы',
+    mission_kz: 'Ортақ тарифтер оңай.',
+    description_kz: 'Сенімді ортақ жазылымдар сервисі.',
+    title_en: 'About EcoPay',
+    mission_en: 'Shared plans made simple.',
+    description_en: 'Trusted subscription sharing.',
+    contactEmail: 'support@ecopay.test',
+    contactPhone: null,
+    apexLink: null,
+    updatedAt: '2026-08-01T00:00:00Z',
+  };
+  const staffTicket = {
+    id: 601,
+    userId: 10,
+    roomId: 303,
+    roomTitle: 'Owned family room',
+    roomMemberId: null,
+    subject: 'Room access issue',
+    topic: 'access',
+    status: 'OPEN',
+    priority: 'NORMAL',
+    escalatedToDispute: false,
+    assignedAdminId: null,
+    assignedAdminDisplayName: null,
+    createdAt: '2026-08-01T00:00:00Z',
+    updatedAt: '2026-08-01T00:00:00Z',
+    closedAt: null,
+    messages: [],
+  };
 
   await page.addInitScript((lang) => {
     window.localStorage.setItem('ecopay-language', lang);
@@ -230,7 +269,6 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
         reputationScore: 0,
         reviewsReceived: 0,
         disputesAsMember: 0,
-        recentEvents: [],
       });
     }
     if (path.includes('/users/me')) {
@@ -238,6 +276,126 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
       return body(sessionFor(role));
     }
     if (path.includes('/catalog/categories')) return body([]);
+    if (path === '/rooms/joined' && method === 'GET') {
+      return body([
+        {
+          roomId: 101,
+          memberId: 1001,
+          title: 'Joined family room',
+          roomType: 'DIGITAL',
+          roomStatus: 'ACTIVE',
+          memberStatus: 'ACTIVE',
+          requiresAdminReview: false,
+          maxMembers: 4,
+          priceTotal: 10,
+          pricePerMember: 2.5,
+          currency: 'USD',
+          startDate: '2026-08-01',
+          ownerUserId: 2,
+          ownerDisplayName: 'Owner',
+          serviceId: 1,
+          serviceName: 'Provider',
+        },
+      ]);
+    }
+    if (path === '/rooms/me' && method === 'GET') {
+      return body({
+        items: [roomSummary(303, 'EMAIL', { title: 'Owned family room' })],
+        page: 0,
+        size: 100,
+        totalItems: 1,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
+      });
+    }
+    if (path === '/support-tickets' && method === 'GET') return body([]);
+    if (path === '/support-tickets' && method === 'POST') {
+      const payload = route.request().postDataJSON() as Record<string, unknown>;
+      controls.supportTicketPayloads.push(payload);
+      return body({ id: 501, ...payload, status: 'OPEN', createdAt: '2026-08-01T00:00:00Z' });
+    }
+    if (path === '/site/about' && method === 'GET') return body(siteAbout);
+    if (path === '/admin/site/about' && method === 'GET') return body(siteAbout);
+    if (path === '/admin/site/about' && method === 'PUT') {
+      const payload = route.request().postDataJSON() as Record<string, unknown>;
+      controls.adminAboutPayloads.push(payload);
+      siteAbout = { ...siteAbout, ...payload, updatedAt: '2026-08-02T00:00:00Z' };
+      return body(siteAbout);
+    }
+    if (path === '/admin/users' && method === 'GET') {
+      const requestedRole = url.searchParams.get('role');
+      const profile = requestedRole === 'ADMIN' ? admin : user;
+      return body({
+        items: [
+          {
+            ...profile,
+            emailMasked: profile.email,
+            phoneMasked: null,
+            roomsOwned: 1,
+            roomsJoined: 1,
+            tickets: 0,
+            disputes: 0,
+            createdAt: '2026-08-01T00:00:00Z',
+          },
+        ],
+        page: 0,
+        size: 20,
+        totalItems: 1,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
+      });
+    }
+    if (path === '/admin/users/10' && method === 'GET') {
+      return body({
+        ...user,
+        emailMasked: user.email,
+        phoneMasked: null,
+        roomsOwned: 1,
+        roomsJoined: 1,
+        tickets: 0,
+        disputes: 0,
+        createdAt: '2026-08-01T00:00:00Z',
+      });
+    }
+    if (path === '/admin/logs/room-events' && method === 'GET') {
+      return body({
+        items: [
+          {
+            id: 701,
+            eventId: 'event-701',
+            actorUserId: 10,
+            actorDisplayName: 'Member',
+            actorRole: 'USER',
+            roomId: 303,
+            roomOwnerUserId: 10,
+            roomOwnerDisplayName: 'Member',
+            roomMemberId: null,
+            eventType: 'ROOM_BLOCKED',
+            oldState: null,
+            newState: null,
+            ipAddress: null,
+            userAgent: null,
+            createdAt: '2026-08-02T00:00:00Z',
+          },
+        ],
+        page: 0,
+        size: 10,
+        totalItems: 1,
+        totalPages: 1,
+      });
+    }
+    if (path === '/staff/support-tickets/queue' && method === 'GET') {
+      return body({
+        items: [staffTicket],
+        page: 0,
+        size: 20,
+        totalItems: 1,
+        totalPages: 1,
+      });
+    }
+    if (path === '/staff/support-tickets/601' && method === 'GET') return body(staffTicket);
     if (path === '/catalog/services/1/match' && method === 'GET') {
       controls.matchCalls += 1;
       return body(controls.matchResult);
@@ -385,7 +543,10 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
       return body({ base: 'KZT', updatedAt: '2026-08-15T00:00:00Z', rates: { USD: 475 } });
     }
     if (path === '/rooms/pricing-preview' && method === 'POST') {
-      const payload = route.request().postDataJSON() as { tariffPlanId: number; existingMembersCount: 1 | 2 };
+      const payload = route.request().postDataJSON() as {
+        tariffPlanId: number;
+        existingMembersCount: 1 | 2;
+      };
       const decimalPlan = payload.tariffPlanId === 12;
       const duoPlan = payload.tariffPlanId === 13;
       const maxMembers = duoPlan ? 2 : decimalPlan ? 4 : 5;
@@ -715,9 +876,9 @@ test('login submits email only and never offers phone auth', async ({ page }) =>
   await page.goto('/login');
   await page.getByPlaceholder('your@email.com').fill('Member@Example.Test');
   await page.locator('input[type="password"]').fill('secret123');
-  await expect(page.getByRole('main').getByText(/phone|номер телефона|телефон нөмірі/i)).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByRole('main').getByText(/phone|номер телефона|телефон нөмірі/i),
+  ).toHaveCount(0);
   await page.getByRole('main').getByRole('button', { name: 'Sign In' }).click();
 
   await expect(page).toHaveURL(/\/profile$/);
@@ -730,7 +891,10 @@ test('service CTA opens explicit participant-or-owner intent choices', async ({ 
   await seedSession(page);
 
   await page.goto('/');
-  await page.getByRole('button', { name: /Provider/ }).first().click();
+  await page
+    .getByRole('button', { name: /Provider/ })
+    .first()
+    .click();
 
   await expect(page.getByText('I want a spot in a subscription')).toBeVisible();
   await expect(page.getByText('I already have a subscription')).toBeVisible();
@@ -744,37 +908,66 @@ test('want-a-spot service flow opens matched room on JOIN', async ({ page }) => 
   await seedSession(page);
 
   await page.goto('/');
-  await page.getByRole('button', { name: /Provider/ }).first().click();
+  await page
+    .getByRole('button', { name: /Provider/ })
+    .first()
+    .click();
   await page.getByRole('button', { name: /I want a spot in a subscription/ }).click();
 
   await expect(page).toHaveURL(/\/room\/101$/);
 });
 
-test('want-a-spot CREATE match shows empty state without opening create-room', async ({ page }) => {
+test('want-a-spot CREATE match opens create-room with the selected service', async ({ page }) => {
   const api = await mockApi(page, 'USER', 'ru');
   api.matchResult = { action: 'CREATE', roomId: null };
   await seedSession(page);
 
   await page.goto('/');
-  await page.getByRole('button', { name: /Provider/ }).first().click();
+  await page
+    .getByRole('button', { name: /Provider/ })
+    .first()
+    .click();
   await page.getByRole('button', { name: /Хочу место в подписке/ }).click();
-
-  await expect(page.getByText('Свободных мест сейчас нет')).toBeVisible();
-  await expect(page.getByText('Попробуйте другой тариф или вернитесь позже.')).toBeVisible();
-  await expect(page).not.toHaveURL(/\/rooms\/create/);
-});
-
-test('empty-state secondary owner CTA opens create room with selected service', async ({ page }) => {
-  const api = await mockApi(page, 'USER', 'ru');
-  api.matchResult = { action: 'CREATE', roomId: null };
-  await seedSession(page);
-
-  await page.goto('/');
-  await page.getByRole('button', { name: /Provider/ }).first().click();
-  await page.getByRole('button', { name: /Хочу место в подписке/ }).click();
-  await page.getByRole('button', { name: /У меня уже есть подписка/ }).click();
 
   await expect(page).toHaveURL(/\/rooms\/create\?serviceId=1&source=existing$/);
+  expect(api.matchCalls).toBe(1);
+});
+
+test('support ticket form selects one of the user rooms instead of requiring a manual ID', async ({
+  page,
+}) => {
+  const api = await mockApi(page);
+  await seedSession(page);
+
+  await page.goto('/support/new');
+  const roomSelect = page.locator('main select').nth(1);
+  await expect(roomSelect.locator('option')).toContainText([
+    '#101 · Joined family room',
+    '#303 · Owned family room',
+  ]);
+  await expect(page.getByPlaceholder('e.g. 42')).toHaveCount(0);
+  await roomSelect.selectOption('303');
+  await page.getByPlaceholder('Short summary').fill('Room access issue');
+  await page
+    .getByPlaceholder('Describe your issue in detail...')
+    .fill('Please review the linked room.');
+  await page.getByRole('button', { name: 'Submit Ticket' }).click();
+
+  expect(api.supportTicketPayloads).toEqual([
+    expect.objectContaining({ roomId: 303, subject: 'Room access issue' }),
+  ]);
+});
+
+test('initial document metadata follows the saved locale', async ({ page }) => {
+  await mockApi(page, 'ANON', 'kz');
+  await page.goto('/');
+
+  await expect(page).toHaveTitle('EcoPay - отбасылық жазылымдарға азырақ төлеңіз');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'kk');
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    'content',
+    'EcoPay - отбасылық жазылымдарды бөлісіп, 2–6 есе аз төлеңіз. EcoPay ақшаны иесіне аударғанға дейін уақытша ұстайды.',
+  );
 });
 
 test('existing-subscription intent opens create room with selected service', async ({ page }) => {
@@ -782,7 +975,10 @@ test('existing-subscription intent opens create room with selected service', asy
   await seedSession(page);
 
   await page.goto('/');
-  await page.getByRole('button', { name: /Provider/ }).first().click();
+  await page
+    .getByRole('button', { name: /Provider/ })
+    .first()
+    .click();
   await page.getByRole('button', { name: /I already have a subscription/ }).click();
 
   await expect(page).toHaveURL(/\/rooms\/create\?serviceId=1&source=existing$/);
@@ -826,7 +1022,9 @@ test('two-seat tariff only allows the owner option', async ({ page }) => {
   await page.goto('/rooms/create?serviceId=1&source=existing');
   await page.locator('main select').nth(1).selectOption('13');
   await expect(page.getByRole('button', { name: 'Just me', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Me + 1 more person', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Me + 1 more person', exact: true })).toHaveCount(
+    0,
+  );
 });
 
 test('room detail uses server seats and settlement amounts without client surcharge math', async ({
@@ -872,7 +1070,9 @@ test('stale mixed-room count rejection is friendly and localized', async ({ page
   await page.getByRole('button', { name: 'Продолжить' }).click();
   api.rejectCreateCount = true;
   await page.getByRole('button', { name: 'Опубликовать комнату' }).click();
-  await expect(page.getByText('Состав подписки изменился. Выберите доступный вариант и повторите публикацию.')).toBeVisible();
+  await expect(
+    page.getByText('Состав подписки изменился. Выберите доступный вариант и повторите публикацию.'),
+  ).toBeVisible();
   await expect(page.getByText(/existingMembersCount/)).toHaveCount(0);
 });
 
@@ -926,7 +1126,10 @@ test('new intent and create-room copy is localized in Kazakh', async ({ page }) 
   await seedSession(page);
 
   await page.goto('/');
-  await page.getByRole('button', { name: /Provider/ }).first().click();
+  await page
+    .getByRole('button', { name: /Provider/ })
+    .first()
+    .click();
   await expect(page.getByText('Жазылымнан орын іздеймін')).toBeVisible();
   await expect(page.getByText('Менде жазылым бар')).toBeVisible();
 
@@ -977,7 +1180,9 @@ test('PHONE room join uses PHONE payload and normalizes human phone input', asyn
   });
 });
 
-test('same account can submit different phone numbers in different PHONE rooms', async ({ page }) => {
+test('same account can submit different phone numbers in different PHONE rooms', async ({
+  page,
+}) => {
   const api = await mockApi(page);
   await seedSession(page);
 
@@ -1050,7 +1255,9 @@ test('/profile ru localizes role and status badges', async ({ page }) => {
   await expect(page.getByText('ACTIVE', { exact: true })).toHaveCount(0);
 });
 
-test('room payment CTA shows KZT settlement breakdown without raw status leaks', async ({ page }) => {
+test('room payment CTA shows KZT settlement breakdown without raw status leaks', async ({
+  page,
+}) => {
   await mockApi(page, 'USER', 'ru');
   await seedSession(page);
 
@@ -1077,6 +1284,67 @@ test('admin finance operations opens for admin', async ({ page }) => {
 
   await page.goto('/admin/finance');
   await expect(page.getByRole('button', { name: 'PAYMENT REVIEW' })).toBeVisible();
+});
+
+test('/admin/tickets shows a named room link', async ({ page }) => {
+  await mockApi(page, 'ADMIN');
+  await seedSession(page, 'ADMIN');
+
+  await page.goto('/admin/tickets');
+  await page.getByRole('button', { name: /T-601/ }).click();
+  await expect(page.getByRole('link', { name: 'Owned family room · R-303' })).toHaveAttribute(
+    'href',
+    '/admin/rooms?selected=303',
+  );
+});
+
+test('/admin/about persists an edit through refresh and renders it on public About', async ({
+  page,
+}) => {
+  const api = await mockApi(page, 'ADMIN', 'ru');
+  await seedSession(page, 'ADMIN');
+
+  await page.goto('/admin/about');
+  await expect(page.getByRole('heading', { name: 'Страница «О нас»' })).toBeVisible();
+  const pageTitle = page.getByLabel('Заголовок страницы');
+  await expect(pageTitle).toHaveValue('Об EcoPay');
+  await pageTitle.fill('Обновлённый EcoPay');
+  await page.getByRole('button', { name: 'Сохранить' }).click();
+
+  await expect
+    .poll(() => api.adminAboutPayloads)
+    .toEqual([
+      expect.objectContaining({ title: 'Обновлённый EcoPay', title_ru: 'Обновлённый EcoPay' }),
+    ]);
+
+  await page.reload();
+  await expect(page.getByLabel('Заголовок страницы')).toHaveValue('Обновлённый EcoPay');
+
+  await page.goto('/about');
+  await expect(page.getByRole('heading', { name: 'Обновлённый EcoPay' })).toBeVisible();
+});
+
+test('/admin/users loads room events for the selected user through the admin log API', async ({
+  page,
+}) => {
+  await mockApi(page, 'ADMIN');
+  await seedSession(page, 'ADMIN');
+  const eventsRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return (
+      url.pathname.endsWith('/admin/logs/room-events') &&
+      url.searchParams.get('actorUserId') === '10'
+    );
+  });
+
+  await page.goto('/admin/users?selected=10');
+  await eventsRequest;
+  await expect(page.getByRole('heading', { name: 'User room events' })).toBeVisible();
+  await expect(page.getByText('ROOM_BLOCKED', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'R-303' })).toHaveAttribute(
+    'href',
+    '/admin/rooms?selected=303',
+  );
 });
 
 test('/admin/moderation ru localizes queue codes and uses wide content', async ({ page }) => {

@@ -68,7 +68,7 @@ function categoryLabel(category: NotificationCategory, language: Language): stri
     case 'ACCOUNT':
       return tx(language, 'Аккаунт', 'Аккаунт', 'Account');
     default:
-      return category;
+      return tx(language, 'Другое', 'Басқа', 'Other');
   }
 }
 

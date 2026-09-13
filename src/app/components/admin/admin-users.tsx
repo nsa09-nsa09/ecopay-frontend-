@@ -10,10 +10,12 @@ import {
   createAdminUserRequest,
   getAdminUserRequest,
   getAdminUsersRequest,
+  getRoomEventLogsRequest,
   unbanUserRequest,
   updateAdminUserOwnerVerifiedRequest,
   updateAdminUserRoleRequest,
   type AdminUserDto,
+  type RoomEventLogDto,
 } from '../../lib/api';
 import {
   Ban,
@@ -86,6 +88,9 @@ export function AdminUsersPage() {
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
   const [detail, setDetail] = useState<AdminUserDto | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [roomEvents, setRoomEvents] = useState<RoomEventLogDto[]>([]);
+  const [roomEventsLoading, setRoomEventsLoading] = useState(false);
+  const [roomEventsError, setRoomEventsError] = useState<string | null>(null);
 
   const [banModal, setBanModal] = useState<{ user: AdminUserDto; action: 'BAN' | 'UNBAN' } | null>(
     null,
@@ -198,6 +203,34 @@ export function AdminUsersPage() {
       cancelled = true;
     };
   }, [selectedId, authorizedRequest, items]);
+
+  useEffect(() => {
+    if (selectedId == null) {
+      setRoomEvents([]);
+      setRoomEventsError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setRoomEventsLoading(true);
+    setRoomEventsError(null);
+    authorizedRequest((token) =>
+      getRoomEventLogsRequest(token, { actorUserId: String(selectedId), page: 0, size: 10 }),
+    )
+      .then((result) => {
+        if (!cancelled) setRoomEvents(result.items);
+      })
+      .catch((err) => {
+        if (!cancelled) setRoomEventsError(formatAdminApiError(err, t));
+      })
+      .finally(() => {
+        if (!cancelled) setRoomEventsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authorizedRequest, selectedId, t]);
 
   const listSelected = useMemo(
     () => items.find((u) => String(u.id) === String(selectedId)) ?? null,
@@ -669,6 +702,65 @@ export function AdminUsersPage() {
                       </Button>
                     )}
                   </div>
+                </Card>
+
+                <Card className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
+                      {tx(
+                        language,
+                        'События комнат пользователя',
+                        'Пайдаланушы бөлмелерінің оқиғалары',
+                        'User room events',
+                      )}
+                    </h2>
+                    <Badge variant="info">{roomEvents.length}</Badge>
+                  </div>
+
+                  {roomEventsLoading ? (
+                    <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                      {t('loading')}
+                    </div>
+                  ) : roomEventsError ? (
+                    <div className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
+                      {roomEventsError}
+                    </div>
+                  ) : roomEvents.length === 0 ? (
+                    <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                      {tx(language, 'Событий нет', 'Оқиғалар жоқ', 'No room events')}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col">
+                      {roomEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="flex items-start justify-between gap-3 py-2 border-t first:border-t-0"
+                          style={{ borderColor: 'var(--eco-border)' }}
+                        >
+                          <div className="min-w-0">
+                            <code className="text-[12px]" style={{ color: 'var(--eco-text)' }}>
+                              {event.eventType}
+                            </code>
+                            <div
+                              className="text-[11px] mt-0.5"
+                              style={{ color: 'var(--eco-text-tertiary)' }}
+                            >
+                              {formatDateTime(event.createdAt, language)}
+                            </div>
+                          </div>
+                          {event.roomId != null && (
+                            <Link
+                              to={`/admin/rooms?selected=${event.roomId}`}
+                              className="text-[12px] shrink-0"
+                              style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+                            >
+                              R-{event.roomId}
+                            </Link>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </Card>
               </div>
             )}

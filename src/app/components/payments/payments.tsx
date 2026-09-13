@@ -829,7 +829,7 @@ const refundStatusLabel = (s: string, l: L): string => {
     PROCESSING: ['Обрабатывается', 'Өңделуде', 'Processing'],
   };
   const entry = map[s.toUpperCase()];
-  return entry ? tx(l, ...entry) : s;
+  return entry ? tx(l, ...entry) : tx(l, 'Статус уточняется', 'Мәртебесі анықталуда', 'Status unavailable');
 };
 
 export function RefundStatusPage() {

@@ -20,15 +20,20 @@ import {
   ApiError,
   buildSupportWebSocketUrl,
   createSupportTicketRequest,
+  getJoinedRooms,
+  getMyRooms,
   getMySupportTicketRequest,
   getMySupportTicketsRequest,
   postSupportTicketMessageRequest,
+  type JoinedRoomDto,
+  type RoomSummaryDto,
   type SupportTicketResponse,
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
 import { formatDate, formatDateTime } from '../../lib/datetime';
 import { Client } from '@stomp/stompjs';
+import { userStatusLabel } from '../../lib/user-facing-enums';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -45,6 +50,8 @@ const TOPIC_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'danger'
 const STATUS_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
   OPEN: 'warning',
   IN_PROGRESS: 'info',
+  WAITING_USER: 'warning',
+  ESCALATED: 'danger',
   CLOSED: 'success',
 };
 
@@ -73,10 +80,7 @@ function useTopicOptions() {
 }
 
 function localizeStatus(l: Language, status: string): string {
-  if (status === 'OPEN') return tx(l, 'Открыта', 'Ашық', 'Open');
-  if (status === 'IN_PROGRESS') return tx(l, 'В работе', 'Жұмыста', 'In Progress');
-  if (status === 'CLOSED') return tx(l, 'Закрыта', 'Жабық', 'Closed');
-  return status.replace('_', ' ');
+  return userStatusLabel(status, l);
 }
 
 function relativeTime(iso: string | null | undefined, l: Language): string {
@@ -196,6 +200,8 @@ function TicketListView({
                 },
                 { value: 'OPEN', label: tx(language, 'Открыта', 'Ашық', 'Open') },
                 { value: 'IN_PROGRESS', label: tx(language, 'В работе', 'Жұмыста', 'In Progress') },
+                { value: 'WAITING_USER', label: localizeStatus(language, 'WAITING_USER') },
+                { value: 'ESCALATED', label: localizeStatus(language, 'ESCALATED') },
                 { value: 'CLOSED', label: tx(language, 'Закрыта', 'Жабық', 'Closed') },
               ]}
               value={statusFilter}
@@ -314,7 +320,8 @@ function TicketListView({
                   </div>
                   <div className="min-w-0 overflow-hidden">
                     <Badge variant={TOPIC_VARIANT[t.topic] ?? 'default'}>
-                      {TOPIC_LABELS[t.topic] ?? t.topic}
+                      {TOPIC_LABELS[t.topic] ??
+                        tx(language, 'Другая тема', 'Басқа тақырып', 'Other topic')}
                     </Badge>
                   </div>
                   <div className="whitespace-nowrap">
@@ -324,7 +331,11 @@ function TicketListView({
                   </div>
                   <div
                     className="text-[13px] whitespace-nowrap overflow-hidden text-ellipsis"
-                    title={t.roomId ? `${tx(language, 'Комната', 'Бөлме', 'Room')} #${t.roomId}` : undefined}
+                    title={
+                      t.roomId
+                        ? `${tx(language, 'Комната', 'Бөлме', 'Room')} #${t.roomId}`
+                        : undefined
+                    }
                     style={{ color: 'var(--eco-text-secondary)' }}
                   >
                     {t.roomId ? `${tx(language, 'Комната', 'Бөлме', 'Room')} #${t.roomId}` : '—'}
@@ -370,7 +381,8 @@ function TicketListView({
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant={TOPIC_VARIANT[t.topic] ?? 'default'}>
-                      {TOPIC_LABELS[t.topic] ?? t.topic}
+                      {TOPIC_LABELS[t.topic] ??
+                        tx(language, 'Другая тема', 'Басқа тақырып', 'Other topic')}
                     </Badge>
                     {t.roomId && (
                       <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
@@ -395,7 +407,7 @@ function CreateTicketView({
   onBack: () => void;
   onCreated: (ticketId: number) => void;
 }) {
-  const { authorizedRequest, isAuthenticated } = useAuth();
+  const { authorizedRequest, isAuthenticated, isReady } = useAuth();
   const { language } = useI18n();
   const TOPIC_OPTIONS = useTopicOptions();
   const navigate = useNavigate();
@@ -403,30 +415,77 @@ function CreateTicketView({
   const [subject, setSubject] = useState('');
   const [topic, setTopic] = useState('access');
   const [roomId, setRoomId] = useState('');
+  const [rooms, setRooms] = useState<Array<JoinedRoomDto | RoomSummaryDto>>([]);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (isReady && !isAuthenticated) {
       navigate('/login?redirect=/support/new');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, isReady, navigate]);
+
+  // Limit choices to rooms the current user can actually reference. This
+  // avoids asking them to copy a numeric ID while retaining the optional
+  // association supported by the existing ticket API.
+  useEffect(() => {
+    if (!isReady || !isAuthenticated) return;
+    let cancelled = false;
+
+    Promise.all([
+      authorizedRequest((token) => getJoinedRooms(token)),
+      authorizedRequest((token) => getMyRooms(token, { size: 100 })),
+    ])
+      .then(([joined, owned]) => {
+        if (cancelled) return;
+        const byId = new Map<string, JoinedRoomDto | RoomSummaryDto>();
+        joined.forEach((room) => byId.set(String(room.roomId), room));
+        owned.items.forEach((room) => byId.set(String(room.id), room));
+        setRooms([...byId.values()]);
+      })
+      .catch(() => {
+        // The ticket remains usable without a linked room if this optional
+        // lookup is unavailable.
+        if (!cancelled) setRooms([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authorizedRequest, isAuthenticated, isReady]);
+
+  const roomOptions = useMemo(
+    () => [
+      { value: '', label: tx(language, 'Не выбрано', 'Таңдалмаған', 'No room selected') },
+      ...rooms.map((room) => {
+        const id = 'roomId' in room ? room.roomId : room.id;
+        return {
+          value: String(id),
+          label: `#${id} · ${room.title} · ${room.serviceName}`,
+        };
+      }),
+    ],
+    [language, rooms],
+  );
 
   const handleSubmit = async () => {
     if (!subject.trim() || !message.trim()) return;
     setSubmitting(true);
     setError(null);
     try {
-      const parsedRoomId = roomId.trim() ? Number(roomId.trim()) : undefined;
+      const numericRoomId = roomId ? Number(roomId) : undefined;
+      const selectedRoomId =
+        numericRoomId !== undefined && Number.isSafeInteger(numericRoomId)
+          ? numericRoomId
+          : roomId || undefined;
       const ticket = await authorizedRequest((token) =>
         createSupportTicketRequest(
           {
             subject: subject.trim(),
             topic,
             message: message.trim(),
-            roomId:
-              parsedRoomId !== undefined && !Number.isNaN(parsedRoomId) ? parsedRoomId : undefined,
+            roomId: selectedRoomId,
           },
           token,
         ),
@@ -503,29 +562,17 @@ function CreateTicketView({
           onChange={(e) => setTopic(e.target.value)}
         />
 
-        <div className="flex flex-col gap-1.5">
-          <label style={{ color: 'var(--eco-text)', fontSize: 14 }}>
-            {tx(
-              language,
-              'ID связанной комнаты (опционально)',
-              'Байланысты бөлме ID (міндетті емес)',
-              'Related Room ID (optional)',
-            )}
-          </label>
-          <input
-            placeholder={tx(language, 'например, 42', 'мысалы, 42', 'e.g. 42')}
-            value={roomId}
-            onChange={(e) => setRoomId(e.target.value.replace(/\D/g, ''))}
-            inputMode="numeric"
-            className="px-3 py-2.5 rounded-lg outline-none"
-            style={{
-              background: 'var(--eco-surface)',
-              border: '1px solid var(--eco-border)',
-              color: 'var(--eco-text)',
-              fontSize: 14,
-            }}
-          />
-        </div>
+        <Select
+          label={tx(
+            language,
+            'Связанная комната (опционально)',
+            'Байланысты бөлме (міндетті емес)',
+            'Related room (optional)',
+          )}
+          options={roomOptions}
+          value={roomId}
+          onChange={(e) => setRoomId(e.target.value)}
+        />
 
         <div className="flex flex-col gap-1.5">
           <label style={{ color: 'var(--eco-text)', fontSize: 14 }}>
@@ -775,7 +822,8 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
 
         <div className="flex flex-wrap items-center gap-3">
           <Badge variant={TOPIC_VARIANT[ticket.topic] ?? 'default'}>
-            {TOPIC_LABELS[ticket.topic] ?? ticket.topic}
+            {TOPIC_LABELS[ticket.topic] ??
+              tx(language, 'Другая тема', 'Басқа тақырып', 'Other topic')}
           </Badge>
           <Badge variant={STATUS_VARIANT[ticket.status] ?? 'default'}>
             {localizeStatus(language, ticket.status)}
@@ -1081,7 +1129,7 @@ export function SupportPage() {
   const [tickets, setTickets] = useState<SupportTicketResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const reloadCounter = useRef(0);
+  const [reloadVersion, setReloadVersion] = useState(0);
 
   useEffect(() => {
     if (isReady && !isAuthenticated) {
@@ -1117,27 +1165,10 @@ export function SupportPage() {
     return () => {
       cancelled = true;
     };
-  }, [authorizedRequest, isAuthenticated, view, language]);
+  }, [authorizedRequest, isAuthenticated, reloadVersion]);
 
   const retry = () => {
-    reloadCounter.current += 1;
-    setError(null);
-    setLoading(true);
-    authorizedRequest((token) => getMySupportTicketsRequest(token))
-      .then((data) => setTickets(data))
-      .catch((err) =>
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : tx(
-                language,
-                'Не удалось загрузить заявки.',
-                'Өтінімдерді жүктеу мүмкін болмады.',
-                'Unable to load tickets right now.',
-              ),
-        ),
-      )
-      .finally(() => setLoading(false));
+    setReloadVersion((version) => version + 1);
   };
 
   return (

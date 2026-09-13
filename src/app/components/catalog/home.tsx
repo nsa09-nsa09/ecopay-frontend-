@@ -393,8 +393,8 @@ function CatalogServiceCard({
                 {!hasTariffs
                   ? tx(language, 'Нет тарифов', 'Тарифтар жоқ', 'No plans')
                   : pending
-                  ? tx(language, 'Подбираем комнату…', 'Бөлме іздеудеміз…', 'Matching a room…')
-                  : tx(language, 'Присоединиться', 'Қосылу', 'Join')}
+                    ? tx(language, 'Подбираем комнату…', 'Бөлме іздеудеміз…', 'Matching a room…')
+                    : tx(language, 'Присоединиться', 'Қосылу', 'Join')}
                 {hasTariffs && !pending && <ArrowRight size={14} />}
               </span>
               {service.tariffs != null && service.tariffs > 0 && (
@@ -574,12 +574,14 @@ function PopularCarousel({
                     fontWeight: 600,
                   }}
                 >
-                  {service.discount == null ? tx(language, 'Тарифы', 'Тарифтар', 'Plans') : tx(
-                    language,
-                    `экономия ${service.discount}%`,
-                    `${service.discount}% үнем`,
-                    `save ${service.discount}%`,
-                  )}
+                  {service.discount == null
+                    ? tx(language, 'Тарифы', 'Тарифтар', 'Plans')
+                    : tx(
+                        language,
+                        `экономия ${service.discount}%`,
+                        `${service.discount}% үнем`,
+                        `save ${service.discount}%`,
+                      )}
                 </span>
               </Card>
             </button>
@@ -651,7 +653,6 @@ export function HomePage() {
   const [matchingKey, setMatchingKey] = useState<string | null>(null);
   const [matchError, setMatchError] = useState<string | null>(null);
   const [intentService, setIntentService] = useState<DisplayService | null>(null);
-  const [noFreeService, setNoFreeService] = useState<DisplayService | null>(null);
 
   const [featuredReviews, setFeaturedReviews] = useState<PublicServiceReviewDto[]>([]);
   const [homeStats, setHomeStats] = useState<PublicHomeStatsDto | null>(null);
@@ -795,11 +796,10 @@ export function HomePage() {
       const result = await authorizedRequest((token) => matchRoomForService(serviceId, token));
       if (result.action === 'JOIN' && result.roomId != null) {
         setIntentService(null);
-        setNoFreeService(null);
         navigate(`/room/${result.roomId}`);
       } else {
         setIntentService(null);
-        setNoFreeService(service);
+        navigate(createRoomTarget(serviceId), { state: { serviceId, source: 'existing' } });
       }
     } catch (err) {
       setMatchError(err instanceof ApiError ? err.message : t('marketplaceLoadFailed'));
@@ -810,7 +810,6 @@ export function HomePage() {
 
   const handleHaveSubscription = (service: DisplayService) => {
     setIntentService(null);
-    setNoFreeService(null);
     const serviceId = service.serviceId;
     navigate(createRoomTarget(serviceId), { state: { serviceId, source: 'existing' } });
   };
@@ -888,7 +887,6 @@ export function HomePage() {
           <span className="eco-blob eco-blob-3" />
         </div>
         <div className="relative max-w-[860px] mx-auto text-center">
-
           <h1
             className="animate-eco-fade-in text-[32px] sm:text-[44px] lg:text-[56px] leading-[1.1] tracking-tight m-0"
             style={{ color: 'var(--eco-text)', fontWeight: 700, animationDelay: '80ms' }}
@@ -1116,41 +1114,46 @@ export function HomePage() {
 
       {/* ─── Popular services carousel (full width, autoplay) ─── */}
       {displayServices.length > 0 && (
-      <section
-        style={{ background: 'var(--eco-surface)' }}
-        className="py-12 sm:py-16 overflow-hidden"
-      >
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
-          <Reveal>
-            <div className="flex items-end justify-between gap-4 mb-8">
-              <h2
-                className="text-[24px] sm:text-[32px] m-0"
-                style={{ color: 'var(--eco-text)', fontWeight: 700 }}
-              >
-                {tx(lang, 'Популярные сервисы', 'Танымал сервистер', 'Popular services')}
-              </h2>
-              <button
-                type="button"
-                onClick={scrollToMarketplace}
-                className="text-[14px] inline-flex items-center gap-1 shrink-0 cursor-pointer"
-                style={{
-                  color: 'var(--eco-primary)',
-                  background: 'transparent',
-                  border: 'none',
-                  fontWeight: 500,
-                }}
-              >
-                {tx(lang, 'Весь каталог', 'Толық каталог', 'Full catalog')} <ArrowRight size={14} />
-              </button>
+        <section
+          style={{ background: 'var(--eco-surface)' }}
+          className="py-12 sm:py-16 overflow-hidden"
+        >
+          <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
+            <Reveal>
+              <div className="flex items-end justify-between gap-4 mb-8">
+                <h2
+                  className="text-[24px] sm:text-[32px] m-0"
+                  style={{ color: 'var(--eco-text)', fontWeight: 700 }}
+                >
+                  {tx(lang, 'Популярные сервисы', 'Танымал сервистер', 'Popular services')}
+                </h2>
+                <button
+                  type="button"
+                  onClick={scrollToMarketplace}
+                  className="text-[14px] inline-flex items-center gap-1 shrink-0 cursor-pointer"
+                  style={{
+                    color: 'var(--eco-primary)',
+                    background: 'transparent',
+                    border: 'none',
+                    fontWeight: 500,
+                  }}
+                >
+                  {tx(lang, 'Весь каталог', 'Толық каталог', 'Full catalog')}{' '}
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            </Reveal>
+          </div>
+          <Reveal delay={100}>
+            <div className="px-4 sm:px-10">
+              <PopularCarousel
+                language={lang}
+                services={displayServices}
+                onPick={handlePickService}
+              />
             </div>
           </Reveal>
-        </div>
-        <Reveal delay={100}>
-          <div className="px-4 sm:px-10">
-            <PopularCarousel language={lang} services={displayServices} onPick={handlePickService} />
-          </div>
-        </Reveal>
-      </section>
+        </section>
       )}
 
       {/* ─── How it works ─── */}
@@ -1413,7 +1416,7 @@ export function HomePage() {
                         </Link>
                         {review.verifiedExperience && (
                           <Badge variant="success">
-                            <BadgeCheck size={12} /> Verified
+                            <BadgeCheck size={12} /> {t('verified')}
                           </Badge>
                         )}
                       </div>
@@ -1567,7 +1570,12 @@ export function HomePage() {
             setMatchError(null);
           }
         }}
-        title={tx(lang, 'Что вы хотите сделать?', 'Не істегіңіз келеді?', 'What would you like to do?')}
+        title={tx(
+          lang,
+          'Что вы хотите сделать?',
+          'Не істегіңіз келеді?',
+          'What would you like to do?',
+        )}
       >
         {intentService && (
           <div className="flex flex-col gap-3">
@@ -1578,10 +1586,21 @@ export function HomePage() {
               disabled={!!matchingKey}
               onClick={() => void handleWantSeat(intentService)}
             >
-              <span className="block text-[15px]" style={{ color: 'var(--eco-text)', fontWeight: 600 }}>
-                {tx(lang, 'Хочу место в подписке', 'Жазылымнан орын іздеймін', 'I want a spot in a subscription')}
+              <span
+                className="block text-[15px]"
+                style={{ color: 'var(--eco-text)', fontWeight: 600 }}
+              >
+                {tx(
+                  lang,
+                  'Хочу место в подписке',
+                  'Жазылымнан орын іздеймін',
+                  'I want a spot in a subscription',
+                )}
               </span>
-              <span className="block text-[13px] mt-1" style={{ color: 'var(--eco-text-secondary)' }}>
+              <span
+                className="block text-[13px] mt-1"
+                style={{ color: 'var(--eco-text-secondary)' }}
+              >
                 {tx(
                   lang,
                   'Найдём свободное место у владельца семейной подписки.',
@@ -1597,10 +1616,21 @@ export function HomePage() {
               disabled={!!matchingKey}
               onClick={() => handleHaveSubscription(intentService)}
             >
-              <span className="block text-[15px]" style={{ color: 'var(--eco-text)', fontWeight: 600 }}>
-                {tx(lang, 'У меня уже есть подписка', 'Менде жазылым бар', 'I already have a subscription')}
+              <span
+                className="block text-[15px]"
+                style={{ color: 'var(--eco-text)', fontWeight: 600 }}
+              >
+                {tx(
+                  lang,
+                  'У меня уже есть подписка',
+                  'Менде жазылым бар',
+                  'I already have a subscription',
+                )}
               </span>
-              <span className="block text-[13px] mt-1" style={{ color: 'var(--eco-text-secondary)' }}>
+              <span
+                className="block text-[13px] mt-1"
+                style={{ color: 'var(--eco-text-secondary)' }}
+              >
                 {tx(
                   lang,
                   'Укажите, сколько мест уже занято, а EcoPay поможет найти людей на остальные.',
@@ -1611,11 +1641,19 @@ export function HomePage() {
             </button>
             {matchingKey === intentService.key && (
               <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                {tx(lang, 'Ищем свободное место…', 'Бос орын іздеп жатырмыз…', 'Looking for an available spot…')}
+                {tx(
+                  lang,
+                  'Ищем свободное место…',
+                  'Бос орын іздеп жатырмыз…',
+                  'Looking for an available spot…',
+                )}
               </div>
             )}
             {matchError && (
-              <div className="rounded-lg p-3 flex flex-col gap-2" style={{ background: 'var(--eco-danger-100)' }}>
+              <div
+                className="rounded-lg p-3 flex flex-col gap-2"
+                style={{ background: 'var(--eco-danger-100)' }}
+              >
                 <span className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
                   {matchError}
                 </span>
@@ -1629,33 +1667,6 @@ export function HomePage() {
                 </Button>
               </div>
             )}
-          </div>
-        )}
-      </Modal>
-
-      <Modal
-        open={!!noFreeService}
-        onClose={() => setNoFreeService(null)}
-        title={tx(lang, 'Свободных мест сейчас нет', 'Қазір бос орын жоқ', 'No spots available right now')}
-      >
-        {noFreeService && (
-          <div className="flex flex-col gap-4">
-            <p className="text-[13px] m-0" style={{ color: 'var(--eco-text-secondary)' }}>
-              {tx(
-                lang,
-                'Попробуйте другой тариф или вернитесь позже.',
-                'Басқа тарифті байқап көріңіз немесе кейінірек оралыңыз.',
-                'Try another plan or check back later.',
-              )}
-            </p>
-            <Button variant="secondary" onClick={() => handleHaveSubscription(noFreeService)}>
-              {tx(
-                lang,
-                'У меня уже есть подписка — найти участников',
-                'Менде жазылым бар — қатысушылар табу',
-                'I already have a subscription — find members',
-              )}
-            </Button>
           </div>
         )}
       </Modal>

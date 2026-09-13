@@ -15,6 +15,7 @@
     "release:gate": "npm run typecheck && npm run test:contracts && npm run test:smoke && npm run test:e2e && npm run build:release",
     "test:contracts": "tsc --noEmit",
     "test:e2e": "playwright test",
+    "test:i18n": "node --experimental-strip-types --test tests/i18n-regression.test.mjs",
     "test:smoke": "node tools/smoke-launch.mjs",
     "typecheck": "tsc --noEmit"
   },

@@ -11,6 +11,7 @@ import {
   type PaymentHistoryItemDto,
   type PagedResponse,
 } from '../../lib/api';
+import { userStatusLabel } from '../../lib/user-facing-enums';
 
 type L = Language;
 
@@ -40,14 +41,14 @@ function kindLabel(kind: string, l: L): string {
   if (k === 'PAYMENT') return tx(l, 'Платёж', 'Төлем', 'Payment');
   if (k === 'REFUND') return tx(l, 'Возврат', 'Қайтару', 'Refund');
   if (k === 'PAYOUT') return tx(l, 'Выплата', 'Аударым', 'Payout');
-  return kind;
+  return tx(l, 'Операция', 'Операция', 'Operation');
 }
 
 function directionLabel(direction: string, l: L): string {
   const d = direction.toUpperCase();
   if (d === 'INCOMING') return tx(l, 'Входящий', 'Кіріс', 'Incoming');
   if (d === 'OUTGOING') return tx(l, 'Исходящий', 'Шығыс', 'Outgoing');
-  return direction;
+  return tx(l, 'Направление не указано', 'Бағыт көрсетілмеген', 'Direction unavailable');
 }
 
 function statusLabel(status: string, l: L): string {
@@ -72,7 +73,7 @@ function statusLabel(status: string, l: L): string {
     EXPIRED: ['Истёк', 'Мерзімі өтті', 'Expired'],
   };
   const entry = labels[s];
-  return entry ? tx(l, ...entry) : status.replace(/_/g, ' ');
+  return entry ? tx(l, ...entry) : userStatusLabel(status, l);
 }
 
 function historyDate(item: PaymentHistoryItemDto): string | null {
