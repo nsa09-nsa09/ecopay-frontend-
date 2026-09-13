@@ -267,6 +267,7 @@ footerContactLine: {
   reputation: { ru: 'Репутация', kz: 'Бедел', en: 'Reputation' },
   reviews: { ru: 'Отзывы', kz: 'Пікірлер', en: 'Reviews' },
   verified: { ru: 'Верифицирован', kz: 'Расталған', en: 'Verified' },
+  notVerified: { ru: 'Не верифицирован', kz: 'Расталмаған', en: 'Unverified' },
   phoneNumber: { ru: 'Телефон', kz: 'Телефон', en: 'Phone Number' },
   language: { ru: 'Язык', kz: 'Тіл', en: 'Language' },
   notifications: { ru: 'Уведомления', kz: 'Хабарландырулар', en: 'Notifications' },

@@ -462,7 +462,7 @@ function CreateTicketView({
         const id = 'roomId' in room ? room.roomId : room.id;
         return {
           value: String(id),
-          label: `#${id} · ${room.title} · ${room.serviceName}`,
+          label: `${room.title} · ${room.serviceName}`,
         };
       }),
     ],

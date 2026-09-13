@@ -942,8 +942,8 @@ test('support ticket form selects one of the user rooms instead of requiring a m
   await page.goto('/support/new');
   const roomSelect = page.locator('main select').nth(1);
   await expect(roomSelect.locator('option')).toContainText([
-    '#101 · Joined family room',
-    '#303 · Owned family room',
+    'Joined family room',
+    'Owned family room',
   ]);
   await expect(page.getByPlaceholder('e.g. 42')).toHaveCount(0);
   await roomSelect.selectOption('303');
