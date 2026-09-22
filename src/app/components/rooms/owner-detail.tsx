@@ -456,6 +456,9 @@ export function OwnerDetailPage() {
                 {members.map((p) => {
                   const postPayment = POST_PAYMENT.has(p.status);
                   const granted = !!p.ownerAccessConfirmedAt;
+                  const memberProfilePath = p.userPublicId
+                    ? `/u/${p.userPublicId}`
+                    : `/user/${p.userId}`;
                   const revealed =
                     revealedIdentifier?.memberId === p.id &&
                     revealedIdentifier.expiresAt > Date.now()
@@ -469,21 +472,22 @@ export function OwnerDetailPage() {
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2 min-w-0">
-                          <div
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] shrink-0"
-                            style={{
-                              background: 'var(--eco-neutral-100)',
-                              color: 'var(--eco-text-secondary)',
-                            }}
+                          <Link
+                            to={memberProfilePath}
+                            className="inline-flex items-center gap-2 min-w-0"
+                            style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
                           >
-                            {(p.userDisplayName || '?').charAt(0).toUpperCase()}
-                          </div>
-                          <span
-                            className="text-[14px] break-words"
-                            style={{ color: 'var(--eco-text)' }}
-                          >
-                            {p.userDisplayName}
-                          </span>
+                            <div
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] shrink-0"
+                              style={{
+                                background: 'var(--eco-neutral-100)',
+                                color: 'var(--eco-text-secondary)',
+                              }}
+                            >
+                              {(p.userDisplayName || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-[14px] break-words">{p.userDisplayName}</span>
+                          </Link>
                           <ReputationLevelBadge
                             level={p.userReputationLevel}
                             score={p.userReputation}

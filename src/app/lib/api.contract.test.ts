@@ -6,8 +6,11 @@ import type {
   PublicHomeStatsDto,
   PublicServiceReviewDto,
   CreateRoomPayload,
+  MemberHoldDto,
+  RoomMemberDto,
   RoomPricingPreviewDto,
   RoomResponseDto,
+  RoomSettingsDto,
   RoomSummaryDto,
   ServiceReviewDto,
 } from './api';
@@ -26,6 +29,14 @@ type _RoomHasExistingMembersCount = Expect<HasKey<RoomResponseDto, 'existingMemb
 type _RoomHasMarketplaceCapacity = Expect<HasKey<RoomResponseDto, 'marketplaceCapacity'>>;
 type _RoomHasFilledSeats = Expect<HasKey<RoomResponseDto, 'filledSeats'>>;
 type _RoomHasFreeSeats = Expect<HasKey<RoomResponseDto, 'freeSeats'>>;
+type _RoomHasOwnerPublicId = Expect<HasKey<RoomResponseDto, 'ownerPublicId'>>;
+type _RoomHasOwnerRating = Expect<HasKey<RoomResponseDto, 'ownerRating'>>;
+type _RoomMemberHasPublicId = Expect<HasKey<RoomMemberDto, 'userPublicId'>>;
+type _RoomMemberHasSlugFallback = Expect<HasKey<RoomMemberDto, 'userSlug'>>;
+type _RoomSettingsHasMinimum = Expect<HasKey<RoomSettingsDto, 'minimumRoomMembers'>>;
+type _HoldHasAmount = Expect<HasKey<MemberHoldDto, 'heldAmount'>>;
+type _HoldHasBeneficiaryPublicId = Expect<HasKey<MemberHoldDto, 'beneficiaryPublicId'>>;
+type _HoldHasReleaseDate = Expect<HasKey<MemberHoldDto, 'nextReleaseAt'>>;
 type _RoomSummaryHasExistingMembersCount = Expect<HasKey<RoomSummaryDto, 'existingMembersCount'>>;
 type _RoomSummaryHasMarketplaceCapacity = Expect<HasKey<RoomSummaryDto, 'marketplaceCapacity'>>;
 type _RoomSummaryHasFilledSeats = Expect<HasKey<RoomSummaryDto, 'filledSeats'>>;

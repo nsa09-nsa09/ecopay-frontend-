@@ -12,6 +12,7 @@ import {
 } from '../../lib/api';
 import { ShieldX, ShieldCheck, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
+import { AdminRoomSettingsCard } from './admin-room-settings-card';
 import { formatNumber } from '../../lib/datetime';
 
 const PAGE_SIZE = 20;
@@ -130,6 +131,11 @@ export function AdminRoomsPage() {
         </div>
 
         <FlashBanner flash={flash} />
+
+        <AdminRoomSettingsCard
+          onSuccess={(message) => showFlash('success', message)}
+          onError={(message) => showFlash('error', message)}
+        />
 
         {error && !loading && (
           <Card className="flex flex-col gap-2 mb-4">

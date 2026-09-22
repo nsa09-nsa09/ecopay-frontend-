@@ -120,8 +120,14 @@ export interface RoomSummaryDto {
 export interface RoomResponseDto {
   id: number;
   ownerUserId: number;
+  ownerDisplayName?: string | null;
   ownerSlug?: string | null;
   ownerPublicId?: string | null;
+  ownerVerified?: boolean | null;
+  ownerReputation?: number | null;
+  ownerReputationLevel?: string | null;
+  ownerRating?: number | null;
+  ownerReviewCount?: number | null;
   categoryId: number;
   serviceId: number;
   serviceLogoUrl?: string | null;
@@ -753,6 +759,10 @@ export function getRoom(roomId: string | number) {
   return requestJson<RoomResponseDto>(`/rooms/${roomId}`);
 }
 
+export function getPublicRoomSettingsRequest() {
+  return requestJson<RoomSettingsDto>('/site/room-settings');
+}
+
 export interface RoomInviteLinkDto {
   url: string;
   token: string;
@@ -796,6 +806,8 @@ export interface RoomMemberDto {
   userId: number;
   userDisplayName: string;
   userEmail: string | null;
+  userPublicId?: string | null;
+  userSlug?: string | null;
   userReputation?: number | null;
   userReputationLevel?: string | null;
   status: string;
@@ -808,6 +820,22 @@ export interface RoomMemberDto {
   endedAt: string | null;
   consentAcceptedAt: string | null;
   createdAt: string;
+}
+
+export interface RoomSettingsDto {
+  minimumRoomMembers: number;
+}
+
+/** Hold information is backend-calculated and can contain BigDecimal strings. */
+export interface MemberHoldDto {
+  heldAmount: number | string;
+  currency: string;
+  heldPayoutCount: number;
+  nextReleaseAt?: string | null;
+  beneficiaryUserId: number;
+  beneficiaryDisplayName?: string | null;
+  beneficiaryPublicId?: string | null;
+  beneficiarySlug?: string | null;
 }
 
 export interface MyRoomMembershipDto {
@@ -980,6 +1008,10 @@ export function getRoomMembers(
 
 export function getMyMembership(roomId: string | number, accessToken: string) {
   return requestJson<MyRoomMembershipDto>(`/rooms/${roomId}/members/me`, {}, accessToken);
+}
+
+export function getMyRoomHoldRequest(roomId: string | number, accessToken: string) {
+  return requestJson<MemberHoldDto>(`/rooms/${roomId}/members/me/hold`, {}, accessToken);
 }
 
 export function confirmOwnerAccessRequest(
@@ -1548,6 +1580,21 @@ export function getAdminRoomsRequest(
   return requestJson<PagedResponse<RoomSummaryDto>>(
     `/admin/rooms${toSearchParams(params)}`,
     {},
+    accessToken,
+  );
+}
+
+export function getAdminRoomSettingsRequest(accessToken: string) {
+  return requestJson<RoomSettingsDto>('/admin/room-settings', {}, accessToken);
+}
+
+export function updateAdminRoomSettingsRequest(
+  payload: RoomSettingsDto,
+  accessToken: string,
+) {
+  return requestJson<RoomSettingsDto>(
+    '/admin/room-settings',
+    { method: 'PATCH', body: JSON.stringify(payload) },
     accessToken,
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { Card, Button, MemberStatusBadge, RoomStatusBadge, Modal, Select } from '../ds-primitives';
+import { Card, Button, Badge, MemberStatusBadge, RoomStatusBadge, Modal, Select } from '../ds-primitives';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -10,6 +10,8 @@ import {
   LifeBuoy,
   CreditCard,
   Flag,
+  BadgeCheck,
+  Star,
 } from 'lucide-react';
 import {
   ApiError,
@@ -19,6 +21,8 @@ import {
   getCurrentPaymentIntentForMemberRequest,
   getRoom,
   getMyMembership,
+  getMyRoomHoldRequest,
+  type MemberHoldDto,
   type MyRoomMembershipDto,
   type RoomResponseDto,
   type PaymentIntentResponseDto,
@@ -30,6 +34,8 @@ import {
   formatDateTime as formatAlmatyDateTime,
 } from '../../lib/datetime';
 import { RoomChat } from './room-chat';
+import { LeaveReviewModal } from '../reputation/leave-review-modal';
+import { ReputationLevelBadge } from '../reputation/level-badge';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -100,6 +106,7 @@ export function MemberDetailPage() {
 
   const [room, setRoom] = useState<RoomResponseDto | null>(null);
   const [membership, setMembership] = useState<MyRoomMembershipDto | null>(null);
+  const [hold, setHold] = useState<MemberHoldDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -115,6 +122,7 @@ export function MemberDetailPage() {
   const [complaintSubmitting, setComplaintSubmitting] = useState(false);
   const [complaintError, setComplaintError] = useState<string | null>(null);
   const [complaintCreated, setComplaintCreated] = useState<number | null>(null);
+  const [ownerReviewOpen, setOwnerReviewOpen] = useState(false);
 
   useEffect(() => {
     if (!isReady) return;
@@ -138,11 +146,17 @@ export function MemberDetailPage() {
     let cancelled = false;
     setLoading(true);
 
-    Promise.all([getRoom(roomId), authorizedRequest((token) => getMyMembership(roomId, token))])
-      .then(([roomResponse, membershipResponse]) => {
+    Promise.all([
+      getRoom(roomId),
+      authorizedRequest((token) => getMyMembership(roomId, token)),
+      // A missing hold (such as before payment) must not block the room detail.
+      authorizedRequest((token) => getMyRoomHoldRequest(roomId, token)).catch(() => null),
+    ])
+      .then(([roomResponse, membershipResponse, holdResponse]) => {
         if (cancelled) return;
         setRoom(roomResponse);
         setMembership(membershipResponse);
+        setHold(holdResponse);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -371,6 +385,17 @@ export function MemberDetailPage() {
   const isActive = membership.status === 'ACTIVE';
   const canConfirm = membership.status === 'PENDING' && ownerGranted && !memberConfirmed;
   const roomPaymentClosed = ['CANCELLED', 'BLOCKED', 'COMPLETED'].includes(room.status);
+  const ownerProfilePath = room.ownerPublicId
+    ? `/u/${room.ownerPublicId}`
+    : `/user/${room.ownerUserId}`;
+  const canLeaveOwnerReview = room.status === 'COMPLETED' && paid;
+  const beneficiaryProfilePath = hold
+    ? hold.beneficiaryPublicId
+      ? `/u/${hold.beneficiaryPublicId}`
+      : room.ownerPublicId
+        ? `/u/${room.ownerPublicId}`
+        : `/user/${hold.beneficiaryUserId || room.ownerUserId}`
+    : null;
 
   const settlementCurrency = room.settlementCurrency ?? null;
   const payShare = room.shareKzt ?? null;
@@ -509,6 +534,101 @@ export function MemberDetailPage() {
             ))}
           </div>
         </Card>
+
+        <Card className="flex flex-col gap-3">
+          <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
+            {tx(language, 'Владелец комнаты', 'Бөлме иесі', 'Room owner')}
+          </h3>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <Link
+              to={ownerProfilePath}
+              className="inline-flex items-center gap-2 min-w-0"
+              style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+            >
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] shrink-0"
+                style={{ background: 'var(--eco-neutral-100)', color: 'var(--eco-text-secondary)' }}
+              >
+                {(room.ownerDisplayName ?? '?').charAt(0).toUpperCase()}
+              </div>
+              <span className="text-[14px] break-words">
+                {room.ownerDisplayName ?? tx(language, 'Владелец комнаты', 'Бөлме иесі', 'Room owner')}
+              </span>
+            </Link>
+            {room.ownerVerified && (
+              <Badge variant="success">
+                <BadgeCheck size={12} /> {tx(language, 'Проверен', 'Расталған', 'Verified')}
+              </Badge>
+            )}
+          </div>
+          {(room.ownerReputation != null || room.ownerRating != null || room.ownerReviewCount != null) && (
+            <div className="flex flex-wrap items-center gap-2 text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
+              {room.ownerReputation != null && (
+                <ReputationLevelBadge
+                  level={room.ownerReputationLevel}
+                  score={room.ownerReputation}
+                  size="sm"
+                />
+              )}
+              {room.ownerRating != null && (
+                <span className="inline-flex items-center gap-1">
+                  <Star size={13} style={{ color: 'var(--eco-warning)' }} /> {room.ownerRating.toFixed(1)}
+                </span>
+              )}
+              {room.ownerReviewCount != null && (
+                <span>
+                  {tx(language, `${room.ownerReviewCount} отзывов`, `${room.ownerReviewCount} пікір`, `${room.ownerReviewCount} reviews`)}
+                </span>
+              )}
+            </div>
+          )}
+          {canLeaveOwnerReview && (
+            <Button variant="secondary" size="sm" onClick={() => setOwnerReviewOpen(true)}>
+              <Star size={13} /> {tx(language, 'Оставить отзыв', 'Пікір қалдыру', 'Leave a review')}
+            </Button>
+          )}
+        </Card>
+
+        {paid && hold && (
+          <Card className="flex flex-col gap-3" style={{ border: '1px solid var(--eco-warning)' }}>
+            <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
+              {tx(language, 'Удержание EcoPay', 'EcoPay ұсталымы', 'EcoPay hold')}
+            </h3>
+            {Number(hold.heldAmount) > 0 ? (
+              <>
+                <div>
+                  <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {tx(language, 'Сейчас удерживается', 'Қазір ұсталып тұр', 'Currently held')}
+                  </div>
+                  <div className="text-[20px]" style={{ color: 'var(--eco-text)' }}>
+                    {formatCurrency(hold.heldAmount, hold.currency)}
+                  </div>
+                </div>
+                <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                  {tx(language, 'Получатель после разблокировки', 'Босатылғаннан кейін алушы', 'Recipient after release')}
+                  {beneficiaryProfilePath ? (
+                    <Link to={beneficiaryProfilePath} className="block mt-0.5" style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}>
+                      {hold.beneficiaryDisplayName ?? room.ownerDisplayName ?? tx(language, 'Владелец комнаты', 'Бөлме иесі', 'Room owner')}
+                    </Link>
+                  ) : null}
+                </div>
+                {hold.nextReleaseAt && (
+                  <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                    {tx(language, 'Ожидаемая дата разблокировки', 'Күтілетін босату күні', 'Expected release date')}
+                    <div style={{ color: 'var(--eco-text)' }}>{formatAlmatyDate(hold.nextReleaseAt, language)}</div>
+                  </div>
+                )}
+                <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  {tx(language, 'Эта сумма из вашего платежа сейчас удерживается EcoPay перед выплатой владельцу комнаты.', 'Бұл сома төлеміңізден бөлме иесіне төленгенге дейін EcoPay арқылы ұсталып тұр.', 'This amount from your payment is currently held by EcoPay before payout to the room owner.')}
+                </p>
+              </>
+            ) : (
+              <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                {tx(language, 'Сейчас активного удержания нет.', 'Қазір белсенді ұсталым жоқ.', 'There is no active hold right now.')}
+              </p>
+            )}
+          </Card>
+        )}
 
         {membership.status === 'APPLIED' && !roomPaymentClosed && (
           <Card className="flex flex-col gap-4">
@@ -883,6 +1003,14 @@ export function MemberDetailPage() {
           </Button>
         </div>
       </Modal>
+
+      <LeaveReviewModal
+        open={ownerReviewOpen}
+        onClose={() => setOwnerReviewOpen(false)}
+        recipientId={room.ownerUserId}
+        roomId={roomId}
+        recipientName={room.ownerDisplayName ?? undefined}
+      />
 
       {canConfirm && (
         <div

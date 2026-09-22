@@ -5,6 +5,7 @@ import { AlertTriangle, ArrowLeft, Lock, Check, CreditCard, Users } from 'lucide
 import {
   ApiError,
   createRoomRequest,
+  getPublicRoomSettingsRequest,
   getRoomPricingPreviewRequest,
   getPayoutMethodsRequest,
   getServices,
@@ -71,6 +72,9 @@ export function CreateRoomPage() {
   const [services, setServices] = useState<ServiceDto[]>([]);
   const [tariffs, setTariffs] = useState<TariffPlanDto[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+  // This is a UX fallback only. The backend remains authoritative on creation.
+  const [minimumRoomMembers, setMinimumRoomMembers] = useState(5);
+  const [roomSettingsUnavailable, setRoomSettingsUnavailable] = useState(false);
 
   const [serviceId, setServiceId] = useState<string>('');
   const [tariffPlanId, setTariffPlanId] = useState<string>('');
@@ -116,6 +120,23 @@ export function CreateRoomPage() {
       cancelled = true;
     };
   }, [isReady, isAuthenticated, authorizedRequest]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPublicRoomSettingsRequest()
+      .then((settings) => {
+        if (!cancelled && Number.isFinite(settings.minimumRoomMembers)) {
+          setMinimumRoomMembers(settings.minimumRoomMembers);
+          setRoomSettingsUnavailable(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRoomSettingsUnavailable(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -230,6 +251,13 @@ export function CreateRoomPage() {
     () => (seatCount >= 3 ? ([1, 2] as const) : seatCount === 2 ? ([1] as const) : []),
     [seatCount],
   );
+
+  const eligibleTariffs = useMemo(
+    () => tariffs.filter((tariff) => tariff.maxMembers >= minimumRoomMembers),
+    [tariffs, minimumRoomMembers],
+  );
+  const selectedTariffIsEligible =
+    !!selectedTariff && selectedTariff.maxMembers >= minimumRoomMembers;
   const seatsEcoPayCanFind = pricingPreview?.marketplaceCapacity ?? 0;
 
   useEffect(() => {
@@ -243,9 +271,23 @@ export function CreateRoomPage() {
   }, [selectedTariff]);
 
   useEffect(() => {
-    if (!isAuthenticated || !tariffPlanId || !Number.isFinite(tariffPlanIdNumber)) {
+    if (
+      !isAuthenticated ||
+      !tariffPlanId ||
+      !Number.isFinite(tariffPlanIdNumber) ||
+      !selectedTariffIsEligible
+    ) {
       setPricingPreview(null);
-      setPricingError(null);
+      setPricingError(
+        tariffPlanId && !selectedTariffIsEligible
+          ? tx(
+              language,
+              `Для новой комнаты выберите тариф минимум на ${minimumRoomMembers} мест.`,
+              `Жаңа бөлме үшін кемінде ${minimumRoomMembers} орны бар тарифті таңдаңыз.`,
+              `Choose a plan with at least ${minimumRoomMembers} seats for a new room.`,
+            )
+          : null,
+      );
       return;
     }
     let cancelled = false;
@@ -271,7 +313,7 @@ export function CreateRoomPage() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, tariffPlanId, tariffPlanIdNumber, existingMembersCount, authorizedRequest, language]);
+  }, [isAuthenticated, tariffPlanId, tariffPlanIdNumber, existingMembersCount, authorizedRequest, language, selectedTariffIsEligible, minimumRoomMembers]);
 
   const moneyFmt = (value: number | string) => {
     const amount = Number(value);
@@ -363,6 +405,19 @@ export function CreateRoomPage() {
 
   const handlePublish = async () => {
     setSubmitError(null);
+
+    if (selectedTariff && !selectedTariffIsEligible) {
+      setSubmitError(
+        tx(
+          language,
+          `Для новой комнаты выберите тариф минимум на ${minimumRoomMembers} мест.`,
+          `Жаңа бөлме үшін кемінде ${minimumRoomMembers} орны бар тарифті таңдаңыз.`,
+          `Choose a plan with at least ${minimumRoomMembers} seats for a new room.`,
+        ),
+      );
+      setStep(0);
+      return;
+    }
 
     if (
       !pricingPreview ||
@@ -728,11 +783,11 @@ export function CreateRoomPage() {
                 {
                   value: '',
                   label:
-                    tariffs.length > 0
+                    eligibleTariffs.length > 0
                       ? tx(language, 'Выберите тариф', 'Тарифті таңдаңыз', 'Select a plan')
                       : tx(language, 'Тарифов нет', 'Тарифтер жоқ', 'No plans available'),
                 },
-                ...tariffs.map((t) => ({
+                ...eligibleTariffs.map((t) => ({
                   value: String(t.id),
                   label: `${t.name} · ${CURRENCY_SYMBOLS[(t.currency ?? 'KZT') as SupportedCurrency] ?? t.currency}${formatNumber(Number(t.basePriceTotal))} / ${periodLabel(t.periodType)}`,
                 })),
@@ -740,6 +795,24 @@ export function CreateRoomPage() {
               value={tariffPlanId}
               onChange={(e) => applyTariff(e.target.value)}
             />
+            <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+              {tx(
+                language,
+                `Для новых комнат минимум ${minimumRoomMembers} мест. Владелец комнаты также учитывается.`,
+                `Жаңа бөлмелер үшін кемінде ${minimumRoomMembers} орын қажет. Бөлме иесі де есепке алынады.`,
+                `New rooms need at least ${minimumRoomMembers} seats. The room owner is included.`,
+              )}
+            </p>
+            {roomSettingsUnavailable && (
+              <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                {tx(
+                  language,
+                  'Требование временно показано по умолчанию; окончательную проверку выполнит сервер.',
+                  'Талап уақытша әдепкі мәнмен көрсетілді; соңғы тексеруді сервер орындайды.',
+                  'The requirement is shown from a temporary fallback; the server performs final validation.',
+                )}
+              </p>
+            )}
             {selectedTariff && (
               <div
                 className="rounded-lg p-3 flex flex-col gap-2"

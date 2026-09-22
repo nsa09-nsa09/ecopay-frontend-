@@ -135,6 +135,9 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
     createRoomPayloads: [] as Record<string, unknown>[],
     supportTicketPayloads: [] as Record<string, unknown>[],
     adminAboutPayloads: [] as Record<string, unknown>[],
+    roomSettingsPayloads: [] as Array<{ minimumRoomMembers: number }>,
+    minimumRoomMembers: 5,
+    memberStatus: 'APPLIED' as string,
     matchResult: { action: 'JOIN' as 'JOIN' | 'CREATE', roomId: 101 as number | null },
     matchCalls: 0,
     joinFullOnce: false,
@@ -256,6 +259,29 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
     }
     if (path === '/site/legal/terms') return body(legalDocument('terms'));
     if (path === '/site/legal/privacy') return body(legalDocument('privacy'));
+    if (path === '/site/room-settings' && method === 'GET') {
+      return body({ minimumRoomMembers: controls.minimumRoomMembers });
+    }
+    if (path === '/admin/room-settings' && method === 'GET') {
+      return body({ minimumRoomMembers: controls.minimumRoomMembers });
+    }
+    if (path === '/admin/room-settings' && method === 'PATCH') {
+      const payload = route.request().postDataJSON() as { minimumRoomMembers: number };
+      controls.roomSettingsPayloads.push(payload);
+      controls.minimumRoomMembers = payload.minimumRoomMembers;
+      return body({ minimumRoomMembers: controls.minimumRoomMembers });
+    }
+    if (path === '/admin/rooms' && method === 'GET') {
+      return body({
+        items: [],
+        page: 0,
+        size: 20,
+        totalItems: 0,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
+      });
+    }
     if (path.includes('/users/me/dashboard')) {
       return body({
         joinedRoomsActive: 0,
@@ -438,6 +464,18 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
           operatorRules: '',
           features: [],
         },
+        {
+          id: 14,
+          serviceId: 1,
+          name: 'Decimal Family 5',
+          periodType: 'MONTHLY',
+          maxMembers: 5,
+          basePriceTotal: 7290,
+          currency: 'KZT',
+          connectionType: 'INVITE',
+          operatorRules: '',
+          features: [],
+        },
       ]);
     }
     if (path === '/catalog/services' && method === 'GET') {
@@ -547,9 +585,9 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
         tariffPlanId: number;
         existingMembersCount: 1 | 2;
       };
-      const decimalPlan = payload.tariffPlanId === 12;
+      const decimalPlan = payload.tariffPlanId === 12 || payload.tariffPlanId === 14;
       const duoPlan = payload.tariffPlanId === 13;
-      const maxMembers = duoPlan ? 2 : decimalPlan ? 4 : 5;
+      const maxMembers = duoPlan ? 2 : payload.tariffPlanId === 12 ? 4 : 5;
       const share = decimalPlan ? 1822.5 : 1500;
       const capacity = maxMembers - payload.existingMembersCount;
       const commission = payload.existingMembersCount === 2 ? 450 : 500;
@@ -739,6 +777,17 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
         activatedAt: null,
       });
     }
+    if (path === '/rooms/100/members/me/hold' && method === 'GET') {
+      return body({
+        heldAmount: 0,
+        currency: 'KZT',
+        heldPayoutCount: 0,
+        nextReleaseAt: null,
+        beneficiaryUserId: 2,
+        beneficiaryDisplayName: 'Owner',
+        beneficiaryPublicId: 'owner-public',
+      });
+    }
     if (path.includes('/rooms/100/members/me')) {
       return body({
         id: '555',
@@ -746,7 +795,7 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
         userId: 10,
         userDisplayName: 'Member',
         userEmail: user.email,
-        status: 'APPLIED',
+        status: controls.memberStatus,
         requiresAdminReview: false,
         identifierType: null,
         identifierMasked: null,
@@ -1016,15 +1065,37 @@ test('mixed room selector and pricing preview use the server contract', async ({
   expect(api.createRoomPayloads[0]).toMatchObject({ serviceId: 1, existingMembersCount: 2 });
 });
 
-test('two-seat tariff only allows the owner option', async ({ page }) => {
+test('new room selector applies the minimum-capacity setting without hiding legacy room detail', async ({
+  page,
+}) => {
+  await mockApi(page);
+  await seedSession(page);
+
+  await page.goto('/rooms/create?serviceId=1&source=existing');
+  const planSelect = page.locator('main select').nth(1);
+  await expect(planSelect).toContainText('Family 5');
+  await expect(planSelect).not.toContainText('Decimal 4');
+
+  // A four-seat existing room remains accessible despite the five-seat creation rule.
+  await page.goto('/rooms/member/100');
+  await expect(page.getByRole('heading', { name: 'Production room' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Room owner' })).toHaveAttribute('href', '/user/2');
+});
+
+test('paid member sees a zero hold as an explicit neutral state', async ({ page }) => {
+  const api = await mockApi(page);
+  api.memberStatus = 'PENDING';
+  await seedSession(page);
+
+  await page.goto('/rooms/member/100');
+  await expect(page.getByText('There is no active hold right now.')).toBeVisible();
+});
+
+test('two-seat tariff is unavailable for a new room below the minimum capacity', async ({ page }) => {
   await mockApi(page);
   await seedSession(page);
   await page.goto('/rooms/create?serviceId=1&source=existing');
-  await page.locator('main select').nth(1).selectOption('13');
-  await expect(page.getByRole('button', { name: 'Just me', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Me + 1 more person', exact: true })).toHaveCount(
-    0,
-  );
+  await expect(page.locator('main select').nth(1)).not.toContainText('Duo');
 });
 
 test('room detail uses server seats and settlement amounts without client surcharge math', async ({
@@ -1051,7 +1122,7 @@ test('decimal tariff preview keeps backend cents without Math.round drift', asyn
   await mockApi(page);
   await seedSession(page);
   await page.goto('/rooms/create?serviceId=1&source=existing');
-  await page.locator('main select').nth(1).selectOption('12');
+  await page.locator('main select').nth(1).selectOption('14');
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByPlaceholder('e.g. Family plan').fill('Decimal plan');
   await page.getByRole('button', { name: 'Continue' }).click();
@@ -1284,6 +1355,19 @@ test('admin finance operations opens for admin', async ({ page }) => {
 
   await page.goto('/admin/finance');
   await expect(page.getByRole('button', { name: 'PAYMENT REVIEW' })).toBeVisible();
+});
+
+test('admin room setting loads and saves the PATCH contract without reloading', async ({ page }) => {
+  const api = await mockApi(page, 'ADMIN');
+  await seedSession(page, 'ADMIN');
+
+  await page.goto('/admin/rooms');
+  const input = page.getByLabel('Seat count');
+  await expect(input).toHaveValue('5');
+  await input.fill('6');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect.poll(() => api.roomSettingsPayloads).toEqual([{ minimumRoomMembers: 6 }]);
+  await expect(input).toHaveValue('6');
 });
 
 test('/admin/tickets shows a named room link', async ({ page }) => {
