@@ -8,13 +8,17 @@ import { useAuth } from '../auth/auth-provider';
 import {
   banUserRequest,
   createAdminUserRequest,
+  getDeletedAdminUsersRequest,
   getAdminUserRequest,
   getAdminUsersRequest,
   getRoomEventLogsRequest,
+  revealDeletedIdentifiersRequest,
   unbanUserRequest,
   updateAdminUserOwnerVerifiedRequest,
   updateAdminUserRoleRequest,
   type AdminUserDto,
+  type DeletedAdminUserDto,
+  type RevealedDeletedIdentifiersDto,
   type RoomEventLogDto,
 } from '../../lib/api';
 import {
@@ -39,6 +43,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
+import { RestrictionModal } from './restriction-modal';
 import { reputationOutOfTen } from '../../lib/reputation';
 
 const PAGE_SIZE = 20;
@@ -81,7 +86,7 @@ export function AdminUsersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
 
-  const [segment, setSegment] = useState<'USERS' | 'ADMINS'>('USERS');
+  const [segment, setSegment] = useState<'USERS' | 'ADMINS' | 'DELETED'>('USERS');
   const [usersCount, setUsersCount] = useState<number | null>(null);
   const [adminsCount, setAdminsCount] = useState<number | null>(null);
 
@@ -97,6 +102,7 @@ export function AdminUsersPage() {
   );
   const [banSubmitting, setBanSubmitting] = useState(false);
   const [banError, setBanError] = useState<string | null>(null);
+  const [restrictionUserId, setRestrictionUserId] = useState<number | string | null>(null);
 
   const [roleModal, setRoleModal] = useState<{ user: AdminUserDto } | null>(null);
   const [newRole, setNewRole] = useState<AdminRole>('USER');
@@ -125,6 +131,7 @@ export function AdminUsersPage() {
   }, [searchParams]);
 
   const load = useCallback(async () => {
+    if (segment === 'DELETED') return;
     setLoading(true);
     setError(null);
     try {
@@ -239,6 +246,30 @@ export function AdminUsersPage() {
   const selected = detail ?? listSelected;
 
   const isBanned = (u: AdminUserDto) => u.status === 'BANNED';
+  const hasScheduledRestriction = (u: AdminUserDto) =>
+    Boolean(u.banStartsAt && new Date(u.banStartsAt) > new Date());
+  const restrictionLabel = (u: AdminUserDto) => {
+    if (u.banStartsAt && new Date(u.banStartsAt) > new Date())
+      return (
+        tx(
+          language,
+          'Блокировка запланирована с',
+          'Бұғаттау жоспарланған уақыт:',
+          'Restriction scheduled from',
+        ) + ` ${formatDateTime(u.banStartsAt, language)}`
+      );
+    if (!isBanned(u)) return null;
+    return u.banUntil
+      ? tx(language, 'Заблокирован до', 'Дейін бұғатталған:', 'Blocked until') +
+          ` ${formatDateTime(u.banUntil, language)}`
+      : tx(language, 'Заблокирован бессрочно', 'Мерзімсіз бұғатталған', 'Blocked indefinitely');
+  };
+  const roleLabel = (role: string) =>
+    role === 'ADMIN'
+      ? tx(language, 'Администратор', 'Әкімші', 'Administrator')
+      : role === 'SUPPORT'
+        ? tx(language, 'Поддержка', 'Қолдау', 'Support')
+        : tx(language, 'Пользователь', 'Пайдаланушы', 'User');
 
   const replaceUser = (updated: AdminUserDto) => {
     setItems((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
@@ -353,6 +384,11 @@ export function AdminUsersPage() {
           {[
             { key: 'USERS' as const, label: t('usersSegmentUsers'), count: usersCount },
             { key: 'ADMINS' as const, label: t('usersSegmentAdmins'), count: adminsCount },
+            {
+              key: 'DELETED' as const,
+              label: tx(language, 'Удалённые', 'Жойылғандар', 'Deleted'),
+              count: null,
+            },
           ].map((s) => {
             const active = segment === s.key;
             return (
@@ -373,399 +409,434 @@ export function AdminUsersPage() {
                 }}
               >
                 {s.label}
-                <span className="ml-1.5" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  ({s.count ?? '…'})
-                </span>
+                {s.key !== 'DELETED' && (
+                  <span className="ml-1.5" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    ({s.count ?? '…'})
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
 
-        <div className="mb-4 max-w-md">
-          <Input
-            placeholder={t('searchUsersPlaceholder')}
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-        </div>
-
-        <FlashBanner flash={flash} />
-
-        {error && !loading && (
-          <Card className="flex flex-col gap-2 mb-4">
-            <div className="text-[14px]" style={{ color: 'var(--eco-negative)' }}>
-              {t('loadFailedTitle')}
+        {segment === 'DELETED' && <DeletedUsersPanel />}
+        {segment !== 'DELETED' && (
+          <>
+            <div className="mb-4 max-w-md">
+              <Input
+                placeholder={t('searchUsersPlaceholder')}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
             </div>
-            <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {error}
-            </div>
-            <Button variant="primary" size="sm" onClick={() => void load()}>
-              <RefreshCw size={13} /> {t('retry')}
-            </Button>
-          </Card>
-        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 flex flex-col gap-2">
-            {loading && items.length === 0 && (
-              <>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-xl"
-                    style={{
-                      background: 'var(--eco-surface-raised)',
-                      border: '1px solid var(--eco-border)',
-                      minHeight: 80,
-                    }}
-                  />
-                ))}
-              </>
-            )}
-            {!loading && items.length === 0 && (
-              <Card
-                className="text-center text-[13px]"
-                style={{ color: 'var(--eco-text-tertiary)' }}
-              >
-                {t('emptyUsers')}
+            <FlashBanner flash={flash} />
+
+            {error && !loading && (
+              <Card className="flex flex-col gap-2 mb-4">
+                <div className="text-[14px]" style={{ color: 'var(--eco-negative)' }}>
+                  {t('loadFailedTitle')}
+                </div>
+                <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  {error}
+                </div>
+                <Button variant="primary" size="sm" onClick={() => void load()}>
+                  <RefreshCw size={13} /> {t('retry')}
+                </Button>
               </Card>
             )}
-            {items.map((u) => {
-              const banned = isBanned(u);
-              const active = String(selectedId) === String(u.id);
-              return (
-                <button
-                  key={u.id}
-                  onClick={() => setSelectedId(u.id)}
-                  className="text-left p-4 rounded-xl cursor-pointer transition-all"
-                  style={{
-                    background: active ? 'var(--eco-brand-50)' : 'var(--eco-surface-raised)',
-                    border: `1px solid ${active ? 'var(--eco-primary)' : 'var(--eco-border)'}`,
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span
-                      className="text-[12px]"
-                      style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                    >
-                      U-{u.id}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      {u.role && <Badge variant={roleBadgeVariant(u.role)}>{u.role}</Badge>}
-                      {banned && <Badge variant="danger">{t('bannedBadge')}</Badge>}
-                    </div>
-                  </div>
-                  <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
-                    {u.displayName}
-                  </div>
-                  <div
-                    className="flex items-center gap-2 text-[12px]"
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1 flex flex-col gap-2">
+                {loading && items.length === 0 && (
+                  <>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="p-4 rounded-xl"
+                        style={{
+                          background: 'var(--eco-surface-raised)',
+                          border: '1px solid var(--eco-border)',
+                          minHeight: 80,
+                        }}
+                      />
+                    ))}
+                  </>
+                )}
+                {!loading && items.length === 0 && (
+                  <Card
+                    className="text-center text-[13px]"
                     style={{ color: 'var(--eco-text-tertiary)' }}
                   >
-                    <span
-                      className="flex items-center gap-0.5"
-                      style={{ color: 'var(--eco-warning-500)' }}
+                    {t('emptyUsers')}
+                  </Card>
+                )}
+                {items.map((u) => {
+                  const active = String(selectedId) === String(u.id);
+                  return (
+                    <button
+                      key={u.id}
+                      onClick={() => setSelectedId(u.id)}
+                      className="text-left p-4 rounded-xl cursor-pointer transition-all"
+                      style={{
+                        background: active ? 'var(--eco-brand-50)' : 'var(--eco-surface-raised)',
+                        border: `1px solid ${active ? 'var(--eco-primary)' : 'var(--eco-border)'}`,
+                      }}
                     >
-                      <Star size={10} fill="currentColor" />{' '}
-                      {reputationOutOfTen(u.reputation).toFixed(1)}/10
-                    </span>
-                    · {u.emailMasked ?? u.email}
-                  </div>
-                  {segment === 'ADMINS' && (
-                    <div
-                      className="mt-1 flex items-center gap-1 text-[11px]"
-                      style={{ color: 'var(--eco-text-tertiary)' }}
-                    >
-                      <Clock size={10} />
-                      <span>{t('usersLastLogin')}:</span>
-                      <span style={{ color: 'var(--eco-text-secondary)' }}>
-                        {u.lastLoginAt ? formatDateTime(u.lastLoginAt, language) : '—'}
-                      </span>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-2 text-[12px]">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={page <= 0 || loading}
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                >
-                  <ChevronLeft size={12} /> {t('prevPage')}
-                </Button>
-                <span style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {t('pageOf', { page: page + 1, total: totalPages })}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={page >= totalPages - 1 || loading}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  {t('nextPage')} <ChevronRight size={12} />
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <div className="lg:col-span-2">
-            {!selected ? (
-              <Card
-                className="flex items-center justify-center py-16 text-[14px]"
-                style={{ color: 'var(--eco-text-tertiary)' }}
-              >
-                {t('selectUserToView')}
-              </Card>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <Card className="flex flex-col gap-4">
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] shrink-0"
-                        style={{
-                          background: 'var(--eco-surface)',
-                          color: 'var(--eco-text-secondary)',
-                        }}
-                      >
-                        {(selected.displayName || '?').charAt(0)}
-                      </div>
-                      <div className="min-w-0">
-                        <div
-                          className="text-[18px] flex items-center gap-2 break-words"
-                          style={{ color: 'var(--eco-text)' }}
+                      <div className="flex items-center justify-between mb-1">
+                        <span
+                          className="text-[12px]"
+                          style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
                         >
-                          {selected.displayName}
-                          {detailLoading && (
-                            <Loader2
-                              size={12}
-                              className="animate-spin"
-                              style={{ color: 'var(--eco-text-tertiary)' }}
-                            />
-                          )}
+                          U-{u.id}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {u.role && <Badge variant="default">{roleLabel(u.role)}</Badge>}
                         </div>
+                      </div>
+                      <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+                        {u.displayName}
+                      </div>
+                      {restrictionLabel(u) && (
+                        <div className="mt-1 text-[11px]" style={{ color: 'var(--eco-negative)' }}>
+                          {restrictionLabel(u)}
+                        </div>
+                      )}
+                      <div
+                        className="flex items-center gap-2 text-[12px]"
+                        style={{ color: 'var(--eco-text-tertiary)' }}
+                      >
+                        <span
+                          className="flex items-center gap-0.5"
+                          style={{ color: 'var(--eco-warning-500)' }}
+                        >
+                          <Star size={10} fill="currentColor" />{' '}
+                          {reputationOutOfTen(u.reputation).toFixed(1)}/10
+                        </span>
+                        · {u.emailMasked ?? u.email}
+                      </div>
+                      {segment === 'ADMINS' && (
                         <div
-                          className="text-[12px] break-all"
+                          className="mt-1 flex items-center gap-1 text-[11px]"
                           style={{ color: 'var(--eco-text-tertiary)' }}
                         >
-                          U-{selected.id} · {selected.emailMasked ?? selected.email}
-                          {selected.createdAt
-                            ? ` · ${t('sinceLabel')} ${formatDate(selected.createdAt, language)}`
-                            : ''}
+                          <Clock size={10} />
+                          <span>{t('usersLastLogin')}:</span>
+                          <span style={{ color: 'var(--eco-text-secondary)' }}>
+                            {u.lastLoginAt ? formatDateTime(u.lastLoginAt, language) : '—'}
+                          </span>
                         </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {isBanned(selected) && <Badge variant="danger">{t('bannedBadge')}</Badge>}
-                      {selected.role && (
-                        <Badge variant={roleBadgeVariant(selected.role)}>{selected.role}</Badge>
                       )}
-                      {selected.ownerVerified && (
-                        <Badge variant="success">
-                          <BadgeCheck size={11} /> {tx(language, 'Владелец', 'Иесі', 'Owner')}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
+                    </button>
+                  );
+                })}
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                    {[
-                      {
-                        label: t('rating'),
-                        value: `${reputationOutOfTen(selected.reputation).toFixed(1)}/10`,
-                        icon: Star,
-                      },
-                      { label: t('owned'), value: `${selected.roomsOwned ?? 0}`, icon: Home },
-                      {
-                        label: t('joinedCount'),
-                        value: `${selected.roomsJoined ?? 0}`,
-                        icon: Home,
-                      },
-                      {
-                        label: t('tickets'),
-                        value: `${selected.tickets ?? 0}`,
-                        icon: MessageSquare,
-                      },
-                      {
-                        label: t('disputes'),
-                        value: `${selected.disputes ?? 0}`,
-                        icon: AlertTriangle,
-                      },
-                    ].map((s) => {
-                      const Icon = s.icon;
-                      return (
-                        <div
-                          key={s.label}
-                          className="p-2.5 rounded-lg"
-                          style={{ background: 'var(--eco-surface)' }}
-                        >
-                          <div
-                            className="flex items-center gap-1.5 text-[11px] mb-0.5"
-                            style={{ color: 'var(--eco-text-tertiary)' }}
-                          >
-                            <Icon size={11} /> {s.label}
-                          </div>
-                          <div className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
-                            {s.value}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {selected.phoneMasked && (
-                    <div
-                      className="flex items-center gap-2 text-[12px] pt-3 border-t"
-                      style={{ borderColor: 'var(--eco-border)' }}
-                    >
-                      <Shield size={12} style={{ color: 'var(--eco-text-tertiary)' }} />
-                      <span style={{ color: 'var(--eco-text-secondary)', fontFamily: 'monospace' }}>
-                        {selected.phoneMasked}
-                      </span>
-                    </div>
-                  )}
-
-                  <div
-                    className="flex items-center gap-2 text-[12px] pt-3 border-t"
-                    style={{ borderColor: 'var(--eco-border)', color: 'var(--eco-text-tertiary)' }}
-                  >
-                    <Clock size={12} />
-                    <span>{t('lastLoginLabel')}:</span>
-                    <span style={{ color: 'var(--eco-text-secondary)' }}>
-                      {selected.lastLoginAt
-                        ? formatDateTime(selected.lastLoginAt, language)
-                        : t('lastLoginNever')}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {selected.publicId && (
-                      <Link to={`/u/${selected.publicId}`} style={{ textDecoration: 'none' }}>
-                        <Button variant="secondary" size="sm">
-                          <ExternalLink size={13} /> {t('openPublicProfile')}
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => openRoleModal(selected)}>
-                      <Repeat2 size={13} />{' '}
-                      {tx(language, 'Изменить роль', 'Рөлді өзгерту', 'Change role')}
-                    </Button>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-2 text-[12px]">
                     <Button
-                      variant={selected.ownerVerified ? 'ghost' : 'secondary'}
+                      variant="ghost"
                       size="sm"
-                      onClick={() => openVerifyModal(selected, !selected.ownerVerified)}
+                      disabled={page <= 0 || loading}
+                      onClick={() => setPage((p) => Math.max(0, p - 1))}
                     >
-                      {selected.ownerVerified ? (
-                        <>
-                          <RotateCcw size={13} />{' '}
-                          {tx(
-                            language,
-                            'Снять метку владельца',
-                            'Иесі белгісін алу',
-                            'Revoke owner mark',
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <BadgeCheck size={13} />{' '}
-                          {tx(
-                            language,
-                            'Отметить как владельца',
-                            'Иесі деп белгілеу',
-                            'Mark as owner',
-                          )}
-                        </>
-                      )}
+                      <ChevronLeft size={12} /> {t('prevPage')}
                     </Button>
-                    {!isBanned(selected) ? (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setBanModal({ user: selected, action: 'BAN' })}
-                      >
-                        <Ban size={13} /> {t('banUser')}
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => setBanModal({ user: selected, action: 'UNBAN' })}
-                      >
-                        <ShieldCheck size={13} /> {t('unbanUser')}
-                      </Button>
-                    )}
+                    <span style={{ color: 'var(--eco-text-tertiary)' }}>
+                      {t('pageOf', { page: page + 1, total: totalPages })}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={page >= totalPages - 1 || loading}
+                      onClick={() => setPage((p) => p + 1)}
+                    >
+                      {t('nextPage')} <ChevronRight size={12} />
+                    </Button>
                   </div>
-                </Card>
+                )}
+              </div>
 
-                <Card className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
-                      {tx(
-                        language,
-                        'События комнат пользователя',
-                        'Пайдаланушы бөлмелерінің оқиғалары',
-                        'User room events',
-                      )}
-                    </h2>
-                    <Badge variant="info">{roomEvents.length}</Badge>
-                  </div>
-
-                  {roomEventsLoading ? (
-                    <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {t('loading')}
-                    </div>
-                  ) : roomEventsError ? (
-                    <div className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
-                      {roomEventsError}
-                    </div>
-                  ) : roomEvents.length === 0 ? (
-                    <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {tx(language, 'Событий нет', 'Оқиғалар жоқ', 'No room events')}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col">
-                      {roomEvents.map((event) => (
-                        <div
-                          key={event.id}
-                          className="flex items-start justify-between gap-3 py-2 border-t first:border-t-0"
-                          style={{ borderColor: 'var(--eco-border)' }}
-                        >
+              <div className="lg:col-span-2">
+                {!selected ? (
+                  <Card
+                    className="flex items-center justify-center py-16 text-[14px]"
+                    style={{ color: 'var(--eco-text-tertiary)' }}
+                  >
+                    {t('selectUserToView')}
+                  </Card>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    <Card className="flex flex-col gap-4">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] shrink-0"
+                            style={{
+                              background: 'var(--eco-surface)',
+                              color: 'var(--eco-text-secondary)',
+                            }}
+                          >
+                            {(selected.displayName || '?').charAt(0)}
+                          </div>
                           <div className="min-w-0">
-                            <code className="text-[12px]" style={{ color: 'var(--eco-text)' }}>
-                              {event.eventType}
-                            </code>
                             <div
-                              className="text-[11px] mt-0.5"
+                              className="text-[18px] flex items-center gap-2 break-words"
+                              style={{ color: 'var(--eco-text)' }}
+                            >
+                              {selected.displayName}
+                              {detailLoading && (
+                                <Loader2
+                                  size={12}
+                                  className="animate-spin"
+                                  style={{ color: 'var(--eco-text-tertiary)' }}
+                                />
+                              )}
+                            </div>
+                            <div
+                              className="text-[12px] break-all"
                               style={{ color: 'var(--eco-text-tertiary)' }}
                             >
-                              {formatDateTime(event.createdAt, language)}
+                              U-{selected.id} · {selected.emailMasked ?? selected.email}
+                              {selected.createdAt
+                                ? ` · ${t('sinceLabel')} ${formatDate(selected.createdAt, language)}`
+                                : ''}
                             </div>
                           </div>
-                          {event.roomId != null && (
-                            <Link
-                              to={`/admin/rooms?selected=${event.roomId}`}
-                              className="text-[12px] shrink-0"
-                              style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
-                            >
-                              R-{event.roomId}
-                            </Link>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {restrictionLabel(selected) && (
+                            <Badge variant="danger">{restrictionLabel(selected)}</Badge>
+                          )}
+                          {selected.role && (
+                            <Badge variant="default">{roleLabel(selected.role)}</Badge>
+                          )}
+                          {selected.ownerVerified && (
+                            <Badge variant="success">
+                              <BadgeCheck size={11} /> {tx(language, 'Владелец', 'Иесі', 'Owner')}
+                            </Badge>
                           )}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </Card>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                        {[
+                          {
+                            label: t('rating'),
+                            value: `${reputationOutOfTen(selected.reputation).toFixed(1)}/10`,
+                            icon: Star,
+                          },
+                          { label: t('owned'), value: `${selected.roomsOwned ?? 0}`, icon: Home },
+                          {
+                            label: t('joinedCount'),
+                            value: `${selected.roomsJoined ?? 0}`,
+                            icon: Home,
+                          },
+                          {
+                            label: t('tickets'),
+                            value: `${selected.tickets ?? 0}`,
+                            icon: MessageSquare,
+                          },
+                          {
+                            label: t('disputes'),
+                            value: `${selected.disputes ?? 0}`,
+                            icon: AlertTriangle,
+                          },
+                        ].map((s) => {
+                          const Icon = s.icon;
+                          return (
+                            <div
+                              key={s.label}
+                              className="p-2.5 rounded-lg"
+                              style={{ background: 'var(--eco-surface)' }}
+                            >
+                              <div
+                                className="flex items-center gap-1.5 text-[11px] mb-0.5"
+                                style={{ color: 'var(--eco-text-tertiary)' }}
+                              >
+                                <Icon size={11} /> {s.label}
+                              </div>
+                              <div className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
+                                {s.value}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {selected.phoneMasked && (
+                        <div
+                          className="flex items-center gap-2 text-[12px] pt-3 border-t"
+                          style={{ borderColor: 'var(--eco-border)' }}
+                        >
+                          <Shield size={12} style={{ color: 'var(--eco-text-tertiary)' }} />
+                          <span
+                            style={{ color: 'var(--eco-text-secondary)', fontFamily: 'monospace' }}
+                          >
+                            {selected.phoneMasked}
+                          </span>
+                        </div>
+                      )}
+
+                      <div
+                        className="flex items-center gap-2 text-[12px] pt-3 border-t"
+                        style={{
+                          borderColor: 'var(--eco-border)',
+                          color: 'var(--eco-text-tertiary)',
+                        }}
+                      >
+                        <Clock size={12} />
+                        <span>{t('lastLoginLabel')}:</span>
+                        <span style={{ color: 'var(--eco-text-secondary)' }}>
+                          {selected.lastLoginAt
+                            ? formatDateTime(selected.lastLoginAt, language)
+                            : t('lastLoginNever')}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {selected.publicId && (
+                          <Link to={`/u/${selected.publicId}`} style={{ textDecoration: 'none' }}>
+                            <Button variant="secondary" size="sm">
+                              <ExternalLink size={13} /> {t('openPublicProfile')}
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => openRoleModal(selected)}
+                        >
+                          <Repeat2 size={13} />{' '}
+                          {tx(language, 'Изменить роль', 'Рөлді өзгерту', 'Change role')}
+                        </Button>
+                        <Button
+                          variant={selected.ownerVerified ? 'ghost' : 'secondary'}
+                          size="sm"
+                          onClick={() => openVerifyModal(selected, !selected.ownerVerified)}
+                        >
+                          {selected.ownerVerified ? (
+                            <>
+                              <RotateCcw size={13} />{' '}
+                              {tx(
+                                language,
+                                'Снять метку владельца',
+                                'Иесі белгісін алу',
+                                'Revoke owner mark',
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <BadgeCheck size={13} />{' '}
+                              {tx(
+                                language,
+                                'Отметить как владельца',
+                                'Иесі деп белгілеу',
+                                'Mark as owner',
+                              )}
+                            </>
+                          )}
+                        </Button>
+                        {!isBanned(selected) && !hasScheduledRestriction(selected) ? (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setRestrictionUserId(selected.id)}
+                          >
+                            <Ban size={13} />{' '}
+                            {tx(language, 'Заблокировать', 'Бұғаттау', 'Block user')}
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => setBanModal({ user: selected, action: 'UNBAN' })}
+                          >
+                            <ShieldCheck size={13} />{' '}
+                            {selected.banStartsAt && new Date(selected.banStartsAt) > new Date()
+                              ? tx(
+                                  language,
+                                  'Отменить запланированную блокировку',
+                                  'Жоспарланған бұғаттауды болдырмау',
+                                  'Cancel scheduled restriction',
+                                )
+                              : tx(
+                                  language,
+                                  'Снять блокировку',
+                                  'Бұғаттауды алып тастау',
+                                  'Remove restriction',
+                                )}
+                          </Button>
+                        )}
+                      </div>
+                    </Card>
+
+                    <Card className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <h2 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
+                          {tx(
+                            language,
+                            'События комнат пользователя',
+                            'Пайдаланушы бөлмелерінің оқиғалары',
+                            'User room events',
+                          )}
+                        </h2>
+                        <Badge variant="info">{roomEvents.length}</Badge>
+                      </div>
+
+                      {roomEventsLoading ? (
+                        <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                          {t('loading')}
+                        </div>
+                      ) : roomEventsError ? (
+                        <div className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
+                          {roomEventsError}
+                        </div>
+                      ) : roomEvents.length === 0 ? (
+                        <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                          {tx(language, 'Событий нет', 'Оқиғалар жоқ', 'No room events')}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col">
+                          {roomEvents.map((event) => (
+                            <div
+                              key={event.id}
+                              className="flex items-start justify-between gap-3 py-2 border-t first:border-t-0"
+                              style={{ borderColor: 'var(--eco-border)' }}
+                            >
+                              <div className="min-w-0">
+                                <code className="text-[12px]" style={{ color: 'var(--eco-text)' }}>
+                                  {event.eventType}
+                                </code>
+                                <div
+                                  className="text-[11px] mt-0.5"
+                                  style={{ color: 'var(--eco-text-tertiary)' }}
+                                >
+                                  {formatDateTime(event.createdAt, language)}
+                                </div>
+                              </div>
+                              {event.roomId != null && (
+                                <Link
+                                  to={`/admin/rooms?selected=${event.roomId}`}
+                                  className="text-[12px] shrink-0"
+                                  style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+                                >
+                                  R-{event.roomId}
+                                </Link>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </Card>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          </>
+        )}
 
         <ConfirmActionModal
           open={!!banModal}
@@ -787,6 +858,15 @@ export function AdminUsersPage() {
           submitting={banSubmitting}
           errorMessage={banError}
           onConfirm={submitBan}
+        />
+
+        <RestrictionModal
+          userId={restrictionUserId}
+          onClose={() => setRestrictionUserId(null)}
+          onSaved={(updated) => {
+            replaceUser(updated);
+            showFlash('success', t('actionCompletedAndLogged'));
+          }}
         />
 
         <RoleChangeModal
@@ -826,6 +906,312 @@ export function AdminUsersPage() {
         />
       </div>
     </AdminLayout>
+  );
+}
+
+function DeletedUsersPanel() {
+  const { language } = useI18n();
+  const { authorizedRequest } = useAuth();
+  const [items, setItems] = useState<DeletedAdminUserDto[]>([]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<DeletedAdminUserDto | null>(null);
+  const [stage, setStage] = useState<1 | 2 | 3>(1);
+  const [reason, setReason] = useState('');
+  const [revealed, setRevealed] = useState<RevealedDeletedIdentifiersDto | null>(null);
+  const [revealing, setRevealing] = useState(false);
+  const [revealError, setRevealError] = useState<string | null>(null);
+
+  const loadDeleted = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await authorizedRequest((token) =>
+        getDeletedAdminUsersRequest(token, { page, size: PAGE_SIZE, search: search || undefined }),
+      );
+      setItems(result.items);
+      setTotalPages(Math.max(1, result.totalPages));
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : tx(
+              language,
+              'Не удалось загрузить список.',
+              'Тізімді жүктеу мүмкін болмады.',
+              'Could not load deleted users.',
+            ),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [authorizedRequest, page, search, language]);
+
+  useEffect(() => {
+    void loadDeleted();
+  }, [loadDeleted]);
+
+  const close = () => {
+    if (revealing) return;
+    setSelected(null);
+    setStage(1);
+    setReason('');
+    setRevealed(null);
+    setRevealError(null);
+  };
+
+  const reveal = async () => {
+    if (!selected || revealing || !reason.trim()) return;
+    setRevealing(true);
+    setRevealError(null);
+    try {
+      const data = await authorizedRequest((token) =>
+        revealDeletedIdentifiersRequest(selected.userId, reason.trim(), token),
+      );
+      setRevealed(data);
+      setStage(3);
+    } catch (err) {
+      setRevealError(
+        err instanceof Error
+          ? err.message
+          : tx(
+              language,
+              'Не удалось показать контакты.',
+              'Контактілерді көрсету мүмкін болмады.',
+              'Could not reveal contacts.',
+            ),
+      );
+    } finally {
+      setRevealing(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="mb-4 max-w-md">
+        <Input
+          placeholder={tx(
+            language,
+            'Поиск удалённых пользователей',
+            'Жойылған пайдаланушыларды іздеу',
+            'Search deleted users',
+          )}
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(0);
+          }}
+        />
+      </div>
+      {error && (
+        <Card className="mb-4 text-[13px]" style={{ color: 'var(--eco-negative)' }}>
+          {error}
+        </Card>
+      )}
+      {loading ? (
+        <p className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+          {tx(language, 'Загрузка...', 'Жүктелуде...', 'Loading...')}
+        </p>
+      ) : items.length === 0 ? (
+        <Card className="text-[13px]">
+          {tx(
+            language,
+            'Удалённых пользователей нет.',
+            'Жойылған пайдаланушылар жоқ.',
+            'No deleted users.',
+          )}
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {items.map((item) => (
+            <Card
+              key={item.userId}
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0"
+            >
+              <div className="min-w-0 flex-1">
+                <div
+                  className="text-[16px] font-semibold break-words"
+                  style={{ color: 'var(--eco-text)' }}
+                >
+                  {item.displayNameAtDeletion}
+                </div>
+                <div
+                  className="text-[12px] break-all"
+                  style={{ color: 'var(--eco-text-tertiary)' }}
+                >
+                  {item.slugAtDeletion ? `@${item.slugAtDeletion}` : `U-${item.userId}`}
+                </div>
+                <div className="mt-2 text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  {tx(language, 'Удалён', 'Жойылған', 'Deleted')}{' '}
+                  {formatDateTime(item.deletedAt, language)}
+                </div>
+              </div>
+              <div
+                className="min-w-0 sm:w-[250px] text-[13px] break-all"
+                style={{ color: 'var(--eco-text-secondary)' }}
+              >
+                {item.identityArchived ? (
+                  <>
+                    <div>{item.emailMasked || '—'}</div>
+                    <div>{item.phoneMasked || '—'}</div>
+                  </>
+                ) : (
+                  tx(
+                    language,
+                    'Контакты были удалены до включения архива',
+                    'Контактілер архив қосылғанға дейін жойылған',
+                    'Contacts were deleted before archiving was enabled',
+                  )
+                )}
+              </div>
+              {item.identityArchived && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="self-start sm:self-center shrink-0"
+                  onClick={() => {
+                    setSelected(item);
+                    setStage(1);
+                    setReason('');
+                    setRevealed(null);
+                    setRevealError(null);
+                  }}
+                >
+                  <Eye size={13} />{' '}
+                  {tx(language, 'Показать контакты', 'Контактілерді көрсету', 'Show contacts')}
+                </Button>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={page === 0 || loading}
+            onClick={() => setPage(page - 1)}
+          >
+            {tx(language, 'Назад', 'Артқа', 'Previous')}
+          </Button>
+          <span>
+            {page + 1}/{totalPages}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={page >= totalPages - 1 || loading}
+            onClick={() => setPage(page + 1)}
+          >
+            {tx(language, 'Далее', 'Келесі', 'Next')}
+          </Button>
+        </div>
+      )}
+      <Modal
+        open={selected != null}
+        onClose={close}
+        title={
+          stage === 1
+            ? tx(
+                language,
+                'Показать исходные контактные данные?',
+                'Бастапқы байланыс деректерін көрсету керек пе?',
+                'Reveal original contact details?',
+              )
+            : stage === 2
+              ? tx(language, 'Подтвердить просмотр?', 'Қарауды растау керек пе?', 'Confirm access?')
+              : tx(language, 'Контактные данные', 'Байланыс деректері', 'Contact details')
+        }
+      >
+        {stage === 3 && revealed ? (
+          <div
+            className="flex flex-col gap-3 text-[13px] break-all"
+            style={{ color: 'var(--eco-text)' }}
+          >
+            <div>Email: {revealed.email || '—'}</div>
+            <div>
+              {tx(language, 'Телефон', 'Телефон', 'Phone')}: {revealed.phone || '—'}
+            </div>
+            <div>@{revealed.slug || '—'}</div>
+            <Button variant="secondary" onClick={close}>
+              {tx(language, 'Закрыть', 'Жабу', 'Close')}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {stage === 1 ? (
+              <>
+                <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                  {tx(
+                    language,
+                    'Просмотр фиксируется в журнале безопасности.',
+                    'Қарау қауіпсіздік журналында тіркеледі.',
+                    'Access is recorded in the security log.',
+                  )}
+                </p>
+                <label
+                  className="text-[13px] flex flex-col gap-1"
+                  style={{ color: 'var(--eco-text-secondary)' }}
+                >
+                  {tx(language, 'Причина просмотра', 'Қарау себебі', 'Reason for access')}
+                  <textarea
+                    rows={3}
+                    value={reason}
+                    onChange={(event) => setReason(event.target.value)}
+                    className="rounded-lg p-2"
+                    style={{
+                      background: 'var(--eco-surface)',
+                      color: 'var(--eco-text)',
+                      border: '1px solid var(--eco-border)',
+                    }}
+                  />
+                </label>
+              </>
+            ) : (
+              <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                {tx(
+                  language,
+                  'Исходные данные будут показаны только в этом окне.',
+                  'Бастапқы деректер тек осы терезеде көрсетіледі.',
+                  'Original details will appear only in this window.',
+                )}
+              </p>
+            )}
+            {revealError && (
+              <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
+                {revealError}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                className="flex-1"
+                disabled={revealing}
+                onClick={() => (stage === 1 ? close() : setStage(1))}
+              >
+                {stage === 1
+                  ? tx(language, 'Отмена', 'Бас тарту', 'Cancel')
+                  : tx(language, 'Назад', 'Артқа', 'Back')}
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={revealing || !reason.trim()}
+                loading={revealing}
+                onClick={() => (stage === 1 ? setStage(2) : void reveal())}
+              >
+                {stage === 1
+                  ? tx(language, 'Продолжить', 'Жалғастыру', 'Continue')
+                  : tx(language, 'Подтвердить', 'Растау', 'Confirm')}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </>
   );
 }
 

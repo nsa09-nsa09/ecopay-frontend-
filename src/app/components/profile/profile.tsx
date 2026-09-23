@@ -102,6 +102,7 @@ export function ProfilePage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteStage, setDeleteStage] = useState<1 | 2>(1);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -417,7 +418,11 @@ export function ProfilePage() {
               variant="destructive"
               size="sm"
               className="self-start"
-              onClick={() => setDeleteOpen(true)}
+              onClick={() => {
+                setDeleteStage(1);
+                setDeleteError(null);
+                setDeleteOpen(true);
+              }}
             >
               {t('deleteAccount')}
             </Button>
@@ -425,12 +430,40 @@ export function ProfilePage() {
 
           <Modal
             open={deleteOpen}
-            onClose={() => setDeleteOpen(false)}
-            title={t('deleteAccountTitle')}
+            onClose={() => {
+              if (!deleting) setDeleteOpen(false);
+            }}
+            title={
+              deleteStage === 1
+                ? tx(
+                    language,
+                    'Удалить аккаунт навсегда?',
+                    'Аккаунтты біржола жою керек пе?',
+                    'Delete account permanently?',
+                  )
+                : tx(
+                    language,
+                    'Подтвердить действие?',
+                    'Әрекетті растау керек пе?',
+                    'Confirm this action?',
+                  )
+            }
           >
             <div className="flex flex-col gap-4">
               <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-                {t('deleteAccountWarning')}
+                {deleteStage === 1
+                  ? tx(
+                      language,
+                      'Это действие необратимо. Сначала завершите все активные обязательства.',
+                      'Бұл әрекетті қайтару мүмкін емес. Алдымен барлық белсенді міндеттемелерді аяқтаңыз.',
+                      'This action cannot be undone. Complete all active obligations first.',
+                    )
+                  : tx(
+                      language,
+                      'Вы действительно хотите навсегда удалить аккаунт?',
+                      'Аккаунтты шынымен біржола жойғыңыз келе ме?',
+                      'Do you really want to permanently delete your account?',
+                    )}
               </p>
               {deleteError && (
                 <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
@@ -438,14 +471,30 @@ export function ProfilePage() {
                 </p>
               )}
               <div className="flex gap-2">
-                <Button variant="ghost" className="flex-1" onClick={() => setDeleteOpen(false)}>
-                  {tx(language, 'Отмена', 'Бас тарту', 'Cancel')}
+                <Button
+                  variant="ghost"
+                  className="flex-1"
+                  disabled={deleting}
+                  onClick={() => {
+                    if (deleteStage === 2) setDeleteStage(1);
+                    else setDeleteOpen(false);
+                  }}
+                >
+                  {deleteStage === 1
+                    ? tx(language, 'Отмена', 'Бас тарту', 'Cancel')
+                    : tx(language, 'Назад', 'Артқа', 'Back')}
                 </Button>
                 <Button
-                  variant="destructive"
+                  variant={deleteStage === 1 ? 'secondary' : 'destructive'}
                   className="flex-1"
                   loading={deleting}
+                  disabled={deleting}
                   onClick={async () => {
+                    if (deleteStage === 1) {
+                      setDeleteStage(2);
+                      return;
+                    }
+                    if (deleting) return;
                     setDeleting(true);
                     setDeleteError(null);
                     try {
@@ -474,7 +523,14 @@ export function ProfilePage() {
                     }
                   }}
                 >
-                  {t('deleteAccountConfirm')}
+                  {deleteStage === 1
+                    ? tx(language, 'Продолжить', 'Жалғастыру', 'Continue')
+                    : tx(
+                        language,
+                        'Да, удалить аккаунт',
+                        'Иә, аккаунтты жою',
+                        'Yes, delete account',
+                      )}
                 </Button>
               </div>
             </div>
@@ -1510,13 +1566,42 @@ function MemberDashboardCard() {
       {data && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {stats.filter((s) => ['memberStatActiveRooms', 'memberStatTotalSpent', 'memberStatTotalSaved'].includes(s.key)).map((s) => (
-              <DashboardHeroStat key={s.key} stat={s} label={t(s.key)} />
-            ))}
+            {stats
+              .filter((s) =>
+                ['memberStatActiveRooms', 'memberStatTotalSpent', 'memberStatTotalSaved'].includes(
+                  s.key,
+                ),
+              )
+              .map((s) => (
+                <DashboardHeroStat key={s.key} stat={s} label={t(s.key)} />
+              ))}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <DashboardList title={language === 'ru' ? 'Активность' : language === 'kz' ? 'Белсенділік' : 'Activity'} stats={stats.filter((s) => ['memberStatCompletedRooms', 'memberStatTotalJoined', 'memberStatMonthlySpend', 'memberStatNextPayment'].includes(s.key))} t={t} />
-            <DashboardList title={language === 'ru' ? 'Репутация' : language === 'kz' ? 'Бедел' : 'Reputation'} stats={stats.filter((s) => ['memberStatReputation', 'memberStatReviewsReceived', 'memberStatDisputes'].includes(s.key))} t={t} />
+            <DashboardList
+              title={
+                language === 'ru' ? 'Активность' : language === 'kz' ? 'Белсенділік' : 'Activity'
+              }
+              stats={stats.filter((s) =>
+                [
+                  'memberStatCompletedRooms',
+                  'memberStatTotalJoined',
+                  'memberStatMonthlySpend',
+                  'memberStatNextPayment',
+                ].includes(s.key),
+              )}
+              t={t}
+            />
+            <DashboardList
+              title={language === 'ru' ? 'Репутация' : language === 'kz' ? 'Бедел' : 'Reputation'}
+              stats={stats.filter((s) =>
+                [
+                  'memberStatReputation',
+                  'memberStatReviewsReceived',
+                  'memberStatDisputes',
+                ].includes(s.key),
+              )}
+              t={t}
+            />
           </div>
         </>
       )}
@@ -1525,14 +1610,69 @@ function MemberDashboardCard() {
 }
 
 function dashboardColor(variant: MemberStat['variant']) {
-  return variant === 'warning' ? 'var(--eco-warning-500)' : variant === 'danger' ? 'var(--eco-danger-500)' : variant === 'success' ? 'var(--eco-positive)' : 'var(--eco-brand-600)';
+  return variant === 'warning'
+    ? 'var(--eco-warning-500)'
+    : variant === 'danger'
+      ? 'var(--eco-danger-500)'
+      : variant === 'success'
+        ? 'var(--eco-positive)'
+        : 'var(--eco-brand-600)';
 }
 
 function DashboardHeroStat({ stat, label }: { stat: MemberStat; label: string }) {
   const Icon = stat.icon;
-  return <div className="rounded-xl p-4" style={{ background: 'var(--eco-surface)' }}><div className="flex items-center gap-2 text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}><Icon size={15} style={{ color: dashboardColor(stat.variant) }} />{label}</div><div className="text-[21px] mt-2" style={{ color: 'var(--eco-text)', fontWeight: 650 }}>{stat.value}</div></div>;
+  return (
+    <div className="rounded-xl p-4" style={{ background: 'var(--eco-surface)' }}>
+      <div
+        className="flex items-center gap-2 text-[12px]"
+        style={{ color: 'var(--eco-text-tertiary)' }}
+      >
+        <Icon size={15} style={{ color: dashboardColor(stat.variant) }} />
+        {label}
+      </div>
+      <div className="text-[21px] mt-2" style={{ color: 'var(--eco-text)', fontWeight: 650 }}>
+        {stat.value}
+      </div>
+    </div>
+  );
 }
 
-function DashboardList({ title, stats, t }: { title: string; stats: MemberStat[]; t: (key: string) => string }) {
-  return <div className="rounded-xl p-4" style={{ background: 'var(--eco-surface)' }}><h4 className="text-[13px] mb-2" style={{ color: 'var(--eco-text)' }}>{title}</h4><div className="divide-y" style={{ borderColor: 'var(--eco-border)' }}>{stats.map((stat) => { const Icon = stat.icon; return <div key={stat.key} className="flex items-center justify-between gap-3 py-2.5"><span className="flex min-w-0 items-center gap-2 text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}><Icon size={14} style={{ color: dashboardColor(stat.variant) }} />{t(stat.key)}</span><span className="text-right text-[13px] shrink-0" style={{ color: 'var(--eco-text)' }}>{stat.value}</span></div>; })}</div></div>;
+function DashboardList({
+  title,
+  stats,
+  t,
+}: {
+  title: string;
+  stats: MemberStat[];
+  t: (key: string) => string;
+}) {
+  return (
+    <div className="rounded-xl p-4" style={{ background: 'var(--eco-surface)' }}>
+      <h4 className="text-[13px] mb-2" style={{ color: 'var(--eco-text)' }}>
+        {title}
+      </h4>
+      <div className="divide-y" style={{ borderColor: 'var(--eco-border)' }}>
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.key} className="flex items-center justify-between gap-3 py-2.5">
+              <span
+                className="flex min-w-0 items-center gap-2 text-[12px]"
+                style={{ color: 'var(--eco-text-secondary)' }}
+              >
+                <Icon size={14} style={{ color: dashboardColor(stat.variant) }} />
+                {t(stat.key)}
+              </span>
+              <span
+                className="text-right text-[13px] shrink-0"
+                style={{ color: 'var(--eco-text)' }}
+              >
+                {stat.value}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }

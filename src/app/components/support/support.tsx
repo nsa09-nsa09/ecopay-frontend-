@@ -8,9 +8,6 @@ import {
   CheckCircle2,
   Shield,
   Plus,
-  Filter,
-  ChevronDown,
-  ChevronUp,
   AlertTriangle,
   Loader2,
   MessageSquare,
@@ -39,11 +36,11 @@ const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
 
 const TOPIC_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
-  access: 'warning',
-  payment: 'danger',
-  wrong_plan: 'info',
-  refund: 'warning',
-  abuse: 'danger',
+  access: 'default',
+  payment: 'default',
+  wrong_plan: 'default',
+  refund: 'default',
+  abuse: 'default',
   other: 'default',
 };
 
@@ -52,7 +49,7 @@ const STATUS_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'danger
   IN_PROGRESS: 'info',
   WAITING_USER: 'warning',
   ESCALATED: 'danger',
-  CLOSED: 'success',
+  CLOSED: 'default',
 };
 
 function useTopicOptions() {
@@ -123,16 +120,18 @@ function TicketListView({
   );
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [topicFilter, setTopicFilter] = useState('ALL');
-  const [showFilters, setShowFilters] = useState(false);
+  const [query, setQuery] = useState('');
 
   const filtered = useMemo(
     () =>
       tickets.filter((t) => {
         if (statusFilter !== 'ALL' && t.status !== statusFilter) return false;
         if (topicFilter !== 'ALL' && t.topic !== topicFilter) return false;
+        const searchText = `${t.subject} T-${t.id} ${t.roomTitle ?? ''}`.toLocaleLowerCase();
+        if (query.trim() && !searchText.includes(query.trim().toLocaleLowerCase())) return false;
         return true;
       }),
-    [tickets, statusFilter, topicFilter],
+    [tickets, statusFilter, topicFilter, query],
   );
 
   return (
@@ -165,74 +164,58 @@ function TicketListView({
       </div>
 
       {!loading && !error && tickets.length > 0 && (
-        <div className="mb-4">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] cursor-pointer transition-colors"
-            style={{
-              color: 'var(--eco-text-secondary)',
-              background: 'var(--eco-surface)',
-              border: '1px solid var(--eco-border)',
-            }}
+        <div className="mb-5 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_190px_220px] gap-3 items-end">
+          <label
+            className="flex flex-col gap-1 text-[13px]"
+            style={{ color: 'var(--eco-text-secondary)' }}
           >
-            <Filter size={14} />
-            {tx(language, 'Фильтры', 'Сүзгілер', 'Filters')}
-            {(statusFilter !== 'ALL' || topicFilter !== 'ALL') && (
-              <span
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ background: 'var(--eco-primary)' }}
-              />
-            )}
-            {showFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
+            {tx(language, 'Поиск', 'Іздеу', 'Search')}
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={tx(
+                language,
+                'Поиск по заявкам...',
+                'Өтінімдерді іздеу...',
+                'Search tickets...',
+              )}
+              className="w-full min-w-0 rounded-lg px-3 py-2.5 text-[14px] outline-none"
+              style={{
+                background: 'var(--eco-surface-raised)',
+                border: '1px solid var(--eco-border)',
+                color: 'var(--eco-text)',
+              }}
+            />
+          </label>
+          <Select
+            label={tx(language, 'Статус', 'Мәртебе', 'Status')}
+            options={[
+              {
+                value: 'ALL',
+                label: tx(language, 'Все статусы', 'Барлық мәртебелер', 'All statuses'),
+              },
+              { value: 'OPEN', label: tx(language, 'Открыта', 'Ашық', 'Open') },
+              { value: 'IN_PROGRESS', label: tx(language, 'В работе', 'Жұмыста', 'In Progress') },
+              { value: 'WAITING_USER', label: localizeStatus(language, 'WAITING_USER') },
+              { value: 'ESCALATED', label: localizeStatus(language, 'ESCALATED') },
+              { value: 'CLOSED', label: tx(language, 'Закрыта', 'Жабық', 'Closed') },
+            ]}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          />
+          <Select
+            label={tx(language, 'Категория', 'Санат', 'Category')}
+            options={[
+              {
+                value: 'ALL',
+                label: tx(language, 'Все темы', 'Барлық тақырыптар', 'All topics'),
+              },
+              ...TOPIC_OPTIONS,
+            ]}
+            value={topicFilter}
+            onChange={(e) => setTopicFilter(e.target.value)}
+          />
         </div>
-      )}
-
-      {showFilters && (
-        <Card className="mb-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Select
-              label={tx(language, 'Статус', 'Мәртебе', 'Status')}
-              options={[
-                {
-                  value: 'ALL',
-                  label: tx(language, 'Все статусы', 'Барлық мәртебелер', 'All statuses'),
-                },
-                { value: 'OPEN', label: tx(language, 'Открыта', 'Ашық', 'Open') },
-                { value: 'IN_PROGRESS', label: tx(language, 'В работе', 'Жұмыста', 'In Progress') },
-                { value: 'WAITING_USER', label: localizeStatus(language, 'WAITING_USER') },
-                { value: 'ESCALATED', label: localizeStatus(language, 'ESCALATED') },
-                { value: 'CLOSED', label: tx(language, 'Закрыта', 'Жабық', 'Closed') },
-              ]}
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            />
-            <Select
-              label={tx(language, 'Тема', 'Тақырып', 'Topic')}
-              options={[
-                {
-                  value: 'ALL',
-                  label: tx(language, 'Все темы', 'Барлық тақырыптар', 'All topics'),
-                },
-                ...TOPIC_OPTIONS,
-              ]}
-              value={topicFilter}
-              onChange={(e) => setTopicFilter(e.target.value)}
-            />
-            <div className="flex items-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setStatusFilter('ALL');
-                  setTopicFilter('ALL');
-                }}
-              >
-                {tx(language, 'Сбросить фильтры', 'Сүзгілерді тазалау', 'Clear filters')}
-              </Button>
-            </div>
-          </div>
-        </Card>
       )}
 
       {loading ? (
@@ -262,136 +245,53 @@ function TicketListView({
           )}
         />
       ) : (
-        <div className="flex flex-col gap-2">
-          <div
-            className="hidden sm:grid gap-3 px-5 py-2 text-[12px]"
-            style={{
-              color: 'var(--eco-text-tertiary)',
-              gridTemplateColumns: '160px minmax(0,1.6fr) 140px 130px 120px 112px',
-            }}
-          >
-            <div>ID</div>
-            <div>{tx(language, 'Тема', 'Тақырыбы', 'Subject')}</div>
-            <div>{tx(language, 'Категория', 'Санат', 'Topic')}</div>
-            <div>{tx(language, 'Статус', 'Мәртебе', 'Status')}</div>
-            <div>{tx(language, 'Комната', 'Бөлме', 'Room')}</div>
-            <div>{tx(language, 'Обновлено', 'Жаңартылды', 'Updated')}</div>
-          </div>
-
-          {filtered.map((t) => (
-            <Card key={t.id} className="cursor-pointer hover:shadow-sm transition-shadow">
-              <button
-                className="w-full text-left cursor-pointer"
-                style={{ background: 'transparent', border: 'none', padding: 0 }}
-                onClick={() => onSelect(t.id)}
-              >
-                <div
-                  className="hidden sm:grid gap-3 items-center"
-                  style={{
-                    gridTemplateColumns: '160px minmax(0,1.6fr) 140px 130px 120px 112px',
-                  }}
-                >
-                  <div
-                    className="text-[13px] whitespace-nowrap overflow-hidden text-ellipsis"
-                    title={`T-${t.id}`}
-                    style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
+        <div className="flex flex-col gap-3">
+          {filtered.map((ticket) => (
+            <Card key={ticket.id} className="hover:shadow-sm transition-shadow">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
+                <div className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    onClick={() => onSelect(ticket.id)}
+                    className="block text-left text-[16px] sm:text-[17px] font-semibold break-words cursor-pointer"
+                    style={{ color: 'var(--eco-text)' }}
                   >
-                    T-{t.id}
-                  </div>
-                  <div className="min-w-0 flex items-center gap-2">
-                    <span
-                      className="text-[14px] line-clamp-2"
-                      title={t.subject}
-                      style={{ color: 'var(--eco-text)' }}
-                    >
-                      {t.subject}
-                    </span>
-                    {t.escalatedToDispute && (
-                      <span
-                        className="text-[10px] px-1.5 py-0.5 rounded"
-                        style={{
-                          background: 'var(--eco-danger-100)',
-                          color: 'var(--eco-danger-500)',
-                        }}
-                      >
-                        {tx(language, 'Эскалирована', 'Эскалацияланды', 'Escalated')}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0 overflow-hidden">
-                    <Badge variant={TOPIC_VARIANT[t.topic] ?? 'default'}>
-                      {TOPIC_LABELS[t.topic] ??
-                        tx(language, 'Другая тема', 'Басқа тақырып', 'Other topic')}
-                    </Badge>
-                  </div>
-                  <div className="whitespace-nowrap">
-                    <Badge variant={STATUS_VARIANT[t.status] ?? 'default'}>
-                      {localizeStatus(language, t.status)}
-                    </Badge>
-                  </div>
+                    {ticket.subject}
+                  </button>
                   <div
-                    className="text-[13px] whitespace-nowrap overflow-hidden text-ellipsis"
-                    title={
-                      t.roomId
-                        ? `${tx(language, 'Комната', 'Бөлме', 'Room')} #${t.roomId}`
-                        : undefined
-                    }
-                    style={{ color: 'var(--eco-text-secondary)' }}
-                  >
-                    {t.roomId ? `${tx(language, 'Комната', 'Бөлме', 'Room')} #${t.roomId}` : '—'}
-                  </div>
-                  <div
-                    className="text-[12px] whitespace-nowrap"
+                    className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]"
                     style={{ color: 'var(--eco-text-tertiary)' }}
                   >
-                    {relativeTime(t.updatedAt ?? t.createdAt, language)}
-                  </div>
-                </div>
-
-                <div className="sm:hidden flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="text-[12px]"
-                        style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                      >
-                        T-{t.id}
-                      </span>
-                      <Badge variant={STATUS_VARIANT[t.status] ?? 'default'}>
-                        {localizeStatus(language, t.status)}
-                      </Badge>
-                      {t.escalatedToDispute && (
-                        <span
-                          className="text-[10px] px-1.5 py-0.5 rounded"
-                          style={{
-                            background: 'var(--eco-danger-100)',
-                            color: 'var(--eco-danger-500)',
-                          }}
-                        >
-                          {tx(language, 'Эскалирована', 'Эскалацияланды', 'Escalated')}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {relativeTime(t.updatedAt ?? t.createdAt, language)}
-                    </span>
-                  </div>
-                  <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
-                    {t.subject}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={TOPIC_VARIANT[t.topic] ?? 'default'}>
-                      {TOPIC_LABELS[t.topic] ??
+                    <span>T-{ticket.id}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      {TOPIC_LABELS[ticket.topic] ??
                         tx(language, 'Другая тема', 'Басқа тақырып', 'Other topic')}
-                    </Badge>
-                    {t.roomId && (
-                      <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                        {tx(language, 'Комната', 'Бөлме', 'Room')} #{t.roomId}
-                      </span>
+                    </span>
+                    {ticket.roomId && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <Link
+                          to={`/room/${ticket.roomId}`}
+                          className="break-words underline"
+                          style={{ color: 'var(--eco-text-secondary)' }}
+                        >
+                          {ticket.roomTitle ||
+                            `${tx(language, 'Комната', 'Бөлме', 'Room')} #${ticket.roomId}`}
+                        </Link>
+                      </>
                     )}
                   </div>
                 </div>
-              </button>
+                <div className="flex sm:flex-col sm:items-end items-center justify-between gap-2 shrink-0">
+                  <Badge variant={STATUS_VARIANT[ticket.status] ?? 'default'}>
+                    {localizeStatus(language, ticket.status)}
+                  </Badge>
+                  <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {relativeTime(ticket.updatedAt ?? ticket.createdAt, language)}
+                  </span>
+                </div>
+              </div>
             </Card>
           ))}
         </div>
@@ -535,7 +435,7 @@ function CreateTicketView({
         )}
       </h2>
 
-      <Card className="flex flex-col gap-5">
+      <Card className="flex flex-col gap-5 w-full max-w-[760px]">
         <div className="flex flex-col gap-1.5">
           <label style={{ color: 'var(--eco-text)', fontSize: 14 }}>
             {tx(language, 'Тема', 'Тақырыбы', 'Subject')}
@@ -1172,7 +1072,9 @@ export function SupportPage() {
   };
 
   return (
-    <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-8">
+    <div
+      className={`w-full ${view === 'detail' ? 'max-w-[1100px]' : 'max-w-[1280px]'} mx-auto px-4 sm:px-6 lg:px-8 py-8`}
+    >
       {view === 'list' && (
         <TicketListView
           tickets={tickets}
@@ -1205,7 +1107,7 @@ export function SupportPage() {
 export function NewTicketPage() {
   const navigate = useNavigate();
   return (
-    <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-8">
+    <div className="w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <CreateTicketView
         onBack={() => navigate('/support')}
         onCreated={(id) => navigate(`/support?ticket=${id}`)}

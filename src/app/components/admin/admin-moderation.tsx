@@ -15,6 +15,7 @@ import {
 } from '../../lib/api';
 import { Shield, CheckCircle2, XCircle, ShieldX, UserPlus, RefreshCw } from 'lucide-react';
 import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
+import { AdminUserReports } from './admin-user-reports';
 
 type ActionKind = 'CONFIRM' | 'REJECT' | 'BLOCK';
 
@@ -23,10 +24,8 @@ type ActionState = {
   item: ModerationQueueItemDto;
 };
 
-const localized = (
-  language: Language,
-  labels: { ru: string; kz: string; en: string },
-) => labels[language];
+const localized = (language: Language, labels: { ru: string; kz: string; en: string }) =>
+  labels[language];
 
 function moderationStatusLabel(status: string | null | undefined, language: Language) {
   if (!status) return localized(language, { ru: 'Не указан', kz: 'Көрсетілмеген', en: 'Not set' });
@@ -96,6 +95,7 @@ function entityLabelKey(type: string): string {
 export function AdminModerationPage() {
   const { t, language } = useI18n();
   const { authorizedRequest, user } = useAuth();
+  const [tab, setTab] = useState<'QUEUE' | 'REPORTS'>('QUEUE');
 
   const [items, setItems] = useState<ModerationQueueItemDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,6 +223,46 @@ export function AdminModerationPage() {
     return t('blockRoomShort');
   }, [action, t]);
 
+  const tabs = (
+    <div className="flex flex-wrap gap-2 mb-6">
+      <Button
+        variant={tab === 'QUEUE' ? 'primary' : 'secondary'}
+        size="sm"
+        onClick={() => setTab('QUEUE')}
+      >
+        {t('moderationQueue')}
+      </Button>
+      <Button
+        variant={tab === 'REPORTS' ? 'primary' : 'secondary'}
+        size="sm"
+        onClick={() => setTab('REPORTS')}
+      >
+        {localized(language, {
+          ru: 'Жалобы на пользователей',
+          kz: 'Пайдаланушыларға шағымдар',
+          en: 'User reports',
+        })}
+      </Button>
+    </div>
+  );
+
+  if (tab === 'REPORTS')
+    return (
+      <AdminLayout>
+        <div className="w-full max-w-none">
+          <h1 className="text-[24px] mb-5" style={{ color: 'var(--eco-text)' }}>
+            {localized(language, {
+              ru: 'Жалобы на пользователей',
+              kz: 'Пайдаланушыларға шағымдар',
+              en: 'User reports',
+            })}
+          </h1>
+          {tabs}
+          <AdminUserReports />
+        </div>
+      </AdminLayout>
+    );
+
   return (
     <AdminLayout>
       <div className="w-full max-w-none">
@@ -239,6 +279,8 @@ export function AdminModerationPage() {
             <RefreshCw size={13} /> {t('retry')}
           </Button>
         </div>
+
+        {tabs}
 
         <FlashBanner flash={flash} />
 
@@ -333,7 +375,9 @@ export function AdminModerationPage() {
                       </div>
                       <div>
                         {item.reasonCode ? (
-                          <Badge variant="warning">{reasonCodeLabel(item.reasonCode, language)}</Badge>
+                          <Badge variant="warning">
+                            {reasonCodeLabel(item.reasonCode, language)}
+                          </Badge>
                         ) : (
                           <span style={{ color: 'var(--eco-text-tertiary)' }}>—</span>
                         )}
@@ -343,20 +387,14 @@ export function AdminModerationPage() {
                           {score ?? '—'}
                         </span>
                       </div>
-                      <div
-                        className="text-[12px]"
-                        style={{ color: 'var(--eco-text-secondary)' }}
-                      >
+                      <div className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
                         {item.assignedAdminId
                           ? isMine
                             ? t('meLabel')
                             : `#${item.assignedAdminId}`
                           : t('unassigned')}
                       </div>
-                      <div
-                        className="text-[11px]"
-                        style={{ color: 'var(--eco-text-tertiary)' }}
-                      >
+                      <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                         {formatDate(item.createdAt, language)}
                       </div>
                       <div className="flex gap-1.5 flex-wrap">

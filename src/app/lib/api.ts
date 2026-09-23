@@ -1343,6 +1343,76 @@ export interface AdminUserDto {
   ownerVerified?: boolean | null;
   publicId?: string | null;
   lastLoginAt?: string | null;
+  slug?: string | null;
+  banReason?: string | null;
+  bannedAt?: string | null;
+  banStartsAt?: string | null;
+  banUntil?: string | null;
+}
+
+export interface DeletedAdminUserDto {
+  userId: number;
+  publicId: string | null;
+  displayNameAtDeletion: string;
+  slugAtDeletion: string | null;
+  emailMasked: string | null;
+  phoneMasked: string | null;
+  deletedAt: string;
+  identityArchived: boolean;
+}
+
+export interface RevealedDeletedIdentifiersDto {
+  userId: number;
+  email: string | null;
+  phone: string | null;
+  slug: string | null;
+}
+
+export function getDeletedAdminUsersRequest(
+  accessToken: string,
+  params: { page?: number; size?: number; search?: string } = {},
+) {
+  return requestJson<PagedResponse<DeletedAdminUserDto>>(
+    `/admin/users/deleted${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function revealDeletedIdentifiersRequest(
+  userId: ApiId,
+  reason: string,
+  accessToken: string,
+) {
+  return requestJson<RevealedDeletedIdentifiersDto>(
+    `/admin/users/${userId}/deleted-identifiers/reveal`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ confirmed: true, reason }),
+    },
+    accessToken,
+  );
+}
+
+export interface UserRestrictionRequest {
+  reason: string;
+  startsAt: string;
+  endsAt: string;
+}
+
+export function restrictAdminUserRequest(
+  userId: ApiId,
+  payload: UserRestrictionRequest,
+  accessToken: string,
+) {
+  return requestJson<AdminUserDto>(
+    `/admin/users/${userId}/restriction`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 export interface AdminDecisionRequest {
@@ -1592,10 +1662,7 @@ export function getAdminRoomSettingsRequest(accessToken: string) {
   return requestJson<RoomSettingsDto>('/admin/room-settings', {}, accessToken);
 }
 
-export function updateAdminRoomSettingsRequest(
-  payload: RoomSettingsDto,
-  accessToken: string,
-) {
+export function updateAdminRoomSettingsRequest(payload: RoomSettingsDto, accessToken: string) {
   return requestJson<RoomSettingsDto>(
     '/admin/room-settings',
     { method: 'PATCH', body: JSON.stringify(payload) },
@@ -2390,6 +2457,126 @@ export interface PublicProfileDto {
 
 export function getPublicProfile(publicId: string) {
   return requestJson<PublicProfileDto>(`/users/public/${encodeURIComponent(publicId)}`);
+}
+
+export type UserReportCategory = 'FRAUD' | 'ABUSE' | 'HARASSMENT' | 'SPAM' | 'OTHER';
+export type UserReportStatus = 'OPEN' | 'IN_REVIEW' | 'REJECTED' | 'RESOLVED';
+
+export interface UserReportActorDto {
+  id: number;
+  displayName: string;
+  slug: string | null;
+  publicId?: string | null;
+}
+
+export interface AdminUserReportDto {
+  id: number;
+  reporter: UserReportActorDto;
+  target: UserReportActorDto;
+  category: UserReportCategory;
+  description: string;
+  status: UserReportStatus;
+  assignedAdmin: UserReportActorDto | null;
+  createdAt: string;
+  updatedAt?: string | null;
+  resolvedAt?: string | null;
+}
+
+export interface UserInvestigationRoomDto {
+  id: number;
+  title: string;
+  status?: string | null;
+}
+
+export interface UserInvestigationDto {
+  user: UserReportActorDto;
+  ownedRooms: UserInvestigationRoomDto[];
+  memberships: UserInvestigationRoomDto[];
+  reportsAgainst: number;
+  reportsBy: number;
+  supportTicketsCount: number;
+  disputesCount: number;
+  recentRoomEvents: Array<{
+    id: number;
+    roomId: number | null;
+    eventType: string;
+    createdAt: string;
+  }>;
+  recentAdminActions: Array<{ id: number; actionType: string; createdAt: string }>;
+}
+
+export function getAdminUserReportsRequest(
+  accessToken: string,
+  params: {
+    status?: UserReportStatus;
+    category?: UserReportCategory;
+    targetUserId?: number;
+    page?: number;
+    size?: number;
+  } = {},
+) {
+  return requestJson<PagedResponse<AdminUserReportDto>>(
+    `/admin/user-reports${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function getAdminUserReportRequest(id: ApiId, accessToken: string) {
+  return requestJson<AdminUserReportDto>(`/admin/user-reports/${id}`, {}, accessToken);
+}
+
+export function assignAdminUserReportRequest(id: ApiId, accessToken: string) {
+  return requestJson<AdminUserReportDto>(
+    `/admin/user-reports/${id}/assign`,
+    { method: 'PATCH' },
+    accessToken,
+  );
+}
+
+export function updateAdminUserReportStatusRequest(
+  id: ApiId,
+  payload: { status: UserReportStatus; reason: string },
+  accessToken: string,
+) {
+  return requestJson<AdminUserReportDto>(
+    `/admin/user-reports/${id}/status`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
+}
+
+export function getUserInvestigationRequest(userId: ApiId, accessToken: string) {
+  return requestJson<UserInvestigationDto>(`/admin/users/${userId}/investigation`, {}, accessToken);
+}
+
+export interface CreateUserReportRequest {
+  category: UserReportCategory;
+  description: string;
+}
+
+export interface CreatedUserReportDto {
+  id: number;
+  status: UserReportStatus;
+  createdAt: string;
+}
+
+export function createUserReportRequest(
+  handle: string,
+  payload: CreateUserReportRequest,
+  accessToken: string,
+) {
+  return requestJson<CreatedUserReportDto>(
+    `/users/public/${encodeURIComponent(handle)}/reports`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 export function deleteMyAccount(accessToken: string) {

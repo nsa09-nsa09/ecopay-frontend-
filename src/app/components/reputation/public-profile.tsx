@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router';
-import { useI18n } from '../i18n-provider';
+import { useNavigate, useParams } from 'react-router';
+import { useI18n, type Language } from '../i18n-provider';
 import { formatDate } from '../../lib/datetime';
-import { Button, Card, Skeleton } from '../ds-primitives';
-import { Star, AlertCircle } from 'lucide-react';
+import { Button, Card, Modal, Skeleton } from '../ds-primitives';
+import { Star, AlertCircle, Flag } from 'lucide-react';
 import {
   ApiError,
+  createUserReportRequest,
   getPublicProfile,
   getReputationRequest,
   getReputationReviewsRequest,
   type PublicProfileDto,
   type ReputationDto,
   type ReviewDto,
+  type UserReportCategory,
 } from '../../lib/api';
 import {
   reputationBandMeta,
@@ -22,6 +24,10 @@ import {
 import { RatingScale } from './rating-scale';
 import { useAuth } from '../auth/auth-provider';
 import { LeaveReviewModal } from './leave-review-modal';
+
+const tx = (l: Language, ru: string, kz: string, en: string) =>
+  l === 'ru' ? ru : l === 'kz' ? kz : en;
+const REPORT_LIMIT = 2000;
 
 function StarRating({
   rating,
@@ -72,7 +78,8 @@ export { StarRating };
 export function PublicUserProfilePage() {
   const { t, language } = useI18n();
   const { id, publicId } = useParams<{ id?: string; publicId?: string }>();
-  const { user: currentUser, isAuthenticated } = useAuth();
+  const { user: currentUser, isAuthenticated, authorizedRequest } = useAuth();
+  const navigate = useNavigate();
 
   const [reviewFilter, setReviewFilter] = useState<'all' | 'positive' | 'negative' | 'recent'>(
     'all',
@@ -84,6 +91,12 @@ export function PublicUserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportCategory, setReportCategory] = useState<UserReportCategory>('FRAUD');
+  const [reportDescription, setReportDescription] = useState('');
+  const [reportSending, setReportSending] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [reportSuccess, setReportSuccess] = useState(false);
 
   const loadProfile = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -203,8 +216,49 @@ export function PublicUserProfilePage() {
   const outOfTen = reputationOutOfTen(reputation.reputation);
   const fillPct = reputationFillPercent(reputation.reputation);
   const slug = profile?.slug ?? null;
-  const canRate =
-    isAuthenticated && currentUser != null && currentUser.id !== reputation.userId;
+  const isSelf =
+    isAuthenticated && currentUser != null && String(currentUser.id) === String(reputation.userId);
+  const canRate = isAuthenticated && currentUser != null && !isSelf;
+  const reportHandle = slug || profile?.publicId || null;
+
+  const submitReport = async () => {
+    if (!reportHandle || reportSending || !reportDescription.trim()) return;
+    setReportSending(true);
+    setReportError(null);
+    try {
+      await authorizedRequest((token) =>
+        createUserReportRequest(
+          reportHandle,
+          {
+            category: reportCategory,
+            description: reportDescription.trim(),
+          },
+          token,
+        ),
+      );
+      setReportSuccess(true);
+    } catch (err) {
+      setReportError(
+        err instanceof ApiError && err.status === 409
+          ? tx(
+              language,
+              'У вас уже есть открытая жалоба на этого пользователя по этой причине.',
+              'Осы себеп бойынша бұл пайдаланушыға қатысты ашық шағымыңыз бар.',
+              'You already have an open report about this user for this reason.',
+            )
+          : err instanceof ApiError
+            ? err.message
+            : tx(
+                language,
+                'Не удалось отправить жалобу.',
+                'Шағымды жіберу мүмкін болмады.',
+                'Could not submit the report.',
+              ),
+      );
+    } finally {
+      setReportSending(false);
+    }
+  };
 
   return (
     <div className="max-w-[800px] mx-auto px-4 sm:px-6 py-8">
@@ -245,16 +299,30 @@ export function PublicUserProfilePage() {
                 </div>
               ) : null}
             </div>
-            {canRate && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setReviewOpen(true)}
-                className="shrink-0"
-              >
-                <Star size={14} /> {t('rateUserAction')}
-              </Button>
-            )}
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {canRate && (
+                <Button variant="secondary" size="sm" onClick={() => setReviewOpen(true)}>
+                  <Star size={14} /> {t('rateUserAction')}
+                </Button>
+              )}
+              {!isSelf && reportHandle && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      navigate(
+                        `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`,
+                      );
+                      return;
+                    }
+                    setReportOpen(true);
+                  }}
+                >
+                  <Flag size={14} /> {tx(language, 'Пожаловаться', 'Шағымдану', 'Report user')}
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--eco-border)' }}>
@@ -407,10 +475,7 @@ export function PublicUserProfilePage() {
                         <span className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
                           {review.authorDisplayName}
                         </span>
-                        <span
-                          className="text-[12px]"
-                          style={{ color: 'var(--eco-text-tertiary)' }}
-                        >
+                        <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                           {formatDate(review.createdAt, language)}
                         </span>
                       </div>
@@ -451,6 +516,121 @@ export function PublicUserProfilePage() {
           }}
         />
       )}
+      <Modal
+        open={reportOpen}
+        onClose={() => {
+          if (!reportSending) {
+            setReportOpen(false);
+            setReportError(null);
+            setReportSuccess(false);
+            setReportDescription('');
+          }
+        }}
+        title={tx(
+          language,
+          'Пожаловаться на пользователя',
+          'Пайдаланушыға шағымдану',
+          'Report user',
+        )}
+      >
+        {reportSuccess ? (
+          <div className="flex flex-col gap-4">
+            <p style={{ color: 'var(--eco-text)' }}>
+              {tx(
+                language,
+                'Жалоба отправлена и будет рассмотрена.',
+                'Шағым жіберілді және қаралады.',
+                'Your report was sent and will be reviewed.',
+              )}
+            </p>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setReportOpen(false);
+                setReportSuccess(false);
+                setReportDescription('');
+              }}
+            >
+              {tx(language, 'Закрыть', 'Жабу', 'Close')}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+              {tx(
+                language,
+                'Жалоба будет передана администрации EcoPay.',
+                'Шағым EcoPay әкімшілігіне жіберіледі.',
+                'Your report will be sent to EcoPay administrators.',
+              )}
+            </p>
+            <label
+              className="flex flex-col gap-1 text-[13px]"
+              style={{ color: 'var(--eco-text-secondary)' }}
+            >
+              {tx(language, 'Причина', 'Себебі', 'Reason')}
+              <select
+                value={reportCategory}
+                onChange={(e) => setReportCategory(e.target.value as UserReportCategory)}
+                className="rounded-lg p-2.5"
+                style={{
+                  background: 'var(--eco-surface)',
+                  color: 'var(--eco-text)',
+                  border: '1px solid var(--eco-border)',
+                }}
+              >
+                <option value="FRAUD">{tx(language, 'Мошенничество', 'Алаяқтық', 'Fraud')}</option>
+                <option value="ABUSE">
+                  {tx(language, 'Нарушение правил', 'Ережелерді бұзу', 'Rule violation')}
+                </option>
+                <option value="HARASSMENT">
+                  {tx(language, 'Оскорбления / преследование', 'Қорлау / қудалау', 'Harassment')}
+                </option>
+                <option value="SPAM">{tx(language, 'Спам', 'Спам', 'Spam')}</option>
+                <option value="OTHER">{tx(language, 'Другое', 'Басқа', 'Other')}</option>
+              </select>
+            </label>
+            <label
+              className="flex flex-col gap-1 text-[13px]"
+              style={{ color: 'var(--eco-text-secondary)' }}
+            >
+              {tx(
+                language,
+                'Опишите, что произошло',
+                'Не болғанын сипаттаңыз',
+                'Describe what happened',
+              )}
+              <textarea
+                value={reportDescription}
+                onChange={(e) => setReportDescription(e.target.value.slice(0, REPORT_LIMIT))}
+                maxLength={REPORT_LIMIT}
+                rows={5}
+                className="rounded-lg p-2.5 resize-y"
+                style={{
+                  background: 'var(--eco-surface)',
+                  color: 'var(--eco-text)',
+                  border: '1px solid var(--eco-border)',
+                }}
+              />
+              <span className="self-end text-[11px]">
+                {reportDescription.length}/{REPORT_LIMIT}
+              </span>
+            </label>
+            {reportError && (
+              <p className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
+                {reportError}
+              </p>
+            )}
+            <Button
+              loading={reportSending}
+              disabled={reportSending || !reportDescription.trim()}
+              onClick={() => void submitReport()}
+            >
+              {tx(language, 'Отправить жалобу', 'Шағым жіберу', 'Submit report')}
+            </Button>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -134,6 +134,12 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
     joinPayloads: [] as Array<{ roomId: number; payload: Record<string, unknown> }>,
     createRoomPayloads: [] as Record<string, unknown>[],
     supportTicketPayloads: [] as Record<string, unknown>[],
+    deleteCalls: 0,
+    deleteConflict: false,
+    reportPayloads: [] as Record<string, unknown>[],
+    duplicateReport: false,
+    revealPayloads: [] as Record<string, unknown>[],
+    restrictionPayloads: [] as Record<string, unknown>[],
     adminAboutPayloads: [] as Record<string, unknown>[],
     roomSettingsPayloads: [] as Array<{ minimumRoomMembers: number }>,
     minimumRoomMembers: 5,
@@ -297,6 +303,45 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
         disputesAsMember: 0,
       });
     }
+    if (path === '/users/me' && method === 'DELETE') {
+      controls.deleteCalls += 1;
+      return controls.deleteConflict ? body({ message: 'Active obligations' }, 409) : body({});
+    }
+    if (path.startsWith('/users/public/') && path.endsWith('/reports') && method === 'POST') {
+      controls.reportPayloads.push(route.request().postDataJSON() as Record<string, unknown>);
+      return controls.duplicateReport
+        ? body({ message: 'Duplicate report' }, 409)
+        : body({ id: 701, status: 'OPEN', createdAt: '2026-09-23T10:00:00Z' });
+    }
+    if (path.startsWith('/users/public/') && method === 'GET') {
+      const own = path.endsWith('/member');
+      return body({
+        id: own ? 10 : 22,
+        publicId: own ? 'member' : 'aidar',
+        slug: own ? 'member' : 'aidar',
+        displayName: own ? 'Member' : 'Aidar',
+        avatar: null,
+        reputation: 50,
+        reputationLevel: null,
+        status: 'ACTIVE',
+        averageRating: null,
+        reviewsCount: 0,
+        completedRoomsCount: 0,
+        createdAt: '2026-08-01T00:00:00Z',
+      });
+    }
+    if (path.startsWith('/reputation/users/') && path.endsWith('/reviews')) return body([]);
+    if (path.startsWith('/reputation/users/'))
+      return body({
+        userId: path.endsWith('/10') ? 10 : 22,
+        displayName: path.endsWith('/10') ? 'Member' : 'Aidar',
+        avatar: null,
+        reputation: 50,
+        reputationLevel: null,
+        averageRating: null,
+        reviewsCount: 0,
+        completedRoomsCount: 0,
+      });
     if (path.includes('/users/me')) {
       if (role === 'ANON') return body({ message: 'Unauthorized' }, 401);
       return body(sessionFor(role));
@@ -335,7 +380,7 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
         hasPrevious: false,
       });
     }
-    if (path === '/support-tickets' && method === 'GET') return body([]);
+    if (path === '/support-tickets' && method === 'GET') return body([staffTicket]);
     if (path === '/support-tickets' && method === 'POST') {
       const payload = route.request().postDataJSON() as Record<string, unknown>;
       controls.supportTicketPayloads.push(payload);
@@ -373,6 +418,92 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
         hasPrevious: false,
       });
     }
+    if (path === '/admin/users/deleted' && method === 'GET') {
+      return body({
+        items: [
+          {
+            userId: 55,
+            publicId: 'deleted-public',
+            displayNameAtDeletion: 'Aidar',
+            slugAtDeletion: 'aidar',
+            emailMasked: 'a***@gmail.com',
+            phoneMasked: '+7705*****65',
+            deletedAt: '2026-09-23T09:40:00Z',
+            identityArchived: true,
+          },
+        ],
+        page: 0,
+        size: 20,
+        totalItems: 1,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
+      });
+    }
+    if (path === '/admin/users/55/deleted-identifiers/reveal' && method === 'POST') {
+      controls.revealPayloads.push(route.request().postDataJSON() as Record<string, unknown>);
+      return body({
+        userId: 55,
+        email: 'original@gmail.com',
+        phone: '+77051234565',
+        slug: 'aidar',
+      });
+    }
+    if (path === '/admin/users/22/restriction' && method === 'PUT') {
+      controls.restrictionPayloads.push(route.request().postDataJSON() as Record<string, unknown>);
+      return body({
+        ...user,
+        id: 22,
+        status: 'BANNED',
+        banStartsAt: '2026-09-23T10:00:00Z',
+        banUntil: '2026-09-30T10:00:00Z',
+      });
+    }
+    if (path === '/admin/user-reports' && method === 'GET') {
+      return body({
+        items: [
+          {
+            id: 701,
+            target: { id: 22, displayName: 'Aidar', slug: 'aidar' },
+            reporter: { id: 10, displayName: 'Member', slug: 'member' },
+            category: 'FRAUD',
+            description: 'Suspicious request',
+            status: 'OPEN',
+            assignedAdmin: null,
+            createdAt: '2026-09-23T10:00:00Z',
+          },
+        ],
+        page: 0,
+        size: 20,
+        totalItems: 1,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
+      });
+    }
+    if (path === '/admin/user-reports/701' && method === 'GET')
+      return body({
+        id: 701,
+        target: { id: 22, displayName: 'Aidar', slug: 'aidar' },
+        reporter: { id: 10, displayName: 'Member', slug: 'member' },
+        category: 'FRAUD',
+        description: 'Suspicious request',
+        status: 'OPEN',
+        assignedAdmin: null,
+        createdAt: '2026-09-23T10:00:00Z',
+      });
+    if (path === '/admin/users/22/investigation' && method === 'GET')
+      return body({
+        user: { id: 22, displayName: 'Aidar', slug: 'aidar' },
+        ownedRooms: [{ id: 303, title: 'Owned family room' }],
+        memberships: [],
+        reportsAgainst: 1,
+        reportsBy: 0,
+        supportTicketsCount: 1,
+        disputesCount: 0,
+        recentRoomEvents: [],
+        recentAdminActions: [],
+      });
     if (path === '/admin/users/10' && method === 'GET') {
       return body({
         ...user,
@@ -855,17 +986,94 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
     if (path === '/payments/history') {
       return body({
         items: [
-          { id: 1, kind: 'PAYMENT', direction: 'DEBIT', status: 'SUCCESS', amount: 2500, currency: 'KZT', roomId: 303, roomTitle: 'Microsoft 365 Family', cardPanMask: '•••• 1234', createdAt: '2026-09-05T10:00:00Z' },
-          { id: 2, kind: 'PAYOUT', direction: 'CREDIT', status: 'FROZEN', amount: 1800, currency: 'KZT', roomId: 303, roomTitle: 'Microsoft 365 Family', payoutId: 'payout-2', createdAt: '2026-09-05T10:00:00Z', releaseAt: '2026-10-05T10:00:00Z' },
-        ], page: 0, size: 12, totalItems: 2, totalPages: 1, hasNext: false, hasPrevious: false,
+          {
+            id: 1,
+            kind: 'PAYMENT',
+            direction: 'DEBIT',
+            status: 'SUCCESS',
+            amount: 2500,
+            currency: 'KZT',
+            roomId: 303,
+            roomTitle: 'Microsoft 365 Family',
+            cardPanMask: '•••• 1234',
+            createdAt: '2026-09-05T10:00:00Z',
+          },
+          {
+            id: 2,
+            kind: 'PAYOUT',
+            direction: 'CREDIT',
+            status: 'FROZEN',
+            amount: 1800,
+            currency: 'KZT',
+            roomId: 303,
+            roomTitle: 'Microsoft 365 Family',
+            payoutId: 'payout-2',
+            createdAt: '2026-09-05T10:00:00Z',
+            releaseAt: '2026-10-05T10:00:00Z',
+          },
+        ],
+        page: 0,
+        size: 12,
+        totalItems: 2,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
       });
     }
     if (path === '/news' || path === '/news/91') {
-      const news = { id: 91, titleRu: 'Новость', titleKz: 'Жаңалық', titleEn: 'News', bodyRu: 'Текст', bodyKz: 'Мәтін', bodyEn: 'Text', publishedAt: '2026-09-05T00:00:00Z', imageUrl: '/shared.jpg', imageUrlRu: '/ru.jpg', imageUrlKz: '/kz.jpg', imageUrlEn: '/en.jpg' };
-      return path === '/news/91' ? body(news) : body({ items: [news], page: 0, size: 24, totalItems: 1, totalPages: 1, hasNext: false, hasPrevious: false });
+      const news = {
+        id: 91,
+        titleRu: 'Новость',
+        titleKz: 'Жаңалық',
+        titleEn: 'News',
+        bodyRu: 'Текст',
+        bodyKz: 'Мәтін',
+        bodyEn: 'Text',
+        publishedAt: '2026-09-05T00:00:00Z',
+        imageUrl: '/shared.jpg',
+        imageUrlRu: '/ru.jpg',
+        imageUrlKz: '/kz.jpg',
+        imageUrlEn: '/en.jpg',
+      };
+      return path === '/news/91'
+        ? body(news)
+        : body({
+            items: [news],
+            page: 0,
+            size: 24,
+            totalItems: 1,
+            totalPages: 1,
+            hasNext: false,
+            hasPrevious: false,
+          });
     }
     if (path === '/stories') {
-      return body({ items: [{ id: 51, titleRu: 'Актуальное', titleKz: 'Өзекті', titleEn: 'Highlights', headingRu: 'Заголовок', headingKz: 'Тақырып', headingEn: 'Heading', bodyRu: 'Текст', bodyKz: 'Мәтін', bodyEn: 'Text', imageUrl: '/shared-story.jpg', imageUrlRu: '/ru-story.jpg', imageUrlKz: '/kz-story.jpg', imageUrlEn: '/en-story.jpg' }], page: 0, size: 12, totalItems: 1, totalPages: 1, hasNext: false, hasPrevious: false });
+      return body({
+        items: [
+          {
+            id: 51,
+            titleRu: 'Актуальное',
+            titleKz: 'Өзекті',
+            titleEn: 'Highlights',
+            headingRu: 'Заголовок',
+            headingKz: 'Тақырып',
+            headingEn: 'Heading',
+            bodyRu: 'Текст',
+            bodyKz: 'Мәтін',
+            bodyEn: 'Text',
+            imageUrl: '/shared-story.jpg',
+            imageUrlRu: '/ru-story.jpg',
+            imageUrlKz: '/kz-story.jpg',
+            imageUrlEn: '/en-story.jpg',
+          },
+        ],
+        page: 0,
+        size: 12,
+        totalItems: 1,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
+      });
     }
     if (path.includes('/admin/service-reviews') && method === 'GET') {
       const featured = url.searchParams.get('featured');
@@ -1106,7 +1314,9 @@ test('paid member sees a zero hold as an explicit neutral state', async ({ page 
   await expect(page.getByText('There is no active hold right now.')).toBeVisible();
 });
 
-test('two-seat tariff is unavailable for a new room below the minimum capacity', async ({ page }) => {
+test('two-seat tariff is unavailable for a new room below the minimum capacity', async ({
+  page,
+}) => {
   await mockApi(page);
   await seedSession(page);
   await page.goto('/rooms/create?serviceId=1&source=existing');
@@ -1364,7 +1574,9 @@ test('payment return success and unknown states are distinct', async ({ page }) 
   await expect(page.getByText('Do not pay again.')).toBeVisible();
 });
 
-test('payment history normalizes DEBIT/CREDIT and keeps technical IDs in details', async ({ page }) => {
+test('payment history normalizes DEBIT/CREDIT and keeps technical IDs in details', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await mockApi(page);
   await seedSession(page);
@@ -1372,32 +1584,161 @@ test('payment history normalizes DEBIT/CREDIT and keeps technical IDs in details
   await expect(page.getByText('−₸2,500')).toBeVisible();
   await expect(page.getByText('+₸1,800')).toBeVisible();
   await expect(page.getByText('Direction unavailable')).toHaveCount(0);
-  await expect(page.getByText('PO-payout-2')).toHaveCount(0);
+  const payoutId = page.getByText('PO-payout-2');
+  await expect(payoutId).not.toBeVisible();
   await page.getByText('Operation details').nth(1).click();
-  await expect(page.getByText('PO-payout-2')).toBeVisible();
-  expect(await page.locator('main').evaluate((node) => node.scrollWidth <= node.clientWidth)).toBeTruthy();
+  await expect(payoutId).toBeVisible();
+  expect(
+    await page.locator('main').evaluate((node) => node.scrollWidth <= node.clientWidth),
+  ).toBeTruthy();
 });
 
 test('public news has language-specific images and a fixed DMY date', async ({ page }) => {
   await mockApi(page, 'ANON', 'ru');
   await page.goto('/news');
-  await expect(page.getByRole('link', { name: 'Читать новость' }).locator('img')).toHaveAttribute('src', /\/ru\.jpg$/);
+  const newsImage = page.locator('a[href="/news/91"] img');
+  await expect(newsImage).toHaveAttribute('src', /\/ru\.jpg$/);
   await expect(page.getByText('05/09/26').first()).toBeVisible();
-  await page.evaluate(() => localStorage.setItem('ecopay-language', 'kz'));
-  await page.reload();
-  await expect(page.getByRole('link', { name: 'Жаңалықты оқу' }).locator('img')).toHaveAttribute('src', /\/kz\.jpg$/);
-  await page.evaluate(() => localStorage.setItem('ecopay-language', 'en'));
-  await page.reload();
-  await expect(page.getByRole('link', { name: 'Read story' }).locator('img')).toHaveAttribute('src', /\/en\.jpg$/);
+  await page.getByRole('button', { name: 'Қазақ' }).click();
+  await expect(newsImage).toHaveAttribute('src', /\/kz\.jpg$/);
+  await page.getByRole('button', { name: 'English' }).click();
+  await expect(newsImage).toHaveAttribute('src', /\/en\.jpg$/);
 });
 
 test('story cover switches its localized image with the active language', async ({ page }) => {
   await mockApi(page, 'ANON', 'ru');
   await page.goto('/news');
   await expect(page.locator('img[src$="/ru-story.jpg"]')).toBeVisible();
-  await page.evaluate(() => localStorage.setItem('ecopay-language', 'kz'));
-  await page.reload();
+  await page.getByRole('button', { name: 'Қазақ' }).click();
   await expect(page.locator('img[src$="/kz-story.jpg"]')).toBeVisible();
+});
+
+test('support list uses subject-first rows without horizontal overflow or raw codes', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await mockApi(page);
+  await seedSession(page);
+  await page.goto('/support');
+  const subject = page.getByRole('button', { name: 'Room access issue' });
+  await expect(subject).toBeVisible();
+  await expect(page.getByText('T-601')).toBeVisible();
+  const category = page.getByText('Access not granted').last();
+  await expect(category).toBeVisible();
+  expect(await category.evaluate((node) => getComputedStyle(node).backgroundColor)).toBe(
+    'rgba(0, 0, 0, 0)',
+  );
+  await expect(page.getByText('OPEN', { exact: true })).toHaveCount(0);
+  expect(
+    await subject.evaluate((node) => parseFloat(getComputedStyle(node).fontSize)),
+  ).toBeGreaterThan(
+    await page.getByText('T-601').evaluate((node) => parseFloat(getComputedStyle(node).fontSize)),
+  );
+  expect(
+    await page.locator('main').evaluate((node) => node.scrollWidth <= node.clientWidth),
+  ).toBeTruthy();
+});
+
+test('delete account requires two confirmations and calls DELETE once', async ({ page }) => {
+  const api = await mockApi(page);
+  await seedSession(page);
+  await page.goto('/profile');
+  await page.getByRole('button', { name: 'Delete Account', exact: true }).click();
+  await expect(page.getByText('Delete account permanently?')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  expect(api.deleteCalls).toBe(0);
+  await expect(page.getByText('Confirm this action?')).toBeVisible();
+  await page.getByRole('button', { name: 'Yes, delete account' }).click();
+  await expect.poll(() => api.deleteCalls).toBe(1);
+});
+
+test('delete account 409 explains active obligations', async ({ page }) => {
+  const api = await mockApi(page);
+  api.deleteConflict = true;
+  await seedSession(page);
+  await page.goto('/profile');
+  await page.getByRole('button', { name: 'Delete Account', exact: true }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Yes, delete account' }).click();
+  await expect(page.getByText('Complete active financial operations first.')).toBeVisible();
+  expect(api.deleteCalls).toBe(1);
+});
+
+test('public profile reports another user with the expected POST contract', async ({ page }) => {
+  const api = await mockApi(page);
+  await seedSession(page);
+  await page.goto('/u/member');
+  await expect(page.getByRole('button', { name: 'Report user' })).toHaveCount(0);
+  await page.goto('/u/aidar');
+  await page.getByRole('button', { name: 'Report user' }).click();
+  await expect(page.getByText('Your report will be sent to EcoPay administrators.')).toBeVisible();
+  await page.getByRole('textbox', { name: 'Describe what happened' }).fill('Suspicious request');
+  await page.getByRole('button', { name: 'Submit report' }).click();
+  await expect
+    .poll(() => api.reportPayloads)
+    .toEqual([{ category: 'FRAUD', description: 'Suspicious request' }]);
+  await expect(page.getByText('Your report was sent and will be reviewed.')).toBeVisible();
+});
+
+test('duplicate public report shows a useful message', async ({ page }) => {
+  const api = await mockApi(page);
+  api.duplicateReport = true;
+  await seedSession(page);
+  await page.goto('/u/aidar');
+  await page.getByRole('button', { name: 'Report user' }).click();
+  await page.getByRole('textbox', { name: 'Describe what happened' }).fill('Suspicious request');
+  await page.getByRole('button', { name: 'Submit report' }).click();
+  await expect(
+    page.getByText('You already have an open report about this user for this reason.'),
+  ).toBeVisible();
+});
+
+test('deleted admin contacts remain masked until the second reveal confirmation', async ({
+  page,
+}) => {
+  const api = await mockApi(page, 'ADMIN');
+  await seedSession(page, 'ADMIN');
+  await page.goto('/admin/users');
+  await page.getByRole('button', { name: 'Deleted' }).click();
+  await expect(page.getByText('a***@gmail.com')).toBeVisible();
+  await expect(page.getByText('original@gmail.com')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Show contacts' }).click();
+  expect(api.revealPayloads).toHaveLength(0);
+  await page
+    .getByRole('textbox', { name: 'Reason for access' })
+    .fill('Investigating reported fraud');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  expect(api.revealPayloads).toHaveLength(0);
+  await page.getByRole('button', { name: 'Confirm' }).click();
+  await expect
+    .poll(() => api.revealPayloads)
+    .toEqual([{ confirmed: true, reason: 'Investigating reported fraud' }]);
+  await expect(page.getByText('original@gmail.com')).toBeVisible();
+});
+
+test('admin report loads investigation and sends scheduled restriction dates', async ({ page }) => {
+  const api = await mockApi(page, 'ADMIN');
+  await seedSession(page, 'ADMIN');
+  await page.goto('/admin/moderation');
+  await page.getByRole('button', { name: 'User reports' }).click();
+  await page.getByRole('button', { name: /Aidar.*Fraud/ }).click();
+  await expect(page.getByRole('heading', { name: 'User history' })).toBeVisible();
+  await expect(page.getByText('Owned family room')).toBeVisible();
+  await page.getByRole('button', { name: 'Block user' }).click();
+  await page.getByRole('button', { name: 'Schedule' }).click();
+  await page.getByRole('button', { name: '7 days' }).click();
+  await page
+    .getByRole('textbox', { name: 'Reason for restriction' })
+    .fill('Repeated fraudulent requests');
+  await page.getByRole('button', { name: 'Confirm restriction' }).click();
+  await expect.poll(() => api.restrictionPayloads).toHaveLength(1);
+  expect(api.restrictionPayloads[0]).toEqual(
+    expect.objectContaining({
+      reason: 'Repeated fraudulent requests',
+      startsAt: expect.any(String),
+      endsAt: expect.any(String),
+    }),
+  );
 });
 
 test('admin finance operations opens for admin', async ({ page }) => {
@@ -1408,7 +1749,9 @@ test('admin finance operations opens for admin', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'PAYMENT REVIEW' })).toBeVisible();
 });
 
-test('admin room setting loads and saves the PATCH contract without reloading', async ({ page }) => {
+test('admin room setting loads and saves the PATCH contract without reloading', async ({
+  page,
+}) => {
   const api = await mockApi(page, 'ADMIN');
   await seedSession(page, 'ADMIN');
 
