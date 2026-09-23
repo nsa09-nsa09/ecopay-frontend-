@@ -49,20 +49,35 @@ export function LogoCropModal({
   const [scale, setScale] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 }); // top-left of image in frame coords
   const [busy, setBusy] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Load the picked file into an object URL + read its natural size.
   useEffect(() => {
     if (!open || !file) {
       setSrc(null);
       setNat(null);
+      imgRef.current = null;
+      setImageError(false);
       return;
     }
+    imgRef.current = null;
+    setNat(null);
+    setImageError(false);
     const url = URL.createObjectURL(file);
     setSrc(url);
     const image = new Image();
     image.onload = () => {
+      if (!image.naturalWidth || !image.naturalHeight) {
+        setImageError(true);
+        return;
+      }
       imgRef.current = image;
       setNat({ w: image.naturalWidth, h: image.naturalHeight });
+    };
+    image.onerror = () => {
+      imgRef.current = null;
+      setNat(null);
+      setImageError(true);
     };
     image.src = url;
     return () => URL.revokeObjectURL(url);
@@ -233,6 +248,12 @@ export function LogoCropModal({
           )}
         </div>
 
+        {imageError && (
+          <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
+            {tx(lang, 'Не удалось прочитать изображение. Выберите PNG, JPG или JPEG.', 'Суретті оқу мүмкін болмады. PNG, JPG немесе JPEG таңдаңыз.', 'The image could not be read. Choose a PNG, JPG, or JPEG file.')}
+          </p>
+        )}
+
         <div className="flex items-center gap-3">
           <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
             {tx(lang, 'Масштаб', 'Масштаб', 'Zoom')}
@@ -252,7 +273,7 @@ export function LogoCropModal({
           <Button variant="ghost" size="sm" onClick={onCancel}>
             {tx(lang, 'Отмена', 'Бас тарту', 'Cancel')}
           </Button>
-          <Button variant="primary" size="sm" loading={busy} onClick={apply} disabled={!nat}>
+          <Button variant="primary" size="sm" loading={busy} onClick={apply} disabled={!nat || imageError}>
             {tx(lang, 'Применить', 'Қолдану', 'Apply')}
           </Button>
         </div>

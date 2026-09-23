@@ -1168,7 +1168,7 @@ export function getCurrentPaymentIntentForMemberRequest(roomMemberId: string, ac
 }
 
 export type PaymentHistoryKind = 'PAYMENT' | 'REFUND' | 'PAYOUT' | string;
-export type PaymentHistoryDirection = 'INCOMING' | 'OUTGOING' | string;
+export type PaymentHistoryDirection = 'INCOMING' | 'OUTGOING' | 'DEBIT' | 'CREDIT' | string;
 
 export interface PaymentHistoryItemDto {
   id?: number | string | null;
@@ -1195,6 +1195,10 @@ export interface PaymentHistoryItemDto {
   cardMask?: string | null;
   panMask?: string | null;
   paymentMethodMask?: string | null;
+  cardPanMask?: string | null;
+  providerName?: string | null;
+  failureCode?: string | null;
+  releaseAt?: string | null;
 }
 
 export function getPaymentHistoryRequest(
@@ -2839,6 +2843,9 @@ export interface NewsDto {
   bodyRu?: string | null;
   bodyEn?: string | null;
   imageUrl?: string | null;
+  imageUrlKz?: string | null;
+  imageUrlRu?: string | null;
+  imageUrlEn?: string | null;
   status?: NewsStatus;
   publishedAt?: string | null;
   sortOrder?: number;
@@ -2927,6 +2934,37 @@ export function adminUploadNewsImage(id: number, file: File, accessToken: string
   );
 }
 
+export function adminDeleteNewsImage(id: number, accessToken: string) {
+  return requestJson<AdminNewsDto>(`/admin/news/${id}/image`, { method: 'DELETE' }, accessToken);
+}
+
+export function adminUploadNewsLocalizedImage(
+  id: number,
+  locale: 'kz' | 'ru' | 'en',
+  file: File,
+  accessToken: string,
+) {
+  const form = new FormData();
+  form.append('file', file);
+  return requestJson<AdminNewsDto>(
+    `/admin/news/${id}/image/${locale}`,
+    { method: 'POST', body: form },
+    accessToken,
+  );
+}
+
+export function adminDeleteNewsLocalizedImage(
+  id: number,
+  locale: 'kz' | 'ru' | 'en',
+  accessToken: string,
+) {
+  return requestJson<AdminNewsDto>(
+    `/admin/news/${id}/image/${locale}`,
+    { method: 'DELETE' },
+    accessToken,
+  );
+}
+
 // ============================================================
 // Stories / Highlights module ("Актуальное")
 // ============================================================
@@ -2951,6 +2989,9 @@ export interface StoryDto {
   emoji?: string | null;
   gradient?: string | null;
   imageUrl?: string | null;
+  imageUrlKz?: string | null;
+  imageUrlRu?: string | null;
+  imageUrlEn?: string | null;
   status?: StoryStatus;
   publishedAt?: string | null;
   sortOrder?: number;
@@ -3042,6 +3083,33 @@ export function adminUploadStoryImage(id: number, file: File, accessToken: strin
 export function adminDeleteStoryImage(id: number, accessToken: string) {
   return requestJson<AdminStoryDto>(
     `/admin/stories/${id}/image`,
+    { method: 'DELETE' },
+    accessToken,
+  );
+}
+
+export function adminUploadStoryLocalizedImage(
+  id: number,
+  locale: 'kz' | 'ru' | 'en',
+  file: File,
+  accessToken: string,
+) {
+  const form = new FormData();
+  form.append('file', file);
+  return requestJson<AdminStoryDto>(
+    `/admin/stories/${id}/image/${locale}`,
+    { method: 'POST', body: form },
+    accessToken,
+  );
+}
+
+export function adminDeleteStoryLocalizedImage(
+  id: number,
+  locale: 'kz' | 'ru' | 'en',
+  accessToken: string,
+) {
+  return requestJson<AdminStoryDto>(
+    `/admin/stories/${id}/image/${locale}`,
     { method: 'DELETE' },
     accessToken,
   );

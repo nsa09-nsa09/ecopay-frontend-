@@ -11,9 +11,11 @@ import {
   adminCreateStory,
   adminDeleteStory,
   adminDeleteStoryImage,
+  adminDeleteStoryLocalizedImage,
   adminListStories,
   adminUpdateStory,
   adminUploadStoryImage,
+  adminUploadStoryLocalizedImage,
   clearStoriesCache,
   type AdminStoryDto,
   type StoryStatus,
@@ -38,6 +40,7 @@ const tx = (l: Language, ru: string, kz: string, en: string) =>
 
 type LangFields = { title: string; heading: string; body: string; ctaLabel: string };
 type LangBag = Record<StoryLang, LangFields>;
+type ImageMode = 'shared' | 'localized';
 
 interface FormState {
   langs: LangBag;
@@ -154,6 +157,10 @@ export function AdminStoriesPage() {
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
   const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null);
+  const [imageMode, setImageMode] = useState<ImageMode>('shared');
+  const [pendingLocalizedFiles, setPendingLocalizedFiles] = useState<Partial<Record<StoryLang, File>>>({});
+  const [pendingLocalizedPreviews, setPendingLocalizedPreviews] = useState<Partial<Record<StoryLang, string>>>({});
+  const localizedPreviewRef = useRef<Partial<Record<StoryLang, string>>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
 
@@ -161,6 +168,8 @@ export function AdminStoriesPage() {
     if (!pendingImagePreview) return;
     return () => URL.revokeObjectURL(pendingImagePreview);
   }, [pendingImagePreview]);
+  useEffect(() => { localizedPreviewRef.current = pendingLocalizedPreviews; }, [pendingLocalizedPreviews]);
+  useEffect(() => () => Object.values(localizedPreviewRef.current).forEach((url) => URL.revokeObjectURL(url)), []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -180,9 +189,12 @@ export function AdminStoriesPage() {
   }, [load]);
 
   const resetPendingImage = () => {
+    Object.values(pendingLocalizedPreviews).forEach((url) => URL.revokeObjectURL(url));
     setPendingImageFile(null);
     setCropFile(null);
     setPendingImagePreview(null);
+    setPendingLocalizedFiles({});
+    setPendingLocalizedPreviews({});
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -191,6 +203,7 @@ export function AdminStoriesPage() {
     setForm(EMPTY_FORM);
     setActiveLang('ru');
     setEditorError(null);
+    setImageMode('shared');
     resetPendingImage();
     setEditorOpen(true);
   };
@@ -200,6 +213,7 @@ export function AdminStoriesPage() {
     setForm(toForm(item));
     setActiveLang('ru');
     setEditorError(null);
+    setImageMode(item.imageUrlKz || item.imageUrlRu || item.imageUrlEn ? 'localized' : 'shared');
     resetPendingImage();
     setEditorOpen(true);
   };
@@ -230,9 +244,23 @@ export function AdminStoriesPage() {
 
   const handleImageCropped = (cropped: File) => {
     setCropFile(null);
-    if (pendingImagePreview) URL.revokeObjectURL(pendingImagePreview);
-    setPendingImageFile(cropped);
-    setPendingImagePreview(URL.createObjectURL(cropped));
+    if (imageMode === 'shared') {
+      if (pendingImagePreview) URL.revokeObjectURL(pendingImagePreview);
+      setPendingImageFile(cropped);
+      setPendingImagePreview(URL.createObjectURL(cropped));
+    } else {
+      const old = pendingLocalizedPreviews[activeLang];
+      if (old) URL.revokeObjectURL(old);
+      setPendingLocalizedFiles((prev) => ({ ...prev, [activeLang]: cropped }));
+      setPendingLocalizedPreviews((prev) => ({ ...prev, [activeLang]: URL.createObjectURL(cropped) }));
+    }
+  };
+
+  const clearPendingLocalizedImage = (locale: StoryLang) => {
+    const preview = pendingLocalizedPreviews[locale];
+    if (preview) URL.revokeObjectURL(preview);
+    setPendingLocalizedFiles((prev) => ({ ...prev, [locale]: undefined }));
+    setPendingLocalizedPreviews((prev) => ({ ...prev, [locale]: undefined }));
   };
 
   const handleSave = async () => {
@@ -247,10 +275,20 @@ export function AdminStoriesPage() {
           ? await authorizedRequest((token) => adminUpdateStory(editingId, payload, token))
           : await authorizedRequest((token) => adminCreateStory(payload, token));
 
-      if (pendingImageFile) {
+      if (imageMode === 'shared' && pendingImageFile) {
         saved = await authorizedRequest((token) =>
           adminUploadStoryImage(saved.id, pendingImageFile, token),
         );
+      }
+      if (imageMode === 'shared') {
+        for (const locale of STORY_LANGS) {
+          saved = await authorizedRequest((token) => adminDeleteStoryLocalizedImage(saved.id, locale, token));
+        }
+      } else {
+        for (const locale of STORY_LANGS) {
+          const file = pendingLocalizedFiles[locale];
+          if (file) saved = await authorizedRequest((token) => adminUploadStoryLocalizedImage(saved.id, locale, file, token));
+        }
       }
 
       setItems((prev) => {
@@ -289,7 +327,9 @@ export function AdminStoriesPage() {
     if (!editing) return;
     setUploadingId(editing.id);
     try {
-      const updated = await authorizedRequest((token) => adminDeleteStoryImage(editing.id, token));
+      const updated = await authorizedRequest((token) => imageMode === 'shared'
+        ? adminDeleteStoryImage(editing.id, token)
+        : adminDeleteStoryLocalizedImage(editing.id, activeLang, token));
       setItems((prev) => prev.map((it) => (it.id === updated.id ? updated : it)));
       setEditing(updated);
       clearStoriesCache();
@@ -581,9 +621,17 @@ export function AdminStoriesPage() {
 
           <FormRow label={t('adminNewsFieldImage')}>
             {(() => {
-              const previewUrl = pendingImagePreview || editing?.imageUrl || null;
+              const localizedKey = activeLang === 'kz' ? 'imageUrlKz' : activeLang === 'en' ? 'imageUrlEn' : 'imageUrlRu';
+              const previewUrl = imageMode === 'shared'
+                ? pendingImagePreview || editing?.imageUrl || null
+                : pendingLocalizedPreviews[activeLang] || editing?.[localizedKey] || null;
               const uploadingNow = editing ? uploadingId === editing.id : false;
               return (
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-wrap gap-2 text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={imageMode === 'shared'} onChange={() => setImageMode('shared')} /> {tx(language, 'Одна картинка для всех языков', 'Барлық тілге бір сурет', 'One image for all languages')}</label>
+                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={imageMode === 'localized'} onChange={() => setImageMode('localized')} /> {tx(language, 'Отдельная для каждого языка', 'Әр тілге бөлек', 'A separate image for each language')}</label>
+                  </div>
                 <div className="flex items-center gap-3">
                   {previewUrl ? (
                     <img
@@ -627,12 +675,12 @@ export function AdminStoriesPage() {
                         <Upload size={13} />{' '}
                         {previewUrl ? t('adminNewsImageReplace') : t('adminNewsImageUpload')}
                       </Button>
-                      {pendingImageFile && (
-                        <Button variant="ghost" size="sm" onClick={resetPendingImage}>
+                      {(imageMode === 'shared' ? pendingImageFile : pendingLocalizedFiles[activeLang]) && (
+                        <Button variant="ghost" size="sm" onClick={() => imageMode === 'shared' ? resetPendingImage() : clearPendingLocalizedImage(activeLang)}>
                           <X size={13} /> {t('cancel')}
                         </Button>
                       )}
-                      {editing?.imageUrl && !pendingImageFile && (
+                      {Boolean(imageMode === 'shared' ? editing?.imageUrl : editing?.[localizedKey]) && !(imageMode === 'shared' ? pendingImageFile : pendingLocalizedFiles[activeLang]) && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -644,9 +692,10 @@ export function AdminStoriesPage() {
                       )}
                     </div>
                     <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {t('adminStoriesImageHint')}
+                      {imageMode === 'localized' ? tx(language, `Картинка — ${langTabs.find((tab) => tab.id === activeLang)?.label}`, `Сурет — ${langTabs.find((tab) => tab.id === activeLang)?.label}`, `Image — ${langTabs.find((tab) => tab.id === activeLang)?.label}`) : t('adminStoriesImageHint')}
                     </span>
                   </div>
+                </div>
                 </div>
               );
             })()}

@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { ArrowRight, Newspaper } from 'lucide-react';
 import { Card, Skeleton } from '../ds-primitives';
 import { getNews, type NewsDto } from '../../lib/api';
-import { formatDate } from '../../lib/datetime';
+import { formatShortDmyDate } from '../../lib/datetime';
 import type { Language } from '../i18n-provider';
 
 type L = Language;
@@ -43,7 +43,11 @@ export function pickLocalizedNews(item: NewsDto, language: L) {
     item.bodyEn ||
     item.bodyKz ||
     '';
-  return { title, body };
+  const imageKey = language === 'kz' ? 'imageUrlKz' : language === 'en' ? 'imageUrlEn' : 'imageUrlRu';
+  const image =
+    (item[imageKey as keyof NewsDto] as string | null | undefined) ||
+    item.imageUrl || item.imageUrlRu || item.imageUrlKz || item.imageUrlEn || null;
+  return { title, body, image };
 }
 
 function snippet(text: string, maxChars = 160): string {
@@ -53,7 +57,7 @@ function snippet(text: string, maxChars = 160): string {
 }
 
 const NewsCard = memo(function NewsCard({ item, language }: { item: NewsDto; language: L }) {
-  const { title, body } = pickLocalizedNews(item, language);
+  const { title, body, image } = pickLocalizedNews(item, language);
   return (
     <Link
       to={`/news/${item.id}`}
@@ -61,9 +65,9 @@ const NewsCard = memo(function NewsCard({ item, language }: { item: NewsDto; lan
       aria-label={title || readMoreLabel[language]}
     >
       <Card className="flex flex-col gap-3 h-full overflow-hidden eco-lift">
-        {item.imageUrl ? (
+        {image ? (
           <img
-            src={item.imageUrl}
+            src={image}
             alt=""
             width={480}
             height={260}
@@ -81,7 +85,7 @@ const NewsCard = memo(function NewsCard({ item, language }: { item: NewsDto; lan
           </div>
         )}
         <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-          {formatDate(item.publishedAt, language)}
+          {formatShortDmyDate(item.publishedAt)}
         </div>
         <div className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
           {title || '—'}

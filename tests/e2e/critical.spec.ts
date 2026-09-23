@@ -852,6 +852,21 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
         hasPrevious: false,
       });
     }
+    if (path === '/payments/history') {
+      return body({
+        items: [
+          { id: 1, kind: 'PAYMENT', direction: 'DEBIT', status: 'SUCCESS', amount: 2500, currency: 'KZT', roomId: 303, roomTitle: 'Microsoft 365 Family', cardPanMask: '•••• 1234', createdAt: '2026-09-05T10:00:00Z' },
+          { id: 2, kind: 'PAYOUT', direction: 'CREDIT', status: 'FROZEN', amount: 1800, currency: 'KZT', roomId: 303, roomTitle: 'Microsoft 365 Family', payoutId: 'payout-2', createdAt: '2026-09-05T10:00:00Z', releaseAt: '2026-10-05T10:00:00Z' },
+        ], page: 0, size: 12, totalItems: 2, totalPages: 1, hasNext: false, hasPrevious: false,
+      });
+    }
+    if (path === '/news' || path === '/news/91') {
+      const news = { id: 91, titleRu: 'Новость', titleKz: 'Жаңалық', titleEn: 'News', bodyRu: 'Текст', bodyKz: 'Мәтін', bodyEn: 'Text', publishedAt: '2026-09-05T00:00:00Z', imageUrl: '/shared.jpg', imageUrlRu: '/ru.jpg', imageUrlKz: '/kz.jpg', imageUrlEn: '/en.jpg' };
+      return path === '/news/91' ? body(news) : body({ items: [news], page: 0, size: 24, totalItems: 1, totalPages: 1, hasNext: false, hasPrevious: false });
+    }
+    if (path === '/stories') {
+      return body({ items: [{ id: 51, titleRu: 'Актуальное', titleKz: 'Өзекті', titleEn: 'Highlights', headingRu: 'Заголовок', headingKz: 'Тақырып', headingEn: 'Heading', bodyRu: 'Текст', bodyKz: 'Мәтін', bodyEn: 'Text', imageUrl: '/shared-story.jpg', imageUrlRu: '/ru-story.jpg', imageUrlKz: '/kz-story.jpg', imageUrlEn: '/en-story.jpg' }], page: 0, size: 12, totalItems: 1, totalPages: 1, hasNext: false, hasPrevious: false });
+    }
     if (path.includes('/admin/service-reviews') && method === 'GET') {
       const featured = url.searchParams.get('featured');
       const filtered =
@@ -1347,6 +1362,42 @@ test('payment return success and unknown states are distinct', async ({ page }) 
   await expect(page.getByText(/Payment Successful/)).toBeVisible();
   await page.goto('/payment/confirmation?intentId=unknown&roomId=100');
   await expect(page.getByText('Do not pay again.')).toBeVisible();
+});
+
+test('payment history normalizes DEBIT/CREDIT and keeps technical IDs in details', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await mockApi(page);
+  await seedSession(page);
+  await page.goto('/payments/history');
+  await expect(page.getByText('−₸2,500')).toBeVisible();
+  await expect(page.getByText('+₸1,800')).toBeVisible();
+  await expect(page.getByText('Direction unavailable')).toHaveCount(0);
+  await expect(page.getByText('PO-payout-2')).toHaveCount(0);
+  await page.getByText('Operation details').nth(1).click();
+  await expect(page.getByText('PO-payout-2')).toBeVisible();
+  expect(await page.locator('main').evaluate((node) => node.scrollWidth <= node.clientWidth)).toBeTruthy();
+});
+
+test('public news has language-specific images and a fixed DMY date', async ({ page }) => {
+  await mockApi(page, 'ANON', 'ru');
+  await page.goto('/news');
+  await expect(page.getByRole('link', { name: 'Читать новость' }).locator('img')).toHaveAttribute('src', /\/ru\.jpg$/);
+  await expect(page.getByText('05/09/26').first()).toBeVisible();
+  await page.evaluate(() => localStorage.setItem('ecopay-language', 'kz'));
+  await page.reload();
+  await expect(page.getByRole('link', { name: 'Жаңалықты оқу' }).locator('img')).toHaveAttribute('src', /\/kz\.jpg$/);
+  await page.evaluate(() => localStorage.setItem('ecopay-language', 'en'));
+  await page.reload();
+  await expect(page.getByRole('link', { name: 'Read story' }).locator('img')).toHaveAttribute('src', /\/en\.jpg$/);
+});
+
+test('story cover switches its localized image with the active language', async ({ page }) => {
+  await mockApi(page, 'ANON', 'ru');
+  await page.goto('/news');
+  await expect(page.locator('img[src$="/ru-story.jpg"]')).toBeVisible();
+  await page.evaluate(() => localStorage.setItem('ecopay-language', 'kz'));
+  await page.reload();
+  await expect(page.locator('img[src$="/kz-story.jpg"]')).toBeVisible();
 });
 
 test('admin finance operations opens for admin', async ({ page }) => {

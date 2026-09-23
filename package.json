@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "build:release": "vite build && node tools/check-internal-artifacts.mjs && npm run check:production-content && npm run check:brand",
+    "build:release": "vite build && node tools/check-internal-artifacts.mjs && npm run check:production-content && npm run check:brand && node tools/check-nginx-csp.mjs",
     "check:brand": "node tools/check-legacy-brand.mjs",
     "check:internal-artifacts": "node tools/check-internal-artifacts.mjs",
     "check:production-content": "node tools/check-production-content.mjs",

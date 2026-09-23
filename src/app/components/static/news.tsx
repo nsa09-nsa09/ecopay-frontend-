@@ -7,7 +7,7 @@ import { NewsSection, pickLocalizedNews } from '../catalog/home-news';
 import { StoriesRow } from '../catalog/stories';
 import { SocialCards } from '../catalog/social-cards';
 import { getNews, getNewsById, type NewsDto } from '../../lib/api';
-import { formatDate } from '../../lib/datetime';
+import { formatShortDmyDate } from '../../lib/datetime';
 
 const detailLabels = {
   back: { ru: 'К новостям', kz: 'Жаңалықтарға', en: 'Back to news' },
@@ -135,7 +135,7 @@ export function NewsDetailPage() {
     };
   }, [newsId]);
 
-  const { title, body } = item ? pickLocalizedNews(item, language) : { title: '', body: '' };
+  const { title, body, image } = item ? pickLocalizedNews(item, language) : { title: '', body: '', image: null };
   const paragraphs = splitArticleBody(body);
 
   useEffect(() => {
@@ -201,7 +201,7 @@ export function NewsDetailPage() {
           >
             <CalendarDays size={15} />
             <span>{label('published', language)}</span>
-            <span>{formatDate(item.publishedAt, language)}</span>
+            <span>{formatShortDmyDate(item.publishedAt)}</span>
           </div>
           <h1
             className="text-[30px] sm:text-[44px] leading-tight tracking-tight max-w-[860px] [overflow-wrap:anywhere]"
@@ -211,9 +211,9 @@ export function NewsDetailPage() {
           </h1>
         </header>
 
-        {item.imageUrl ? (
+        {image ? (
           <img
-            src={item.imageUrl}
+            src={image}
             alt=""
             width={960}
             height={520}
@@ -266,7 +266,7 @@ export function NewsDetailPage() {
                 <Link key={news.id} to={`/news/${news.id}`} className="no-underline">
                   <Card className="h-full eco-lift">
                     <div className="text-[12px] mb-2" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {formatDate(news.publishedAt, language)}
+                      {formatShortDmyDate(news.publishedAt)}
                     </div>
                     <div className="text-[15px] leading-snug" style={{ color: 'var(--eco-text)' }}>
                       {localized.title || label('notFoundTitle', language)}

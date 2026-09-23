@@ -40,7 +40,12 @@ function localizedText(
   return { ru, kz, en };
 }
 
-function toUiStory(item: StoryDto): Story {
+function localizedImage(item: StoryDto, lang: Lang): string | undefined {
+  const exact = lang === 'kz' ? item.imageUrlKz : lang === 'en' ? item.imageUrlEn : item.imageUrlRu;
+  return exact || item.imageUrl || item.imageUrlRu || item.imageUrlKz || item.imageUrlEn || undefined;
+}
+
+function toUiStory(item: StoryDto, lang: Lang): Story {
   const title = localizedText(item, 'titleRu', 'titleKz', 'titleEn', `#${item.id}`);
   const heading = localizedText(item, 'headingRu', 'headingKz', 'headingEn', title.ru);
   const text = localizedText(item, 'bodyRu', 'bodyKz', 'bodyEn', '');
@@ -50,14 +55,14 @@ function toUiStory(item: StoryDto): Story {
   return {
     id: `story-${item.id}`,
     title,
-    cover: item.imageUrl ?? undefined,
+    cover: localizedImage(item, lang),
     emoji: item.emoji ?? undefined,
     gradient,
     seen: false,
     slides: [
       {
         id: `story-${item.id}-slide`,
-        image: item.imageUrl ?? undefined,
+        image: localizedImage(item, lang),
         gradient,
         heading,
         text,
@@ -191,7 +196,7 @@ export function StoriesRow({ className = '' }: { className?: string }) {
     };
   }, []);
 
-  const stories = useMemo(() => items.map(toUiStory), [items]);
+  const stories = useMemo(() => items.map((item) => toUiStory(item, lang)), [items, lang]);
 
   const markSeen = useCallback((id: string) => {
     setSeen((prev) => {

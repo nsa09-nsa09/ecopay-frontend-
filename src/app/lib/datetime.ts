@@ -87,3 +87,21 @@ export function formatDate(
     day: '2-digit',
   }).format(date);
 }
+
+/**
+ * Public-news date: deliberately identical in every app language.  Build the
+ * value from parts so browser locale punctuation/order cannot leak into it.
+ */
+export function formatShortDmyDate(value: string | number | Date | null | undefined): string {
+  const date = parse(value);
+  if (!date) return '—';
+  const parts = getFormatter('en-GB', {
+    timeZone: ALMATY_TZ,
+    year: '2-digit',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((entry) => entry.type === type)?.value ?? '';
+  return `${part('day')}/${part('month')}/${part('year')}`;
+}

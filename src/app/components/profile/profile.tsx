@@ -1509,56 +1509,30 @@ function MemberDashboardCard() {
 
       {data && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {stats.map((s) => {
-              const Icon = s.icon;
-              return (
-                <div
-                  key={s.key}
-                  className="p-3 rounded-lg flex flex-col gap-2"
-                  style={{ background: 'var(--eco-surface)' }}
-                >
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center"
-                    style={{
-                      background:
-                        s.variant === 'warning'
-                          ? 'var(--eco-warning-100)'
-                          : s.variant === 'danger'
-                            ? 'var(--eco-danger-100)'
-                            : s.variant === 'success'
-                              ? 'var(--eco-success-100)'
-                              : 'var(--eco-brand-50)',
-                    }}
-                  >
-                    <Icon
-                      size={13}
-                      style={{
-                        color:
-                          s.variant === 'warning'
-                            ? 'var(--eco-warning-500)'
-                            : s.variant === 'danger'
-                              ? 'var(--eco-danger-500)'
-                              : s.variant === 'success'
-                                ? 'var(--eco-positive)'
-                                : 'var(--eco-brand-600)',
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <div className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
-                      {s.value}
-                    </div>
-                    <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {t(s.key)}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {stats.filter((s) => ['memberStatActiveRooms', 'memberStatTotalSpent', 'memberStatTotalSaved'].includes(s.key)).map((s) => (
+              <DashboardHeroStat key={s.key} stat={s} label={t(s.key)} />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <DashboardList title={language === 'ru' ? 'Активность' : language === 'kz' ? 'Белсенділік' : 'Activity'} stats={stats.filter((s) => ['memberStatCompletedRooms', 'memberStatTotalJoined', 'memberStatMonthlySpend', 'memberStatNextPayment'].includes(s.key))} t={t} />
+            <DashboardList title={language === 'ru' ? 'Репутация' : language === 'kz' ? 'Бедел' : 'Reputation'} stats={stats.filter((s) => ['memberStatReputation', 'memberStatReviewsReceived', 'memberStatDisputes'].includes(s.key))} t={t} />
           </div>
         </>
       )}
     </Card>
   );
+}
+
+function dashboardColor(variant: MemberStat['variant']) {
+  return variant === 'warning' ? 'var(--eco-warning-500)' : variant === 'danger' ? 'var(--eco-danger-500)' : variant === 'success' ? 'var(--eco-positive)' : 'var(--eco-brand-600)';
+}
+
+function DashboardHeroStat({ stat, label }: { stat: MemberStat; label: string }) {
+  const Icon = stat.icon;
+  return <div className="rounded-xl p-4" style={{ background: 'var(--eco-surface)' }}><div className="flex items-center gap-2 text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}><Icon size={15} style={{ color: dashboardColor(stat.variant) }} />{label}</div><div className="text-[21px] mt-2" style={{ color: 'var(--eco-text)', fontWeight: 650 }}>{stat.value}</div></div>;
+}
+
+function DashboardList({ title, stats, t }: { title: string; stats: MemberStat[]; t: (key: string) => string }) {
+  return <div className="rounded-xl p-4" style={{ background: 'var(--eco-surface)' }}><h4 className="text-[13px] mb-2" style={{ color: 'var(--eco-text)' }}>{title}</h4><div className="divide-y" style={{ borderColor: 'var(--eco-border)' }}>{stats.map((stat) => { const Icon = stat.icon; return <div key={stat.key} className="flex items-center justify-between gap-3 py-2.5"><span className="flex min-w-0 items-center gap-2 text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}><Icon size={14} style={{ color: dashboardColor(stat.variant) }} />{t(stat.key)}</span><span className="text-right text-[13px] shrink-0" style={{ color: 'var(--eco-text)' }}>{stat.value}</span></div>; })}</div></div>;
 }

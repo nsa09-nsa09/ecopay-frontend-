@@ -4,7 +4,7 @@ import { AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, RefreshCw } from 'lu
 import { Badge, Button, Card, EmptyState, Select, Skeleton } from '../ds-primitives';
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
-import { formatDateTime, formatNumber } from '../../lib/datetime';
+import { formatDateTime, formatNumber, formatShortDmyDate } from '../../lib/datetime';
 import {
   ApiError,
   getPaymentHistoryRequest,
@@ -45,10 +45,17 @@ function kindLabel(kind: string, l: L): string {
 }
 
 function directionLabel(direction: string, l: L): string {
-  const d = direction.toUpperCase();
+  const d = normalizeDirection(direction);
   if (d === 'INCOMING') return tx(l, 'Входящий', 'Кіріс', 'Incoming');
   if (d === 'OUTGOING') return tx(l, 'Исходящий', 'Шығыс', 'Outgoing');
-  return tx(l, 'Направление не указано', 'Бағыт көрсетілмеген', 'Direction unavailable');
+  return tx(l, 'Операция', 'Операция', 'Operation');
+}
+
+export function normalizeDirection(direction: string | null | undefined): 'INCOMING' | 'OUTGOING' | null {
+  const value = direction?.toUpperCase();
+  if (value === 'CREDIT' || value === 'INCOMING') return 'INCOMING';
+  if (value === 'DEBIT' || value === 'OUTGOING') return 'OUTGOING';
+  return null;
 }
 
 function statusLabel(status: string, l: L): string {
@@ -61,6 +68,8 @@ function statusLabel(status: string, l: L): string {
     SENT: ['Отправлен', 'Жіберілді', 'Sent'],
     PROCESSED: ['Обработан', 'Өңделді', 'Processed'],
     PENDING: ['Ожидает', 'Күтуде', 'Pending'],
+    PENDING_METHOD: ['Ожидает способ выплаты', 'Төлем әдісін күтуде', 'Awaiting payout method'],
+    FROZEN: ['Удерживается EcoPay', 'EcoPay ұстап тұр', 'Held by EcoPay'],
     QUEUED: ['В очереди', 'Кезекте', 'Queued'],
     HOLD: ['Удержание', 'Ұсталым', 'Hold'],
     PROCESSING: ['Обрабатывается', 'Өңделуде', 'Processing'],
@@ -100,13 +109,13 @@ function operationIds(item: PaymentHistoryItemDto): string[] {
 }
 
 function cardMask(item: PaymentHistoryItemDto): string | null {
-  return item.cardMask ?? item.panMask ?? item.paymentMethodMask ?? null;
+  return item.cardMask ?? item.panMask ?? item.cardPanMask ?? item.paymentMethodMask ?? null;
 }
 
 function signedAmount(item: PaymentHistoryItemDto): string {
-  const direction = item.direction.toUpperCase();
+  const direction = normalizeDirection(item.direction);
   const kind = item.kind.toUpperCase();
-  const sign = direction === 'INCOMING' || kind === 'REFUND' ? '+' : '−';
+  const sign = direction === 'INCOMING' || (!direction && kind === 'REFUND') ? '+' : '−';
   return `${sign}${money(item.amountKzt ?? item.amount, item.settlementCurrency ?? item.currency)}`;
 }
 
@@ -136,141 +145,23 @@ function HistorySkeleton() {
   );
 }
 
+function operationCopy(item: PaymentHistoryItemDto, language: L) {
+  const room = item.roomTitle || tx(language, 'эта комната', 'осы бөлме', 'this room');
+  const kind = item.kind.toUpperCase();
+  if (kind === 'REFUND') return { title: tx(language, 'Возврат', 'Қайтару', 'Refund'), detail: tx(language, `Возврат по комнате ${room}`, `${room} бөлмесі бойынша қайтарым`, `Refund for ${room}`), secondary: tx(language, 'Возвращено вам', 'Сізге қайтарылды', 'Returned to you') };
+  if (kind === 'PAYOUT') return { title: tx(language, 'Выплата', 'Аударым', 'Payout'), detail: tx(language, `Выплата вам за комнату ${room}`, `${room} бөлмесі үшін сізге аударым`, `Payout to you for ${room}`), secondary: null };
+  return { title: tx(language, 'Оплата участия', 'Қатысу төлемі', 'Participation payment'), detail: tx(language, `Комната: ${room}`, `Бөлме: ${room}`, `Room: ${room}`), secondary: null };
+}
+
 function PaymentHistoryTable({ items, language }: { items: PaymentHistoryItemDto[]; language: L }) {
   return (
-    <>
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--eco-border)' }}>
-              {[
-                tx(language, 'Операция', 'Операция', 'Operation'),
-                tx(language, 'Комната', 'Бөлме', 'Room'),
-                tx(language, 'Дата', 'Күні', 'Date'),
-                tx(language, 'Статус', 'Мәртебе', 'Status'),
-                tx(language, 'Сумма', 'Сома', 'Amount'),
-              ].map((header) => (
-                <th
-                  key={header}
-                  className="px-4 py-3 text-left text-[12px] whitespace-nowrap"
-                  style={{ color: 'var(--eco-text-tertiary)', fontWeight: 500 }}
-                >
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, idx) => {
-              const ids = operationIds(item);
-              const date = historyDate(item);
-              const mask = cardMask(item);
-              return (
-                <tr
-                  key={ids[0] ?? `${item.kind}-${idx}`}
-                  style={{ borderBottom: '1px solid var(--eco-border)' }}
-                >
-                  <td className="px-4 py-4 align-top">
-                    <div className="flex flex-col gap-1 min-w-[170px]">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="info">{kindLabel(item.kind, language)}</Badge>
-                        <span
-                          className="text-[12px]"
-                          style={{ color: 'var(--eco-text-tertiary)' }}
-                        >
-                          {directionLabel(item.direction, language)}
-                        </span>
-                      </div>
-                      <div
-                        className="text-[12px] truncate"
-                        title={ids.join(' · ')}
-                        style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                      >
-                        {ids.join(' · ') || '—'}
-                      </div>
-                      {mask && (
-                        <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                          {mask}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    <div className="max-w-[260px]">
-                      <div
-                        className="text-[13px] line-clamp-2"
-                        title={item.roomTitle ?? undefined}
-                        style={{ color: 'var(--eco-text)' }}
-                      >
-                        {item.roomTitle ?? '—'}
-                      </div>
-                      {item.roomId != null && (
-                        <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                          #{item.roomId}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td
-                    className="px-4 py-4 align-top text-[13px] whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-secondary)' }}
-                  >
-                    {date ? formatDateTime(date, language) : '—'}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    <Badge variant={statusVariant(item.status)}>{statusLabel(item.status, language)}</Badge>
-                  </td>
-                  <td
-                    className="px-4 py-4 align-top text-[14px] text-right whitespace-nowrap"
-                    style={{ color: 'var(--eco-text)', fontWeight: 650 }}
-                  >
-                    {signedAmount(item)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="md:hidden flex flex-col gap-3">
-        {items.map((item, idx) => {
-          const ids = operationIds(item);
-          const date = historyDate(item);
-          const mask = cardMask(item);
-          return (
-            <Card key={ids[0] ?? `${item.kind}-${idx}`} className="flex flex-col gap-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="info">{kindLabel(item.kind, language)}</Badge>
-                    <Badge variant={statusVariant(item.status)}>
-                      {statusLabel(item.status, language)}
-                    </Badge>
-                  </div>
-                  <div className="text-[13px] mt-2" style={{ color: 'var(--eco-text)' }}>
-                    {item.roomTitle ?? '—'}
-                  </div>
-                </div>
-                <div
-                  className="text-[15px] whitespace-nowrap"
-                  style={{ color: 'var(--eco-text)', fontWeight: 650 }}
-                >
-                  {signedAmount(item)}
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-1 text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                <div className="truncate" title={ids.join(' · ')}>
-                  {ids.join(' · ') || '—'}
-                </div>
-                <div>{date ? formatDateTime(date, language) : '—'}</div>
-                {mask && <div>{mask}</div>}
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-    </>
+    <div className="flex flex-col divide-y" style={{ borderColor: 'var(--eco-border)' }}>
+      {items.map((item, idx) => {
+        const ids = operationIds(item); const date = historyDate(item); const mask = cardMask(item); const copy = operationCopy(item, language);
+        const held = item.kind.toUpperCase() === 'PAYOUT' && ['FROZEN', 'PENDING', 'PENDING_METHOD'].includes(item.status.toUpperCase()) && item.releaseAt && Date.parse(item.releaseAt) > Date.now();
+        return <div key={ids[0] ?? `${item.kind}-${idx}`} className="p-4 sm:px-5 flex flex-col gap-2"><div className="flex flex-col sm:flex-row sm:items-start gap-3"><div className="min-w-0 flex-1"><div className="flex items-center gap-2 flex-wrap"><span className="text-[15px]" style={{ color: 'var(--eco-text)', fontWeight: 600 }}>{copy.title}</span><Badge variant={statusVariant(item.status)}>{statusLabel(item.status, language)}</Badge></div><div className="text-[13px] mt-1" style={{ color: 'var(--eco-text-secondary)' }}>{item.roomId != null ? <Link to={`/rooms/${item.roomId}`} style={{ color: 'var(--eco-primary)' }}>{copy.detail}</Link> : copy.detail}</div><div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>{copy.secondary ?? (mask ? tx(language, `Списано с карты ${mask}`, `${mask} картасынан алынды`, `Charged to card ${mask}`) : item.providerName || directionLabel(item.direction, language))}</div>{held && <div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>{tx(language, `EcoPay удерживает до ${formatShortDmyDate(item.releaseAt)}`, `EcoPay ${formatShortDmyDate(item.releaseAt)} дейін ұстайды`, `EcoPay holds it until ${formatShortDmyDate(item.releaseAt)}`)}</div>}</div><div className="sm:text-right shrink-0"><div className="text-[16px]" style={{ color: 'var(--eco-text)', fontWeight: 650 }}>{signedAmount(item)}</div><div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>{date ? formatDateTime(date, language) : '—'}</div></div></div><details className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}><summary className="cursor-pointer">{tx(language, 'Детали операции', 'Операция мәліметтері', 'Operation details')}</summary><div className="mt-2 break-all">{ids.join(' · ') || '—'}{item.providerName ? ` · ${item.providerName}` : ''}{mask ? ` · ${mask}` : ''}{item.failureCode ? ` · ${item.failureCode}` : ''}</div></details></div>;
+      })}
+    </div>
   );
 }
 
@@ -354,14 +245,16 @@ export function PaymentHistoryPage() {
 
   const items = data?.items ?? [];
   const currentPageIncoming = items
-    .filter((item) => item.direction.toUpperCase() === 'INCOMING')
+    .filter((item) => normalizeDirection(item.direction) === 'INCOMING')
     .reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const currentPageOutgoing = items
-    .filter((item) => item.direction.toUpperCase() === 'OUTGOING')
+    .filter((item) => normalizeDirection(item.direction) === 'OUTGOING')
     .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const currencies = new Set(items.map((item) => item.settlementCurrency ?? item.currency).filter(Boolean));
+  const summaryCurrency = currencies.size === 1 ? [...currencies][0] : null;
 
   return (
-    <div className="max-w-[1120px] mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-8">
       <Link
         to="/profile"
         className="inline-flex items-center gap-1 text-[13px] mb-6"
@@ -421,12 +314,12 @@ export function PaymentHistoryPage() {
               value={data ? formatNumber(data.totalItems) : '—'}
             />
             <SummaryBlock
-              label={tx(language, 'Входящие на странице', 'Беттегі кіріс', 'Incoming on page')}
-              value={money(currentPageIncoming, 'KZT')}
+              label={tx(language, 'Получено на этой странице', 'Осы бетте алынғаны', 'Received on this page')}
+              value={summaryCurrency ? money(currentPageIncoming, summaryCurrency) : '—'}
             />
             <SummaryBlock
-              label={tx(language, 'Исходящие на странице', 'Беттегі шығыс', 'Outgoing on page')}
-              value={money(currentPageOutgoing, 'KZT')}
+              label={tx(language, 'Потрачено на этой странице', 'Осы бетте жұмсалғаны', 'Spent on this page')}
+              value={summaryCurrency ? money(currentPageOutgoing, summaryCurrency) : '—'}
             />
           </div>
 

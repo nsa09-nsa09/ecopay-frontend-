@@ -20,9 +20,12 @@ import {
 import {
   adminCreateNews,
   adminDeleteNews,
+  adminDeleteNewsImage,
+  adminDeleteNewsLocalizedImage,
   adminListNews,
   adminUpdateNews,
   adminUploadNewsImage,
+  adminUploadNewsLocalizedImage,
   clearNewsCache,
   type AdminNewsDto,
   type NewsStatus,
@@ -35,10 +38,11 @@ type NewsLang = (typeof NEWS_LANGS)[number];
 const TITLE_MAX = 200;
 const BODY_MAX = 4000;
 const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
-const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg'];
 
 type LangFields = { title: string; body: string };
 type LangBag = Record<NewsLang, LangFields>;
+type ImageMode = 'shared' | 'localized';
 
 interface FormState {
   langs: LangBag;
@@ -138,6 +142,10 @@ export function AdminNewsPage() {
   // step of handleSave for create mode, or right after a save in edit mode.
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
   const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null);
+  const [imageMode, setImageMode] = useState<ImageMode>('shared');
+  const [pendingLocalizedFiles, setPendingLocalizedFiles] = useState<Partial<Record<NewsLang, File>>>({});
+  const [pendingLocalizedPreviews, setPendingLocalizedPreviews] = useState<Partial<Record<NewsLang, string>>>({});
+  const localizedPreviewRef = useRef<Partial<Record<NewsLang, string>>>({});
 
   // Release the object URL when the picked file changes or the editor closes.
   useEffect(() => {
@@ -146,6 +154,9 @@ export function AdminNewsPage() {
       URL.revokeObjectURL(pendingImagePreview);
     };
   }, [pendingImagePreview]);
+
+  useEffect(() => { localizedPreviewRef.current = pendingLocalizedPreviews; }, [pendingLocalizedPreviews]);
+  useEffect(() => () => Object.values(localizedPreviewRef.current).forEach((url) => URL.revokeObjectURL(url)), []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -177,8 +188,11 @@ export function AdminNewsPage() {
   );
 
   const resetPendingImage = () => {
+    Object.values(pendingLocalizedPreviews).forEach((url) => URL.revokeObjectURL(url));
     setPendingImageFile(null);
     setPendingImagePreview(null);
+    setPendingLocalizedFiles({});
+    setPendingLocalizedPreviews({});
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -187,6 +201,7 @@ export function AdminNewsPage() {
     setForm(EMPTY_FORM);
     setActiveLang('ru');
     setEditorError(null);
+    setImageMode('shared');
     resetPendingImage();
     setEditorOpen(true);
   };
@@ -196,6 +211,7 @@ export function AdminNewsPage() {
     setForm(toForm(item));
     setActiveLang('ru');
     setEditorError(null);
+    setImageMode(item.imageUrlKz || item.imageUrlRu || item.imageUrlEn ? 'localized' : 'shared');
     resetPendingImage();
     setEditorOpen(true);
   };
@@ -221,9 +237,23 @@ export function AdminNewsPage() {
       return;
     }
     setEditorError(null);
-    if (pendingImagePreview) URL.revokeObjectURL(pendingImagePreview);
-    setPendingImageFile(file);
-    setPendingImagePreview(URL.createObjectURL(file));
+    if (imageMode === 'shared') {
+      if (pendingImagePreview) URL.revokeObjectURL(pendingImagePreview);
+      setPendingImageFile(file);
+      setPendingImagePreview(URL.createObjectURL(file));
+    } else {
+      const old = pendingLocalizedPreviews[activeLang];
+      if (old) URL.revokeObjectURL(old);
+      setPendingLocalizedFiles((prev) => ({ ...prev, [activeLang]: file }));
+      setPendingLocalizedPreviews((prev) => ({ ...prev, [activeLang]: URL.createObjectURL(file) }));
+    }
+  };
+
+  const clearPendingLocalizedImage = (locale: NewsLang) => {
+    const preview = pendingLocalizedPreviews[locale];
+    if (preview) URL.revokeObjectURL(preview);
+    setPendingLocalizedFiles((prev) => ({ ...prev, [locale]: undefined }));
+    setPendingLocalizedPreviews((prev) => ({ ...prev, [locale]: undefined }));
   };
 
   const handleSave = async () => {
@@ -258,7 +288,7 @@ export function AdminNewsPage() {
       }
 
       // If a file was picked while the post had no id yet, upload it now.
-      if (pendingImageFile) {
+      if (imageMode === 'shared' && pendingImageFile) {
         try {
           saved = await authorizedRequest((token) =>
             adminUploadNewsImage(saved.id, pendingImageFile, token),
@@ -271,6 +301,16 @@ export function AdminNewsPage() {
           setEditorError(formatAdminApiError(uploadErr, t));
           setSaving(false);
           return;
+        }
+      }
+      if (imageMode === 'shared') {
+        for (const locale of NEWS_LANGS) {
+          saved = await authorizedRequest((token) => adminDeleteNewsLocalizedImage(saved.id, locale, token));
+        }
+      } else {
+        for (const locale of NEWS_LANGS) {
+          const file = pendingLocalizedFiles[locale];
+          if (file) saved = await authorizedRequest((token) => adminUploadNewsLocalizedImage(saved.id, locale, file, token));
         }
       }
 
@@ -310,17 +350,13 @@ export function AdminNewsPage() {
     if (!editing) return;
     setUploadingId(editing.id);
     try {
-      const payload = buildPayload(form);
-      const updated = await authorizedRequest((token) =>
-        adminUpdateNews(editing.id, { ...payload }, token),
-      );
-      // Backend should clear imageUrl when an explicit null is sent; we rely on a
-      // dedicated endpoint if the upload route does not support null.
-      // If your backend exposes a separate DELETE for images, call it here.
+      const updated = await authorizedRequest((token) => imageMode === 'shared'
+        ? adminDeleteNewsImage(editing.id, token)
+        : adminDeleteNewsLocalizedImage(editing.id, activeLang, token));
       setItems((prev) =>
-        prev.map((it) => (it.id === updated.id ? { ...updated, imageUrl: null } : it)),
+        prev.map((it) => (it.id === updated.id ? updated : it)),
       );
-      setEditing({ ...updated, imageUrl: null });
+      setEditing(updated);
       clearNewsCache();
     } catch (err) {
       setEditorError(formatAdminApiError(err, t));
@@ -579,11 +615,19 @@ export function AdminNewsPage() {
               hold the file in state and upload it after the post exists. */}
           <FormRow label={t('adminNewsFieldImage')}>
             {(() => {
-              const previewUrl = pendingImagePreview || editing?.imageUrl || null;
-              const hasPersistedImage = Boolean(editing?.imageUrl);
+              const localizedKey = activeLang === 'kz' ? 'imageUrlKz' : activeLang === 'en' ? 'imageUrlEn' : 'imageUrlRu';
+              const previewUrl = imageMode === 'shared'
+                ? pendingImagePreview || editing?.imageUrl || null
+                : pendingLocalizedPreviews[activeLang] || editing?.[localizedKey] || null;
+              const hasPersistedImage = imageMode === 'shared' ? Boolean(editing?.imageUrl) : Boolean(editing?.[localizedKey]);
               const hasAnyPreview = Boolean(previewUrl);
               const uploadingNow = editing ? uploadingId === editing.id : false;
               return (
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-wrap gap-2 text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={imageMode === 'shared'} onChange={() => setImageMode('shared')} /> {language === 'ru' ? 'Одна картинка для всех языков' : language === 'kz' ? 'Барлық тілге бір сурет' : 'One image for all languages'}</label>
+                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={imageMode === 'localized'} onChange={() => setImageMode('localized')} /> {language === 'ru' ? 'Отдельная для каждого языка' : language === 'kz' ? 'Әр тілге бөлек' : 'A separate image for each language'}</label>
+                  </div>
                 <div className="flex items-center gap-3">
                   {previewUrl ? (
                     <img
@@ -625,12 +669,12 @@ export function AdminNewsPage() {
                         <Upload size={13} />
                         {hasAnyPreview ? t('adminNewsImageReplace') : t('adminNewsImageUpload')}
                       </Button>
-                      {pendingImageFile && (
-                        <Button variant="ghost" size="sm" onClick={resetPendingImage}>
+                      {(imageMode === 'shared' ? pendingImageFile : pendingLocalizedFiles[activeLang]) && (
+                        <Button variant="ghost" size="sm" onClick={() => imageMode === 'shared' ? resetPendingImage() : clearPendingLocalizedImage(activeLang)}>
                           <X size={13} /> {t('cancel')}
                         </Button>
                       )}
-                      {hasPersistedImage && !pendingImageFile && editing && (
+                      {hasPersistedImage && !(imageMode === 'shared' ? pendingImageFile : pendingLocalizedFiles[activeLang]) && editing && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -642,9 +686,10 @@ export function AdminNewsPage() {
                       )}
                     </div>
                     <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {editing ? t('adminNewsImageHint') : t('adminNewsImageAtCreateHint')}
+                      {imageMode === 'localized' ? (language === 'ru' ? `Картинка — ${langTabs.find((tab) => tab.id === activeLang)?.label}` : language === 'kz' ? `Сурет — ${langTabs.find((tab) => tab.id === activeLang)?.label}` : `Image — ${langTabs.find((tab) => tab.id === activeLang)?.label}`) : (editing ? t('adminNewsImageHint') : t('adminNewsImageAtCreateHint'))}
                     </span>
                   </div>
+                </div>
                 </div>
               );
             })()}
