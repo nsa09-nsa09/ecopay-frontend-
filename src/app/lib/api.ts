@@ -212,6 +212,8 @@ function looksLikeServerInternalsMessage(raw: string | undefined | null): boolea
   if (!raw) return false;
   const s = raw.trim();
   if (!s) return false;
+  if (/<\/?[a-z][^>]*>|<!doctype|<\?xml/i.test(s)) return true;
+  if (/\b(?:stacktrace|stack trace)\b|\n\s*at\s+\S+/i.test(s)) return true;
   // Spring's NoResourceFoundException leaks the request path.
   if (/no static resource/i.test(s)) return true;
   // Anything that mentions a Java exception class.
@@ -350,6 +352,7 @@ async function requestJson<T>(
       headers,
     });
   } catch (err) {
+    if (init.signal?.aborted) throw err;
     // Network failure (DNS, offline, CORS preflight reject). Surface a
     // friendly localized ApiError so catch-blocks across the UI render a
     // user-safe message rather than "TypeError: Failed to fetch".
@@ -1371,10 +1374,11 @@ export interface RevealedDeletedIdentifiersDto {
 export function getDeletedAdminUsersRequest(
   accessToken: string,
   params: { page?: number; size?: number; search?: string } = {},
+  signal?: AbortSignal,
 ) {
   return requestJson<PagedResponse<DeletedAdminUserDto>>(
     `/admin/users/deleted${toSearchParams(params)}`,
-    {},
+    { signal },
     accessToken,
   );
 }
@@ -1564,10 +1568,11 @@ export function getAdminUsersRequest(
     sort?: string;
     direction?: string;
   } & Record<string, string | number | undefined> = {},
+  signal?: AbortSignal,
 ) {
   return requestJson<PagedResponse<AdminUserDto>>(
     `/admin/users${toSearchParams(params)}`,
-    {},
+    { signal },
     accessToken,
   );
 }

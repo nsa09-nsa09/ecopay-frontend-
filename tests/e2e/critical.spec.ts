@@ -1846,7 +1846,7 @@ test('homepage uses backend reviews and real stats only', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('124')).toBeVisible();
   await expect(page.getByText('4.7/5')).toBeVisible();
-  await expect(page.getByText('Verified EcoPay reviews')).toBeVisible();
+  await expect(page.getByText('Reviews about EcoPay')).toBeVisible();
   await expect(page.getByText('Aruzhan')).toBeVisible();
   await expect(page.getByText('EcoPay matched me with a real room')).toBeVisible();
   await expect(page.getByText('5000+ happy users')).toHaveCount(0);
@@ -1859,18 +1859,17 @@ test('homepage ru localizes public stats and review section', async ({ page }) =
   const content = (await page.locator('#root').textContent()) ?? '';
 
   await expect(page.getByText('пользователей EcoPay')).toBeVisible();
-  await expect(page.getByText('18 проверенных отзывов')).toBeVisible();
+  await expect(page.getByText('по 18 отзывам')).toBeVisible();
   await expect(page.getByText('участий в подписках')).toBeVisible();
   await expect(page.getByText('активных комнат')).toBeVisible();
-  await expect(page.getByText('Проверенные отзывы EcoPay')).toBeVisible();
+  await expect(page.getByText('Отзывы об EcoPay')).toBeVisible();
 
   for (const english of [
     'EcoPay users',
-    '18 verified reviews',
+    'from 18 reviews',
     'memberships',
     'active rooms',
-    'Verified EcoPay reviews',
-    'Selected by EcoPay moderators from real member reviews.',
+    'Reviews about EcoPay',
   ]) {
     expect(content).not.toContain(english);
   }

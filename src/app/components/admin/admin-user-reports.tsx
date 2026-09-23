@@ -99,21 +99,22 @@ export function AdminUserReports() {
       return;
     }
     let cancelled = false;
+    setDetail(null);
+    setInvestigation(null);
     setDetailLoading(true);
     setDetailError(null);
-    Promise.all([authorizedRequest((token) => getAdminUserReportRequest(selectedId, token))])
-      .then(async ([report]) => {
+    const targetId = items.find((item) => item.id === selectedId)?.target.id;
+    const reportRequest = authorizedRequest((token) => getAdminUserReportRequest(selectedId, token));
+    const investigationRequest = targetId == null
+      ? reportRequest.then((report) => authorizedRequest((token) => getUserInvestigationRequest(report.target.id, token)))
+      : authorizedRequest((token) => getUserInvestigationRequest(targetId, token));
+    Promise.allSettled([reportRequest, investigationRequest])
+      .then(([reportResult, investigationResult]) => {
         if (cancelled) return;
-        setDetail(report);
-        setInvestigation(null);
-        try {
-          const data = await authorizedRequest((token) =>
-            getUserInvestigationRequest(report.target.id, token),
-          );
-          if (!cancelled) setInvestigation(data);
-        } catch (err) {
-          if (!cancelled) setDetailError(formatAdminApiError(err, t));
-        }
+        if (reportResult.status === 'fulfilled') setDetail(reportResult.value);
+        else setDetailError(formatAdminApiError(reportResult.reason, t));
+        if (investigationResult.status === 'fulfilled') setInvestigation(investigationResult.value);
+        else if (reportResult.status === 'fulfilled') setDetailError(formatAdminApiError(investigationResult.reason, t));
       })
       .catch((err) => {
         if (!cancelled) setDetailError(formatAdminApiError(err, t));
@@ -354,15 +355,16 @@ export function AdminUserReports() {
                   >
                     {tx(language, 'Взять на проверку', 'Тексеруге алу', 'Assign to me')}
                   </Button>
-                  <Button variant="secondary" size="sm" onClick={() => setActionStatus('REJECTED')}>
+                  <Button variant="secondary" size="sm" disabled={submitting} onClick={() => setActionStatus('REJECTED')}>
                     {tx(language, 'Отклонить жалобу', 'Шағымды қабылдамау', 'Reject report')}
                   </Button>
-                  <Button variant="secondary" size="sm" onClick={() => setActionStatus('RESOLVED')}>
+                  <Button variant="secondary" size="sm" disabled={submitting} onClick={() => setActionStatus('RESOLVED')}>
                     {tx(language, 'Завершить рассмотрение', 'Қарауды аяқтау', 'Resolve report')}
                   </Button>
                   <Button
                     variant="destructive"
                     size="sm"
+                    disabled={submitting}
                     onClick={() => setRestrictionUserId(detail.target.id)}
                   >
                     {tx(

@@ -356,9 +356,9 @@ contactEmail: {
   },
   aboutFactSecureValue: { ru: 'Оплата защищена', kz: 'Төлем қорғалған', en: 'Payments secured' },
   aboutFactSecureLabel: {
-    ru: 'Через проверенных провайдеров',
-    kz: 'Сенімді провайдерлер арқылы',
-    en: 'Via verified providers',
+    ru: 'Через платёжных провайдеров',
+    kz: 'Төлем провайдерлері арқылы',
+    en: 'Via payment providers',
   },
   aboutFactSupportValue: { ru: 'Поддержка 24/7', kz: '24/7 қолдау', en: '24/7 support' },
   aboutFactSupportLabel: {
@@ -2460,9 +2460,9 @@ paymentIntentValid24h: {
     en: 'Leave a review about the service',
   },
   serviceReviewModerationNote: {
-    ru: 'Отзыв проходит модерацию перед показом на главной.',
-    kz: 'Пікір басты бетке шығу алдында модерациядан өтеді.',
-    en: 'Your review is moderated before appearing on the homepage.',
+    ru: 'Ваш отзыв сохранится в профиле.',
+    kz: 'Пікіріңіз профиліңізде сақталады.',
+    en: 'Your review will be saved in your profile.',
   },
   serviceReviewSubmit: { ru: 'Отправить отзыв', kz: 'Пікір жіберу', en: 'Submit review' },
   serviceReviewSave: { ru: 'Сохранить изменения', kz: 'Өзгерістерді сақтау', en: 'Save changes' },

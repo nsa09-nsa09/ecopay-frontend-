@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { Badge, Button, Card } from '../ds-primitives';
+import { Button, Card } from '../ds-primitives';
 import { useI18n, type Language } from '../i18n-provider';
 import { useAuth } from '../auth/auth-provider';
 import { StarRating } from '../reputation/public-profile';
@@ -113,9 +113,9 @@ export function MyServiceReviewCard() {
       setInfo(
         tx(
           language,
-          'Отзыв сохранён. Перед показом на главной он снова пройдёт модерацию.',
-          'Пікір сақталды. Басты бетке шығар алдында ол қайта модерациядан өтеді.',
-          'Your review was saved and will go through moderation again before homepage placement.',
+          'Отзыв сохранён в вашем профиле.',
+          'Пікіріңіз профиліңізде сақталды.',
+          'Your review was saved in your profile.',
         ),
       );
     } catch (err) {
@@ -156,7 +156,6 @@ export function MyServiceReviewCard() {
           <h3 className="text-[16px]" style={{ color: 'var(--eco-text)' }}>
             {t('serviceReviewMyTitle')}
           </h3>
-          {review.featured && <Badge variant="success">{t('serviceReviewFeaturedBadge')}</Badge>}
         </div>
         <StarRating rating={review.rating} size={16} />
         <p
@@ -168,16 +167,6 @@ export function MyServiceReviewCard() {
         {!review.featured && (
           <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
             {t('serviceReviewModerationNote')}
-          </p>
-        )}
-        {review.verifiedExperience === false && (
-          <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-            {tx(
-              language,
-              'Отзыв сохранён здесь; на главную его можно будет вывести после подтверждённого опыта в EcoPay.',
-              'Пікір осында сақталады; EcoPay-дегі тәжірибе расталғаннан кейін оны басты бетке шығаруға болады.',
-              'You can keep this review here; homepage placement is available after a verified EcoPay experience.',
-            )}
           </p>
         )}
         <div className="flex gap-2">

@@ -60,8 +60,6 @@ function formatPrice(value: number | null | undefined, currency?: string | null)
   return `₸${formatNumber(n)}`;
 }
 
-const reviewAccentColors = ['#0FA47F', '#2B7DE9', '#FF8C42', '#7C5CFF', '#E8467C', '#E5A100'];
-
 function positiveNumber(value: number | string | null | undefined): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
@@ -836,9 +834,9 @@ export function HomePage() {
         value: `${averageRating.toFixed(averageRating % 1 ? 1 : 0)}/5`,
         label: tx(
           lang,
-          `${formattedCount} проверенных отзывов`,
-          `${formattedCount} расталған пікір`,
-          `${formattedCount} verified reviews`,
+          `по ${formattedCount} отзывам`,
+          `${formattedCount} пікір бойынша`,
+          `from ${formattedCount} reviews`,
         ),
       });
     }
@@ -860,14 +858,12 @@ export function HomePage() {
 
   const gridReviews = useMemo(
     () =>
-      featuredReviews.slice(0, 6).map((review, i) => ({
+      featuredReviews.slice(0, 6).map((review) => ({
         id: review.id,
         name: review.authorDisplayName,
         rating: Math.min(5, Math.max(1, review.rating)),
         text: review.text,
-        color: reviewAccentColors[i % reviewAccentColors.length],
         link: `/u/${review.authorPublicId}`,
-        verifiedExperience: review.verifiedExperience === true,
       })),
     [featuredReviews],
   );
@@ -1276,9 +1272,9 @@ export function HomePage() {
                   tx(lang, 'PCI DSS compliance', 'PCI DSS сәйкестігі', 'PCI DSS compliance'),
                   tx(
                     lang,
-                    'Проверенные платёжные системы',
-                    'Тексерілген төлем жүйелері',
-                    'Trusted payment providers',
+                  'Платёжные системы',
+                  'Төлем жүйелері',
+                  'Payment providers',
                   ),
                   tx(lang, 'Защита 3D Secure', '3D Secure қорғауы', '3D Secure protection'),
                 ],
@@ -1368,22 +1364,11 @@ export function HomePage() {
               >
                 {tx(
                   lang,
-                  'Проверенные отзывы EcoPay',
-                  'EcoPay расталған пікірлері',
-                  'Verified EcoPay reviews',
+                  'Отзывы об EcoPay',
+                  'EcoPay туралы пікірлер',
+                  'Reviews about EcoPay',
                 )}
               </h2>
-              <p
-                className="text-[14px] mt-3 m-0 mx-auto max-w-[560px]"
-                style={{ color: 'var(--eco-text-secondary)' }}
-              >
-                {tx(
-                  lang,
-                  'Модераторы EcoPay выбирают их из реальных отзывов участников.',
-                  'EcoPay модераторлары оларды қатысушылардың шынайы пікірлерінен таңдайды.',
-                  'Selected by EcoPay moderators from real member reviews.',
-                )}
-              </p>
             </div>
           </Reveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1394,8 +1379,8 @@ export function HomePage() {
                     <span
                       className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] shrink-0"
                       style={{
-                        background: `${review.color}22`,
-                        color: review.color,
+                        background: 'var(--eco-brand-50)',
+                        color: 'var(--eco-primary)',
                         fontWeight: 700,
                       }}
                     >
@@ -1414,11 +1399,6 @@ export function HomePage() {
                         >
                           {review.name}
                         </Link>
-                        {review.verifiedExperience && (
-                          <Badge variant="success">
-                            <BadgeCheck size={12} /> {t('verified')}
-                          </Badge>
-                        )}
                       </div>
                       <Stars rating={review.rating} />
                     </div>

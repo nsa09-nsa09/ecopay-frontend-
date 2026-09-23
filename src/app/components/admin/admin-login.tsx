@@ -7,6 +7,7 @@ import { useAuth } from '../auth/auth-provider';
 import { ApiError, type TwoFactorChallenge } from '../../lib/api';
 import { Shield, Lock, Eye, EyeOff, ArrowLeft, LogOut } from 'lucide-react';
 import { defaultLandingForRole } from './admin-nav';
+import { localizeFieldErrors } from '../../lib/field-errors';
 
 type Stage = 'credentials' | 'twoFactor';
 
@@ -40,7 +41,7 @@ export function AdminLoginPage() {
     location.state as { challenge?: TwoFactorChallenge } | null
   )?.challenge;
   const initialChallenge = incomingChallenge?.requiresTwoFactor ? incomingChallenge : null;
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const {
     staffLogin,
     verifyStaffTwoFactor,
@@ -143,6 +144,7 @@ export function AdminLoginPage() {
 
   const handleCredentialsSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (loading) return;
     setError(null);
     setFieldErrors({});
     setLoading(true);
@@ -160,7 +162,7 @@ export function AdminLoginPage() {
     } catch (err) {
       if (err instanceof ApiError) {
         setError(translateApiError(err));
-        setFieldErrors(err.errors ?? {});
+        setFieldErrors(localizeFieldErrors(err.errors, language));
       } else {
         setError(t('networkError'));
       }
@@ -171,7 +173,7 @@ export function AdminLoginPage() {
 
   const handleTwoFactorSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!challenge) return;
+    if (!challenge || loading) return;
     setError(null);
     setFieldErrors({});
     setLoading(true);
@@ -182,7 +184,7 @@ export function AdminLoginPage() {
     } catch (err) {
       if (err instanceof ApiError) {
         setError(translateApiError(err));
-        setFieldErrors(err.errors ?? {});
+        setFieldErrors(localizeFieldErrors(err.errors, language));
         if (err.status === 410) {
           // expired challenge → user must restart
           setStage('credentials');

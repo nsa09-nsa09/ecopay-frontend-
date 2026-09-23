@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Card, Button, Badge, Input, Modal, Select } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
@@ -6,6 +6,7 @@ import { useI18n, type Language } from '../i18n-provider';
 import { formatDate, formatDateTime } from '../../lib/datetime';
 import { useAuth } from '../auth/auth-provider';
 import {
+  ApiError,
   banUserRequest,
   createAdminUserRequest,
   getDeletedAdminUsersRequest,
@@ -45,6 +46,7 @@ import {
 import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
 import { RestrictionModal } from './restriction-modal';
 import { reputationOutOfTen } from '../../lib/reputation';
+import { localizeFieldErrors } from '../../lib/field-errors';
 
 const PAGE_SIZE = 20;
 
@@ -82,6 +84,7 @@ export function AdminUsersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const listRequest = useRef<AbortController | null>(null);
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -132,6 +135,9 @@ export function AdminUsersPage() {
 
   const load = useCallback(async () => {
     if (segment === 'DELETED') return;
+    listRequest.current?.abort();
+    const controller = new AbortController();
+    listRequest.current = controller;
     setLoading(true);
     setError(null);
     try {
@@ -141,19 +147,17 @@ export function AdminUsersPage() {
           size: PAGE_SIZE,
           search: search || undefined,
           role: segment === 'ADMINS' ? 'ADMIN' : 'USER',
-        }),
+        }, controller.signal),
       );
+      if (controller.signal.aborted) return;
       setItems(result.items);
       setTotalPages(Math.max(1, result.totalPages));
-      if (selectedId && !result.items.some((u) => String(u.id) === String(selectedId))) {
-        setSelectedId(null);
-      }
     } catch (err) {
-      setError(formatAdminApiError(err, t));
+      if (!controller.signal.aborted) setError(formatAdminApiError(err, t));
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
-  }, [authorizedRequest, page, search, segment, selectedId, t]);
+  }, [authorizedRequest, page, search, segment, t]);
 
   // Fetch the two segment counters once (and after mutations that could change them
   // via the create/role-change modals) via lightweight size=1 requests.
@@ -176,6 +180,7 @@ export function AdminUsersPage() {
 
   useEffect(() => {
     void load();
+    return () => listRequest.current?.abort();
   }, [load]);
 
   useEffect(() => {
@@ -195,6 +200,7 @@ export function AdminUsersPage() {
       return;
     }
     let cancelled = false;
+    setDetail(null);
     setDetailLoading(true);
     authorizedRequest((token) => getAdminUserRequest(selectedId, token))
       .then((data) => {
@@ -209,7 +215,7 @@ export function AdminUsersPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedId, authorizedRequest, items]);
+  }, [selectedId, authorizedRequest]);
 
   useEffect(() => {
     if (selectedId == null) {
@@ -282,7 +288,7 @@ export function AdminUsersPage() {
   };
 
   const submitBan = async (reason: string) => {
-    if (!banModal) return;
+    if (!banModal || banSubmitting) return;
     setBanSubmitting(true);
     setBanError(null);
     try {
@@ -309,7 +315,7 @@ export function AdminUsersPage() {
   };
 
   const submitRoleChange = async () => {
-    if (!roleModal) return;
+    if (!roleModal || roleSubmitting) return;
     if (roleReason.trim().length < 10) {
       setRoleError(t('reasonMinLength', { n: 10 }));
       return;
@@ -341,7 +347,7 @@ export function AdminUsersPage() {
   };
 
   const submitVerifyChange = async () => {
-    if (!verifyModal) return;
+    if (!verifyModal || verifySubmitting) return;
     setVerifySubmitting(true);
     setVerifyError(null);
     try {
@@ -910,11 +916,12 @@ export function AdminUsersPage() {
 }
 
 function DeletedUsersPanel() {
-  const { language } = useI18n();
-  const { authorizedRequest } = useAuth();
+  const { language, t } = useI18n();
+  const { authorizedRequest, isAuthenticated, user } = useAuth();
   const [items, setItems] = useState<DeletedAdminUserDto[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -924,38 +931,61 @@ function DeletedUsersPanel() {
   const [revealed, setRevealed] = useState<RevealedDeletedIdentifiersDto | null>(null);
   const [revealing, setRevealing] = useState(false);
   const [revealError, setRevealError] = useState<string | null>(null);
+  const listRequest = useRef<AbortController | null>(null);
+  const revealVersion = useRef(0);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(0);
+    }, 350);
+    return () => window.clearTimeout(id);
+  }, [searchInput]);
+
+  useEffect(() => {
+    if (isAuthenticated && user?.role === 'ADMIN') return;
+    revealVersion.current += 1;
+    setSelected(null);
+    setRevealed(null);
+    setReason('');
+    setRevealError(null);
+  }, [isAuthenticated, user?.id, user?.role]);
 
   const loadDeleted = useCallback(async () => {
+    listRequest.current?.abort();
+    const controller = new AbortController();
+    listRequest.current = controller;
     setLoading(true);
     setError(null);
     try {
       const result = await authorizedRequest((token) =>
-        getDeletedAdminUsersRequest(token, { page, size: PAGE_SIZE, search: search || undefined }),
+        getDeletedAdminUsersRequest(token, { page, size: PAGE_SIZE, search: search || undefined }, controller.signal),
       );
+      if (controller.signal.aborted) return;
       setItems(result.items);
       setTotalPages(Math.max(1, result.totalPages));
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : tx(
-              language,
-              'Не удалось загрузить список.',
-              'Тізімді жүктеу мүмкін болмады.',
-              'Could not load deleted users.',
-            ),
-      );
+      if (controller.signal.aborted) return;
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        revealVersion.current += 1;
+        setSelected(null);
+        setRevealed(null);
+        setReason('');
+      }
+      setError(formatAdminApiError(err, t));
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
-  }, [authorizedRequest, page, search, language]);
+  }, [authorizedRequest, page, search, t]);
 
   useEffect(() => {
     void loadDeleted();
+    return () => listRequest.current?.abort();
   }, [loadDeleted]);
 
   const close = () => {
     if (revealing) return;
+    revealVersion.current += 1;
     setSelected(null);
     setStage(1);
     setReason('');
@@ -965,27 +995,26 @@ function DeletedUsersPanel() {
 
   const reveal = async () => {
     if (!selected || revealing || !reason.trim()) return;
+    const version = ++revealVersion.current;
     setRevealing(true);
     setRevealError(null);
     try {
       const data = await authorizedRequest((token) =>
         revealDeletedIdentifiersRequest(selected.userId, reason.trim(), token),
       );
+      if (version !== revealVersion.current) return;
       setRevealed(data);
       setStage(3);
     } catch (err) {
-      setRevealError(
-        err instanceof Error
-          ? err.message
-          : tx(
-              language,
-              'Не удалось показать контакты.',
-              'Контактілерді көрсету мүмкін болмады.',
-              'Could not reveal contacts.',
-            ),
-      );
+      if (version !== revealVersion.current) return;
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        setSelected(null);
+        setRevealed(null);
+        setReason('');
+      }
+      setRevealError(formatAdminApiError(err, t));
     } finally {
-      setRevealing(false);
+      if (version === revealVersion.current) setRevealing(false);
     }
   };
 
@@ -999,10 +1028,9 @@ function DeletedUsersPanel() {
             'Жойылған пайдаланушыларды іздеу',
             'Search deleted users',
           )}
-          value={search}
+          value={searchInput}
           onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(0);
+            setSearchInput(event.target.value);
           }}
         />
       </div>
@@ -1073,6 +1101,7 @@ function DeletedUsersPanel() {
                   size="sm"
                   className="self-start sm:self-center shrink-0"
                   onClick={() => {
+                    revealVersion.current += 1;
                     setSelected(item);
                     setStage(1);
                     setReason('');
@@ -1466,6 +1495,7 @@ function CreateUserModal({
   };
 
   const submit = async () => {
+    if (submitting) return;
     setError(null);
     if (!validate()) return;
     setSubmitting(true);
@@ -1484,9 +1514,7 @@ function CreateUserModal({
       );
       onCreated(user);
     } catch (err) {
-      if (err && typeof err === 'object' && 'errors' in err) {
-        setFieldErrors((err as { errors: Record<string, string> }).errors ?? {});
-      }
+      if (err instanceof ApiError) setFieldErrors(localizeFieldErrors(err.errors, language));
       setError(formatAdminApiError(err, t));
     } finally {
       setSubmitting(false);

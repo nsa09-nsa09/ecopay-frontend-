@@ -758,6 +758,11 @@ function ServiceFormModal({
   const [cropFile, setCropFile] = useState<File | null>(null);
 
   useEffect(() => {
+    if (!pendingLogoPreview) return;
+    return () => URL.revokeObjectURL(pendingLogoPreview);
+  }, [pendingLogoPreview]);
+
+  useEffect(() => {
     if (!open) return;
     setCategoryId(String(existing?.categoryId ?? categories[0]?.id ?? ''));
     setName(existing?.name ?? '');

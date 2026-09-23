@@ -51,14 +51,16 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
 }
 
-export function Button({ variant = "primary", size = "md", loading, children, className = "", ...props }: ButtonProps) {
+export function Button({ variant = "primary", size = "md", loading, disabled, children, className = "", ...props }: ButtonProps) {
   return (
     <button
       className={`${btnBase} ${btnVariants[variant]} ${btnSizes[size]} ${className}`}
-      disabled={loading || props.disabled}
       {...props}
+      disabled={loading || disabled}
     >
-      {loading && <Loader2 size={16} className="animate-spin" />}
+      {loading !== undefined && (
+        <Loader2 size={16} aria-hidden="true" className={loading ? "animate-spin shrink-0" : "invisible shrink-0"} />
+      )}
       {children}
     </button>
   );
@@ -428,17 +430,61 @@ export function ToastExample({ type = "success", message }: { type?: ToastType; 
 
 // ─── Modal ───
 export function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+  const { t } = useI18n();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  const titleId = useId();
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!open) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = dialogRef.current;
+    const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
+    ) ?? []);
+    const initialFocus = dialog?.querySelector<HTMLElement>('input:not(:disabled), textarea:not(:disabled), select:not(:disabled)') ?? focusable()[0];
+    initialFocus?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+      } else if (event.key === 'Tab') {
+        const elements = focusable();
+        if (elements.length === 0) return;
+        const first = elements[0];
+        const last = elements[elements.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }, [open]);
+
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
       <div
-        className="relative w-full max-w-md rounded-xl p-6 shadow-xl mx-4"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl p-6 shadow-xl mx-4"
         style={{ background: "var(--eco-bg)" }}
       >
         <div className="flex items-center justify-between mb-4">
-          <span className="text-[16px]" style={{ color: "var(--eco-text)" }}>{title}</span>
-          <button onClick={onClose} className="cursor-pointer p-1 rounded hover:bg-black/5">
+          <span id={titleId} className="text-[16px]" style={{ color: "var(--eco-text)" }}>{title}</span>
+          <button type="button" onClick={onClose} aria-label={t('close')} className="cursor-pointer p-1 rounded hover:bg-black/5">
             <X size={18} style={{ color: "var(--eco-text-tertiary)" }} />
           </button>
         </div>
