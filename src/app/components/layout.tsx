@@ -10,11 +10,11 @@ import {
   ApiError,
   getPayoutBalanceRequest,
   searchCatalog,
-  trackVisitRequest,
   type CatalogSearchHit,
   type PayoutBalanceDto,
 } from '../lib/api';
 import { appBrand } from '../config/brand';
+import { trackPageVisit } from '../lib/analytics';
 
 interface CatalogSearchBoxProps {
   variant: 'desktop' | 'mobile';
@@ -254,7 +254,6 @@ export function AppLayout() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [heldBalance, setHeldBalance] = useState<PayoutBalanceDto | null>(null);
   const location = useLocation();
-  const lastTrackedPath = useRef<string | null>(null);
 
   // Keep a small balance summary in the global header so owners can see their
   // currently held money and jump directly to the payout details page.
@@ -277,17 +276,11 @@ export function AppLayout() {
     };
   }, [authorizedRequest, isAuthenticated, isReady]);
 
-  // Fire-and-forget analytics ping for every route change. The backend
-  // sets a cookie to dedupe unique guests; we just keep the client side
-  // cheap and noiseless. We track per pathname (not search/hash) and skip
-  // duplicates so React StrictMode double-render in dev doesn't spam.
+  // Fire-and-forget analytics ping on route changes. lib/analytics debounces
+  // redirect chains, de-duplicates repeat visits, masks ids and never sends
+  // the query string (reset tokens, payment ids) or retries.
   useEffect(() => {
-    const path = location.pathname;
-    if (lastTrackedPath.current === path) return;
-    lastTrackedPath.current = path;
-    void trackVisitRequest(path).catch(() => {
-      // Swallow — analytics must never break the UI.
-    });
+    trackPageVisit(location.pathname);
   }, [location.pathname]);
 
   // Auto-close the mobile search overlay on navigation.

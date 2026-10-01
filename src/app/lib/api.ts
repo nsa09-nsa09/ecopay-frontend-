@@ -588,6 +588,8 @@ export function trackVisitRequest(path: string): Promise<void> {
     method: 'POST',
     body: JSON.stringify({ path }),
     credentials: 'include',
+    // Lets the ping complete even if the user navigates away immediately.
+    keepalive: true,
   });
 }
 
