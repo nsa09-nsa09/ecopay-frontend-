@@ -237,10 +237,12 @@ function classifyApiErrorCode(
   status: number,
   rawMessage: string | undefined | null,
 ): FriendlyApiErrorCode {
-  if (status === 0) return 'network';
+  if (status === 0) return rawMessage === TIMEOUT_MESSAGE ? 'timeout' : 'network';
+  if (status === 400 || status === 422) return 'validation';
   if (status === 401) return 'sessionExpired';
   if (status === 403) return 'noAccess';
   if (status === 404) return 'notAvailable';
+  if (status === 409) return 'conflict';
   if (status === 429) return 'rateLimited';
   if (rawMessage && /no static resource/i.test(rawMessage)) return 'notAvailable';
   if (status >= 500) return 'serverError';
@@ -258,6 +260,8 @@ function buildFriendlyApiMessage(
   rawMessage: string | undefined | null,
   code: FriendlyApiErrorCode,
 ): string {
+  // Transport failures never carry a server message worth showing.
+  if (code === 'network' || code === 'timeout') return getFriendlyApiMessage(code);
   const activeLanguage = getCurrentLanguage();
   const isUnsafeLocaleMessage =
     (activeLanguage === 'ru' || activeLanguage === 'kz') && looksLikeEnglishMessage(rawMessage);
@@ -298,6 +302,11 @@ export class ApiError extends Error {
     this.serverMessage = rawMessage ?? null;
   }
 }
+
+/** Default request budget; uploads get longer. Requests never hang forever. */
+const DEFAULT_TIMEOUT_MS = 30_000;
+const UPLOAD_TIMEOUT_MS = 120_000;
+const TIMEOUT_MESSAGE = 'Request timed out';
 
 function buildUrl(path: string) {
   if (/^https?:\/\//.test(path)) {
@@ -345,14 +354,40 @@ async function requestJson<T>(
     headers.set('Accept-Language', getCurrentLanguage());
   }
 
+  // Abort on the caller's signal OR our timeout (AbortSignal.any is not
+  // available in every supported browser, so wire it by hand).
+  const controller = new AbortController();
+  const callerSignal = init.signal ?? null;
+  const onCallerAbort = () => controller.abort();
+  if (callerSignal) {
+    if (callerSignal.aborted) controller.abort();
+    else callerSignal.addEventListener('abort', onCallerAbort, { once: true });
+  }
+  let timedOut = false;
+  const timeoutId = setTimeout(
+    () => {
+      timedOut = true;
+      controller.abort();
+    },
+    init.body instanceof FormData ? UPLOAD_TIMEOUT_MS : DEFAULT_TIMEOUT_MS,
+  );
+
   let response: Response;
   try {
     response = await fetch(buildUrl(path), {
       ...init,
       headers,
+      signal: controller.signal,
     });
   } catch (err) {
-    if (init.signal?.aborted) throw err;
+    clearTimeout(timeoutId);
+    callerSignal?.removeEventListener('abort', onCallerAbort);
+    if (callerSignal?.aborted) throw err;
+    if (timedOut) {
+      // The server may still have processed the request. Callers of
+      // money-moving endpoints must re-read state instead of retrying blindly.
+      throw new ApiError(0, TIMEOUT_MESSAGE);
+    }
     // Network failure (DNS, offline, CORS preflight reject). Surface a
     // friendly localized ApiError so catch-blocks across the UI render a
     // user-safe message rather than "TypeError: Failed to fetch".
@@ -362,7 +397,16 @@ async function requestJson<T>(
     throw new ApiError(0, err instanceof Error ? err.message : 'Network error');
   }
 
-  const body = await parseResponseBody(response);
+  let body: unknown;
+  try {
+    body = await parseResponseBody(response);
+  } catch (err) {
+    if (callerSignal?.aborted) throw err;
+    throw new ApiError(0, timedOut ? TIMEOUT_MESSAGE : 'Network error');
+  } finally {
+    clearTimeout(timeoutId);
+    callerSignal?.removeEventListener('abort', onCallerAbort);
+  }
 
   if (!response.ok) {
     const payload = typeof body === 'object' && body !== null ? (body as ErrorPayload) : {};

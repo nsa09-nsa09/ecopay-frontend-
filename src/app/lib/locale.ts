@@ -26,6 +26,9 @@ export type FriendlyApiErrorCode =
   | 'serverError' // 5xx
   | 'rateLimited' // 429 (too many requests)
   | 'network' // fetch failure, no response
+  | 'timeout' // no response within the client time budget
+  | 'validation' // 400 / 422 — the request was rejected as invalid
+  | 'conflict' // 409 — state changed (already done, taken, stale data)
   | 'generic'; // anything else
 
 const FRIENDLY: Record<FriendlyApiErrorCode, Record<Language, string>> = {
@@ -58,6 +61,21 @@ const FRIENDLY: Record<FriendlyApiErrorCode, Record<Language, string>> = {
     ru: 'Проблема с подключением. Проверьте сеть.',
     kz: 'Желіге қосылу мәселесі. Қосылымды тексеріңіз.',
     en: 'Network error. Check your connection.',
+  },
+  timeout: {
+    ru: 'Сервер долго не отвечает. Проверьте результат, прежде чем повторять действие.',
+    kz: 'Сервер ұзақ жауап бермей тұр. Әрекетті қайталамас бұрын нәтижесін тексеріңіз.',
+    en: 'The server is taking too long. Check the result before repeating the action.',
+  },
+  validation: {
+    ru: 'Проверьте введённые данные.',
+    kz: 'Енгізілген деректерді тексеріңіз.',
+    en: 'Please check the entered data.',
+  },
+  conflict: {
+    ru: 'Данные изменились. Обновите страницу и попробуйте снова.',
+    kz: 'Деректер өзгерді. Бетті жаңартып, қайталап көріңіз.',
+    en: 'The data has changed. Refresh the page and try again.',
   },
   generic: {
     ru: 'Не удалось загрузить данные.',
