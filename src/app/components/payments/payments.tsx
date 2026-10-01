@@ -40,7 +40,12 @@ import {
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
 import { appBrand } from '../../config/brand';
-import { payoutMethodNeedsRebind, startPayoutCardBinding } from '../../lib/payout-binding';
+import {
+  isUsablePayoutMethod,
+  payoutMethodNeedsRebind,
+  readPendingBinding,
+  startPayoutCardBinding,
+} from '../../lib/payout-binding';
 
 // ─── Localized text helper ───
 type L = Language;
@@ -1504,6 +1509,35 @@ export function OwnerPayoutPage() {
         <>
           <HeldBalanceCard balance={balance} loading={loadingBalance} error={balanceError} l={l} />
 
+          {!loadingMethods &&
+            !methods.some(isUsablePayoutMethod) &&
+            (() => {
+              const pendingBinding = readPendingBinding();
+              if (!pendingBinding) return null;
+              return (
+                <Card className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-[13px]" role="status">
+                    <Clock size={15} aria-hidden="true" style={{ color: 'var(--eco-warning)' }} />
+                    <span style={{ color: 'var(--eco-text-secondary)' }}>
+                      {tx(
+                        l,
+                        'Подключение карты ещё подтверждается платёжным провайдером.',
+                        'Картаны қосуды төлем провайдері әлі растап жатыр.',
+                        'The payment provider is still confirming your card connection.',
+                      )}
+                    </span>
+                  </div>
+                  <Link
+                    to={`/payment/card-connected?binding=${encodeURIComponent(pendingBinding)}`}
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <Button variant="secondary" size="sm">
+                      {tx(l, 'Проверить статус', 'Мәртебені тексеру', 'Check status')}
+                    </Button>
+                  </Link>
+                </Card>
+              );
+            })()}
           <PayoutMethodsCard
             methods={methods}
             loading={loadingMethods}
