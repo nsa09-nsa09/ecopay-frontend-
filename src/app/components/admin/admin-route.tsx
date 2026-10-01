@@ -5,6 +5,7 @@ import { useI18n } from '../i18n-provider';
 import { Button } from '../ds-primitives';
 import { defaultLandingForRole, findNavItem, isRoleAllowedFor, type StaffRole } from './admin-nav';
 import { prefetchAdminDashboard } from '../../lib/admin-dashboard-cache';
+import { useRobotsMeta } from '../../lib/robots';
 
 interface AdminRouteProps {
   children?: ReactNode;
@@ -29,6 +30,7 @@ export function AdminRoute({ children, allow }: AdminRouteProps) {
   const { user, isAuthenticated, isReady, authorizedRequest } = useAuth();
   const location = useLocation();
   const { t } = useI18n();
+  useRobotsMeta(true);
 
   // Warm up the dashboard caches the moment we know we have an ADMIN
   // session. The cache module dedupes in-flight requests and skips

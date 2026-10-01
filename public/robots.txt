@@ -1,0 +1,18 @@
+# EcoPay — only public marketing/catalog pages are meant for search engines.
+User-agent: *
+Disallow: /admin
+Disallow: /admin-login
+Disallow: /api/
+Disallow: /payment/
+Disallow: /payments/
+Disallow: /rooms
+Disallow: /profile
+Disallow: /support
+Disallow: /feedback
+Disallow: /notifications-inbox
+Disallow: /notification-prefs
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password

@@ -1,0 +1,14 @@
+# Keep local state out of the image build context: local .env files would be
+# read by `vite build` and could embed dev URLs into the production bundle.
+.git
+node_modules
+dist
+.env
+.env.*
+!.env.example
+!.env.prod.example
+test-results
+playwright-report
+blob-report
+coverage
+*.log

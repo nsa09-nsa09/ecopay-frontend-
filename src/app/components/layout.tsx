@@ -15,6 +15,7 @@ import {
 } from '../lib/api';
 import { appBrand } from '../config/brand';
 import { trackPageVisit } from '../lib/analytics';
+import { isPrivatePath, useRobotsMeta } from '../lib/robots';
 
 interface CatalogSearchBoxProps {
   variant: 'desktop' | 'mobile';
@@ -293,6 +294,7 @@ export function AppLayout() {
   useEffect(() => {
     trackPageVisit(location.pathname);
   }, [location.pathname]);
+  useRobotsMeta(isPrivatePath(location.pathname));
 
   // Escape closes whichever header menu is open.
   useEffect(() => {

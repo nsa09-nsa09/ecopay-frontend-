@@ -8,6 +8,7 @@ import { ApiError, type TwoFactorChallenge } from '../../lib/api';
 import { Shield, Lock, Eye, EyeOff, ArrowLeft, LogOut } from 'lucide-react';
 import { defaultLandingForRole } from './admin-nav';
 import { localizeFieldErrors } from '../../lib/field-errors';
+import { useRobotsMeta } from '../../lib/robots';
 
 type Stage = 'credentials' | 'twoFactor';
 
@@ -35,6 +36,7 @@ function safeRedirectTarget(rawSearch: string): string | null {
 }
 
 export function AdminLoginPage() {
+  useRobotsMeta(true);
   const navigate = useNavigate();
   const location = useLocation();
   const incomingChallenge = (

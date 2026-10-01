@@ -45,6 +45,14 @@ function walk(dir) {
 }
 walk(distDir);
 
+// Development endpoints / internal service names must never ship to users.
+const forbiddenPatterns = [
+  /https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d+|\/)/,
+  /\bbackend:8080\b/,
+  /VITE_DEV_PROXY_TARGET/,
+];
+const textFile = /\.(?:js|mjs|css|html|json|txt|webmanifest)$/;
+
 const offenders = [];
 for (const file of files) {
   const rel = path.relative(distDir, file).replaceAll(path.sep, '/');
@@ -52,6 +60,12 @@ for (const file of files) {
   const text = readFileSync(file, 'utf8');
   for (const marker of forbidden) {
     if (text.includes(marker)) offenders.push(`${rel}: ${marker}`);
+  }
+  if (textFile.test(rel)) {
+    for (const pattern of forbiddenPatterns) {
+      const match = text.match(pattern);
+      if (match) offenders.push(`${rel}: dev/internal URL ${match[0]}`);
+    }
   }
 }
 
