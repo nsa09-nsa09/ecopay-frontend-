@@ -12,7 +12,11 @@ const CHUNK_RELOAD_WINDOW_MS = 60_000;
  */
 export function isChunkLoadError(error: unknown): boolean {
   const message =
-    error instanceof Error ? `${error.name} ${error.message}` : typeof error === 'string' ? error : '';
+    error instanceof Error
+      ? `${error.name} ${error.message}`
+      : typeof error === 'string'
+        ? error
+        : '';
   return /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|ChunkLoadError|Loading chunk [\w-]+ failed|Unable to preload CSS/i.test(
     message,
   );

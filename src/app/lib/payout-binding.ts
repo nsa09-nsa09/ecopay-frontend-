@@ -51,7 +51,9 @@ export function classifyBindingResult(result: PayoutCardBindingConfirmDto | null
 }
 
 export function payoutMethodNeedsRebind(method: PayoutMethodDto) {
-  return method.requiresRebind === true || (method.status ?? '').toUpperCase() === 'REQUIRES_REBIND';
+  return (
+    method.requiresRebind === true || (method.status ?? '').toUpperCase() === 'REQUIRES_REBIND'
+  );
 }
 
 /** A method the backend will pay out to: active, default and not flagged for re-binding. */

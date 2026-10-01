@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { AdminLayout } from './admin-layout';
 import { Badge, Button, Card, Select } from '../ds-primitives';
 import { useI18n } from '../i18n-provider';
@@ -29,14 +29,18 @@ const PAYMENT_REVIEW_STATUSES = [
   'REFUNDED_PARTIAL',
   'REFUNDED_FULL',
 ];
-const REFUND_STATUSES = ['PENDING', 'SUCCESS', 'FAILED', 'REQUIRES_REVIEW'];
+const REFUND_STATUSES = ['PENDING', 'PENDING_PROVIDER', 'REQUIRES_REVIEW', 'SUCCESS', 'FAILED'];
 const PAYOUT_STATUSES = [
   'PENDING',
   'PENDING_METHOD',
+  'PENDING_PROVIDER',
   'PROCESSING',
+  'REQUIRES_REVIEW',
+  'FROZEN',
   'SUCCESS',
   'FAILED',
   'REVERSED',
+  'CANCELED',
 ];
 const WEBHOOK_STATUSES = ['PENDING', 'PROCESSING', 'FAILED', 'PROCESSED', 'DEAD_LETTER'];
 const TAB_LABELS: Record<FinanceTab, string> = {
@@ -59,29 +63,110 @@ function formatMoney(amount: number | string | null | undefined, currency: strin
   return (currency ?? 'KZT') === 'KZT' ? `₸${formatted}` : `${formatted} ${currency}`;
 }
 
+/** Statuses an operator must act on now. */
+const CRITICAL_STATUSES = new Set([
+  'REQUIRES_REVIEW',
+  'CAPTURE_ANOMALY',
+  'DEAD_LETTER',
+  'UNKNOWN',
+  'CLAWBACK_REQUIRED',
+  'FROZEN',
+]);
+/** Statuses waiting on the provider or a reconciliation job. */
+const WAITING_STATUSES = new Set(['PENDING_PROVIDER', 'RECONCILING', 'PENDING_METHOD']);
+
 function statusVariant(
   status: string | null,
 ): 'default' | 'success' | 'warning' | 'danger' | 'info' {
   if (!status) return 'default';
   if (['SUCCESS', 'COMPLETED', 'REFUNDED', 'APPROVED', 'PROCESSED'].includes(status))
     return 'success';
+  if (CRITICAL_STATUSES.has(status) || ['FAILED', 'REJECTED'].includes(status)) return 'danger';
   if (
-    ['FAILED', 'REJECTED', 'CAPTURE_ANOMALY', 'CLAWBACK_REQUIRED', 'DEAD_LETTER'].includes(status)
-  )
-    return 'danger';
-  if (
-    [
-      'UNKNOWN',
-      'RECONCILING',
-      'REQUESTED',
-      'UNDER_REVIEW',
-      'REQUIRES_REVIEW',
-      'PENDING',
-      'PENDING_METHOD',
-    ].includes(status)
+    WAITING_STATUSES.has(status) ||
+    ['REQUESTED', 'UNDER_REVIEW', 'PENDING', 'PROCESSING'].includes(status)
   )
     return 'warning';
   return 'info';
+}
+
+type Attention = { level: 'critical' | 'waiting'; label: string };
+
+type Tx = (ru: string, kz: string, en: string) => string;
+
+function statusAttention(status: string | null, tx: Tx): Attention | null {
+  if (!status) return null;
+  if (CRITICAL_STATUSES.has(status)) {
+    return {
+      level: 'critical',
+      label: tx('Нужно решение', 'Шешім қажет', 'Needs action'),
+    };
+  }
+  if (WAITING_STATUSES.has(status)) {
+    return {
+      level: 'waiting',
+      label: tx('Ждёт провайдера', 'Провайдерді күтуде', 'Waiting on provider'),
+    };
+  }
+  return null;
+}
+
+/** Payout-specific flags: overdue (hold ended but not sent) and blocked. */
+function payoutAttention(item: FinancePayoutDto, tx: Tx, now: number): Attention[] {
+  const flags: Attention[] = [];
+  const status = (item.status ?? '').toUpperCase();
+  if (status === 'PENDING_METHOD') {
+    flags.push({
+      level: 'critical',
+      label: tx('Заблокирована: нет карты', 'Бұғатталған: карта жоқ', 'Blocked: no payout card'),
+    });
+  } else if (status === 'FROZEN') {
+    flags.push({ level: 'critical', label: tx('Заблокирована', 'Бұғатталған', 'Blocked') });
+  } else {
+    const base = statusAttention(status, tx);
+    if (base) flags.push(base);
+  }
+  const releaseAt = item.releaseAt ? Date.parse(item.releaseAt) : NaN;
+  if (
+    ['PENDING', 'PENDING_METHOD', 'PROCESSING'].includes(status) &&
+    Number.isFinite(releaseAt) &&
+    releaseAt < now
+  ) {
+    flags.push({ level: 'critical', label: tx('Просрочена', 'Мерзімі өтті', 'Overdue') });
+  }
+  return flags;
+}
+
+function AttentionChips({ flags }: { flags: Attention[] }) {
+  if (flags.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1 mt-1">
+      {flags.map((flag) => (
+        <span
+          key={flag.label}
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px]"
+          style={{
+            background:
+              flag.level === 'critical' ? 'var(--eco-danger-100)' : 'var(--eco-warning-100)',
+            color: flag.level === 'critical' ? 'var(--eco-negative)' : 'var(--eco-warning)',
+            fontWeight: 600,
+          }}
+        >
+          <AlertTriangle size={11} aria-hidden="true" />
+          {flag.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Left accent on rows that need attention (in addition to the text chip). */
+function rowStyle(flags: Attention[]) {
+  if (flags.length === 0) return undefined;
+  const critical = flags.some((flag) => flag.level === 'critical');
+  return {
+    boxShadow: `inset 3px 0 0 ${critical ? 'var(--eco-negative)' : 'var(--eco-warning)'}`,
+  };
 }
 
 function formatOptionalDateTime(value: string | null | undefined, language: 'ru' | 'kz' | 'en') {
@@ -122,10 +207,21 @@ function UserRef({ id, name }: { id: number | null; name: string | null }) {
 
 export function AdminFinancePage() {
   const { t, language } = useI18n();
+  const tx: Tx = (ru, kz, en) => (language === 'ru' ? ru : language === 'kz' ? kz : en);
   const { authorizedRequest } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = parseTab(searchParams.get('tab'));
-  const [status, setStatus] = useState('');
+  const [status, setStatusState] = useState(() => {
+    const fromUrl = (searchParams.get('status') ?? '').toUpperCase();
+    return /^[A-Z_]{1,40}$/.test(fromUrl) ? fromUrl : '';
+  });
+  const setStatus = (next: string) => {
+    setStatusState(next);
+    const params = new URLSearchParams(searchParams);
+    if (next) params.set('status', next);
+    else params.delete('status');
+    setSearchParams(params, { replace: true });
+  };
   const [page, setPage] = useState(0);
   const [txItems, setTxItems] = useState<FinanceTransactionDto[]>([]);
   const [refundItems, setRefundItems] = useState<FinanceRefundDto[]>([]);
@@ -140,8 +236,9 @@ export function AdminFinancePage() {
     if (next === tab) return;
     const params = new URLSearchParams(searchParams);
     params.set('tab', next);
+    params.delete('status');
     setSearchParams(params, { replace: true });
-    setStatus('');
+    setStatusState('');
     setPage(0);
   };
 
@@ -154,11 +251,12 @@ export function AdminFinancePage() {
           : tab === 'payouts'
             ? PAYOUT_STATUSES
             : WEBHOOK_STATUSES;
+    const all = status && !values.includes(status) ? [...values, status] : values;
     return [
       { value: '', label: t('financeFilterAll') },
-      ...values.map((value) => ({ value, label: value })),
+      ...all.map((value) => ({ value, label: value })),
     ];
-  }, [tab, t]);
+  }, [tab, t, status]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -304,6 +402,15 @@ export function AdminFinancePage() {
         ) : (
           <WebhooksTable items={webhookItems} language={language} loading={loading} />
         )}
+        {!loading && (
+          <p className="text-[11px] mt-2" style={{ color: 'var(--eco-text-tertiary)' }}>
+            {tx(
+              'Строки с цветной полосой слева требуют внимания: красная — нужно решение, жёлтая — ожидание провайдера.',
+              'Сол жағында түсті жолағы бар жолдар назар аударуды қажет етеді: қызыл — шешім қажет, сары — провайдерді күту.',
+              'Rows with a colored left bar need attention: red = needs action, amber = waiting on the provider.',
+            )}
+          </p>
+        )}
 
         {totalItems > 0 && (
           <div className="flex items-center justify-between mt-4 text-[12px]">
@@ -342,6 +449,7 @@ function TransactionsTable({
   language: 'ru' | 'kz' | 'en';
   loading: boolean;
 }) {
+  const tx: Tx = (ru, kz, en) => (language === 'ru' ? ru : language === 'kz' ? kz : en);
   if (loading && items.length === 0) return <SkeletonRows />;
   if (items.length === 0) return <EmptyOps />;
   return (
@@ -357,29 +465,33 @@ function TransactionsTable({
         </tr>
       </thead>
       <tbody>
-        {items.map((item) => (
-          <tr key={item.id}>
-            <Td>
-              <PublicId label={item.publicId ?? `T-${item.id}`} />
-              <div>{formatDateTime(item.createdAt, language)}</div>
-            </Td>
-            <Td>
-              <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
-            </Td>
-            <Td className="text-right">{formatMoney(item.amount, item.currency)}</Td>
-            <Td>
-              <RoomRef id={item.roomId} title={item.roomTitle} />
-              <div>
-                <UserRef id={item.payerUserId} name={item.payerDisplayName} />
-              </div>
-            </Td>
-            <Td>
-              <div>{item.providerName ?? '-'}</div>
-              <PublicId label={item.providerReference ?? item.cardPanMask ?? '-'} />
-            </Td>
-            <Td>{item.safeErrorReason ?? item.failureMessage ?? item.reason ?? '-'}</Td>
-          </tr>
-        ))}
+        {items.map((item) => {
+          const flags = [statusAttention(item.status, tx)].filter(Boolean) as Attention[];
+          return (
+            <tr key={item.id} style={rowStyle(flags)}>
+              <Td>
+                <PublicId label={item.publicId ?? `T-${item.id}`} />
+                <div>{formatDateTime(item.createdAt, language)}</div>
+              </Td>
+              <Td>
+                <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
+                <AttentionChips flags={flags} />
+              </Td>
+              <Td className="text-right">{formatMoney(item.amount, item.currency)}</Td>
+              <Td>
+                <RoomRef id={item.roomId} title={item.roomTitle} />
+                <div>
+                  <UserRef id={item.payerUserId} name={item.payerDisplayName} />
+                </div>
+              </Td>
+              <Td>
+                <div>{item.providerName ?? '-'}</div>
+                <PublicId label={item.providerReference ?? item.cardPanMask ?? '-'} />
+              </Td>
+              <Td>{item.safeErrorReason ?? item.failureMessage ?? item.reason ?? '-'}</Td>
+            </tr>
+          );
+        })}
       </tbody>
     </Table>
   );
@@ -394,6 +506,7 @@ function RefundsTable({
   language: 'ru' | 'kz' | 'en';
   loading: boolean;
 }) {
+  const tx: Tx = (ru, kz, en) => (language === 'ru' ? ru : language === 'kz' ? kz : en);
   if (loading && items.length === 0) return <SkeletonRows />;
   if (items.length === 0) return <EmptyOps />;
   return (
@@ -409,28 +522,32 @@ function RefundsTable({
         </tr>
       </thead>
       <tbody>
-        {items.map((item) => (
-          <tr key={item.id}>
-            <Td>
-              <PublicId label={item.publicId ?? `RF-${item.id}`} />
-              <div>{formatDateTime(item.createdAt, language)}</div>
-            </Td>
-            <Td>
-              <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
-            </Td>
-            <Td className="text-right">{formatMoney(item.amount, item.currency)}</Td>
-            <Td>
-              <RoomRef id={item.roomId} title={item.roomTitle} />
-              <div>
-                <UserRef id={item.memberUserId} name={item.memberDisplayName} />
-              </div>
-            </Td>
-            <Td>
-              <PublicId label={item.providerReference ?? '-'} />
-            </Td>
-            <Td>{item.safeErrorReason ?? item.reason ?? '-'}</Td>
-          </tr>
-        ))}
+        {items.map((item) => {
+          const flags = [statusAttention(item.status, tx)].filter(Boolean) as Attention[];
+          return (
+            <tr key={item.id} style={rowStyle(flags)}>
+              <Td>
+                <PublicId label={item.publicId ?? `RF-${item.id}`} />
+                <div>{formatDateTime(item.createdAt, language)}</div>
+              </Td>
+              <Td>
+                <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
+                <AttentionChips flags={flags} />
+              </Td>
+              <Td className="text-right">{formatMoney(item.amount, item.currency)}</Td>
+              <Td>
+                <RoomRef id={item.roomId} title={item.roomTitle} />
+                <div>
+                  <UserRef id={item.memberUserId} name={item.memberDisplayName} />
+                </div>
+              </Td>
+              <Td>
+                <PublicId label={item.providerReference ?? '-'} />
+              </Td>
+              <Td>{item.safeErrorReason ?? item.reason ?? '-'}</Td>
+            </tr>
+          );
+        })}
       </tbody>
     </Table>
   );
@@ -445,6 +562,8 @@ function PayoutsTable({
   language: 'ru' | 'kz' | 'en';
   loading: boolean;
 }) {
+  const tx: Tx = (ru, kz, en) => (language === 'ru' ? ru : language === 'kz' ? kz : en);
+  const now = Date.now();
   if (loading && items.length === 0) return <SkeletonRows />;
   if (items.length === 0) return <EmptyOps />;
   return (
@@ -461,44 +580,48 @@ function PayoutsTable({
         </tr>
       </thead>
       <tbody>
-        {items.map((item) => (
-          <tr key={item.id}>
-            <Td>
-              <PublicId label={`P-${item.id}`} />
-              <div>{formatDateTime(item.createdAt, language)}</div>
-              {item.triggeringPaymentIntentId != null && (
-                <PublicId label={`intent ${item.triggeringPaymentIntentId}`} />
-              )}
-            </Td>
-            <Td>
-              <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
-            </Td>
-            <Td className="text-right">{formatMoney(item.amount, item.currency)}</Td>
-            <Td>
-              <RoomRef id={item.roomId} title={item.roomTitle} />
-              <div>
-                <UserRef id={item.ownerUserId} name={item.ownerDisplayName} />
-              </div>
-            </Td>
-            <Td>
-              <div>Release: {formatOptionalDateTime(item.releaseAt, language)}</div>
-              <div>Sent: {formatOptionalDateTime(item.processedAt, language)}</div>
-              {item.nextRetryAt && (
-                <PublicId label={`retry ${formatDateTime(item.nextRetryAt, language)}`} />
-              )}
-            </Td>
-            <Td>
-              <div>{item.providerName ?? '-'}</div>
-              <ShortText value={item.providerPayoutId ?? item.payoutMethodPanMask ?? '-'} />
-            </Td>
-            <Td>
-              <ShortText value={item.failureReason ?? '-'} />
-              {item.retryCount != null && item.retryCount > 0 && (
-                <PublicId label={`attempts ${item.retryCount}`} />
-              )}
-            </Td>
-          </tr>
-        ))}
+        {items.map((item) => {
+          const flags = payoutAttention(item, tx, now);
+          return (
+            <tr key={item.id} style={rowStyle(flags)}>
+              <Td>
+                <PublicId label={`P-${item.id}`} />
+                <div>{formatDateTime(item.createdAt, language)}</div>
+                {item.triggeringPaymentIntentId != null && (
+                  <PublicId label={`intent ${item.triggeringPaymentIntentId}`} />
+                )}
+              </Td>
+              <Td>
+                <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
+                <AttentionChips flags={flags} />
+              </Td>
+              <Td className="text-right">{formatMoney(item.amount, item.currency)}</Td>
+              <Td>
+                <RoomRef id={item.roomId} title={item.roomTitle} />
+                <div>
+                  <UserRef id={item.ownerUserId} name={item.ownerDisplayName} />
+                </div>
+              </Td>
+              <Td>
+                <div>Release: {formatOptionalDateTime(item.releaseAt, language)}</div>
+                <div>Sent: {formatOptionalDateTime(item.processedAt, language)}</div>
+                {item.nextRetryAt && (
+                  <PublicId label={`retry ${formatDateTime(item.nextRetryAt, language)}`} />
+                )}
+              </Td>
+              <Td>
+                <div>{item.providerName ?? '-'}</div>
+                <ShortText value={item.providerPayoutId ?? item.payoutMethodPanMask ?? '-'} />
+              </Td>
+              <Td>
+                <ShortText value={item.failureReason ?? '-'} />
+                {item.retryCount != null && item.retryCount > 0 && (
+                  <PublicId label={`attempts ${item.retryCount}`} />
+                )}
+              </Td>
+            </tr>
+          );
+        })}
       </tbody>
     </Table>
   );
@@ -513,6 +636,7 @@ function WebhooksTable({
   language: 'ru' | 'kz' | 'en';
   loading: boolean;
 }) {
+  const tx: Tx = (ru, kz, en) => (language === 'ru' ? ru : language === 'kz' ? kz : en);
   if (loading && items.length === 0) return <SkeletonRows />;
   if (items.length === 0) return <EmptyOps />;
   return (
@@ -529,50 +653,62 @@ function WebhooksTable({
         </tr>
       </thead>
       <tbody>
-        {items.map((item) => (
-          <tr key={item.id}>
-            <Td>
-              <PublicId label={`W-${item.id}`} />
-              <div>{formatDateTime(item.receivedAt, language)}</div>
-            </Td>
-            <Td>
-              <Badge variant={statusVariant(item.processingStatus)}>{item.processingStatus}</Badge>
-              <div>
-                <PublicId
-                  label={
-                    item.signatureValid == null
-                      ? 'signature unknown'
-                      : item.signatureValid
-                        ? 'signature ok'
-                        : 'bad signature'
-                  }
-                />
-              </div>
-            </Td>
-            <Td>{item.callbackScript}</Td>
-            <Td>
-              <div>{item.attemptCount ?? 0}</div>
-              {item.lastAttemptAt && (
-                <PublicId label={formatDateTime(item.lastAttemptAt, language)} />
-              )}
-            </Td>
-            <Td>
-              <div>{formatOptionalDateTime(item.processedAt, language)}</div>
-              {item.nextRetryAt && (
-                <PublicId label={`retry ${formatDateTime(item.nextRetryAt, language)}`} />
-              )}
-              {item.deadLetteredAt && (
-                <PublicId label={`dead ${formatDateTime(item.deadLetteredAt, language)}`} />
-              )}
-            </Td>
-            <Td>
-              <ShortText value={item.providerRequestId} />
-            </Td>
-            <Td>
-              <ShortText value={item.lastErrorCode ?? item.errorMessage ?? '-'} />
-            </Td>
-          </tr>
-        ))}
+        {items.map((item) => {
+          const flags = [statusAttention(item.processingStatus, tx)].filter(Boolean) as Attention[];
+          if (item.signatureValid === false) {
+            flags.push({
+              level: 'critical',
+              label: tx('Неверная подпись', 'Қолтаңба қате', 'Bad signature'),
+            });
+          }
+          return (
+            <tr key={item.id} style={rowStyle(flags)}>
+              <Td>
+                <PublicId label={`W-${item.id}`} />
+                <div>{formatDateTime(item.receivedAt, language)}</div>
+              </Td>
+              <Td>
+                <Badge variant={statusVariant(item.processingStatus)}>
+                  {item.processingStatus}
+                </Badge>
+                <AttentionChips flags={flags} />
+                <div>
+                  <PublicId
+                    label={
+                      item.signatureValid == null
+                        ? 'signature unknown'
+                        : item.signatureValid
+                          ? 'signature ok'
+                          : 'bad signature'
+                    }
+                  />
+                </div>
+              </Td>
+              <Td>{item.callbackScript}</Td>
+              <Td>
+                <div>{item.attemptCount ?? 0}</div>
+                {item.lastAttemptAt && (
+                  <PublicId label={formatDateTime(item.lastAttemptAt, language)} />
+                )}
+              </Td>
+              <Td>
+                <div>{formatOptionalDateTime(item.processedAt, language)}</div>
+                {item.nextRetryAt && (
+                  <PublicId label={`retry ${formatDateTime(item.nextRetryAt, language)}`} />
+                )}
+                {item.deadLetteredAt && (
+                  <PublicId label={`dead ${formatDateTime(item.deadLetteredAt, language)}`} />
+                )}
+              </Td>
+              <Td>
+                <ShortText value={item.providerRequestId} />
+              </Td>
+              <Td>
+                <ShortText value={item.lastErrorCode ?? item.errorMessage ?? '-'} />
+              </Td>
+            </tr>
+          );
+        })}
       </tbody>
     </Table>
   );
