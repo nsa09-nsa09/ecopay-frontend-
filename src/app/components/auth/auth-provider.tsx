@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Client } from '@stomp/stompjs';
 import {
   ApiError,
@@ -116,38 +124,98 @@ const AuthContext = createContext<AuthContextType>(null!);
 
 function readSessionHint(): { user: User | null } | null {
   if (typeof window === 'undefined') return null;
-  const raw = readWithLegacyMigration(
-    window.localStorage,
-    SESSION_HINT_KEY,
-    LEGACY_SESSION_HINT_KEYS,
-  );
+  let raw: string | null = null;
+  try {
+    raw = readWithLegacyMigration(window.localStorage, SESSION_HINT_KEY, LEGACY_SESSION_HINT_KEYS);
+  } catch {
+    // Storage denied (private mode / blocked site data): behave as anonymous.
+    return null;
+  }
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as { user?: User | null };
+    const parsed = JSON.parse(raw) as { user?: User | null } | null;
+    if (!parsed || typeof parsed !== 'object') throw new Error('malformed session hint');
     return { user: parsed.user ?? null };
   } catch {
-    removeWithLegacyKeys(window.localStorage, SESSION_HINT_KEY, LEGACY_SESSION_HINT_KEYS);
+    try {
+      removeWithLegacyKeys(window.localStorage, SESSION_HINT_KEY, LEGACY_SESSION_HINT_KEYS);
+    } catch {
+      /* storage unavailable */
+    }
     return null;
   }
 }
 
 function writeSessionHint(user: User | null) {
   if (typeof window === 'undefined') return;
-  if (!user) {
-    removeWithLegacyKeys(window.localStorage, SESSION_HINT_KEY, LEGACY_SESSION_HINT_KEYS);
-    return;
+  // The hint is a convenience only; a storage failure must never break login.
+  try {
+    if (!user) {
+      removeWithLegacyKeys(window.localStorage, SESSION_HINT_KEY, LEGACY_SESSION_HINT_KEYS);
+      return;
+    }
+    window.localStorage.setItem(SESSION_HINT_KEY, JSON.stringify({ user }));
+  } catch {
+    /* storage unavailable — the session still lives in memory */
   }
-  window.localStorage.setItem(SESSION_HINT_KEY, JSON.stringify({ user }));
+}
+
+type LockManagerLike = {
+  request<T>(name: string, callback: () => Promise<T>): Promise<T>;
+};
+
+/**
+ * Runs the refresh-token rotation under a cross-tab Web Lock when the browser
+ * supports it. The backend treats re-use of an already-rotated refresh cookie
+ * as token theft and revokes every session, so two tabs (or two parallel 401s
+ * in one tab) must never rotate at the same time.
+ */
+function runRefreshExclusively(): Promise<AuthResponse> {
+  const locks =
+    typeof navigator !== 'undefined'
+      ? (navigator as Navigator & { locks?: LockManagerLike }).locks
+      : undefined;
+  if (locks && typeof locks.request === 'function') {
+    return locks.request<AuthResponse>('ecopay-auth-refresh', () => refreshRequest());
+  }
+  return refreshRequest();
+}
+
+/** Only an explicit auth rejection ends the session; a network blip must not log the user out. */
+function isAuthRejection(error: unknown) {
+  return error instanceof ApiError && (error.status === 401 || error.status === 403);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<SessionState | null>(null);
+  const [session, setSessionState] = useState<SessionState | null>(null);
   const [isReady, setIsReady] = useState(false);
   const banClientRef = useRef<Client | null>(null);
+  // Mirror of `session` for async code (authorizedRequest, refresh) so it never
+  // acts on a stale render closure.
+  const sessionRef = useRef<SessionState | null>(null);
+  // One in-flight refresh shared by every concurrent 401 in this tab.
+  const refreshInFlightRef = useRef<Promise<AuthResponse> | null>(null);
+
+  const setSession = (
+    next: SessionState | null | ((current: SessionState | null) => SessionState | null),
+  ) => {
+    const resolved = typeof next === 'function' ? next(sessionRef.current) : next;
+    sessionRef.current = resolved;
+    setSessionState(resolved);
+  };
 
   const commitSession = (nextSession: SessionState | null) => {
     setSession(nextSession);
     writeSessionHint(nextSession?.user ?? null);
+  };
+
+  const refreshOnce = () => {
+    if (!refreshInFlightRef.current) {
+      refreshInFlightRef.current = runRefreshExclusively().finally(() => {
+        refreshInFlightRef.current = null;
+      });
+    }
+    return refreshInFlightRef.current;
   };
 
   // Realtime ban listener — when a user is banned by an admin, the backend
@@ -235,14 +303,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const refreshed = await refreshRequest();
+        const refreshed = await refreshOnce();
         if (isCancelled) return;
         commitSession({
           accessToken: refreshed.accessToken,
           user: refreshed.user ?? hint.user,
         });
-      } catch {
-        if (!isCancelled) commitSession(null);
+      } catch (error) {
+        if (isCancelled) return;
+        if (isAuthRejection(error)) {
+          commitSession(null);
+        } else {
+          // Offline / server hiccup on boot: stay anonymous for this page view
+          // but keep the hint so the next load can still restore the session.
+          setSession(null);
+        }
       } finally {
         if (!isCancelled) setIsReady(true);
       }
@@ -375,33 +450,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await confirmPasswordResetRequest(token, newPassword);
   };
 
-  const authorizedRequest = async <T,>(operation: (accessToken: string) => Promise<T>) => {
-    if (!session) {
-      throw new ApiError(401, 'Please sign in to continue');
-    }
-
-    try {
-      return await operation(session.accessToken);
-    } catch (error) {
-      if (!(error instanceof ApiError) || error.status !== 401) {
-        throw error;
+  // Identity only changes when the signed-in account changes, not on every
+  // access-token rotation: pages list `authorizedRequest` in effect deps, so a
+  // refresh must not re-run their loads or reconnect their sockets.
+  const sessionIdentity = session ? `user:${session.user?.id ?? 'unknown'}` : 'anonymous';
+  const authorizedRequest = useCallback(
+    async <T,>(operation: (accessToken: string) => Promise<T>): Promise<T> => {
+      const current = sessionRef.current;
+      if (!current) {
+        throw new ApiError(401, 'Please sign in to continue');
       }
 
       try {
-        const refreshed = await refreshRequest();
-        const nextSession = {
-          accessToken: refreshed.accessToken,
-          user: refreshed.user ?? session.user,
-        };
+        return await operation(current.accessToken);
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.status !== 401) {
+          throw error;
+        }
 
-        commitSession(nextSession);
-        return operation(nextSession.accessToken);
-      } catch (refreshError) {
-        commitSession(null);
-        throw refreshError;
+        // A parallel request may already have rotated the token while this one
+        // was in flight — reuse it instead of rotating the cookie again.
+        const latest = sessionRef.current;
+        if (latest && latest.accessToken !== current.accessToken) {
+          return operation(latest.accessToken);
+        }
+
+        let refreshed: AuthResponse;
+        try {
+          refreshed = await refreshOnce();
+        } catch (refreshError) {
+          if (
+            isAuthRejection(refreshError) &&
+            sessionRef.current?.accessToken === current.accessToken
+          ) {
+            commitSession(null);
+          }
+          throw refreshError;
+        }
+
+        const active = sessionRef.current;
+        // Commit once (siblings sharing the same refresh skip this) and never
+        // resurrect a session the user logged out of in the meantime.
+        if (active && active.accessToken !== refreshed.accessToken) {
+          commitSession({
+            accessToken: refreshed.accessToken,
+            user: refreshed.user ?? active.user,
+          });
+        }
+        return operation(refreshed.accessToken);
       }
-    }
-  };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sessionIdentity],
+  );
 
   const updateProfile = async (payload: { displayName: string; slug?: string }) => {
     const user = await authorizedRequest((accessToken) => updateCurrentUser(payload, accessToken));
