@@ -659,45 +659,42 @@ function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
     setRefunds((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
   };
 
-  const handleSuccess = async (id: number) => {
-    const providerRefundId =
-      window.prompt(
-        tx(
-          'Provider refund ID (опц.)',
-          'Provider refund ID (міндетті емес)',
-          'Provider refund ID (optional)',
-        ),
-      ) ?? undefined;
-    setBusyId(id);
-    try {
-      const updated = await authorizedRequest((token) =>
-        markRefundSuccessRequest(id, { providerRefundId: providerRefundId || undefined }, token),
-      );
-      apply(updated);
-    } catch (err) {
-      setError(formatAdminApiError(err, t));
-    } finally {
-      setBusyId(null);
-    }
+  // Manual resolution records a provider outcome in the ledger, so it gets an
+  // explicit confirmation step: the operator must confirm they verified the
+  // outcome with the provider. Cancelling never submits.
+  const [resolution, setResolution] = useState<{
+    refund: RefundTransactionResponse;
+    outcome: 'SUCCESS' | 'FAILED';
+  } | null>(null);
+  const [providerRefundId, setProviderRefundId] = useState('');
+  const [verified, setVerified] = useState(false);
+  const [resolutionError, setResolutionError] = useState<string | null>(null);
+
+  const openResolution = (refund: RefundTransactionResponse, outcome: 'SUCCESS' | 'FAILED') => {
+    setResolution({ refund, outcome });
+    setProviderRefundId('');
+    setVerified(false);
+    setResolutionError(null);
   };
 
-  const handleFail = async (id: number) => {
-    const providerRefundId =
-      window.prompt(
-        tx(
-          'Provider refund ID (опц.)',
-          'Provider refund ID (міндетті емес)',
-          'Provider refund ID (optional)',
-        ),
-      ) ?? undefined;
-    setBusyId(id);
+  const submitResolution = async () => {
+    if (!resolution || !verified || busyId != null) return;
+    const { refund, outcome } = resolution;
+    setBusyId(refund.id);
+    setResolutionError(null);
     try {
+      const payload = { providerRefundId: providerRefundId.trim() || undefined };
       const updated = await authorizedRequest((token) =>
-        markRefundFailRequest(id, { providerRefundId: providerRefundId || undefined }, token),
+        outcome === 'SUCCESS'
+          ? markRefundSuccessRequest(refund.id, payload, token)
+          : markRefundFailRequest(refund.id, payload, token),
       );
       apply(updated);
+      setResolution(null);
     } catch (err) {
-      setError(formatAdminApiError(err, t));
+      setResolutionError(formatAdminApiError(err, t));
+      // The outcome may have been recorded before the error surfaced; re-read.
+      void load();
     } finally {
       setBusyId(null);
     }
@@ -766,16 +763,16 @@ function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
               <Button
                 variant="primary"
                 size="sm"
-                loading={busyId === r.id}
-                onClick={() => void handleSuccess(r.id)}
+                disabled={busyId != null}
+                onClick={() => openResolution(r, 'SUCCESS')}
               >
                 <Check size={13} /> {tx('Отметить успешным', 'Сәтті деп белгілеу', 'Mark success')}
               </Button>
               <Button
                 variant="destructive"
                 size="sm"
-                loading={busyId === r.id}
-                onClick={() => void handleFail(r.id)}
+                disabled={busyId != null}
+                onClick={() => openResolution(r, 'FAILED')}
               >
                 <X size={13} /> {tx('Отметить неудачным', 'Сәтсіз деп белгілеу', 'Mark failed')}
               </Button>
@@ -783,6 +780,112 @@ function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
           )}
         </div>
       ))}
+
+      <Modal
+        open={resolution != null}
+        onClose={() => {
+          if (busyId == null) setResolution(null);
+        }}
+        title={
+          resolution?.outcome === 'SUCCESS'
+            ? tx('Подтвердить успешный возврат', 'Сәтті қайтаруды растау', 'Confirm refund succeeded')
+            : tx('Подтвердить неудачный возврат', 'Сәтсіз қайтаруды растау', 'Confirm refund failed')
+        }
+      >
+        {resolution && (
+          <div className="flex flex-col gap-4">
+            <div
+              className="p-3 rounded-lg text-[13px]"
+              style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
+            >
+              R-{resolution.refund.id} · {resolution.refund.amount}{' '}
+              {resolution.refund.currency ?? ''}
+              {resolution.refund.paymentTransactionId
+                ? ` · tx #${resolution.refund.paymentTransactionId}`
+                : ''}
+            </div>
+            <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+              {resolution.outcome === 'SUCCESS'
+                ? tx(
+                    'Возврат будет записан как выполненный. Используйте это только если провайдер подтвердил возврат в кабинете мерчанта.',
+                    'Қайтару орындалды деп жазылады. Мұны провайдер мерчант кабинетінде растаған жағдайда ғана қолданыңыз.',
+                    'The refund will be recorded as completed. Use this only if the provider confirmed the refund in the merchant cabinet.',
+                  )
+                : tx(
+                    'Возврат будет записан как неудачный. Участнику потребуется другой способ возврата.',
+                    'Қайтару сәтсіз деп жазылады. Қатысушыға басқа қайтару тәсілі қажет болады.',
+                    'The refund will be recorded as failed. The member will need another refund path.',
+                  )}
+            </div>
+            <label
+              className="flex flex-col gap-1.5 text-[13px]"
+              style={{ color: 'var(--eco-text)' }}
+            >
+              {tx(
+                'ID возврата у провайдера (необязательно)',
+                'Провайдердегі қайтару ID (міндетті емес)',
+                'Provider refund ID (optional)',
+              )}
+              <input
+                value={providerRefundId}
+                onChange={(e) => setProviderRefundId(e.target.value)}
+                maxLength={128}
+                autoComplete="off"
+                className="px-3 py-2 rounded-lg outline-none text-[13px]"
+                style={{
+                  background: 'var(--eco-surface)',
+                  border: '1px solid var(--eco-border)',
+                  color: 'var(--eco-text)',
+                }}
+              />
+            </label>
+            <label
+              className="flex items-start gap-2 text-[13px]"
+              style={{ color: 'var(--eco-text)' }}
+            >
+              <input
+                type="checkbox"
+                checked={verified}
+                onChange={(e) => setVerified(e.target.checked)}
+                className="mt-0.5 w-4 h-4"
+              />
+              <span>
+                {tx(
+                  'Я проверил(а) результат у платёжного провайдера. Действие будет записано в журнал.',
+                  'Нәтижені төлем провайдерінен тексердім. Әрекет журналға жазылады.',
+                  'I verified this outcome with the payment provider. This action is audit-logged.',
+                )}
+              </span>
+            </label>
+            {resolutionError && (
+              <div className="text-[13px]" role="alert" style={{ color: 'var(--eco-negative)' }}>
+                {resolutionError}
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={busyId != null}
+                onClick={() => setResolution(null)}
+              >
+                {tx('Отмена', 'Болдырмау', 'Cancel')}
+              </Button>
+              <Button
+                variant={resolution.outcome === 'SUCCESS' ? 'primary' : 'destructive'}
+                size="sm"
+                disabled={!verified}
+                loading={busyId === resolution.refund.id}
+                onClick={() => void submitResolution()}
+              >
+                {resolution.outcome === 'SUCCESS'
+                  ? tx('Записать как успешный', 'Сәтті деп жазу', 'Record as succeeded')
+                  : tx('Записать как неудачный', 'Сәтсіз деп жазу', 'Record as failed')}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </Card>
   );
 }

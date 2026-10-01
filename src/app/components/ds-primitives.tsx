@@ -445,6 +445,9 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
     ) ?? []);
     const initialFocus = dialog?.querySelector<HTMLElement>('input:not(:disabled), textarea:not(:disabled), select:not(:disabled)') ?? focusable()[0];
     initialFocus?.focus();
+    // Lock background scroll while the dialog is open (restored on close).
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -466,6 +469,7 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
       if (previousFocus?.isConnected) previousFocus.focus();
     };
   }, [open]);
