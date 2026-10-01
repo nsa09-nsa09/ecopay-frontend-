@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { Card, Button, Badge, MemberStatusBadge, RoomStatusBadge, Modal, Select } from '../ds-primitives';
 import {
@@ -26,7 +26,27 @@ import {
   type MyRoomMembershipDto,
   type RoomResponseDto,
   type PaymentIntentResponseDto,
+  confirmPaymentSuccessRequest,
 } from '../../lib/api';
+import {
+  classifyPaymentStatus,
+  clearPaymentAttempt,
+  newIdempotencyKey,
+  readPaymentAttempt,
+  savePendingPaymentContext,
+  writePaymentAttempt,
+} from '../../lib/payment-context';
+
+/** Only follow provider redirects to http(s) URLs (never javascript:/data:). */
+function isSafePaymentUrl(url: string | null | undefined): url is string {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
 import {
@@ -66,35 +86,22 @@ const identifierTypeLabel = (type: string | null | undefined, l: Language) => {
 };
 
 const POST_PAYMENT = new Set(['PENDING', 'ACTIVE']);
-const COMPENSATION_PAYMENT = new Set([
-  'REFUND_REQUIRED',
-  'REFUND_PENDING',
-  'REFUNDED',
-  'REQUIRES_REVIEW',
-]);
 
-const paymentAttemptKey = (memberId: string) => `ecopay.pendingPayment.${memberId}`;
-
-function readPaymentAttempt(memberId: string): { idempotencyKey: string; intentId?: string } | null {
+/** Current intent for the membership, or null when none exists (404). */
+async function fetchCurrentIntent(
+  memberId: string,
+  authorizedRequest: <T>(operation: (accessToken: string) => Promise<T>) => Promise<T>,
+): Promise<PaymentIntentResponseDto | null> {
   try {
-    const raw = window.localStorage.getItem(paymentAttemptKey(memberId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { idempotencyKey?: string; intentId?: string };
-    if (typeof parsed.idempotencyKey === 'string') {
-      return { idempotencyKey: parsed.idempotencyKey, intentId: parsed.intentId };
-    }
-  } catch {
-    // ignore malformed local attempt
+    const intent = await authorizedRequest((token) =>
+      getCurrentPaymentIntentForMemberRequest(memberId, token),
+    );
+    // 204 / empty body means "no intent yet".
+    return intent && intent.id != null && typeof intent.status === 'string' ? intent : null;
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
   }
-  return null;
-}
-
-function writePaymentAttempt(memberId: string, value: { idempotencyKey: string; intentId?: string }) {
-  window.localStorage.setItem(paymentAttemptKey(memberId), JSON.stringify(value));
-}
-
-function clearPaymentAttempt(memberId: string) {
-  window.localStorage.removeItem(paymentAttemptKey(memberId));
 }
 
 export function MemberDetailPage() {
@@ -115,6 +122,12 @@ export function MemberDetailPage() {
 
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  // An earlier attempt whose outcome is not final (pending / reconciling /
+  // review / refund). While it exists, the page must not invite a new payment.
+  const [openIntent, setOpenIntent] = useState<PaymentIntentResponseDto | null>(null);
+  const [checkingIntent, setCheckingIntent] = useState(false);
+  // Synchronous double-click guard: React state updates land a frame later.
+  const payInFlightRef = useRef(false);
 
   const [complaintOpen, setComplaintOpen] = useState(false);
   const [complaintReason, setComplaintReason] = useState('ACCESS_NOT_PROVIDED');
@@ -235,69 +248,63 @@ export function MemberDetailPage() {
       );
       return;
     }
+    if (payInFlightRef.current) return;
+    payInFlightRef.current = true;
     setPaying(true);
     setPayError(null);
+    let redirecting = false;
     try {
       const memberId = String(membership.id);
-      const existingAttempt = readPaymentAttempt(memberId);
-      let intent: PaymentIntentResponseDto | null = null;
-      if (existingAttempt?.intentId) {
-        try {
-          intent = await authorizedRequest((token) =>
-            getCurrentPaymentIntentForMemberRequest(memberId, token),
-          );
-        } catch {
-          intent = null;
-        }
-      }
-      const idempotencyKey = existingAttempt?.idempotencyKey ?? crypto.randomUUID();
-      writePaymentAttempt(memberId, { idempotencyKey, intentId: existingAttempt?.intentId });
-      intent ??= await authorizedRequest((token) =>
-        createPaymentIntentRequest(memberId, { idempotencyKey }, token),
-      );
-      writePaymentAttempt(memberId, { idempotencyKey, intentId: intent.id });
 
-      if (intent.status === 'SUCCESS') {
+      // Ask the backend first: an earlier attempt from this tab, another tab or
+      // another device may still be open. If we cannot tell, do not start a new
+      // one — the user can simply try again.
+      let intent = await fetchCurrentIntent(memberId, authorizedRequest);
+      if (intent && classifyPaymentStatus(intent.status) === 'failed') {
+        // The previous attempt is over; a new click starts a fresh attempt
+        // with a new idempotency key (the old key would replay the failure).
         clearPaymentAttempt(memberId);
+        intent = null;
+      }
+
+      if (!intent) {
+        const existingAttempt = readPaymentAttempt(memberId);
+        const idempotencyKey = existingAttempt?.idempotencyKey ?? newIdempotencyKey();
+        writePaymentAttempt(memberId, { idempotencyKey, intentId: existingAttempt?.intentId });
+        intent = await authorizedRequest((token) =>
+          createPaymentIntentRequest(memberId, { idempotencyKey }, token),
+        );
+        writePaymentAttempt(memberId, { idempotencyKey, intentId: intent.id });
+      }
+
+      const state = classifyPaymentStatus(intent.status);
+      if (state === 'success') {
+        clearPaymentAttempt(memberId);
+        setOpenIntent(null);
         const updated = await authorizedRequest((token) => getMyMembership(roomId, token));
         setMembership(updated);
-      } else if (intent.requiresRedirect && intent.paymentUrl) {
-        const pendingContext = { intentId: intent.id, roomId, roomMemberId: memberId };
-        window.localStorage.setItem(
-          `ecopay.pendingPayment.${intent.id}`,
-          JSON.stringify(pendingContext),
-        );
-        window.localStorage.setItem('ecopay.pendingPayment', JSON.stringify(pendingContext));
-        window.location.href = intent.paymentUrl;
-      } else if (COMPENSATION_PAYMENT.has(intent.status)) {
+      } else if (state === 'failed') {
         clearPaymentAttempt(memberId);
+        setOpenIntent(null);
         setPayError(
           tx(
             language,
-            'Платёж получен, но место уже недоступно. Мы запустили возврат и покажем его статус в истории платежей.',
-            'Төлем қабылданды, бірақ орын енді қолжетімсіз. Қайтарым басталды, мәртебесі төлем тарихында көрінеді.',
-            'Payment was captured, but the seat is no longer available. A refund has been started and its status is visible in payment history.',
+            'Платёж не прошёл. Можно попробовать ещё раз.',
+            'Төлем өтпеді. Қайта көруге болады.',
+            'Payment failed. You can try again.',
           ),
         );
-      } else if (intent.status === 'FAILED' || intent.status === 'EXPIRED' || intent.status === 'CANCELLED') {
-        clearPaymentAttempt(memberId);
-        setPayError(
-          tx(
-            language,
-            'Платёж не прошёл. Можно безопасно попробовать ещё раз.',
-            'Төлем өтпеді. Қауіпсіз түрде қайта көруге болады.',
-            'Payment failed. You can safely retry.',
-          ),
-        );
+      } else if (
+        intent.status === 'PENDING' &&
+        intent.requiresRedirect &&
+        isSafePaymentUrl(intent.paymentUrl)
+      ) {
+        savePendingPaymentContext({ intentId: intent.id, roomId, roomMemberId: memberId });
+        redirecting = true;
+        window.location.assign(intent.paymentUrl);
       } else {
-        setPayError(
-          tx(
-            language,
-            'Платёж ещё обрабатывается. Обновите страницу чуть позже.',
-            'Төлем әлі өңделуде. Сәл кейін бетті жаңартыңыз.',
-            'Payment is still processing. Refresh in a moment to see the latest status.',
-          ),
-        );
+        // Not final and nothing to redirect to: show the "checking" state.
+        setOpenIntent(intent);
       }
     } catch (err) {
       setPayError(
@@ -311,7 +318,99 @@ export function MemberDetailPage() {
             ),
       );
     } finally {
+      // While the browser is leaving for the provider page keep the button
+      // locked; `pageshow` below unlocks it if the user comes back via history.
+      if (!redirecting) {
+        payInFlightRef.current = false;
+        setPaying(false);
+      }
+    }
+  };
+
+  // Check whether an earlier attempt is still open whenever the page shows an
+  // unpaid membership, so the Pay button is never offered next to a payment
+  // that may still capture money.
+  const loadOpenIntent = useCallback(
+    async (memberId: string) => {
+      setCheckingIntent(true);
+      try {
+        const intent = await fetchCurrentIntent(memberId, authorizedRequest);
+        const state = classifyPaymentStatus(intent?.status);
+        if (!intent || state === 'failed') {
+          setOpenIntent(null);
+        } else if (state === 'success') {
+          setOpenIntent(null);
+          clearPaymentAttempt(memberId);
+          const updated = await authorizedRequest((token) => getMyMembership(roomId, token));
+          setMembership(updated);
+        } else {
+          setOpenIntent(intent);
+        }
+      } catch {
+        // Informational only; the Pay flow re-checks before charging.
+      } finally {
+        setCheckingIntent(false);
+      }
+    },
+    [authorizedRequest, roomId],
+  );
+
+  const membershipId = membership?.id != null ? String(membership.id) : null;
+  const membershipStatus = membership?.status;
+  useEffect(() => {
+    if (!membershipId || membershipStatus !== 'APPLIED') {
+      setOpenIntent(null);
+      return;
+    }
+    void loadOpenIntent(membershipId);
+  }, [membershipId, membershipStatus, loadOpenIntent]);
+
+  // Returning with the browser Back button from the provider page restores
+  // this page from the back/forward cache with the button still locked.
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      payInFlightRef.current = false;
       setPaying(false);
+      if (membershipId && membershipStatus === 'APPLIED') void loadOpenIntent(membershipId);
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, [membershipId, membershipStatus, loadOpenIntent]);
+
+  const [refreshingIntent, setRefreshingIntent] = useState(false);
+  const refreshOpenIntent = async () => {
+    if (!openIntent || refreshingIntent || !membershipId) return;
+    setRefreshingIntent(true);
+    try {
+      const result = await authorizedRequest((token) =>
+        confirmPaymentSuccessRequest(openIntent.id, token),
+      );
+      const state = classifyPaymentStatus(result.status);
+      if (state === 'success') {
+        clearPaymentAttempt(membershipId);
+        setOpenIntent(null);
+        const updated = await authorizedRequest((token) => getMyMembership(roomId, token));
+        setMembership(updated);
+      } else if (state === 'failed') {
+        clearPaymentAttempt(membershipId);
+        setOpenIntent(null);
+      } else {
+        setOpenIntent(result);
+      }
+    } catch (err) {
+      setPayError(
+        err instanceof ApiError
+          ? err.message
+          : tx(
+              language,
+              'Не удалось обновить статус платежа.',
+              'Төлем мәртебесін жаңарту мүмкін болмады.',
+              'Unable to refresh the payment status.',
+            ),
+      );
+    } finally {
+      setRefreshingIntent(false);
     }
   };
 
@@ -697,16 +796,86 @@ export function MemberDetailPage() {
                 )}
               </div>
             </div>
+            {openIntent && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="flex flex-col gap-3 p-4 rounded-lg"
+                style={{
+                  background: 'var(--eco-warning-100)',
+                  border: '1px solid var(--eco-warning)',
+                }}
+              >
+                <div className="flex items-start gap-2">
+                  <Clock
+                    size={16}
+                    className="mt-0.5 shrink-0"
+                    aria-hidden="true"
+                    style={{ color: 'var(--eco-warning)' }}
+                  />
+                  <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+                    {tx(
+                      language,
+                      'Мы проверяем статус платежа. Не оплачивайте повторно.',
+                      'Төлем мәртебесін тексеріп жатырмыз. Қайта төлемеңіз.',
+                      'We are checking the payment status. Do not pay again.',
+                    )}{' '}
+                    <span style={{ color: 'var(--eco-text-secondary)' }}>
+                      {classifyPaymentStatus(openIntent.status) === 'refund'
+                        ? tx(
+                            language,
+                            'Место недоступно, по платежу идёт возврат.',
+                            'Орын қолжетімсіз, төлем қайтарылуда.',
+                            'The seat is unavailable and the payment is being refunded.',
+                          )
+                        : tx(
+                            language,
+                            'Статус появится здесь и в истории платежей.',
+                            'Мәртебе осында және төлем тарихында көрінеді.',
+                            'The status will appear here and in payment history.',
+                          )}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={refreshingIntent}
+                    onClick={() => void refreshOpenIntent()}
+                  >
+                    {tx(language, 'Обновить статус', 'Мәртебені жаңарту', 'Refresh status')}
+                  </Button>
+                  <Link to="/payments/history" style={{ textDecoration: 'none' }}>
+                    <Button variant="ghost" size="sm">
+                      {tx(language, 'История платежей', 'Төлем тарихы', 'Payment history')}
+                    </Button>
+                  </Link>
+                  {openIntent.status === 'PENDING' &&
+                    openIntent.requiresRedirect &&
+                    isSafePaymentUrl(openIntent.paymentUrl) && (
+                      <Button variant="ghost" size="sm" disabled={paying} onClick={handlePay}>
+                        {tx(
+                          language,
+                          'Вернуться на страницу этого платежа',
+                          'Осы төлем бетіне оралу',
+                          'Return to this payment page',
+                        )}
+                      </Button>
+                    )}
+                </div>
+              </div>
+            )}
             {payError && (
-              <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
+              <p className="text-[12px]" role="alert" style={{ color: 'var(--eco-negative)' }}>
                 {payError}
               </p>
             )}
             <Button
               variant="primary"
               size="md"
-              loading={paying}
-              disabled={!canStartPayment}
+              loading={paying || checkingIntent}
+              disabled={!canStartPayment || openIntent != null}
               onClick={handlePay}
             >
               <CreditCard size={14} /> {tx(language, 'Оплатить', 'Төлеу', 'Pay')}{' '}

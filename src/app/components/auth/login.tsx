@@ -11,6 +11,7 @@ import { ApiError } from '../../lib/api';
 import { serverEmailErrorCode } from '../../lib/email-validation';
 import { localizeFieldErrors } from '../../lib/field-errors';
 import { useEmailField } from './use-email-field';
+import { safeRedirectPath } from '../../lib/safe-redirect';
 import {
   EmailFieldStatusHint,
   EmailSuggestion,
@@ -60,7 +61,10 @@ export function LoginPage() {
   const { login } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const redirectTarget = new URLSearchParams(location.search).get('redirect') || '/profile';
+  const redirectTarget = safeRedirectPath(
+    new URLSearchParams(location.search).get('redirect'),
+    '/profile',
+  );
 
   const emailField = useEmailField();
 
