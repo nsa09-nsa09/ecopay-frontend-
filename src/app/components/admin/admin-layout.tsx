@@ -107,14 +107,19 @@ function AdminGlobalSearch({ variant, onResultPicked }: AdminGlobalSearchProps) 
   useEffect(() => {
     if (variant !== 'desktop') return;
     if (!open) return;
-    const handle = (event: MouseEvent) => {
+    const handle = (event: Event) => {
       if (!containerRef.current) return;
       if (!containerRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
-    document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
+    // pointerdown covers mouse, touch and pen; focusin covers keyboard Tab-out.
+    document.addEventListener('pointerdown', handle);
+    document.addEventListener('focusin', handle);
+    return () => {
+      document.removeEventListener('pointerdown', handle);
+      document.removeEventListener('focusin', handle);
+    };
   }, [open, variant]);
 
   // Esc closes the panel from anywhere.

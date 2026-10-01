@@ -42,7 +42,10 @@
   animation: ecopayReviewsMarquee 42s linear infinite;
 }
 
-.ecopay-reviews-track:hover {
+/* Pause the marquee for mouse hover, keyboard focus and touch-and-hold. */
+.ecopay-reviews-track:hover,
+.ecopay-reviews-track:focus-within,
+.ecopay-reviews-track:active {
   animation-play-state: paused;
 }
 
@@ -288,7 +291,16 @@ button:not(.eco-btn):focus-visible {
     box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.eco-lift:hover {
+/* Hover lift only where a real hover exists (avoids sticky hover after a tap on
+   touch screens); keyboard focus gets the same affordance. */
+@media (hover: hover) and (pointer: fine) {
+  .eco-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(26, 26, 26, 0.1);
+  }
+}
+
+.eco-lift:focus-visible {
   transform: translateY(-4px);
   box-shadow: 0 12px 28px rgba(26, 26, 26, 0.1);
 }
@@ -300,7 +312,14 @@ button:not(.eco-btn):focus-visible {
     box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.eco-scale-hover:hover {
+@media (hover: hover) and (pointer: fine) {
+  .eco-scale-hover:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(26, 26, 26, 0.08);
+  }
+}
+
+.eco-scale-hover:focus-visible {
   transform: scale(1.05);
   box-shadow: 0 8px 20px rgba(26, 26, 26, 0.08);
 }
@@ -342,7 +361,9 @@ button:not(.eco-btn):focus-visible {
   }
 
   .eco-lift:hover,
-  .eco-scale-hover:hover {
+  .eco-scale-hover:hover,
+  .eco-lift:focus-visible,
+  .eco-scale-hover:focus-visible {
     transform: none;
   }
 }
@@ -354,4 +375,14 @@ button:not(.eco-btn):focus-visible {
 }
 .eco-stories-scroller::-webkit-scrollbar {
   display: none;
+}
+
+/* iOS Safari zooms the page when a focused field uses a font below 16px and
+   does not zoom back. Keep form fields at 16px on iOS only. */
+@supports (-webkit-touch-callout: none) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }

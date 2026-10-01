@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { Button, LanguageSwitcher, WaveDivider } from './ds-primitives';
 import { BrandLogo } from './brand-logo';
@@ -35,6 +35,7 @@ function CatalogSearchBox({ variant, onPicked, autoFocus }: CatalogSearchBoxProp
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const panelId = useId();
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebounced(query.trim()), 300);
@@ -72,18 +73,24 @@ function CatalogSearchBox({ variant, onPicked, autoFocus }: CatalogSearchBoxProp
     return () => controller.abort();
   }, [debounced]);
 
-  // Outside click closes dropdown on desktop.
+  // Outside press closes the dropdown on desktop. pointerdown covers mouse,
+  // touch and pen (iOS does not synthesize mousedown for taps on plain areas);
+  // focus leaving the box (keyboard Tab) closes it as well.
   useEffect(() => {
     if (variant !== 'desktop') return;
     if (!open) return;
-    const handle = (event: MouseEvent) => {
+    const handle = (event: Event) => {
       if (!containerRef.current) return;
       if (!containerRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
-    document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
+    document.addEventListener('pointerdown', handle);
+    document.addEventListener('focusin', handle);
+    return () => {
+      document.removeEventListener('pointerdown', handle);
+      document.removeEventListener('focusin', handle);
+    };
   }, [open, variant]);
 
   // Esc closes the dropdown from anywhere.
@@ -104,7 +111,7 @@ function CatalogSearchBox({ variant, onPicked, autoFocus }: CatalogSearchBoxProp
     setQuery('');
     setDebounced('');
     setResults(null);
-    navigate(`/browse?service=${encodeURIComponent(hit.serviceId)}`);
+    navigate(`/?service=${encodeURIComponent(hit.serviceId)}`);
     onPicked?.();
   };
 
@@ -113,7 +120,8 @@ function CatalogSearchBox({ variant, onPicked, autoFocus }: CatalogSearchBoxProp
 
   const panel = showPanel ? (
     <div
-      role="listbox"
+      id={panelId}
+      aria-live="polite"
       className={
         variant === 'desktop'
           ? 'absolute left-0 right-0 top-full mt-2 z-50 rounded-xl shadow-lg max-h-[60vh] overflow-y-auto'
@@ -142,9 +150,8 @@ function CatalogSearchBox({ variant, onPicked, autoFocus }: CatalogSearchBoxProp
               key={`hit-${hit.serviceId}`}
               type="button"
               onClick={() => handlePick(hit)}
-              className="flex items-center gap-3 px-4 py-2.5 text-left cursor-pointer transition-colors hover:bg-[var(--eco-surface)]"
+              className="flex items-center gap-3 px-4 py-2.5 min-h-[44px] text-left cursor-pointer transition-colors hover:bg-[var(--eco-surface)] focus-visible:bg-[var(--eco-surface)]"
               style={{ background: 'transparent', border: 'none' }}
-              role="option"
             >
               {hit.logoUrl ? (
                 <img
@@ -202,6 +209,10 @@ function CatalogSearchBox({ variant, onPicked, autoFocus }: CatalogSearchBoxProp
           onFocus={() => setOpen(true)}
           placeholder={t('navbarSearchPlaceholder')}
           aria-label={t('navbarSearchPlaceholder')}
+          aria-expanded={showPanel}
+          aria-controls={showPanel ? panelId : undefined}
+          type="search"
+          enterKeyHint="search"
           className="pl-8 pr-3 py-1.5 rounded-lg text-[13px] outline-none w-full"
           style={{
             background: 'var(--eco-surface)',
@@ -283,6 +294,19 @@ export function AppLayout() {
     trackPageVisit(location.pathname);
   }, [location.pathname]);
 
+  // Escape closes whichever header menu is open.
+  useEffect(() => {
+    if (!profileOpen && !mobileMenu && !mobileSearchOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setProfileOpen(false);
+      setMobileMenu(false);
+      setMobileSearchOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [profileOpen, mobileMenu, mobileSearchOpen]);
+
   // Auto-close the mobile search overlay on navigation.
   useEffect(() => {
     setMobileSearchOpen(false);
@@ -342,7 +366,10 @@ export function AppLayout() {
   };
 
   return (
-    <div style={{ background: 'var(--eco-bg)', color: 'var(--eco-text)', minHeight: '100vh' }}>
+    <div
+      className="min-h-screen min-h-dvh"
+      style={{ background: 'var(--eco-bg)', color: 'var(--eco-text)' }}
+    >
       <nav
         className="eco-nav sticky top-0 z-40 border-b"
         style={{ borderColor: 'var(--eco-border)' }}
@@ -379,7 +406,7 @@ export function AppLayout() {
             <button
               type="button"
               onClick={() => setMobileSearchOpen(true)}
-              className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
+              className="md:hidden w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer"
               style={{ background: 'var(--eco-surface)', border: 'none' }}
               aria-label={t('navbarSearchPlaceholder')}
             >
@@ -423,8 +450,12 @@ export function AppLayout() {
             {isAuthenticated && !isAuthRoute ? (
               <div className="relative hidden md:block">
                 <button
+                  type="button"
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                  aria-label={t('profile')}
+                  aria-haspopup="menu"
+                  aria-expanded={profileOpen}
+                  className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
                   style={{
                     background: 'var(--eco-surface)',
                     border: '1px solid var(--eco-border)',
@@ -433,7 +464,7 @@ export function AppLayout() {
                   {user?.avatar ? (
                     <img
                       src={user.avatar}
-                      alt={user.displayName}
+                      alt=""
                       className="w-full h-full object-cover rounded-full"
                     />
                   ) : (
@@ -444,7 +475,11 @@ export function AppLayout() {
                 </button>
                 {profileOpen && (
                   <>
-                    <div className="fixed inset-0" onClick={() => setProfileOpen(false)} />
+                    <div
+                      className="fixed inset-0"
+                      aria-hidden="true"
+                      onClick={() => setProfileOpen(false)}
+                    />
                     <div
                       className="absolute right-0 top-10 w-56 rounded-xl p-1 shadow-lg z-50"
                       style={{ background: 'var(--eco-bg)', border: '1px solid var(--eco-border)' }}
@@ -502,8 +537,12 @@ export function AppLayout() {
             )}
 
             <button
-              className="md:hidden cursor-pointer p-1"
+              type="button"
+              className="md:hidden cursor-pointer w-10 h-10 flex items-center justify-center rounded-lg"
               onClick={() => setMobileMenu(!mobileMenu)}
+              aria-label={mobileMenu ? t('closeMenu') : t('openMenu')}
+              aria-expanded={mobileMenu}
+              aria-controls="eco-mobile-menu"
             >
               {mobileMenu ? (
                 <X size={20} style={{ color: 'var(--eco-text)' }} />
@@ -516,7 +555,8 @@ export function AppLayout() {
 
         {mobileMenu && (
           <div
-            className="md:hidden border-t px-4 sm:px-6 py-4 flex flex-col gap-3"
+            id="eco-mobile-menu"
+            className="md:hidden border-t px-4 sm:px-6 py-4 flex flex-col gap-3 max-h-[calc(100dvh-4rem)] overflow-y-auto"
             style={{ borderColor: 'var(--eco-border)' }}
           >
             <div className="pb-3 border-b" style={{ borderColor: 'var(--eco-border)' }}>
@@ -527,6 +567,8 @@ export function AppLayout() {
                 {(['ru', 'kz', 'en'] as const).map((lang) => (
                   <button
                     key={lang}
+                    type="button"
+                    aria-pressed={language === lang}
                     onClick={() => setLanguage(lang)}
                     className="flex-1 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors"
                     style={{
@@ -631,7 +673,10 @@ export function AppLayout() {
           onClick={() => setMobileSearchOpen(false)}
         >
           <div
-            className="m-3 mt-4 p-3 rounded-2xl shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('navbarSearchPlaceholder')}
+            className="m-3 mt-4 p-3 rounded-2xl shadow-xl max-h-[calc(100dvh-2rem)] overflow-y-auto"
             style={{ background: 'var(--eco-bg)', border: '1px solid var(--eco-border)' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -642,7 +687,7 @@ export function AppLayout() {
               <button
                 type="button"
                 onClick={() => setMobileSearchOpen(false)}
-                className="p-1 rounded-md cursor-pointer"
+                className="w-9 h-9 flex items-center justify-center rounded-md cursor-pointer"
                 style={{
                   background: 'transparent',
                   border: 'none',

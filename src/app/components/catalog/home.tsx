@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import useEmblaCarousel from 'embla-carousel-react';
 import AutoScroll from 'embla-carousel-auto-scroll';
 import {
@@ -45,6 +45,7 @@ import {
   type PublicServiceReviewDto,
   type ServiceAccessType,
   type ServiceDto,
+  getService,
 } from '../../lib/api';
 import { AccessTypeTag } from '../access-type';
 
@@ -636,7 +637,7 @@ export function HomePage() {
   const { language, t } = useI18n();
   const lang = language as L;
   const navigate = useNavigate();
-  const { isAuthenticated, authorizedRequest } = useAuth();
+  const { isAuthenticated, isReady, authorizedRequest } = useAuth();
   const [activeCategoryId, setActiveCategoryId] = useState<number | 'all'>('all');
   const [query, setQuery] = useState('');
   const [openFaq, setOpenFaq] = useState(0);
@@ -780,11 +781,53 @@ export function HomePage() {
   const handlePickService = (service: DisplayService) => {
     setMatchError(null);
     if (!isAuthenticated) {
-      navigate(`/login?redirect=${encodeURIComponent('/')}`);
+      // Come back to the same service choice after signing in.
+      navigate(
+        `/login?redirect=${encodeURIComponent(`/?service=${encodeURIComponent(String(service.serviceId))}`)}`,
+      );
       return;
     }
     setIntentService(service);
   };
+
+  // Header search links here with ?service=<id>: open that service's intent
+  // choice (or sign-in) once, then drop the parameter from the URL.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedServiceId = searchParams.get('service');
+  const handledServiceRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!requestedServiceId || !isReady) return;
+    if (handledServiceRef.current === requestedServiceId) return;
+    handledServiceRef.current = requestedServiceId;
+    let cancelled = false;
+    const clearParam = () => {
+      const next = new URLSearchParams(searchParams);
+      next.delete('service');
+      setSearchParams(next, { replace: true });
+    };
+    if (!/^\d{1,19}$/.test(requestedServiceId)) {
+      clearParam();
+      return;
+    }
+    let settled = false;
+    void getService(requestedServiceId)
+      .then((service) => {
+        settled = true;
+        if (cancelled || !service) return;
+        clearParam();
+        handlePickService(fromApi(service));
+      })
+      .catch(() => {
+        settled = true;
+        if (!cancelled) clearParam();
+      });
+    return () => {
+      cancelled = true;
+      // Allow a re-run (e.g. StrictMode remount) to handle it again.
+      if (!settled) handledServiceRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedServiceId, isReady]);
 
   const handleWantSeat = async (service: DisplayService) => {
     setMatchError(null);

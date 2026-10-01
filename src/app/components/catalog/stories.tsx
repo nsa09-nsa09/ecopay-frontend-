@@ -512,6 +512,7 @@ function StoryViewer({
           onPointerDown={() => setPaused(true)}
           onPointerUp={() => setPaused(false)}
           onPointerLeave={() => setPaused(false)}
+          onPointerCancel={() => setPaused(false)}
           aria-label={t('storiesPrev')}
         />
         <button
@@ -522,6 +523,7 @@ function StoryViewer({
           onPointerDown={() => setPaused(true)}
           onPointerUp={() => setPaused(false)}
           onPointerLeave={() => setPaused(false)}
+          onPointerCancel={() => setPaused(false)}
           aria-label={t('storiesNext')}
         />
 
