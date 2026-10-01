@@ -1368,7 +1368,32 @@ export interface AdminDashboardKpisDto {
   conversionVisitorToUser30d?: number | string | null;
   refundRatePercent?: number | string | null;
   openTickets?: number | null;
+  /** Ratio 0..1 (not a percentage). */
   avgRoomFillRate?: number | string | null;
+  // Startup metrics added by a newer backend. Every field is optional: an
+  // absent field means "not provided by this backend" and its card is hidden;
+  // null means "provided but unknown" and renders as an em dash. Rates are
+  // percentages in 0..100.
+  dau?: number | null;
+  wau?: number | null;
+  mau?: number | null;
+  dauMauPercent?: number | string | null;
+  registrations7d?: number | null;
+  registrations30d?: number | null;
+  usersWithFirstSuccessfulPayment30d?: number | null;
+  signupToFirstPaymentConversion30d?: number | string | null;
+  paymentSuccessRate30d?: number | string | null;
+  paymentFailureRate30d?: number | string | null;
+  paymentPendingRate30d?: number | string | null;
+  /** Intents needing manual review (REQUIRES_REVIEW / CAPTURE_ANOMALY / reviewRequired). */
+  paymentRequiresReviewCount?: number | null;
+  payoutHeldAmountKzt?: number | string | null;
+  payoutDueCount?: number | null;
+  payoutPendingProviderCount?: number | null;
+  payoutRequiresReviewCount?: number | null;
+  refundPendingProviderCount?: number | null;
+  refundRequiresReviewCount?: number | null;
+  freedomWebhookDeadLetterCount?: number | null;
 }
 
 export interface AdminUserDto {
@@ -1486,6 +1511,10 @@ export interface DashboardMetricPoint {
   newRooms?: number | null;
   revenue?: number | string | null;
   commissionRevenue?: number | string | null;
+  // Newer backend series fields (optional counts per bucket).
+  firstSuccessfulPayments?: number | null;
+  successfulCharges?: number | null;
+  refunds?: number | null;
 }
 
 export interface DashboardMetricsResponse {

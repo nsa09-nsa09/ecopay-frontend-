@@ -55,6 +55,7 @@ import {
   Layers,
   AlertCircle,
   MapPin,
+  Info,
 } from 'lucide-react';
 import {
   Area,
@@ -82,6 +83,8 @@ type KpiSparklineKey =
 interface KpiCardConfig {
   key: string;
   value: string | number;
+  /** i18n key of a one-line explanation shown from the (i) toggle. */
+  hint?: string;
   icon: typeof ShieldCheck;
   variant: 'warning' | 'danger' | 'info' | 'success';
   sparklineKey?: KpiSparklineKey;
@@ -93,22 +96,39 @@ interface KpiCardConfig {
   linkTo?: string;
 }
 
-function formatCount(value: number | null | undefined): string {
+function formatCount(value: number | string | null | undefined): string {
   if (value == null) return '—';
-  return new Intl.NumberFormat('ru-RU').format(value);
+  const num = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isFinite(num)) return '—';
+  return new Intl.NumberFormat('ru-RU').format(num);
 }
 
 function formatMoney(value: number | string | null | undefined): string {
   if (value == null) return '—';
   const num = typeof value === 'string' ? Number(value) : value;
-  if (Number.isNaN(num)) return String(value);
+  if (!Number.isFinite(num)) return '—';
   return `₸${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(num)}`;
+}
+
+function formatDecimal(value: number | string | null | undefined): string {
+  if (value == null) return '—';
+  const num = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isFinite(num)) return '—';
+  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 }).format(num);
+}
+
+/** avgRoomFillRate is a 0..1 ratio; shown as a percentage. */
+function formatRatioAsPercent(value: number | string | null | undefined): string {
+  if (value == null) return '—';
+  const num = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isFinite(num)) return '—';
+  return formatPercent(num * 100);
 }
 
 function formatPercent(value: number | string | null | undefined): string {
   if (value == null) return '—';
   const num = typeof value === 'string' ? Number(value) : value;
-  if (Number.isNaN(num)) return String(value);
+  if (!Number.isFinite(num)) return '—';
   return `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 }).format(num)}%`;
 }
 
@@ -295,9 +315,9 @@ export function AdminDashboardPage() {
     }));
   }, [metrics, t]);
 
-  // KPI cards are organised into named sections with exactly four cards each
-  // so the responsive grid `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4` always
-  // produces balanced rows (4 / 2x2 / 4x1) — no lonely orphans.
+  // KPI cards are grouped into business-oriented sections. Cards for metrics
+  // added by a newer backend are hidden while the field is absent from the
+  // response (never shown as a fake zero); a null value renders as '—'.
   interface KpiSectionConfig {
     titleKey: string;
     cards: KpiCardConfig[];
@@ -305,42 +325,18 @@ export function AdminDashboardPage() {
 
   const kpiSections = useMemo<KpiSectionConfig[]>(() => {
     if (!kpis) return [];
+    const has = (field: keyof typeof kpis) => Object.prototype.hasOwnProperty.call(kpis, field);
+    const optional = (field: keyof typeof kpis, card: KpiCardConfig): KpiCardConfig[] =>
+      has(field) ? [card] : [];
     const newUsers30d = metrics?.newUsersLast30Days ?? null;
-    return [
+
+    const sections: KpiSectionConfig[] = [
       {
-        titleKey: 'kpiSectionOperations',
-        cards: [
-          {
-            key: 'pendingModerationLabel',
-            value: formatCount(kpis.pendingModeration),
-            icon: ShieldCheck,
-            variant: 'warning',
-          },
-          {
-            key: 'openDisputes',
-            value: formatCount(kpis.openDisputes),
-            icon: Scale,
-            variant: 'danger',
-          },
-          {
-            key: 'kpiOpenTickets',
-            value: formatCount(kpis.openTickets ?? null),
-            icon: MessageSquare,
-            variant: 'warning',
-          },
-          {
-            key: 'blockedRoomsLabel',
-            value: formatCount(kpis.blockedRooms),
-            icon: Home,
-            variant: 'info',
-          },
-        ],
-      },
-      {
-        titleKey: 'kpiSectionFinance',
+        titleKey: 'kpiSectionBusiness',
         cards: [
           {
             key: 'totalRevenueLabel',
+            hint: 'kpiHintGmv',
             value: formatMoney(kpis.totalRevenue),
             icon: Wallet,
             variant: 'success',
@@ -349,6 +345,7 @@ export function AdminDashboardPage() {
           },
           {
             key: 'platformRevenueLabel',
+            hint: 'kpiHintCommission',
             value: formatMoney(kpis.platformRevenue ?? null),
             icon: Percent,
             variant: 'success',
@@ -357,38 +354,114 @@ export function AdminDashboardPage() {
           },
           {
             key: 'totalRefundsLabel',
+            hint: 'kpiHintRefunds',
             value: formatMoney(kpis.totalRefunds),
             icon: Undo2,
             variant: 'warning',
             linkTo: '/admin/finance?tab=refunds',
           },
           {
-            key: 'kpiActiveSubsValue',
-            value: formatMoney(kpis.totalActiveSubscriptionsValueKzt ?? null),
-            icon: TrendingUp,
-            variant: 'success',
-            linkTo: '/admin/finance?tab=subscriptions',
-          },
-          {
             key: 'kpiRefundRate',
+            hint: 'kpiHintRefundRate',
             value: formatPercent(kpis.refundRatePercent ?? null),
             icon: Percent,
             variant: 'warning',
             linkTo: '/admin/finance?tab=refunds',
           },
+          {
+            key: 'kpiActiveSubsValue',
+            hint: 'kpiHintActiveSubs',
+            value: formatMoney(kpis.totalActiveSubscriptionsValueKzt ?? null),
+            icon: TrendingUp,
+            variant: 'success',
+            linkTo: '/admin/finance?tab=subscriptions',
+          },
         ],
       },
       {
-        titleKey: 'kpiSectionAudience',
+        titleKey: 'kpiSectionGrowth',
         cards: [
+          ...optional('dau', {
+            key: 'kpiDau',
+            hint: 'kpiHintDau',
+            value: formatCount(kpis.dau),
+            icon: UsersRound,
+            variant: 'info',
+          }),
+          ...optional('wau', {
+            key: 'kpiWau',
+            hint: 'kpiHintWau',
+            value: formatCount(kpis.wau),
+            icon: UsersRound,
+            variant: 'info',
+          }),
+          ...optional('mau', {
+            key: 'kpiMau',
+            hint: 'kpiHintMau',
+            value: formatCount(kpis.mau),
+            icon: Users,
+            variant: 'info',
+          }),
+          ...optional('dauMauPercent', {
+            key: 'kpiDauMau',
+            hint: 'kpiHintDauMau',
+            value: formatPercent(kpis.dauMauPercent),
+            icon: Gauge,
+            variant: 'info',
+          }),
+          ...optional('registrations7d', {
+            key: 'kpiRegistrations7d',
+            hint: 'kpiHintRegistrations7d',
+            value: formatCount(kpis.registrations7d),
+            icon: UserPlus,
+            variant: 'success',
+          }),
+          has('registrations30d')
+            ? {
+                key: 'kpiRegistrations30d',
+                hint: 'kpiHintRegistrations30d',
+                value: formatCount(kpis.registrations30d),
+                icon: UserPlus,
+                variant: 'success',
+              }
+            : {
+                key: 'dashboardNewLast30d',
+                hint: 'kpiHintRegistrations30d',
+                value: formatCount(newUsers30d),
+                icon: UserPlus,
+                variant: 'info',
+              },
+          {
+            key: 'kpiConversion30d',
+            hint: 'kpiHintVisitorConversion',
+            value: formatPercent(kpis.conversionVisitorToUser30d ?? null),
+            icon: UserPlus,
+            variant: 'success',
+          },
+          ...optional('signupToFirstPaymentConversion30d', {
+            key: 'kpiSignupToPayment30d',
+            hint: 'kpiHintSignupToPayment',
+            value: formatPercent(kpis.signupToFirstPaymentConversion30d),
+            icon: Percent,
+            variant: 'success',
+          }),
+          ...optional('usersWithFirstSuccessfulPayment30d', {
+            key: 'kpiFirstPaymentUsers30d',
+            hint: 'kpiHintFirstPaymentUsers',
+            value: formatCount(kpis.usersWithFirstSuccessfulPayment30d),
+            icon: Wallet,
+            variant: 'success',
+          }),
           {
             key: 'kpiUniqueVisitorsToday',
+            hint: 'kpiHintVisitorsToday',
             value: formatCount(kpis.uniqueVisitorsToday ?? null),
             icon: Eye,
             variant: 'info',
           },
           {
             key: 'kpiUniqueVisitors30d',
+            hint: 'kpiHintVisitors30d',
             value: formatCount(kpis.uniqueVisitors30d ?? null),
             icon: Users,
             variant: 'info',
@@ -396,79 +469,220 @@ export function AdminDashboardPage() {
           },
           {
             key: 'kpiPageViews30d',
+            hint: 'kpiHintPageViews',
             value: formatCount(kpis.totalPageViews30d ?? null),
             icon: MousePointerClick,
             variant: 'info',
             sparklineKey: 'pageViews',
           },
           {
-            key: 'kpiConversion30d',
-            value: formatPercent(kpis.conversionVisitorToUser30d ?? null),
-            icon: UserPlus,
-            variant: 'success',
-          },
-        ],
-      },
-      {
-        titleKey: 'kpiSectionRooms',
-        cards: [
-          {
-            key: 'totalRoomsLabel',
-            value: formatCount(kpis.totalRooms),
-            icon: Home,
-            variant: 'info',
-          },
-          {
-            key: 'activeRoomsLabel',
-            value: formatCount(kpis.activeRooms),
-            icon: ShieldCheck,
-            variant: 'success',
-          },
-          {
-            key: 'kpiNewRooms30d',
-            value: formatCount(kpis.newRoomsLast30Days ?? null),
-            icon: PlusCircle,
-            variant: 'success',
-            sparklineKey: 'newRooms',
-          },
-          {
-            key: 'kpiAvgRoomFill',
-            value: formatPercent(kpis.avgRoomFillRate ?? null),
-            icon: Gauge,
-            variant: 'info',
-          },
-        ],
-      },
-      {
-        titleKey: 'kpiSectionUsers',
-        cards: [
-          {
             key: 'totalUsersLabel',
+            hint: 'kpiHintTotalUsers',
             value: formatCount(kpis.totalUsers),
             icon: Users,
             variant: 'info',
           },
           {
             key: 'activeUsersLabel',
+            hint: 'kpiHintActiveUsers',
             value: formatCount(kpis.activeUsers),
             icon: UsersRound,
             variant: 'success',
           },
+        ],
+      },
+      {
+        titleKey: 'kpiSectionMarketplace',
+        cards: [
+          {
+            key: 'activeRoomsLabel',
+            hint: 'kpiHintActiveRooms',
+            value: formatCount(kpis.activeRooms),
+            icon: ShieldCheck,
+            variant: 'success',
+          },
+          {
+            key: 'kpiAvgRoomFill',
+            hint: 'kpiHintAvgFill',
+            value: formatRatioAsPercent(kpis.avgRoomFillRate ?? null),
+            icon: Gauge,
+            variant: 'info',
+          },
+          {
+            key: 'totalRoomsLabel',
+            hint: 'kpiHintTotalRooms',
+            value: formatCount(kpis.totalRooms),
+            icon: Home,
+            variant: 'info',
+          },
+          {
+            key: 'kpiNewRooms30d',
+            hint: 'kpiHintNewRooms',
+            value: formatCount(kpis.newRoomsLast30Days ?? null),
+            icon: PlusCircle,
+            variant: 'success',
+            sparklineKey: 'newRooms',
+          },
+          ...optional('avgMembersPerRoom', {
+            key: 'kpiAvgMembersPerRoom',
+            hint: 'kpiHintAvgMembers',
+            value: formatDecimal(kpis.avgMembersPerRoom),
+            icon: UsersRound,
+            variant: 'info',
+          }),
+        ],
+      },
+      {
+        titleKey: 'kpiSectionPayments',
+        cards: [
+          ...optional('paymentSuccessRate30d', {
+            key: 'kpiPaymentSuccessRate',
+            hint: 'kpiHintPaymentSuccess',
+            value: formatPercent(kpis.paymentSuccessRate30d),
+            icon: ShieldCheck,
+            variant: 'success',
+            linkTo: '/admin/finance?tab=payment-review',
+          }),
+          ...optional('paymentFailureRate30d', {
+            key: 'kpiPaymentFailureRate',
+            hint: 'kpiHintPaymentFailure',
+            value: formatPercent(kpis.paymentFailureRate30d),
+            icon: AlertCircle,
+            variant: 'danger',
+            linkTo: '/admin/finance?tab=payment-review&status=FAILED',
+          }),
+          ...optional('paymentRequiresReviewCount', {
+            key: 'kpiPaymentRequiresReview',
+            hint: 'kpiHintPaymentRequiresReview',
+            value: formatCount(kpis.paymentRequiresReviewCount),
+            icon: AlertCircle,
+            variant: 'danger',
+            linkTo: '/admin/finance?tab=payment-review',
+          }),
+          ...optional('paymentPendingRate30d', {
+            key: 'kpiPaymentPendingRate',
+            hint: 'kpiHintPaymentPending',
+            value: formatPercent(kpis.paymentPendingRate30d),
+            icon: Gauge,
+            variant: 'warning',
+            linkTo: '/admin/finance?tab=payment-review&status=PENDING',
+          }),
+        ],
+      },
+      {
+        titleKey: 'kpiSectionSettlement',
+        cards: [
+          ...optional('payoutHeldAmountKzt', {
+            key: 'kpiPayoutHeld',
+            hint: 'kpiHintPayoutHeld',
+            value: formatMoney(kpis.payoutHeldAmountKzt),
+            icon: Wallet,
+            variant: 'info',
+            linkTo: '/admin/finance?tab=payouts',
+          }),
+          {
+            key: 'kpiPendingPayouts',
+            hint: 'kpiHintPendingPayouts',
+            value: formatCount(kpis.pendingPayouts),
+            icon: Wallet,
+            variant: 'warning',
+            linkTo: '/admin/finance?tab=payouts&status=PENDING',
+          },
+          ...optional('payoutDueCount', {
+            key: 'kpiPayoutDue',
+            hint: 'kpiHintPayoutDue',
+            value: formatCount(kpis.payoutDueCount),
+            icon: Wallet,
+            variant: 'warning',
+            linkTo: '/admin/finance?tab=payouts',
+          }),
+          ...optional('payoutPendingProviderCount', {
+            key: 'kpiPayoutPendingProvider',
+            hint: 'kpiHintPayoutPendingProvider',
+            value: formatCount(kpis.payoutPendingProviderCount),
+            icon: RefreshCw,
+            variant: 'info',
+            linkTo: '/admin/finance?tab=payouts&status=PENDING_PROVIDER',
+          }),
+          ...optional('payoutRequiresReviewCount', {
+            key: 'kpiPayoutRequiresReview',
+            hint: 'kpiHintPayoutRequiresReview',
+            value: formatCount(kpis.payoutRequiresReviewCount),
+            icon: AlertCircle,
+            variant: 'danger',
+            linkTo: '/admin/finance?tab=payouts&status=REQUIRES_REVIEW',
+          }),
+        ],
+      },
+      {
+        titleKey: 'kpiSectionRisk',
+        cards: [
+          ...optional('refundPendingProviderCount', {
+            key: 'kpiRefundPendingProvider',
+            hint: 'kpiHintRefundPendingProvider',
+            value: formatCount(kpis.refundPendingProviderCount),
+            icon: Undo2,
+            variant: 'warning',
+            linkTo: '/admin/finance?tab=refunds&status=PENDING_PROVIDER',
+          }),
+          ...optional('refundRequiresReviewCount', {
+            key: 'kpiRefundRequiresReview',
+            hint: 'kpiHintRefundRequiresReview',
+            value: formatCount(kpis.refundRequiresReviewCount),
+            icon: AlertCircle,
+            variant: 'danger',
+            linkTo: '/admin/finance?tab=refunds&status=REQUIRES_REVIEW',
+          }),
+          ...optional('freedomWebhookDeadLetterCount', {
+            key: 'kpiWebhookDeadLetters',
+            hint: 'kpiHintWebhookDeadLetters',
+            value: formatCount(kpis.freedomWebhookDeadLetterCount),
+            icon: Inbox,
+            variant: 'danger',
+            linkTo: '/admin/finance?tab=webhooks&status=DEAD_LETTER',
+          }),
+          {
+            key: 'openDisputes',
+            hint: 'kpiHintOpenDisputes',
+            value: formatCount(kpis.openDisputes),
+            icon: Scale,
+            variant: 'danger',
+            linkTo: '/admin/disputes',
+          },
+          {
+            key: 'pendingModerationLabel',
+            hint: 'kpiHintModeration',
+            value: formatCount(kpis.pendingModeration),
+            icon: ShieldCheck,
+            variant: 'warning',
+            linkTo: '/admin/moderation',
+          },
+          {
+            key: 'kpiOpenTickets',
+            hint: 'kpiHintOpenTickets',
+            value: formatCount(kpis.openTickets ?? null),
+            icon: MessageSquare,
+            variant: 'warning',
+            linkTo: '/admin/tickets',
+          },
+          {
+            key: 'blockedRoomsLabel',
+            hint: 'kpiHintBlockedRooms',
+            value: formatCount(kpis.blockedRooms),
+            icon: Home,
+            variant: 'info',
+          },
           {
             key: 'bannedUsersLabel',
+            hint: 'kpiHintBannedUsers',
             value: formatCount(kpis.bannedUsers),
             icon: Ban,
             variant: 'danger',
           },
-          {
-            key: 'dashboardNewLast30d',
-            value: formatCount(newUsers30d),
-            icon: UserPlus,
-            variant: 'info',
-          },
         ],
       },
     ];
+    return sections.filter((section) => section.cards.length > 0);
   }, [kpis, metrics]);
 
   // Compact sparkline series for KPI cards. Returns null (skip drawing) if
@@ -524,8 +738,9 @@ export function AdminDashboardPage() {
             className="w-9 h-9 rounded-xl flex items-center justify-center"
             style={{ background: chipBg }}
           >
-            <Icon size={16} style={{ color: chipFg }} />
+            <Icon size={16} aria-hidden="true" style={{ color: chipFg }} />
           </div>
+          {k.hint && <MetricHint hintKey={k.hint} />}
         </div>
         <div className="flex flex-col gap-1">
           <div
@@ -638,9 +853,14 @@ export function AdminDashboardPage() {
         {kpis && (
           <>
             {kpiSections.map((section) => (
-              <section key={section.titleKey} className="mb-10">
+              <section
+                key={section.titleKey}
+                className="mb-10"
+                aria-labelledby={`kpi-${section.titleKey}`}
+              >
                 <div className="flex items-center gap-3 mb-4">
                   <h2
+                    id={`kpi-${section.titleKey}`}
                     className="text-[11px] uppercase"
                     style={{
                       color: 'var(--eco-text-tertiary)',
@@ -1505,6 +1725,55 @@ function ChartEmptyState({ label, icon: Icon }: { label: string; icon: typeof In
       <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
         {label}
       </span>
+    </div>
+  );
+}
+
+/**
+ * Small (i) toggle with a one-line explanation. A button (not a hover-only
+ * tooltip) so it works with touch, keyboard and screen readers; the title
+ * attribute keeps the quick hover hint on desktop.
+ */
+function MetricHint({ hintKey }: { hintKey: string }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const text = t(hintKey);
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        title={text}
+        aria-label={t('kpiMetricHintToggle')}
+        aria-expanded={open}
+        onClick={(event) => {
+          // The card may be wrapped in a link; the hint must not navigate.
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen((value) => !value);
+        }}
+        onBlur={() => setOpen(false)}
+        className="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer"
+        style={{
+          background: 'transparent',
+          border: '1px solid var(--eco-border)',
+          color: 'var(--eco-text-tertiary)',
+        }}
+      >
+        <Info size={13} aria-hidden="true" />
+      </button>
+      {open && (
+        <div
+          role="tooltip"
+          className="absolute right-0 top-8 z-10 w-56 p-2 rounded-lg text-[12px] shadow-lg"
+          style={{
+            background: 'var(--eco-bg)',
+            border: '1px solid var(--eco-border)',
+            color: 'var(--eco-text-secondary)',
+          }}
+        >
+          {text}
+        </div>
+      )}
     </div>
   );
 }
