@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Client } from '@stomp/stompjs';
 import { Send } from 'lucide-react';
 import { Card, Button, Input } from '../ds-primitives';
 import {
   ApiError,
-  buildSupportWebSocketUrl,
   getRoomChatMessagesRequest,
   roomChatTopic,
   sendRoomChatMessageRequest,
   type RoomChatMessageDto,
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
+import { parseMessageBody, startRealtime } from '../../lib/realtime';
 import { useI18n, type Language } from '../i18n-provider';
 import { formatDateTime as formatAlmatyDateTime } from '../../lib/datetime';
 
@@ -38,7 +37,7 @@ function mergeMessage(prev: RoomChatMessageDto[], next: RoomChatMessageDto): Roo
  */
 export function RoomChat({ roomId }: { roomId: string }) {
   const { language } = useI18n();
-  const { user, isAuthenticated, authorizedRequest } = useAuth();
+  const { user, isAuthenticated, authorizedRequest, getAccessToken } = useAuth();
 
   const [messages, setMessages] = useState<RoomChatMessageDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,57 +89,20 @@ export function RoomChat({ roomId }: { roomId: string }) {
     };
   }, [roomId, isAuthenticated, language]);
 
-  // Live subscription on the room's chat topic.
+  // Live subscription on the room's chat topic (shared backoff/auth handling).
   useEffect(() => {
     if (!roomId || !isAuthenticated) return;
-
-    let cancelled = false;
-    let client: Client | null = null;
-
-    void authRef
-      .current(async (token) => {
-        if (cancelled) return null;
-        client = new Client({
-          webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl()),
-          connectHeaders: {
-            Authorization: `Bearer ${token}`,
-          },
-          reconnectDelay: 5000,
-          onConnect: () => {
-            client?.subscribe(roomChatTopic(roomId), (message) => {
-              try {
-                const dto = JSON.parse(message.body) as RoomChatMessageDto;
-                setMessages((prev) => mergeMessage(prev, dto));
-              } catch {
-                /* malformed push — ignore */
-              }
-            });
-          },
-          onStompError: () => {
-            /* best-effort — history already seeded the panel */
-          },
-          onWebSocketError: () => {
-            /* best-effort */
-          },
+    const handle = startRealtime({
+      getAccessToken,
+      onConnect: (client) => {
+        client.subscribe(roomChatTopic(roomId), (message) => {
+          const dto = parseMessageBody<RoomChatMessageDto>(message.body);
+          if (dto) setMessages((prev) => mergeMessage(prev, dto));
         });
-        client.activate();
-        return null;
-      })
-      .catch(() => {
-        /* could not open WS — REST send still works, refresh shows new messages */
-      });
-
-    return () => {
-      cancelled = true;
-      if (client) {
-        try {
-          void client.deactivate();
-        } catch {
-          /* ignore */
-        }
-      }
-    };
-  }, [roomId, isAuthenticated]);
+      },
+    });
+    return () => handle.stop();
+  }, [roomId, isAuthenticated, getAccessToken]);
 
   // Keep the transcript pinned to the latest message.
   useEffect(() => {

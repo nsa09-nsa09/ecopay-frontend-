@@ -7,9 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Client } from '@stomp/stompjs';
 import {
-  buildSupportWebSocketUrl,
   getNotificationsRequest,
   getUnreadNotificationCountRequest,
   markAllNotificationsReadRequest,
@@ -18,6 +16,7 @@ import {
   type NotificationDto,
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
+import { parseMessageBody, startRealtime } from '../../lib/realtime';
 
 interface NotificationsContextType {
   notifications: NotificationDto[];
@@ -34,11 +33,10 @@ const NotificationsContext = createContext<NotificationsContextType>(null!);
 const PAGE_SIZE = 30;
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated, authorizedRequest } = useAuth();
+  const { user, isAuthenticated, authorizedRequest, getAccessToken } = useAuth();
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const clientRef = useRef<Client | null>(null);
 
   // `authorizedRequest` is recreated on every AuthProvider render (it closes
   // over the session and is not memoized). Keep it behind a ref so our effects
@@ -75,65 +73,30 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated, user?.id, refresh]);
 
   // Live push subscription on the user's personal notifications topic.
+  // Reconnects with backoff and a fresh token; stops on logout/unmount.
   useEffect(() => {
     const userId = user?.id;
     if (!isAuthenticated || !userId) return;
-
-    let cancelled = false;
-    let client: Client | null = null;
-
-    void authRef
-      .current(async (token) => {
-        if (cancelled) return null;
-        client = new Client({
-          webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl()),
-          connectHeaders: {
-            Authorization: `Bearer ${token}`,
-          },
-          reconnectDelay: 5000,
-          onConnect: () => {
-            client?.subscribe(notificationsTopic(userId), (message) => {
-              try {
-                const dto = JSON.parse(message.body) as NotificationDto;
-                setNotifications((prev) =>
-                  prev.some((n) => n.id === dto.id) ? prev : [dto, ...prev],
-                );
-                if (!dto.read) {
-                  setUnreadCount((c) => c + 1);
-                }
-              } catch {
-                /* malformed push — ignore */
-              }
-            });
-          },
-          onStompError: () => {
-            /* best-effort */
-          },
-          onWebSocketError: () => {
-            /* best-effort */
-          },
+    let reconnect = false;
+    const handle = startRealtime({
+      getAccessToken,
+      onConnect: (client) => {
+        client.subscribe(notificationsTopic(userId), (message) => {
+          const dto = parseMessageBody<NotificationDto>(message.body);
+          if (!dto) return;
+          setNotifications((prev) => (prev.some((n) => n.id === dto.id) ? prev : [dto, ...prev]));
+          if (!dto.read) {
+            setUnreadCount((c) => c + 1);
+          }
         });
-        client.activate();
-        clientRef.current = client;
-        return null;
-      })
-      .catch(() => {
-        /* could not open WS — polling on mount still seeded the bell */
-      });
-
-    return () => {
-      cancelled = true;
-      const c = client ?? clientRef.current;
-      clientRef.current = null;
-      if (c) {
-        try {
-          void c.deactivate();
-        } catch {
-          /* ignore */
-        }
-      }
-    };
-  }, [isAuthenticated, user?.id]);
+        // Catch up on anything pushed while the socket was down (the initial
+        // load effect above already covers the first connect).
+        if (reconnect) void refresh();
+        reconnect = true;
+      },
+    });
+    return () => handle.stop();
+  }, [isAuthenticated, user?.id, getAccessToken, refresh]);
 
   const markRead = useCallback(
     async (id: number) => {

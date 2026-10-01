@@ -5,10 +5,9 @@ import { AdminLayout } from './admin-layout';
 import { useI18n } from '../i18n-provider';
 import { formatDateTime } from '../../lib/datetime';
 import { useAuth } from '../auth/auth-provider';
-import { Client } from '@stomp/stompjs';
+import { parseMessageBody, startRealtime } from '../../lib/realtime';
 import {
   assignStaffTicketToMeRequest,
-  buildSupportWebSocketUrl,
   escalateStaffTicketRequest,
   getStaffSupportQueueRequest,
   getStaffSupportTicketRequest,
@@ -40,7 +39,7 @@ const statusVariant: Record<string, 'warning' | 'info' | 'success' | 'danger'> =
 
 export function AdminTicketsPage() {
   const { t, language } = useI18n();
-  const { authorizedRequest } = useAuth();
+  const { authorizedRequest, getAccessToken } = useAuth();
 
   const [items, setItems] = useState<SupportTicketResponse[]>([]);
   const [page, setPage] = useState(0);
@@ -63,7 +62,6 @@ export function AdminTicketsPage() {
   const [replyText, setReplyText] = useState('');
   const [replySending, setReplySending] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
-  const stompClientRef = useRef<Client | null>(null);
 
   const tx = (ru: string, kz: string, en: string) =>
     language === 'ru' ? ru : language === 'kz' ? kz : en;
@@ -124,8 +122,6 @@ export function AdminTicketsPage() {
 
   // WebSocket connection for real-time updates
   useEffect(() => {
-    let cancelled = false;
-    let client: Client | null = null;
     const applyRealtimeUpdate = (updatedTicket: SupportTicketResponse) => {
       setItems((prev) => {
         if (updatedTicket.status === 'CLOSED') {
@@ -146,46 +142,24 @@ export function AdminTicketsPage() {
       }
     };
 
-    void authorizedRequest(async (token) => {
-      if (cancelled) return null;
-
-      client = new Client({
-        webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl()),
-        connectHeaders: {
-          Authorization: `Bearer ${token}`,
-        },
-        reconnectDelay: 5000,
-        onConnect: () => {
-          client?.subscribe('/topic/staff/support-queue', (message) => {
-            applyRealtimeUpdate(JSON.parse(message.body) as SupportTicketResponse);
+    const handle = startRealtime({
+      getAccessToken,
+      onConnect: (client) => {
+        client.subscribe('/topic/staff/support-queue', (message) => {
+          const updated = parseMessageBody<SupportTicketResponse>(message.body);
+          if (updated) applyRealtimeUpdate(updated);
+        });
+        if (selectedId != null) {
+          client.subscribe(`/topic/support-tickets/${selectedId}`, (message) => {
+            const updated = parseMessageBody<SupportTicketResponse>(message.body);
+            if (updated) applyRealtimeUpdate(updated);
           });
-
-          if (selectedId != null) {
-            client?.subscribe(`/topic/support-tickets/${selectedId}`, (message) => {
-              applyRealtimeUpdate(JSON.parse(message.body) as SupportTicketResponse);
-            });
-          }
-        },
-        onStompError: (frame) => {
-          console.error('Admin support WebSocket error:', frame);
-        },
-        onWebSocketError: (event) => {
-          console.error('Admin support WebSocket connection error:', event);
-        },
-      });
-
-      client.activate();
-      stompClientRef.current = client;
-      return null;
-    }).catch((err) => {
-      console.error('Unable to start admin support WebSocket:', err);
+        }
+      },
     });
 
-    return () => {
-      cancelled = true;
-      void client?.deactivate();
-    };
-  }, [authorizedRequest, selectedId]);
+    return () => handle.stop();
+  }, [getAccessToken, selectedId]);
 
   const summaryById = useMemo(() => new Map(items.map((t) => [t.id, t] as const)), [items]);
 

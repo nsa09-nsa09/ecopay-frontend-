@@ -15,7 +15,6 @@ import {
 import { toast } from 'sonner';
 import {
   ApiError,
-  buildSupportWebSocketUrl,
   createSupportTicketRequest,
   getJoinedRooms,
   getMyRooms,
@@ -27,9 +26,9 @@ import {
   type SupportTicketResponse,
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
+import { parseMessageBody, startRealtime } from '../../lib/realtime';
 import { useI18n, type Language } from '../i18n-provider';
 import { formatDate, formatDateTime } from '../../lib/datetime';
-import { Client } from '@stomp/stompjs';
 import { userStatusLabel } from '../../lib/user-facing-enums';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
@@ -542,7 +541,7 @@ function CreateTicketView({
 }
 
 function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () => void }) {
-  const { authorizedRequest, user } = useAuth();
+  const { authorizedRequest, user, getAccessToken } = useAuth();
   const { language } = useI18n();
   const TOPIC_OPTIONS = useTopicOptions();
   const TOPIC_LABELS: Record<string, string> = useMemo(
@@ -554,7 +553,6 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
   const [error, setError] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const stompClientRef = useRef<Client | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -593,45 +591,19 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
     }
   }, [ticket?.messages]);
 
-  // WebSocket connection for real-time updates
+  // WebSocket connection for real-time updates (shared backoff/auth handling).
   useEffect(() => {
-    let cancelled = false;
-    let client: Client | null = null;
-
-    void authorizedRequest(async (token) => {
-      if (cancelled) return null;
-
-      client = new Client({
-        webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl()),
-        connectHeaders: {
-          Authorization: `Bearer ${token}`,
-        },
-        reconnectDelay: 5000,
-        onConnect: () => {
-          client?.subscribe(`/topic/support-tickets/${ticketId}`, (message) => {
-            setTicket(JSON.parse(message.body) as SupportTicketResponse);
-          });
-        },
-        onStompError: (frame) => {
-          console.error('User support WebSocket error:', frame);
-        },
-        onWebSocketError: (event) => {
-          console.error('User support WebSocket connection error:', event);
-        },
-      });
-
-      client.activate();
-      stompClientRef.current = client;
-      return null;
-    }).catch((err) => {
-      console.error('Unable to start user support WebSocket:', err);
+    const handle = startRealtime({
+      getAccessToken,
+      onConnect: (client) => {
+        client.subscribe(`/topic/support-tickets/${ticketId}`, (message) => {
+          const updated = parseMessageBody<SupportTicketResponse>(message.body);
+          if (updated) setTicket(updated);
+        });
+      },
     });
-
-    return () => {
-      cancelled = true;
-      void client?.deactivate();
-    };
-  }, [authorizedRequest, ticketId]);
+    return () => handle.stop();
+  }, [getAccessToken, ticketId]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !ticket) return;

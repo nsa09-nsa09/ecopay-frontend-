@@ -7,10 +7,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Client } from '@stomp/stompjs';
 import {
   ApiError,
-  buildSupportWebSocketUrl,
   type User,
   type TwoFactorChallenge,
   type AuthResponse,
@@ -31,6 +29,7 @@ import {
 } from '../../lib/api';
 import { clearAdminDashboardCache } from '../../lib/admin-dashboard-cache';
 import { readWithLegacyMigration, removeWithLegacyKeys } from '../../lib/legacy-storage';
+import { parseMessageBody, startRealtime } from '../../lib/realtime';
 
 interface BanEvent {
   type: 'BANNED';
@@ -113,6 +112,8 @@ interface AuthContextType {
   updateProfile: (payload: { displayName: string; slug?: string }) => Promise<User>;
   refreshUser: () => Promise<User | null>;
   authorizedRequest: <T>(operation: (accessToken: string) => Promise<T>) => Promise<T>;
+  /** Valid access token for WebSocket handshakes (refreshes if about to expire). */
+  getAccessToken: () => Promise<string | null>;
 }
 
 // Non-sensitive "were you signed in?" hint so anonymous visitors don't pay a
@@ -181,6 +182,23 @@ function runRefreshExclusively(): Promise<AuthResponse> {
   return refreshRequest();
 }
 
+/**
+ * True when the JWT expires within `skewMs`. The token is only decoded to
+ * schedule a refresh — never trusted for authorization decisions.
+ */
+function isTokenExpiring(token: string, skewMs = 30_000): boolean {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return false;
+    const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as {
+      exp?: number;
+    };
+    return typeof json.exp === 'number' && json.exp * 1000 - Date.now() < skewMs;
+  } catch {
+    return false;
+  }
+}
+
 /** Only an explicit auth rejection ends the session; a network blip must not log the user out. */
 function isAuthRejection(error: unknown) {
   return error instanceof ApiError && (error.status === 401 || error.status === 403);
@@ -189,7 +207,6 @@ function isAuthRejection(error: unknown) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSessionState] = useState<SessionState | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const banClientRef = useRef<Client | null>(null);
   // Mirror of `session` for async code (authorizedRequest, refresh) so it never
   // acts on a stale render closure.
   const sessionRef = useRef<SessionState | null>(null);
@@ -218,76 +235,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return refreshInFlightRef.current;
   };
 
+  /**
+   * A currently valid access token for long-lived connections (WebSocket
+   * handshakes). Refreshes through the shared single-flight refresh when the
+   * token is about to expire; returns null when the user is signed out.
+   */
+  const getAccessToken = useCallback(async (): Promise<string | null> => {
+    const current = sessionRef.current;
+    if (!current) return null;
+    if (!isTokenExpiring(current.accessToken)) return current.accessToken;
+    try {
+      const refreshed = await refreshOnce();
+      const active = sessionRef.current;
+      if (active && active.accessToken !== refreshed.accessToken) {
+        commitSession({ accessToken: refreshed.accessToken, user: refreshed.user ?? active.user });
+      }
+      return refreshed.accessToken;
+    } catch (error) {
+      if (isAuthRejection(error) && sessionRef.current === current) commitSession(null);
+      return null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Realtime ban listener — when a user is banned by an admin, the backend
   // publishes a STOMP message at /topic/users/{id}/account. We tear down the
   // session immediately and bounce to /login with the reason so the same
-  // event in the login page can render it.
+  // event in the login page can render it. Depends only on the user id, so a
+  // token rotation does not reconnect it.
+  const userId = session?.user?.id;
   useEffect(() => {
-    // Tear down any previous subscription if session changes.
-    const tearDown = () => {
-      const client = banClientRef.current;
-      banClientRef.current = null;
-      if (client) {
-        try {
-          void client.deactivate();
-        } catch {
-          /* ignore */
-        }
-      }
-    };
-
-    const userId = session?.user?.id;
-    const accessToken = session?.accessToken;
-    if (!userId || !accessToken) {
-      tearDown();
-      return;
-    }
-
+    if (!userId) return;
     let active = true;
-    const client = new Client({
-      webSocketFactory: () => new WebSocket(buildSupportWebSocketUrl()),
-      connectHeaders: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      reconnectDelay: 5000,
-      onConnect: () => {
+    const handle = startRealtime({
+      getAccessToken,
+      onConnect: (client) => {
         if (!active) return;
         client.subscribe(`/topic/users/${userId}/account`, (message) => {
-          try {
-            const event = JSON.parse(message.body) as BanEvent;
-            if (event?.type !== 'BANNED') return;
-            persistBanEvent(event.reason ?? null, event.bannedAt ?? null);
-            // Drop session locally — best-effort server logout follows.
-            commitSession(null);
-            tearDown();
-            const params = new URLSearchParams();
-            params.set('banned', '1');
-            if (event.reason) params.set('reason', event.reason);
-            if (event.bannedAt) params.set('bannedAt', event.bannedAt);
-            if (typeof window !== 'undefined') {
-              window.location.replace(`/login?${params.toString()}`);
-            }
-          } catch {
-            /* malformed event — ignore */
+          const event = parseMessageBody<BanEvent>(message.body);
+          if (!event || event.type !== 'BANNED') return;
+          persistBanEvent(event.reason ?? null, event.bannedAt ?? null);
+          // Drop session locally — best-effort server logout follows.
+          commitSession(null);
+          handle.stop();
+          const params = new URLSearchParams();
+          params.set('banned', '1');
+          if (event.reason) params.set('reason', event.reason);
+          if (event.bannedAt) params.set('bannedAt', event.bannedAt);
+          if (typeof window !== 'undefined') {
+            window.location.replace(`/login?${params.toString()}`);
           }
         });
       },
-      onStompError: () => {
-        /* swallow — ban listener is best-effort */
-      },
-      onWebSocketError: () => {
-        /* swallow */
-      },
     });
-
-    banClientRef.current = client;
-    client.activate();
-
     return () => {
       active = false;
-      tearDown();
+      handle.stop();
     };
-  }, [session?.user?.id, session?.accessToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   // On mount: if we have a "was signed in" hint, ask the backend to mint a
   // new access token from the httpOnly refresh cookie. If it 401s (cookie
@@ -558,6 +564,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateProfile,
         refreshUser,
         authorizedRequest,
+        getAccessToken,
       }}
     >
       {children}
