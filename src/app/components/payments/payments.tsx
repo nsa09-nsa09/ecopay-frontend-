@@ -23,7 +23,6 @@ import {
   ExternalLink,
   Timer,
   Send,
-  Plus,
   Trash2,
   AlertCircle,
 } from 'lucide-react';
@@ -34,7 +33,6 @@ import {
   getMyRefundsRequest,
   getPayoutBalanceRequest,
   getPayoutMethodsRequest,
-  registerPayoutMethodRequest,
   type PayoutBalanceDto,
   type PayoutDto,
   type PayoutMethodDto,
@@ -42,6 +40,7 @@ import {
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
 import { appBrand } from '../../config/brand';
+import { payoutMethodNeedsRebind, startPayoutCardBinding } from '../../lib/payout-binding';
 
 // ─── Localized text helper ───
 type L = Language;
@@ -1034,9 +1033,17 @@ export function RefundStatusPage() {
 function payoutStatusVariant(s: string): 'warning' | 'info' | 'success' | 'danger' | 'default' {
   const u = s.toUpperCase();
   if (u === 'SUCCESS' || u === 'SENT' || u === 'PROCESSED') return 'success';
-  if (u === 'FAILED' || u === 'REJECTED') return 'danger';
-  if (u === 'PENDING' || u === 'QUEUED') return 'warning';
-  if (u === 'PROCESSING') return 'info';
+  if (u === 'FAILED' || u === 'REJECTED' || u === 'REVERSED' || u === 'REQUIRES_REBIND')
+    return 'danger';
+  if (
+    u === 'PENDING' ||
+    u === 'QUEUED' ||
+    u === 'PENDING_METHOD' ||
+    u === 'REQUIRES_REVIEW' ||
+    u === 'FROZEN'
+  )
+    return 'warning';
+  if (u === 'PROCESSING' || u === 'PENDING_PROVIDER') return 'info';
   return 'default';
 }
 
@@ -1052,6 +1059,15 @@ function payoutStatusLabel(s: string, l: L): string {
     PENDING: ['Ожидает', 'Күтуде', 'Pending'],
     QUEUED: ['В очереди', 'Кезекте', 'Queued'],
     PROCESSING: ['Обрабатывается', 'Өңделуде', 'Processing'],
+    PENDING_PROVIDER: ['Отправлена в банк', 'Банкке жіберілді', 'Sent to the bank'],
+    PENDING_METHOD: ['Нужна карта для выплат', 'Төлем картасы қажет', 'Payout card needed'],
+    REQUIRES_REVIEW: ['На проверке', 'Тексеруде', 'Under review'],
+    FROZEN: ['Приостановлена', 'Тоқтатылды', 'On hold'],
+    REVERSED: ['Отменена', 'Кері қайтарылды', 'Reversed'],
+    CANCELED: ['Отменена', 'Бас тартылды', 'Cancelled'],
+    CANCELLED: ['Отменена', 'Бас тартылды', 'Cancelled'],
+    REVOKED: ['Отключена', 'Өшірілген', 'Disconnected'],
+    REQUIRES_REBIND: ['Нужно подключить заново', 'Қайта қосу қажет', 'Reconnect required'],
     DISABLED: ['Отключён', 'Өшірілген', 'Disabled'],
     DELETED: ['Удалён', 'Жойылған', 'Deleted'],
   };
@@ -1063,35 +1079,23 @@ function PayoutMethodsCard({
   methods,
   loading,
   error,
-  onAdd,
+  onConnect,
+  connecting,
+  connectError,
   onDelete,
   l,
 }: {
   methods: PayoutMethodDto[];
   loading: boolean;
   error: string | null;
-  onAdd: (payload: { providerCardToken: string; panMask?: string }) => Promise<void>;
+  onConnect: () => void;
+  connecting: boolean;
+  connectError: string | null;
   onDelete: (id: number) => Promise<void>;
   l: L;
 }) {
-  const [adding, setAdding] = useState(false);
-  const [token, setToken] = useState('');
-  const [panMask, setPanMask] = useState('');
-  const [busy, setBusy] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-
-  const submit = async () => {
-    if (!token.trim()) return;
-    setBusy(true);
-    try {
-      await onAdd({ providerCardToken: token.trim(), panMask: panMask.trim() || undefined });
-      setToken('');
-      setPanMask('');
-      setAdding(false);
-    } finally {
-      setBusy(false);
-    }
-  };
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const remove = async (id: number) => {
     setDeletingId(id);
@@ -1099,21 +1103,43 @@ function PayoutMethodsCard({
       await onDelete(id);
     } finally {
       setDeletingId(null);
+      setConfirmDeleteId(null);
     }
   };
 
+  const needsRebind = methods.some(payoutMethodNeedsRebind);
+  const hasActive = methods.some(
+    (m) => (m.status ?? '').toUpperCase() === 'ACTIVE' && !payoutMethodNeedsRebind(m),
+  );
+
   return (
     <Card className="flex flex-col gap-4 mb-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
-          {tx(l, 'Способы выплат', 'Аударым тәсілдері', 'Payout Methods')}
-        </h3>
-        {!adding && (
-          <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
-            <Plus size={13} /> {tx(l, 'Добавить', 'Қосу', 'Add')}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
+          {tx(l, 'Карта для выплат', 'Төлем картасы', 'Payout card')}
+        </h2>
+        {!loading && !error && (
+          <Button
+            variant={hasActive && !needsRebind ? 'ghost' : 'primary'}
+            size="sm"
+            loading={connecting}
+            onClick={onConnect}
+          >
+            {!connecting && <CreditCard size={13} aria-hidden="true" />}
+            {needsRebind
+              ? tx(l, 'Подключить заново', 'Қайта қосу', 'Reconnect card')
+              : hasActive
+                ? tx(l, 'Сменить карту', 'Картаны ауыстыру', 'Change card')
+                : tx(l, 'Подключить карту для выплат', 'Төлем картасын қосу', 'Connect payout card')}
           </Button>
         )}
       </div>
+
+      {connectError && (
+        <div className="text-[13px]" role="alert" style={{ color: 'var(--eco-negative)' }}>
+          {connectError}
+        </div>
+      )}
 
       {loading ? (
         <Skeleton width="100%" height={48} />
@@ -1121,111 +1147,84 @@ function PayoutMethodsCard({
         <div className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
           {error}
         </div>
-      ) : methods.length === 0 && !adding ? (
+      ) : methods.length === 0 ? (
         <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-          {tx(l, 'Способ выплат пока не задан.', 'Аударым тәсілі әлі көрсетілмеген.', 'No payout method yet.')}
+          {tx(
+            l,
+            'Карта для выплат пока не подключена. Подключите её, чтобы получать деньги участников.',
+            'Төлем картасы әлі қосылмаған. Қатысушылардың ақшасын алу үшін оны қосыңыз.',
+            'No payout card connected yet. Connect one to receive member payments.',
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {methods.map((m) => (
-            <div
-              key={m.id}
-              className="flex items-center justify-between p-3 rounded-lg"
-              style={{ background: 'var(--eco-surface)' }}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <CreditCard size={16} style={{ color: 'var(--eco-text-tertiary)' }} />
-                <div className="min-w-0">
-                  <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
-                    {m.providerName} · {m.panMask || '—'}
-                  </div>
-                  <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                    {payoutStatusLabel(m.status, l)}
-                    {m.isDefault ? ` · ${tx(l, 'по умолчанию', 'әдепкі', 'default')}` : ''}
+          {methods.map((m) => {
+            const rebind = payoutMethodNeedsRebind(m);
+            return (
+              <div
+                key={m.id}
+                className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg"
+                style={{
+                  background: 'var(--eco-surface)',
+                  border: rebind ? '1px solid var(--eco-warning)' : undefined,
+                }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <CreditCard
+                    size={16}
+                    aria-hidden="true"
+                    style={{ color: 'var(--eco-text-tertiary)' }}
+                  />
+                  <div className="min-w-0">
+                    <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+                      {tx(l, 'Карта', 'Карта', 'Card')} {m.panMask || '•••• ••••'}
+                    </div>
+                    <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                      {payoutStatusLabel(rebind ? 'REQUIRES_REBIND' : m.status, l)}
+                      {m.isDefault ? ` · ${tx(l, 'по умолчанию', 'әдепкі', 'default')}` : ''}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                loading={deletingId === m.id}
-                onClick={() => void remove(m.id)}
-                aria-label={tx(
-                  l,
-                  'Удалить способ выплат',
-                  'Аударым тәсілін жою',
-                  'Delete payout method',
+                {confirmDeleteId === m.id ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                      {tx(l, 'Отключить карту?', 'Картаны өшіру керек пе?', 'Disconnect this card?')}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={deletingId === m.id}
+                      onClick={() => setConfirmDeleteId(null)}
+                    >
+                      {tx(l, 'Отмена', 'Болдырмау', 'Cancel')}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      loading={deletingId === m.id}
+                      onClick={() => void remove(m.id)}
+                    >
+                      {tx(l, 'Отключить', 'Өшіру', 'Disconnect')}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirmDeleteId(m.id)}
+                    aria-label={tx(
+                      l,
+                      'Отключить карту для выплат',
+                      'Төлем картасын өшіру',
+                      'Disconnect payout card',
+                    )}
+                  >
+                    <Trash2 size={14} aria-hidden="true" style={{ color: 'var(--eco-negative)' }} />
+                  </Button>
                 )}
-              >
-                <Trash2 size={14} style={{ color: 'var(--eco-negative)' }} />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {adding && (
-        <div
-          className="flex flex-col gap-3 p-3 rounded-lg"
-          style={{ background: 'var(--eco-surface)' }}
-        >
-          <input
-            placeholder={tx(
-              l,
-              'Токен карты от провайдера',
-              'Провайдер берген карта токені',
-              'Provider card token',
-            )}
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            className="px-3 py-2 rounded-lg outline-none"
-            style={{
-              background: 'var(--eco-bg)',
-              border: '1px solid var(--eco-border)',
-              color: 'var(--eco-text)',
-              fontSize: 14,
-            }}
-          />
-          <input
-            placeholder={tx(
-              l,
-              'Маска карты (необязательно), напр. **** 4821',
-              'Карта маскасы (міндетті емес), мыс. **** 4821',
-              'PAN mask (optional), e.g. **** 4821',
-            )}
-            value={panMask}
-            onChange={(e) => setPanMask(e.target.value)}
-            className="px-3 py-2 rounded-lg outline-none"
-            style={{
-              background: 'var(--eco-bg)',
-              border: '1px solid var(--eco-border)',
-              color: 'var(--eco-text)',
-              fontSize: 14,
-            }}
-          />
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setAdding(false);
-                setToken('');
-                setPanMask('');
-              }}
-              disabled={busy}
-            >
-              {tx(l, 'Отмена', 'Болдырмау', 'Cancel')}
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              loading={busy}
-              disabled={!token.trim()}
-              onClick={() => void submit()}
-            >
-              {tx(l, 'Сохранить', 'Сақтау', 'Save')}
-            </Button>
-          </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </Card>
@@ -1416,22 +1415,28 @@ export function OwnerPayoutPage() {
     };
   }, [authorizedRequest, isAuthenticated, isReady]);
 
-  const handleAddMethod = async (payload: { providerCardToken: string; panMask?: string }) => {
+  const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+
+  // Card details are entered only on the provider's hosted page; EcoPay never
+  // sees or asks for card numbers or provider tokens.
+  const handleConnectCard = async () => {
+    if (connecting) return;
+    setConnecting(true);
+    setConnectError(null);
     try {
-      const m = await authorizedRequest((token) => registerPayoutMethodRequest(payload, token));
-      setMethods((prev) => [m, ...prev]);
-      toast.success(
-        tx(l, 'Способ выплат добавлен', 'Аударым тәсілі қосылды', 'Payout method added'),
-      );
+      const url = await startPayoutCardBinding(authorizedRequest);
+      window.location.assign(url);
     } catch (err) {
-      toast.error(
-        err instanceof ApiError
+      setConnecting(false);
+      setConnectError(
+        err instanceof ApiError && err.status !== 0 && err.status < 500
           ? err.message
           : tx(
               l,
-              'Не удалось добавить способ выплат',
-              'Аударым тәсілін қосу мүмкін болмады',
-              'Failed to add payout method',
+              'Не удалось начать подключение карты. Попробуйте ещё раз чуть позже.',
+              'Картаны қосуды бастау мүмкін болмады. Сәл кейін қайталаңыз.',
+              "Couldn't start the card connection. Please try again shortly.",
             ),
       );
     }
@@ -1503,7 +1508,9 @@ export function OwnerPayoutPage() {
             methods={methods}
             loading={loadingMethods}
             error={methodsError}
-            onAdd={handleAddMethod}
+            onConnect={() => void handleConnectCard()}
+            connecting={connecting}
+            connectError={connectError}
             onDelete={handleDeleteMethod}
             l={l}
           />
@@ -1580,6 +1587,16 @@ export function OwnerPayoutPage() {
                         {formatDateTime(p.createdAt, l)}
                       </div>
                     </div>
+                    {p.releaseAt && !p.processedAt && (
+                      <div>
+                        <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                          {tx(l, 'Плановая дата', 'Жоспарлы күні', 'Scheduled for')}
+                        </div>
+                        <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+                          {formatDateTime(p.releaseAt, l)}
+                        </div>
+                      </div>
+                    )}
                     {p.processedAt && (
                       <div>
                         <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
@@ -1591,14 +1608,29 @@ export function OwnerPayoutPage() {
                       </div>
                     )}
                   </div>
-                  {p.failureReason && (
+                  {(p.failureReason || ['FAILED', 'REVERSED'].includes(p.status.toUpperCase())) && (
                     <div className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
-                      {tx(l, 'Ошибка:', 'Қате:', 'Failure:')} {p.failureReason}
+                      {tx(
+                        l,
+                        'Выплата не прошла. Мы разберёмся и свяжемся с вами; при вопросах напишите в поддержку.',
+                        'Аударым өтпеді. Біз тексеріп, сізбен байланысамыз; сұрақ болса, қолдауға жазыңыз.',
+                        'The payout did not go through. We will look into it and contact you; reach out to support with questions.',
+                      )}
+                    </div>
+                  )}
+                  {p.status.toUpperCase() === 'PENDING_METHOD' && (
+                    <div className="text-[12px]" style={{ color: 'var(--eco-warning)' }}>
+                      {tx(
+                        l,
+                        'Подключите карту для выплат, чтобы получить эти деньги.',
+                        'Бұл ақшаны алу үшін төлем картасын қосыңыз.',
+                        'Connect a payout card to receive this money.',
+                      )}
                     </div>
                   )}
                   {p.providerPayoutId && (
                     <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {tx(l, 'Провайдер:', 'Провайдер:', 'Provider:')} {p.providerPayoutId}
+                      {tx(l, 'Номер операции:', 'Операция нөмірі:', 'Reference:')} {p.providerPayoutId}
                     </div>
                   )}
                 </Card>

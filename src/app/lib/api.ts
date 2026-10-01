@@ -2299,6 +2299,8 @@ export interface PayoutDto {
   providerPayoutId: string | null;
   failureReason: string | null;
   roomId: number | null;
+  /** When the hold ends and the payout becomes eligible for dispatch. */
+  releaseAt?: string | null;
   createdAt: string;
   processedAt: string | null;
 }
@@ -2316,7 +2318,10 @@ export interface PayoutMethodDto {
   providerName: string;
   panMask: string;
   isDefault: boolean;
+  /** ACTIVE | REVOKED | ... ; a newer backend may send REQUIRES_REBIND. */
   status: string;
+  /** Optional: the card must be connected again before payouts can be sent. */
+  requiresRebind?: boolean | null;
   createdAt: string;
 }
 
@@ -2371,9 +2376,13 @@ export interface PayoutCardBindingResponseDto {
 }
 
 export interface PayoutCardBindingConfirmDto {
-  status: string; // SUCCESS | PENDING | FAILED
+  /** SUCCESS | PENDING | FAILED; a newer backend may send REQUIRES_REBIND. */
+  status: string;
   method: PayoutMethodDto | null;
+  /** Provider-originated text. Never rendered to users (may be raw provider output). */
   message: string | null;
+  /** Optional: the binding succeeded at the provider but must be redone. */
+  requiresRebind?: boolean | null;
 }
 
 /** Start connecting a payout card. Returns a hosted-page URL to redirect the owner to. */

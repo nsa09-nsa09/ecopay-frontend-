@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { Card, Button, Input, Select, Stepper } from '../ds-primitives';
 import { AlertTriangle, ArrowLeft, Lock, Check, CreditCard, Users } from 'lucide-react';
@@ -20,6 +20,11 @@ import {
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
 import { formatNumber } from '../../lib/datetime';
+import {
+  isSafeProviderUrl,
+  isUsablePayoutMethod,
+  savePendingBinding,
+} from '../../lib/payout-binding';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
@@ -97,6 +102,15 @@ export function CreateRoomPage() {
   const [connectingCard, setConnectingCard] = useState(false);
   const [awaitingCard, setAwaitingCard] = useState(false);
   const [cardError, setCardError] = useState<string | null>(null);
+  const cardPollTimerRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (cardPollTimerRef.current) window.clearTimeout(cardPollTimerRef.current);
+      cardPollTimerRef.current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (isReady && !isAuthenticated) {
@@ -111,7 +125,7 @@ export function CreateRoomPage() {
     authorizedRequest((token) => getPayoutMethodsRequest(token))
       .then((methods) => {
         if (cancelled) return;
-        setHasPayoutCard((methods ?? []).some((m) => m.isDefault && m.status === 'ACTIVE'));
+        setHasPayoutCard((methods ?? []).some(isUsablePayoutMethod));
       })
       .catch(() => {
         if (!cancelled) setHasPayoutCard(false);
@@ -331,7 +345,7 @@ export function CreateRoomPage() {
   const recheckPayoutCard = async (): Promise<boolean> => {
     try {
       const methods = await authorizedRequest((token) => getPayoutMethodsRequest(token));
-      const ok = (methods ?? []).some((m) => m.isDefault && m.status === 'ACTIVE');
+      const ok = (methods ?? []).some(isUsablePayoutMethod);
       if (ok) {
         setHasPayoutCard(true);
         setAwaitingCard(false);
@@ -348,8 +362,16 @@ export function CreateRoomPage() {
     setConnectingCard(true);
     setCardError(null);
     // Must open the tab synchronously inside the click to avoid the popup blocker; we set its
-    // URL after the binding is created.
+    // URL after the binding is created. Detach the opener so the provider page cannot
+    // script or redirect this tab (reverse tabnabbing).
     const tab = window.open('', '_blank');
+    if (tab) {
+      try {
+        tab.opener = null;
+      } catch {
+        /* some browsers make opener read-only; noop */
+      }
+    }
     try {
       const res = await authorizedRequest((token) =>
         initPayoutCardBindingRequest(
@@ -357,20 +379,24 @@ export function CreateRoomPage() {
           token,
         ),
       );
-      if (res.paymentUrl) {
-        window.localStorage.setItem('ecopay.pendingCardBinding', String(res.bindingId));
+      if (isSafeProviderUrl(res.paymentUrl)) {
+        savePendingBinding(res.bindingId);
         if (tab) {
           tab.location.href = res.paymentUrl;
           setConnectingCard(false);
           setAwaitingCard(true);
           // Auto-poll for ~2 min so the banner clears itself once the card is connected.
+          // The timer is cleared on unmount (see cardPollTimerRef effect).
           let attempts = 0;
           const poll = async () => {
             attempts += 1;
             const done = await recheckPayoutCard();
-            if (!done && attempts < 30) setTimeout(() => void poll(), 4000);
+            if (!done && attempts < 30 && cardPollTimerRef.current !== null) {
+              cardPollTimerRef.current = window.setTimeout(() => void poll(), 4000);
+            }
           };
-          setTimeout(() => void poll(), 4000);
+          if (cardPollTimerRef.current) window.clearTimeout(cardPollTimerRef.current);
+          cardPollTimerRef.current = window.setTimeout(() => void poll(), 4000);
         } else {
           // Popup blocked — fall back to a same-tab redirect (room draft will be lost).
           window.location.href = res.paymentUrl;
