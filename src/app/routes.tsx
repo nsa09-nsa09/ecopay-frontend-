@@ -1,162 +1,181 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ComponentType } from 'react';
 import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { AppLayout } from './components/layout';
 import { HomePage } from './components/catalog/home';
 import { RouteFallback } from './components/route-fallback';
+import { NotFoundPage, RouteErrorFallback } from './components/route-error';
+
+/**
+ * React.lazy with one delayed retry: a transient network failure while
+ * fetching a route chunk should not drop the user onto the error screen.
+ * Persistent failures (stale deploy) reach RouteErrorFallback, which reloads
+ * once to pick up the new build.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function lazyRoute<T extends ComponentType<any>>(factory: () => Promise<{ default: T }>) {
+  return lazy(() =>
+    factory().catch(
+      () =>
+        new Promise<{ default: T }>((resolve, reject) => {
+          setTimeout(() => factory().then(resolve, reject), 1500);
+        }),
+    ),
+  );
+}
 
 // Eager: layout, error boundary, home page (root catalog — loaded immediately).
 // Everything else is code-split via React.lazy so each page ships as its own chunk.
 
-const OperatorPage = lazy(() =>
+const OperatorPage = lazyRoute(() =>
   import('./components/catalog/operator').then((m) => ({ default: m.OperatorPage })),
 );
-const LoginPage = lazy(() =>
+const LoginPage = lazyRoute(() =>
   import('./components/auth/login').then((m) => ({ default: m.LoginPage })),
 );
-const RegisterPage = lazy(() =>
+const RegisterPage = lazyRoute(() =>
   import('./components/auth/register').then((m) => ({ default: m.RegisterPage })),
 );
-const ForgotPasswordPage = lazy(() =>
+const ForgotPasswordPage = lazyRoute(() =>
   import('./components/auth/forgot-password').then((m) => ({ default: m.ForgotPasswordPage })),
 );
-const ResetPasswordConfirmPage = lazy(() =>
+const ResetPasswordConfirmPage = lazyRoute(() =>
   import('./components/auth/reset-password-confirm').then((m) => ({
     default: m.ResetPasswordConfirmPage,
   })),
 );
-const VerifyEmailPage = lazy(() =>
+const VerifyEmailPage = lazyRoute(() =>
   import('./components/auth/verify-email').then((m) => ({ default: m.VerifyEmailPage })),
 );
-const RoomDetailPage = lazy(() =>
+const RoomDetailPage = lazyRoute(() =>
   import('./components/rooms/room-detail').then((m) => ({ default: m.RoomDetailPage })),
 );
-const CreateRoomPage = lazy(() =>
+const CreateRoomPage = lazyRoute(() =>
   import('./components/rooms/create-room').then((m) => ({ default: m.CreateRoomPage })),
 );
-const MyRoomsPage = lazy(() =>
+const MyRoomsPage = lazyRoute(() =>
   import('./components/rooms/my-rooms').then((m) => ({ default: m.MyRoomsPage })),
 );
-const MemberDetailPage = lazy(() =>
+const MemberDetailPage = lazyRoute(() =>
   import('./components/rooms/member-detail').then((m) => ({ default: m.MemberDetailPage })),
 );
-const OwnerDetailPage = lazy(() =>
+const OwnerDetailPage = lazyRoute(() =>
   import('./components/rooms/owner-detail').then((m) => ({ default: m.OwnerDetailPage })),
 );
-const ProfilePage = lazy(() =>
+const ProfilePage = lazyRoute(() =>
   import('./components/profile/profile').then((m) => ({ default: m.ProfilePage })),
 );
-const SupportPage = lazy(() =>
+const SupportPage = lazyRoute(() =>
   import('./components/support/support').then((m) => ({ default: m.SupportPage })),
 );
-const NewTicketPage = lazy(() =>
+const NewTicketPage = lazyRoute(() =>
   import('./components/support/support').then((m) => ({ default: m.NewTicketPage })),
 );
-const FeedbackPage = lazy(() =>
+const FeedbackPage = lazyRoute(() =>
   import('./components/support/feedback').then((m) => ({ default: m.FeedbackPage })),
 );
-const AboutPage = lazy(() =>
+const AboutPage = lazyRoute(() =>
   import('./components/static/about').then((m) => ({ default: m.AboutPage })),
 );
-const NewsPage = lazy(() =>
+const NewsPage = lazyRoute(() =>
   import('./components/static/news').then((m) => ({ default: m.NewsPage })),
 );
-const NewsDetailPage = lazy(() =>
+const NewsDetailPage = lazyRoute(() =>
   import('./components/static/news').then((m) => ({ default: m.NewsDetailPage })),
 );
-const TermsPage = lazy(() =>
+const TermsPage = lazyRoute(() =>
   import('./components/static/terms').then((m) => ({ default: m.TermsPage })),
 );
-const PrivacyPage = lazy(() =>
+const PrivacyPage = lazyRoute(() =>
   import('./components/static/privacy').then((m) => ({ default: m.PrivacyPage })),
 );
-const HowItWorksPage = lazy(() =>
+const HowItWorksPage = lazyRoute(() =>
   import('./components/static/how-it-works').then((m) => ({ default: m.HowItWorksPage })),
 );
-const SecurityPage = lazy(() =>
+const SecurityPage = lazyRoute(() =>
   import('./components/static/security').then((m) => ({ default: m.SecurityPage })),
 );
-const AdminLoginPage = lazy(() =>
+const AdminLoginPage = lazyRoute(() =>
   import('./components/admin/admin-login').then((m) => ({ default: m.AdminLoginPage })),
 );
-const AdminDashboardPage = lazy(() =>
+const AdminDashboardPage = lazyRoute(() =>
   import('./components/admin/admin-dashboard').then((m) => ({ default: m.AdminDashboardPage })),
 );
-const AdminFinancePage = lazy(() =>
+const AdminFinancePage = lazyRoute(() =>
   import('./components/admin/admin-finance').then((m) => ({ default: m.AdminFinancePage })),
 );
-const AdminModerationPage = lazy(() =>
+const AdminModerationPage = lazyRoute(() =>
   import('./components/admin/admin-moderation').then((m) => ({ default: m.AdminModerationPage })),
 );
-const AdminRoomsPage = lazy(() =>
+const AdminRoomsPage = lazyRoute(() =>
   import('./components/admin/admin-rooms').then((m) => ({ default: m.AdminRoomsPage })),
 );
-const AdminUsersPage = lazy(() =>
+const AdminUsersPage = lazyRoute(() =>
   import('./components/admin/admin-users').then((m) => ({ default: m.AdminUsersPage })),
 );
-const AdminTicketsPage = lazy(() =>
+const AdminTicketsPage = lazyRoute(() =>
   import('./components/admin/admin-tickets').then((m) => ({ default: m.AdminTicketsPage })),
 );
-const AdminFeedbackPage = lazy(() =>
+const AdminFeedbackPage = lazyRoute(() =>
   import('./components/admin/admin-feedback').then((m) => ({ default: m.AdminFeedbackPage })),
 );
-const AdminDisputesPage = lazy(() =>
+const AdminDisputesPage = lazyRoute(() =>
   import('./components/admin/admin-disputes').then((m) => ({ default: m.AdminDisputesPage })),
 );
-const AdminLogsPage = lazy(() =>
+const AdminLogsPage = lazyRoute(() =>
   import('./components/admin/admin-logs').then((m) => ({ default: m.AdminLogsPage })),
 );
-const AdminCatalogPage = lazy(() =>
+const AdminCatalogPage = lazyRoute(() =>
   import('./components/admin/admin-catalog').then((m) => ({ default: m.AdminCatalogPage })),
 );
-const AdminServiceReviewsPage = lazy(() =>
+const AdminServiceReviewsPage = lazyRoute(() =>
   import('./components/admin/admin-service-reviews').then((m) => ({
     default: m.AdminServiceReviewsPage,
   })),
 );
-const AdminAboutPage = lazy(() =>
+const AdminAboutPage = lazyRoute(() =>
   import('./components/admin/admin-about').then((m) => ({ default: m.AdminAboutPage })),
 );
-const AdminLegalPage = lazy(() =>
+const AdminLegalPage = lazyRoute(() =>
   import('./components/admin/admin-legal').then((m) => ({ default: m.AdminLegalPage })),
 );
-const AdminNewsPage = lazy(() =>
+const AdminNewsPage = lazyRoute(() =>
   import('./components/admin/admin-news').then((m) => ({ default: m.AdminNewsPage })),
 );
-const AdminStoriesPage = lazy(() =>
+const AdminStoriesPage = lazyRoute(() =>
   import('./components/admin/admin-stories').then((m) => ({ default: m.AdminStoriesPage })),
 );
-const AdminPricingPage = lazy(() =>
+const AdminPricingPage = lazyRoute(() =>
   import('./components/admin/admin-pricing').then((m) => ({ default: m.AdminPricingPage })),
 );
-const AdminRoute = lazy(() =>
+const AdminRoute = lazyRoute(() =>
   import('./components/admin/admin-route').then((m) => ({ default: m.AdminRoute })),
 );
-const RefundStatusPage = lazy(() =>
+const RefundStatusPage = lazyRoute(() =>
   import('./components/payments/payments').then((m) => ({ default: m.RefundStatusPage })),
 );
-const OwnerPayoutPage = lazy(() =>
+const OwnerPayoutPage = lazyRoute(() =>
   import('./components/payments/payments').then((m) => ({ default: m.OwnerPayoutPage })),
 );
-const PaymentReturnPage = lazy(() =>
+const PaymentReturnPage = lazyRoute(() =>
   import('./components/payments/payment-return').then((m) => ({ default: m.PaymentReturnPage })),
 );
-const PaymentHistoryPage = lazy(() =>
+const PaymentHistoryPage = lazyRoute(() =>
   import('./components/payments/payment-history').then((m) => ({ default: m.PaymentHistoryPage })),
 );
-const CardConnectedPage = lazy(() =>
+const CardConnectedPage = lazyRoute(() =>
   import('./components/payments/card-connected').then((m) => ({ default: m.CardConnectedPage })),
 );
-const PublicUserProfilePage = lazy(() =>
+const PublicUserProfilePage = lazyRoute(() =>
   import('./components/reputation/public-profile').then((m) => ({
     default: m.PublicUserProfilePage,
   })),
 );
-const NotificationsInboxPage = lazy(() =>
+const NotificationsInboxPage = lazyRoute(() =>
   import('./components/notifications/notifications-inbox').then((m) => ({
     default: m.NotificationsInboxPage,
   })),
 );
-const NotificationPreferencesPage = lazy(() =>
+const NotificationPreferencesPage = lazyRoute(() =>
   import('./components/notifications/notification-preferences').then((m) => ({
     default: m.NotificationPreferencesPage,
   })),
@@ -167,7 +186,7 @@ const internalStaticRoutes =
     ? [
         {
           path: 'i18n-typography',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/i18n-typography-fix').then((m) => ({
               default: m.I18nTypographyFixPage,
             })),
@@ -175,7 +194,7 @@ const internalStaticRoutes =
         },
         {
           path: 'states-sla',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/states-sla-edge-cases').then((m) => ({
               default: m.StatesSlaEdgeCasesPage,
             })),
@@ -183,7 +202,7 @@ const internalStaticRoutes =
         },
         {
           path: 'privacy-audit',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/privacy-audit-patterns').then((m) => ({
               default: m.PrivacyAuditPatternsPage,
             })),
@@ -191,7 +210,7 @@ const internalStaticRoutes =
         },
         {
           path: 'disputes-flows',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/disputes-user-admin').then((m) => ({
               default: m.DisputesUserAdminPage,
             })),
@@ -199,7 +218,7 @@ const internalStaticRoutes =
         },
         {
           path: 'quality-pass',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/quality-pass-states').then((m) => ({
               default: m.QualityPassStatesPage,
             })),
@@ -207,7 +226,7 @@ const internalStaticRoutes =
         },
         {
           path: 'accessibility-safety',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/accessibility-content-safety').then((m) => ({
               default: m.AccessibilityContentSafetyPage,
             })),
@@ -215,7 +234,7 @@ const internalStaticRoutes =
         },
         {
           path: 'component-audit',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/component-audit-variants').then((m) => ({
               default: m.ComponentAuditPage,
             })),
@@ -223,7 +242,7 @@ const internalStaticRoutes =
         },
         {
           path: 'qa-release',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/qa-release-readiness').then((m) => ({
               default: m.QaReleaseReadinessPage,
             })),
@@ -231,7 +250,7 @@ const internalStaticRoutes =
         },
         {
           path: 'governance',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/governance-rules').then((m) => ({
               default: m.GovernanceRulesPage,
             })),
@@ -239,7 +258,7 @@ const internalStaticRoutes =
         },
         {
           path: 'geo-operator',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/geo-best-operator').then((m) => ({
               default: m.GeoBestOperatorPage,
             })),
@@ -247,7 +266,7 @@ const internalStaticRoutes =
         },
         {
           path: 'data-contracts',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/data-contracts-api-mapping').then((m) => ({
               default: m.DataContractsApiMappingPage,
             })),
@@ -255,13 +274,13 @@ const internalStaticRoutes =
         },
         {
           path: 'copy-library',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/copy-library').then((m) => ({ default: m.CopyLibraryPage })),
           ),
         },
         {
           path: 'build-checklist',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/build-checklist').then((m) => ({
               default: m.BuildChecklistPage,
             })),
@@ -269,7 +288,7 @@ const internalStaticRoutes =
         },
         {
           path: 'analytics-events',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/static/analytics-event-tracking').then((m) => ({
               default: m.AnalyticsEventTrackingPage,
             })),
@@ -277,7 +296,7 @@ const internalStaticRoutes =
         },
         {
           path: 'payment/confirmation-demo',
-          Component: lazy(() =>
+          Component: lazyRoute(() =>
             import('./components/payments/payments').then((m) => ({
               default: m.PaymentConfirmationPage,
             })),
@@ -285,35 +304,6 @@ const internalStaticRoutes =
         },
       ]
     : [];
-
-function ErrorFallback() {
-  // The error boundary can render outside the i18n provider, so read the
-  // persisted language directly instead of using the hook.
-  let lang = 'ru';
-  try {
-    lang = localStorage.getItem('ecopay-language') ?? 'ru';
-  } catch {
-    /* storage unavailable — keep default */
-  }
-  const title =
-    lang === 'kz'
-      ? 'Бірдеңе дұрыс болмады'
-      : lang === 'en'
-        ? 'Something went wrong'
-        : 'Что-то пошло не так';
-  const body =
-    lang === 'kz'
-      ? 'Қайталап көріңіз немесе артқа оралыңыз.'
-      : lang === 'en'
-        ? 'Please try again or go back.'
-        : 'Попробуйте ещё раз или вернитесь назад.';
-  return (
-    <div style={{ padding: 40, textAlign: 'center', color: 'var(--eco-text)' }}>
-      <h2>{title}</h2>
-      <p style={{ color: 'var(--eco-text-secondary)' }}>{body}</p>
-    </div>
-  );
-}
 
 // Renders <Outlet/> inside a Suspense boundary so that lazy children can share
 // one fallback. The eager HomePage never suspends, so it just passes through.
@@ -329,7 +319,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     Component: AppLayout,
-    ErrorBoundary: ErrorFallback,
+    ErrorBoundary: RouteErrorFallback,
     children: [
       {
         Component: SuspenseOutlet,
@@ -375,6 +365,7 @@ export const router = createBrowserRouter([
           { path: 'notifications-inbox', Component: NotificationsInboxPage },
           { path: 'notification-prefs', Component: NotificationPreferencesPage },
           ...internalStaticRoutes,
+          { path: '*', Component: NotFoundPage },
         ],
       },
     ],
@@ -386,12 +377,12 @@ export const router = createBrowserRouter([
         <AdminLoginPage />
       </Suspense>
     ),
-    ErrorBoundary: ErrorFallback,
+    ErrorBoundary: RouteErrorFallback,
   },
   {
     path: '/admin',
     Component: AdminRoute,
-    ErrorBoundary: ErrorFallback,
+    ErrorBoundary: RouteErrorFallback,
     children: [
       {
         Component: SuspenseOutlet,
