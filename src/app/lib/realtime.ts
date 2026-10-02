@@ -10,7 +10,7 @@
 //   online — never an infinite reconnect storm;
 // - deterministic teardown on unmount/logout.
 
-import { Client, ReconnectionTimeMode } from '@stomp/stompjs';
+import type { Client } from '@stomp/stompjs';
 import { buildSupportWebSocketUrl } from './api';
 
 export interface RealtimeOptions {
@@ -29,7 +29,31 @@ export interface RealtimeHandle {
 const INITIAL_DELAY_MS = 2000;
 const MAX_DELAY_MS = 60_000;
 
+/**
+ * Starts a live connection. The STOMP library is loaded on demand so anonymous
+ * visitors (who never open a socket) do not download it with the entry bundle.
+ */
 export function startRealtime(options: RealtimeOptions): RealtimeHandle {
+  let stopped = false;
+  let inner: RealtimeHandle | null = null;
+  void import('@stomp/stompjs')
+    .then((stomp) => {
+      if (stopped) return;
+      inner = connect(stomp, options);
+    })
+    .catch(() => {
+      /* chunk failed to load: realtime is best-effort, REST still works */
+    });
+  return {
+    stop: () => {
+      stopped = true;
+      inner?.stop();
+    },
+  };
+}
+
+function connect(stomp: typeof import('@stomp/stompjs'), options: RealtimeOptions): RealtimeHandle {
+  const { Client, ReconnectionTimeMode } = stomp;
   const maxFailures = options.maxConsecutiveFailures ?? 6;
   let failures = 0;
   let stopped = false;

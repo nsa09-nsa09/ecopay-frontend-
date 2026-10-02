@@ -47,9 +47,12 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 900,
       rollupOptions: {
         output: {
+          // Recharts is deliberately NOT a manual chunk: forcing it into its
+          // own chunk pulled shared helpers into it, so the anonymous home page
+          // modulepreloaded ~545 kB of chart code. Left to Rollup it stays with
+          // the lazily loaded admin dashboard.
           manualChunks: {
             react: ['react', 'react-dom', 'react-router'],
-            charts: ['recharts'],
             ui: ['lucide-react', 'motion'],
             utils: ['date-fns', 'clsx', 'tailwind-merge'],
           },
