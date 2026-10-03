@@ -152,10 +152,8 @@ test('an API 409 with an English body shows localized, specific copy (RU)', asyn
   });
   await page.goto('/payments/history');
   await page.waitForLoadState('networkidle');
-  const body = await page.locator('body').innerText();
-  // Specific localized copy, not the generic fallback and not the English.
-  expect(body).toContain('дата старта');
-  expect(body).not.toContain('Cannot join room after start date');
+  await expect(page.locator('body')).toContainText('дата старта');
+  await expect(page.locator('body')).not.toContainText('Cannot join room after start date');
 });
 
 test('an API 500 stack-trace body shows the generic localized message, nothing from the body', async ({ page }) => {
@@ -167,9 +165,8 @@ test('an API 500 stack-trace body shows the generic localized message, nothing f
   });
   await page.goto('/payments/history');
   await page.waitForLoadState('networkidle');
-  const body = await page.locator('body').innerText();
-  expect(body).not.toContain('NullPointerException');
-  expect(body).not.toContain('PaymentService');
+  await expect(page.locator('body')).not.toContainText('NullPointerException');
+  await expect(page.locator('body')).not.toContainText('PaymentService');
   // Generic localized server-error copy.
-  expect(body).toMatch(/Не удалось загрузить данные/);
+  await expect(page.locator('body')).toContainText(/Не удалось загрузить данные/);
 });

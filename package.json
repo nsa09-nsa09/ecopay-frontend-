@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "engines": {
+    "node": ">=22.6.0"
+  },
   "scripts": {
     "build": "vite build",
     "build:release": "vite build && node tools/check-internal-artifacts.mjs && npm run check:production-content && npm run check:brand && node tools/check-nginx-csp.mjs",

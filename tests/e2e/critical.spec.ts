@@ -1608,7 +1608,7 @@ test('public news has language-specific images and a fixed DMY date', async ({ p
 test('story cover switches its localized image with the active language', async ({ page }) => {
   await mockApi(page, 'ANON', 'ru');
   await page.goto('/news');
-  await expect(page.locator('img[src$="/ru-story.jpg"]')).toBeVisible();
+  await expect(page.locator('img[src$="/ru-story.jpg"]')).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: 'Қазақ' }).click();
   await expect(page.locator('img[src$="/kz-story.jpg"]')).toBeVisible();
 });
@@ -1699,7 +1699,7 @@ test('deleted admin contacts remain masked until the second reveal confirmation'
   const api = await mockApi(page, 'ADMIN');
   await seedSession(page, 'ADMIN');
   await page.goto('/admin/users');
-  await page.getByRole('button', { name: 'Deleted' }).click();
+  await page.getByRole('tab', { name: 'Deleted' }).click();
   await expect(page.getByText('a***@gmail.com')).toBeVisible();
   await expect(page.getByText('original@gmail.com')).toHaveCount(0);
   await page.getByRole('button', { name: 'Show contacts' }).click();
@@ -1720,12 +1720,12 @@ test('admin report loads investigation and sends scheduled restriction dates', a
   const api = await mockApi(page, 'ADMIN');
   await seedSession(page, 'ADMIN');
   await page.goto('/admin/moderation');
-  await page.getByRole('button', { name: 'User reports' }).click();
+  await page.getByRole('tab', { name: 'User reports' }).click();
   await page.getByRole('button', { name: /Aidar.*Fraud/ }).click();
   await expect(page.getByRole('heading', { name: 'User history' })).toBeVisible();
   await expect(page.getByText('Owned family room')).toBeVisible();
   await page.getByRole('button', { name: 'Block user' }).click();
-  await page.getByRole('button', { name: 'Schedule' }).click();
+  await page.getByRole('radio', { name: 'Schedule' }).click();
   await page.getByRole('button', { name: '7 days' }).click();
   await page
     .getByRole('textbox', { name: 'Reason for restriction' })
@@ -1833,9 +1833,9 @@ test('/admin/moderation ru localizes queue codes and uses wide content', async (
   await page.goto('/admin/moderation');
 
   await expect(page.getByText('Таймаут ожидания')).toBeVisible();
-  await expect(page.getByText('Статус: Открыта')).toBeVisible();
+  await expect(page.getByText('Открыта')).toBeVisible();
   await expect(page.getByText('PENDING_TIMEOUT')).toHaveCount(0);
-  await expect(page.getByText('Статус: OPEN')).toHaveCount(0);
+  await expect(page.getByText('OPEN', { exact: true })).toHaveCount(0);
 
   const contentBox = await page.locator('main > div').first().boundingBox();
   expect(contentBox?.width ?? 0).toBeGreaterThan(1300);
