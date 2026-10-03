@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { QRCodeSVG } from 'qrcode.react';
+import { animate, motion, useReducedMotion } from 'motion/react';
 import { Button, Card, WaveDivider } from '../ds-primitives';
 import {
   Clock,
@@ -45,6 +46,154 @@ function pickLocalized(
   const legacy = content[field];
   if (typeof legacy === 'string' && legacy.trim()) return legacy;
   return null;
+}
+
+// ─── Motion helpers ─────────────────────────────────────────────────────────
+// Only transform + opacity are animated, offsets are vertical, and every
+// element keeps its layout box while hidden, so nothing shifts or overflows.
+
+const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
+const REVEAL_VIEWPORT = { once: true, margin: '-10% 0px' } as const;
+
+/** False when motion should collapse to a static, final-state render. */
+function useCanAnimate(): boolean {
+  const reduce = useReducedMotion();
+  return !reduce && typeof window !== 'undefined' && 'IntersectionObserver' in window;
+}
+
+/**
+ * Scroll reveal: `whileInView` (once) drives the animation. Because content
+ * starts at opacity 0, a fallback guarantees the end state when
+ * IntersectionObserver never fires (some headless / older WebKit contexts):
+ * a scroll/resize check plus a short poll force the element visible as soon
+ * as it is actually on screen, and printing forces everything visible.
+ */
+function Reveal({
+  children,
+  className,
+  delay = 0,
+  y = 12,
+  scale = 1,
+  duration = 0.4,
+  onShown,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+  y?: number;
+  scale?: number;
+  duration?: number;
+  onShown?: () => void;
+}) {
+  const canAnimate = useCanAnimate();
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+  const [forced, setForced] = useState(false);
+  const onShownRef = useRef(onShown);
+  onShownRef.current = onShown;
+
+  const markShown = useCallback(() => {
+    setShown((prev) => {
+      if (!prev) onShownRef.current?.();
+      return true;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!canAnimate || shown) return;
+    const el = ref.current;
+    if (!el) return;
+    const check = () => {
+      const rect = el.getBoundingClientRect();
+      const h = window.innerHeight || document.documentElement.clientHeight;
+      if (rect.top < h * 0.9 && rect.bottom > h * 0.1) {
+        setForced(true);
+        markShown();
+      }
+    };
+    const force = () => {
+      setForced(true);
+      markShown();
+    };
+    const poll = window.setInterval(check, 500);
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    window.addEventListener('beforeprint', force);
+    return () => {
+      window.clearInterval(poll);
+      window.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
+      window.removeEventListener('beforeprint', force);
+    };
+  }, [canAnimate, shown, markShown]);
+
+  useEffect(() => {
+    // Static render: nothing to wait for, run the callback right away.
+    if (!canAnimate) onShownRef.current?.();
+  }, [canAnimate]);
+
+  // Variant labels propagate to motion children (e.g. the trust bullets), so
+  // nested sequences follow the same in-view / forced trigger.
+  const variants = {
+    hidden: { opacity: 0, y, scale },
+    shown: { opacity: 1, y: 0, scale: 1, transition: { duration, delay, ease: EASE_OUT } },
+  };
+  return (
+    <motion.div
+      ref={ref}
+      className={`eco-about-motion ${className ?? ''}`}
+      variants={variants}
+      initial={canAnimate ? 'hidden' : false}
+      whileInView="shown"
+      animate={forced ? 'shown' : undefined}
+      viewport={REVEAL_VIEWPORT}
+      onViewportEnter={markShown}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/** Mount animation for the hero (runs regardless of IntersectionObserver). */
+function HeroItem({
+  children,
+  className,
+  delay,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay: number;
+}) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      initial={reduce ? false : { opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.34, delay, ease: EASE_OUT }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/**
+ * Splits a translated value like "до 70%" or "5 operators" into
+ * prefix / number / suffix. Returns null for anything that is not a single
+ * plain number ("24/7", "2–6×", text-only values) so it renders as-is.
+ */
+function parseCountable(
+  value: string,
+): { prefix: string; target: number; decimals: number; sep: string; suffix: string } | null {
+  const match = /^(\D*?)(\d+(?:[.,]\d+)?)(\D*)$/.exec(value);
+  if (!match) return null;
+  const [, prefix, numeric, suffix] = match;
+  if (/[/–—\-×:.,]$/.test(prefix) || /^[/–—\-×:.,]/.test(suffix)) return null;
+  const sep = numeric.includes(',') ? ',' : '.';
+  const target = Number(numeric.replace(',', '.'));
+  if (!Number.isFinite(target)) return null;
+  const decimals = numeric.includes(sep) ? numeric.split(sep)[1].length : 0;
+  return { prefix, target, decimals, sep, suffix };
 }
 
 export function AboutPage() {
@@ -94,11 +243,13 @@ export function AboutPage() {
 
   // QR points at the current origin so a phone scan lands on the same host
   // the visitor is browsing. Strip the Vite dev port (:5173) so a QR scanned
-  // from a laptop dev session still opens on the phone. SSR falls back to a
-  // sensible default so the render doesn't crash.
+  // from a laptop dev session still opens on the phone. There is no canonical
+  // site URL in the brand config, so without a browser origin the QR block is
+  // not rendered at all rather than pointing at a guessed domain.
   const qrUrl = (() => {
-    const origin =
-      typeof window !== 'undefined' ? window.location.origin : 'https://ecopay.app';
+    if (typeof window === 'undefined' || !window.location?.origin) return null;
+    const origin = window.location.origin;
+    if (!/^https?:\/\//.test(origin)) return null;
     return origin.replace(/:5173(?=\/|$)/, '');
   })();
 
@@ -107,29 +258,37 @@ export function AboutPage() {
       {/* Hero */}
       <div className="py-14 sm:py-20 px-4 sm:px-6" style={{ background: 'var(--eco-surface)' }}>
         <div className="max-w-[960px] mx-auto text-center sm:text-left">
-          <h1
-            className="text-[30px] sm:text-[46px] leading-tight tracking-tight mb-4"
-            style={{ color: 'var(--eco-text)' }}
-          >
-            {heroTitle}
-          </h1>
-          <p
-            className="text-[16px] sm:text-[18px] max-w-[680px] mx-auto sm:mx-0"
-            style={{ color: 'var(--eco-text-secondary)' }}
-          >
-            {t('aboutSubtitle')}
-          </p>
+          <HeroItem delay={0}>
+            <h1
+              className="text-[30px] sm:text-[46px] leading-tight tracking-tight mb-4"
+              style={{ color: 'var(--eco-text)' }}
+            >
+              {heroTitle}
+            </h1>
+          </HeroItem>
+          <HeroItem delay={0.08}>
+            <p
+              className="text-[16px] sm:text-[18px] max-w-[680px] mx-auto sm:mx-0"
+              style={{ color: 'var(--eco-text-secondary)' }}
+            >
+              {t('aboutSubtitle')}
+            </p>
+          </HeroItem>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-start justify-center">
-            <Link to="/">
-              <Button variant="primary" size="lg">
-                {t('aboutCtaCatalog')}
-              </Button>
-            </Link>
-            <Link to="/rooms/create">
-              <Button variant="secondary" size="lg">
-                {t('aboutCtaCreateRoom')}
-              </Button>
-            </Link>
+            <HeroItem delay={0.16}>
+              <Link to="/">
+                <Button variant="primary" size="lg">
+                  {t('aboutCtaCatalog')}
+                </Button>
+              </Link>
+            </HeroItem>
+            <HeroItem delay={0.22}>
+              <Link to="/rooms/create">
+                <Button variant="secondary" size="lg">
+                  {t('aboutCtaCreateRoom')}
+                </Button>
+              </Link>
+            </HeroItem>
           </div>
         </div>
       </div>
@@ -143,21 +302,25 @@ export function AboutPage() {
             <FactTile
               icon={<Coins size={20} style={{ color: 'var(--eco-primary)' }} />}
               value={t('aboutFactSavingsValue')}
+              index={0}
               label={t('aboutFactSavingsLabel')}
             />
             <FactTile
               icon={<Signal size={20} style={{ color: 'var(--eco-primary)' }} />}
               value={t('aboutFactOperatorsValue')}
+              index={1}
               label={t('aboutFactOperatorsLabel')}
             />
             <FactTile
               icon={<ShieldCheck size={20} style={{ color: 'var(--eco-primary)' }} />}
               value={t('aboutFactSecureValue')}
+              index={2}
               label={t('aboutFactSecureLabel')}
             />
             <FactTile
               icon={<Clock size={20} style={{ color: 'var(--eco-primary)' }} />}
               value={t('aboutFactSupportValue')}
+              index={3}
               label={t('aboutFactSupportLabel')}
             />
           </div>
@@ -168,6 +331,7 @@ export function AboutPage() {
           <FeatureCard
             icon={<Zap size={20} style={{ color: 'var(--eco-primary)' }} />}
             title={t('ourMission')}
+            index={0}
           >
             <p
               className="text-[14px] leading-relaxed whitespace-pre-line"
@@ -180,6 +344,7 @@ export function AboutPage() {
           <FeatureCard
             icon={<Shield size={20} style={{ color: 'var(--eco-primary)' }} />}
             title={t('trustPrivacyTitle')}
+            index={1}
           >
             <p
               className="text-[14px] leading-relaxed mb-3"
@@ -188,9 +353,9 @@ export function AboutPage() {
               {t('trustPrivacyText')}
             </p>
             <ul className="space-y-2">
-              <TrustBullet text={t('bulletVerifiedPayments')} />
-              <TrustBullet text={t('bulletNoPersonalContact')} />
-              <TrustBullet text={t('bulletSupportOnly')} />
+              <TrustBullet text={t('bulletVerifiedPayments')} index={0} />
+              <TrustBullet text={t('bulletNoPersonalContact')} index={1} />
+              <TrustBullet text={t('bulletSupportOnly')} index={2} />
             </ul>
           </FeatureCard>
 
@@ -198,6 +363,7 @@ export function AboutPage() {
             className="md:col-span-2"
             icon={<Users size={20} style={{ color: 'var(--eco-primary)' }} />}
             title={t('howWeHelpTitle')}
+            index={2}
           >
             <p
               className="text-[14px] leading-relaxed whitespace-pre-line"
@@ -208,44 +374,48 @@ export function AboutPage() {
           </FeatureCard>
         </section>
 
-        {/* QR block */}
-        <section className="mb-14">
-          <Card className="flex flex-col items-center text-center gap-4 py-8">
-            <h2 className="text-[20px] sm:text-[24px]" style={{ color: 'var(--eco-text)' }}>
-              {t('aboutQrTitle')}
-            </h2>
-            <div
-              className="p-4 rounded-2xl"
-              style={{ background: '#ffffff', border: '1px solid var(--eco-border)' }}
-            >
-              <QRCodeSVG
-                value={qrUrl}
-                size={220}
-                level="H"
-                marginSize={4}
-                bgColor="#ffffff"
-                fgColor="#111111"
-                imageSettings={{
-                  src: '/ecopay-logo-transparent.png',
-                  height: 40,
-                  width: 40,
-                  excavate: true,
-                }}
-              />
-            </div>
-            <p className="text-[14px] max-w-[420px]" style={{ color: 'var(--eco-text-secondary)' }}>
-              {t('aboutQrCaption')}
-            </p>
-            <a
-              href={qrUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--eco-primary)', fontSize: 13, wordBreak: 'break-all' }}
-            >
-              {qrUrl}
-            </a>
-          </Card>
-        </section>
+        {/* QR block — only when a real browser origin is known */}
+        {qrUrl && (
+          <section className="mb-14">
+            <Reveal y={0} scale={0.97} duration={0.45}>
+              <Card className="flex flex-col items-center text-center gap-4 py-8">
+                <h2 className="text-[20px] sm:text-[24px]" style={{ color: 'var(--eco-text)' }}>
+                  {t('aboutQrTitle')}
+                </h2>
+                <div
+                  className="eco-about-qr p-4 rounded-2xl"
+                  style={{ background: '#ffffff', border: '1px solid var(--eco-border)' }}
+                >
+                  <QRCodeSVG
+                    value={qrUrl}
+                    size={220}
+                    level="H"
+                    marginSize={4}
+                    bgColor="#ffffff"
+                    fgColor="#111111"
+                    imageSettings={{
+                      src: '/ecopay-logo-transparent.png',
+                      height: 40,
+                      width: 40,
+                      excavate: true,
+                    }}
+                  />
+                </div>
+                <p className="text-[14px] max-w-[420px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                  {t('aboutQrCaption')}
+                </p>
+                <a
+                  href={qrUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--eco-primary)', fontSize: 13, wordBreak: 'break-all' }}
+                >
+                  {qrUrl}
+                </a>
+              </Card>
+            </Reveal>
+          </section>
+        )}
 
         {/* Member reviews — hides itself when there are none */}
         {reviews.length > 0 && (
@@ -266,23 +436,29 @@ export function AboutPage() {
             {t('contactGetInTouch')}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Link to="/support" style={{ textDecoration: 'none' }}>
-              <ContactTile
-                icon={<ShieldCheck size={18} style={{ color: 'var(--eco-primary)' }} />}
-                text={t('contactSupport')}
-              />
-            </Link>
+            <Reveal delay={0}>
+              <Link to="/support" style={{ textDecoration: 'none' }}>
+                <ContactTile
+                  icon={<ShieldCheck size={18} style={{ color: 'var(--eco-primary)' }} />}
+                  text={t('contactSupport')}
+                />
+              </Link>
+            </Reveal>
             {contactEmail && (
-              <ContactTile
-                icon={<Mail size={18} style={{ color: 'var(--eco-primary)' }} />}
-                text={contactEmail}
-              />
+              <Reveal delay={0.06}>
+                <ContactTile
+                  icon={<Mail size={18} style={{ color: 'var(--eco-primary)' }} />}
+                  text={contactEmail}
+                />
+              </Reveal>
             )}
             {contactPhone && (
-              <ContactTile
-                icon={<Phone size={18} style={{ color: 'var(--eco-primary)' }} />}
-                text={contactPhone}
-              />
+              <Reveal delay={0.12}>
+                <ContactTile
+                  icon={<Phone size={18} style={{ color: 'var(--eco-primary)' }} />}
+                  text={contactPhone}
+                />
+              </Reveal>
             )}
           </div>
         </section>
@@ -291,25 +467,82 @@ export function AboutPage() {
   );
 }
 
-function FactTile({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+function FactTile({
+  icon,
+  value,
+  label,
+  index,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+  index: number;
+}) {
+  const canAnimate = useCanAnimate();
+  const parsed = parseCountable(value);
+  const format = useCallback(
+    (n: number) =>
+      parsed
+        ? `${parsed.prefix}${n.toFixed(parsed.decimals).replace('.', parsed.sep)}${parsed.suffix}`
+        : value,
+    [parsed?.prefix, parsed?.decimals, parsed?.sep, parsed?.suffix, value],
+  );
+  // While the tile is hidden (opacity 0) the counter sits at zero; it never
+  // shows a partial number without an animation driving it to the end.
+  const [display, setDisplay] = useState(() =>
+    parsed && canAnimate ? format(0) : value,
+  );
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    // Language switch or a non-animating context: show the final value.
+    if (!parsed || !canAnimate || startedRef.current) setDisplay(value);
+  }, [value, canAnimate]);
+
+  const startCount = useCallback(() => {
+    if (startedRef.current || !parsed || !canAnimate) {
+      setDisplay(value);
+      return;
+    }
+    startedRef.current = true;
+    animate(0, parsed.target, {
+      duration: 0.9,
+      delay: 0.1 + index * 0.08,
+      ease: EASE_OUT,
+      onUpdate: (n) => setDisplay(format(parsed.decimals === 0 ? Math.round(n) : n)),
+      onComplete: () => setDisplay(value),
+    });
+  }, [parsed?.target, canAnimate, format, index, value]);
+
   return (
-    <div
-      className="p-4 rounded-xl flex flex-col gap-2"
-      style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
-    >
+    <Reveal delay={index * 0.07} onShown={startCount} className="h-full">
       <div
-        className="w-9 h-9 rounded-lg flex items-center justify-center"
-        style={{ background: 'var(--eco-brand-50)' }}
+        className="p-4 rounded-xl flex flex-col gap-2 h-full"
+        style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
       >
-        {icon}
+        <div
+          className="w-9 h-9 rounded-lg flex items-center justify-center"
+          style={{ background: 'var(--eco-brand-50)' }}
+        >
+          {icon}
+        </div>
+        <div
+          className="text-[16px] leading-tight tabular-nums"
+          style={{ color: 'var(--eco-text)' }}
+        >
+          {/* Screen readers get the final value; the visual layer reserves the
+              final width (ghost copy) so counting never reflows the tile. */}
+          <span className="sr-only">{value}</span>
+          <span aria-hidden="true" className="grid">
+            <span className="invisible col-start-1 row-start-1">{value}</span>
+            <span className="col-start-1 row-start-1">{display}</span>
+          </span>
+        </div>
+        <div className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
+          {label}
+        </div>
       </div>
-      <div className="text-[16px] leading-tight" style={{ color: 'var(--eco-text)' }}>
-        {value}
-      </div>
-      <div className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
-        {label}
-      </div>
-    </div>
+    </Reveal>
   );
 }
 
@@ -318,39 +551,66 @@ function FeatureCard({
   title,
   children,
   className = '',
+  index = 0,
 }: {
   icon: React.ReactNode;
   title: string;
   children: React.ReactNode;
   className?: string;
+  index?: number;
 }) {
   return (
-    <Card className={`flex flex-col gap-3 ${className}`}>
-      <div className="flex items-center gap-3">
-        <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: 'var(--eco-brand-50)' }}
-        >
-          {icon}
+    <Reveal className={className} delay={index * 0.08}>
+      <Card className="flex flex-col gap-3 h-full">
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: 'var(--eco-brand-50)' }}
+          >
+            {icon}
+          </div>
+          <h2 className="text-[18px]" style={{ color: 'var(--eco-text)' }}>
+            {title}
+          </h2>
         </div>
-        <h2 className="text-[18px]" style={{ color: 'var(--eco-text)' }}>
-          {title}
-        </h2>
-      </div>
-      <div>{children}</div>
-    </Card>
+        <div>{children}</div>
+      </Card>
+    </Reveal>
   );
 }
 
-function TrustBullet({ text }: { text: string }) {
-  return (
-    <li
-      className="flex items-start gap-2 text-[13px]"
-      style={{ color: 'var(--eco-text-secondary)' }}
-    >
+function TrustBullet({ text, index }: { text: string; index: number }) {
+  const canAnimate = useCanAnimate();
+  const content = (
+    <>
       <span className="shrink-0">•</span>
       <span>{text}</span>
-    </li>
+    </>
+  );
+  if (!canAnimate) {
+    return (
+      <li className="flex items-start gap-2 text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+        {content}
+      </li>
+    );
+  }
+  // No trigger of its own: inherits hidden/shown from the parent Reveal, so it
+  // can never be left hidden once the card itself is visible.
+  return (
+    <motion.li
+      className="flex items-start gap-2 text-[13px]"
+      style={{ color: 'var(--eco-text-secondary)' }}
+      variants={{
+        hidden: { opacity: 0, y: 6 },
+        shown: {
+          opacity: 1,
+          y: 0,
+          transition: { duration: 0.3, delay: 0.25 + index * 0.1, ease: EASE_OUT },
+        },
+      }}
+    >
+      {content}
+    </motion.li>
   );
 }
 

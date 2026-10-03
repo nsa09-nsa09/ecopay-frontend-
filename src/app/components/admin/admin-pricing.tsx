@@ -8,6 +8,7 @@ import {
   ChevronUp,
   ExternalLink,
   History,
+  LineChart,
   Minus,
   Pencil,
   Plus,
@@ -15,11 +16,23 @@ import {
   Trash2,
 } from 'lucide-react';
 import { AdminLayout } from './admin-layout';
-import { Badge, Button, Card, Drawer, Input, Modal, Select } from '../ds-primitives';
+import { Badge, Button, Drawer, Input, Modal, Select, Skeleton } from '../ds-primitives';
 import { useI18n, type Language } from '../i18n-provider';
 import { useAuth } from '../auth/auth-provider';
 import { FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
 import { formatDateTime } from '../../lib/datetime';
+import {
+  AdminCard,
+  AdminConfirm,
+  AdminDataTable,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminStatusBadge,
+  type AdminColumn,
+} from './admin-ui';
 import {
   adminAcknowledgePricingChange,
   adminCheckPricingProvider,
@@ -277,31 +290,148 @@ export function AdminPricingPage() {
     }
   };
 
+  const columns: AdminColumn<PricingProviderDto>[] = [
+    {
+      id: 'platform',
+      header: t('adminPricingColPlatform'),
+      priority: 'primary',
+      minWidth: 180,
+      cell: (p) => (
+        <div className="min-w-0">
+          <div className="font-medium" style={{ color: 'var(--eco-text)' }}>
+            {p.platformCode}
+          </div>
+          <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+            {p.displayName}
+          </div>
+          {p.url && (
+            <a
+              href={p.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[12px] inline-flex items-center gap-1 mt-0.5"
+              style={{ color: 'var(--eco-primary)' }}
+              title={p.url}
+            >
+              <ExternalLink size={11} />
+              <span className="truncate max-w-[220px]">{t('adminPricingOpenUrl')}</span>
+            </a>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'status',
+      header: t('adminPricingColStatus'),
+      priority: 'primary',
+      nowrap: true,
+      cell: (p) => (
+        <div className="flex flex-col items-end md:items-start gap-0.5">
+          <AdminStatusBadge tone={statusVariant(p.status)}>
+            {statusLabelText(p.status, language)}
+          </AdminStatusBadge>
+          {!p.active && (
+            <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+              {t('adminPricingInactive')}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'plan',
+      header: t('adminPricingColPlan'),
+      priority: 'secondary',
+      cell: (p) => p.planName,
+    },
+    {
+      id: 'price',
+      header: t('adminPricingColPrice'),
+      numeric: true,
+      cell: (p) => (
+        <div>
+          <div className="font-medium" style={{ color: 'var(--eco-text)' }}>
+            {formatPrice(p.lastPrice, pricingProviderCurrency(p), language)}
+          </div>
+          {p.lastChangedAt && (
+            <div
+              className="text-[12px]"
+              style={{ color: 'var(--eco-text-tertiary)' }}
+              title={formatDateTime(p.lastChangedAt, language)}
+            >
+              {t('adminPricingChanged')}: {formatRelative(p.lastChangedAt, language)}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'checked',
+      header: t('adminPricingColLastCheck'),
+      nowrap: true,
+      cell: (p) => (
+        <span
+          title={formatDateTime(p.lastCheckedAt, language)}
+          style={{ color: 'var(--eco-text-secondary)' }}
+        >
+          {formatRelative(p.lastCheckedAt, language)}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: t('adminPricingColActions'),
+      priority: 'actions',
+      align: 'right',
+      cell: (p) => (
+        <div className="flex items-center gap-1 justify-end flex-wrap">
+          <Button
+            variant="ghost"
+            size="sm"
+            loading={checkingId === p.id}
+            onClick={() => void runCheck(p)}
+            title={t('adminPricingCheckNow')}
+          >
+            <RefreshCw size={13} /> {t('adminPricingCheckNow')}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setHistoryOf(p)}
+            title={t('adminPricingHistory')}
+          >
+            <History size={13} /> {t('adminPricingHistory')}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setEditing(p)}>
+            <Pencil size={13} /> {t('catalogEdit')}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setDeleting(p)}>
+            <Trash2 size={13} /> {t('catalogDelete')}
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <AdminLayout>
-      <div className="max-w-[1200px]">
-        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
-            {t('adminPricingTitle')}
-          </h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-              <RefreshCw size={13} /> {t('retry')}
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
-              <Plus size={13} /> {t('adminPricingAddProvider')}
-            </Button>
-          </div>
-        </div>
+      <AdminPage width="wide">
+        <AdminPageHeader
+          title={t('adminPricingTitle')}
+          actions={
+            <>
+              <AdminRefreshButton onClick={() => void load()} loading={loading} />
+              <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
+                <Plus size={13} /> {t('adminPricingAddProvider')}
+              </Button>
+            </>
+          }
+        />
 
         <FlashBanner flash={flash} />
 
-        {error && !loading && (
-          <Card className="mb-4">
-            <span className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
-              {error}
-            </span>
-          </Card>
+        {error && !loading && providers.length > 0 && (
+          <AdminErrorState inline message={error} onRetry={() => void load()} />
         )}
 
         <RecentChangesBlock
@@ -311,114 +441,28 @@ export function AdminPricingPage() {
           onAck={ackChange}
         />
 
-        {loading ? (
-          <Card>
-            <span className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {t('loading')}
-            </span>
-          </Card>
-        ) : providers.length === 0 ? (
-          <Card className="text-center py-10 text-[13px]">
-            <span style={{ color: 'var(--eco-text-tertiary)' }}>{t('adminPricingEmpty')}</span>
-          </Card>
-        ) : (
-          <Card className="p-0 overflow-x-auto">
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--eco-border)' }}>
-                  <Th>{t('adminPricingColPlatform')}</Th>
-                  <Th>{t('adminPricingColPlan')}</Th>
-                  <Th>{t('adminPricingColPrice')}</Th>
-                  <Th>{t('adminPricingColLastCheck')}</Th>
-                  <Th>{t('adminPricingColStatus')}</Th>
-                  <Th align="right">{t('adminPricingColActions')}</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {providers.map((p) => (
-                  <tr key={p.id} style={{ borderBottom: '1px solid var(--eco-border)' }}>
-                    <Td>
-                      <div style={{ color: 'var(--eco-text)' }}>{p.platformCode}</div>
-                      <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                        {p.displayName}
-                      </div>
-                      {p.url && (
-                        <a
-                          href={p.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[11px] inline-flex items-center gap-1 mt-0.5"
-                          style={{ color: 'var(--eco-primary)' }}
-                          title={p.url}
-                        >
-                          <ExternalLink size={10} />
-                          <span className="truncate max-w-[220px]">{t('adminPricingOpenUrl')}</span>
-                        </a>
-                      )}
-                    </Td>
-                    <Td>{p.planName}</Td>
-                    <Td>
-                      <div style={{ color: 'var(--eco-text)' }}>
-                        {formatPrice(p.lastPrice, pricingProviderCurrency(p), language)}
-                      </div>
-                      {p.lastChangedAt && (
-                        <div
-                          className="text-[11px]"
-                          style={{ color: 'var(--eco-text-tertiary)' }}
-                          title={formatDateTime(p.lastChangedAt, language)}
-                        >
-                          {t('adminPricingChanged')}: {formatRelative(p.lastChangedAt, language)}
-                        </div>
-                      )}
-                    </Td>
-                    <Td>
-                      <span title={formatDateTime(p.lastCheckedAt, language)}>
-                        {formatRelative(p.lastCheckedAt, language)}
-                      </span>
-                    </Td>
-                    <Td>
-                      <Badge variant={statusVariant(p.status)}>
-                        {statusLabelText(p.status, language)}
-                      </Badge>
-                      {!p.active && (
-                        <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                          {t('adminPricingInactive')}
-                        </div>
-                      )}
-                    </Td>
-                    <Td align="right">
-                      <div className="flex items-center gap-1 justify-end flex-wrap">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          loading={checkingId === p.id}
-                          onClick={() => void runCheck(p)}
-                          title={t('adminPricingCheckNow')}
-                        >
-                          <RefreshCw size={12} /> {t('adminPricingCheckNow')}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setHistoryOf(p)}
-                          title={t('adminPricingHistory')}
-                        >
-                          <History size={12} /> {t('adminPricingHistory')}
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setEditing(p)}>
-                          <Pencil size={12} /> {t('catalogEdit')}
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setDeleting(p)}>
-                          <Trash2 size={12} /> {t('catalogDelete')}
-                        </Button>
-                      </div>
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        )}
+        <AdminDataTable
+          columns={columns}
+          rows={providers}
+          rowKey={(p) => p.id}
+          loading={loading}
+          error={error}
+          onRetry={() => void load()}
+          minWidth={980}
+          empty={
+            <AdminCard>
+              <AdminEmptyState
+                icon={LineChart}
+                title={t('adminPricingEmpty')}
+                action={
+                  <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
+                    <Plus size={13} /> {t('adminPricingAddProvider')}
+                  </Button>
+                }
+              />
+            </AdminCard>
+          }
+        />
 
         <UpsertProviderModal
           open={creating || editing !== null}
@@ -439,63 +483,31 @@ export function AdminPricingPage() {
           }}
         />
 
-        <Modal
+        <AdminConfirm
           open={deleting !== null}
           onClose={() => setDeleting(null)}
           title={t('adminPricingDeleteConfirmTitle')}
+          confirmLabel={t('catalogDelete')}
+          loading={deleteSubmitting}
+          onConfirm={confirmDelete}
         >
-          <div className="flex flex-col gap-4">
-            {deleting && (
-              <div
-                className="p-3 rounded-lg text-[12px]"
-                style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
-              >
-                {deleting.platformCode} · {deleting.planName}
-              </div>
-            )}
-            <Button
-              variant="destructive"
-              loading={deleteSubmitting}
-              onClick={() => void confirmDelete()}
+          {deleting && (
+            <div
+              className="p-3 rounded-lg text-[12px]"
+              style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
             >
-              {t('catalogDelete')}
-            </Button>
-          </div>
-        </Modal>
+              {deleting.platformCode} · {deleting.planName}
+            </div>
+          )}
+        </AdminConfirm>
 
         <HistoryDrawer
           provider={historyOf}
           onClose={() => setHistoryOf(null)}
           language={language}
         />
-      </div>
+      </AdminPage>
     </AdminLayout>
-  );
-}
-
-function Th({ children, align }: { children: React.ReactNode; align?: 'left' | 'right' }) {
-  return (
-    <th
-      className="px-4 py-3 text-[12px]"
-      style={{
-        color: 'var(--eco-text-tertiary)',
-        background: 'var(--eco-surface)',
-        textAlign: align ?? 'left',
-      }}
-    >
-      {children}
-    </th>
-  );
-}
-
-function Td({ children, align }: { children: React.ReactNode; align?: 'left' | 'right' }) {
-  return (
-    <td
-      className="px-4 py-3 align-top"
-      style={{ color: 'var(--eco-text)', textAlign: align ?? 'left' }}
-    >
-      {children}
-    </td>
   );
 }
 
@@ -516,62 +528,65 @@ function RecentChangesBlock({
   if (changes.length === 0) return null;
 
   return (
-    <Card className="mb-4 flex flex-col gap-3">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center justify-between gap-2 cursor-pointer text-left"
-        style={{ background: 'transparent', border: 'none', padding: 0 }}
-      >
-        <div className="flex items-center gap-2">
-          <BellRing size={14} style={{ color: 'var(--eco-warning-500)' }} />
-          <span className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
-            {t('adminPricingRecentChanges')} · {changes.length}
-          </span>
-        </div>
-        {open ? (
-          <ChevronUp size={14} style={{ color: 'var(--eco-text-tertiary)' }} />
-        ) : (
-          <ChevronDown size={14} style={{ color: 'var(--eco-text-tertiary)' }} />
-        )}
-      </button>
-      {open && (
-        <div className="flex flex-col gap-2">
-          {changes.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center justify-between gap-3 flex-wrap p-3 rounded-lg"
-              style={{ background: 'var(--eco-surface)' }}
-            >
-              <div className="flex flex-col min-w-0">
-                <div
-                  className="flex items-center gap-2 text-[13px]"
-                  style={{ color: 'var(--eco-text)' }}
-                >
-                  <ChangeArrow current={c.newPrice} previous={c.oldPrice} />
-                  <span className="truncate">
-                    {c.providerName} · {c.planName}
-                  </span>
-                </div>
-                <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {formatPrice(c.oldPrice, c.currency, language)} →{' '}
-                  {formatPrice(c.newPrice, c.currency, language)} ·{' '}
-                  {formatDateTime(c.changedAt, language)}
-                </div>
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                loading={ackingId === c.id}
-                onClick={() => void onAck(c)}
+    <AdminCard>
+      <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="flex items-center justify-between gap-2 cursor-pointer text-left"
+          style={{ background: 'transparent', border: 'none', padding: 0 }}
+        >
+          <div className="flex items-center gap-2">
+            <BellRing size={15} style={{ color: 'var(--eco-warning-500)' }} />
+            <span className="text-[15px] font-semibold tabular-nums" style={{ color: 'var(--eco-text)' }}>
+              {t('adminPricingRecentChanges')} · {changes.length}
+            </span>
+          </div>
+          {open ? (
+            <ChevronUp size={14} style={{ color: 'var(--eco-text-tertiary)' }} />
+          ) : (
+            <ChevronDown size={14} style={{ color: 'var(--eco-text-tertiary)' }} />
+          )}
+        </button>
+        {open && (
+          <div className="flex flex-col gap-2">
+            {changes.map((c) => (
+              <div
+                key={c.id}
+                className="flex items-center justify-between gap-3 flex-wrap p-3 rounded-lg"
+                style={{ background: 'var(--eco-surface)' }}
               >
-                <Check size={12} /> {t('adminPricingAcknowledge')}
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
+                <div className="flex flex-col min-w-0">
+                  <div
+                    className="flex items-center gap-2 text-[13px]"
+                    style={{ color: 'var(--eco-text)' }}
+                  >
+                    <ChangeArrow current={c.newPrice} previous={c.oldPrice} />
+                    <span className="truncate">
+                      {c.providerName} · {c.planName}
+                    </span>
+                  </div>
+                  <div className="text-[12px] tabular-nums" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {formatPrice(c.oldPrice, c.currency, language)} →{' '}
+                    {formatPrice(c.newPrice, c.currency, language)} ·{' '}
+                    {formatDateTime(c.changedAt, language)}
+                  </div>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={ackingId === c.id}
+                  onClick={() => void onAck(c)}
+                >
+                  <Check size={12} /> {t('adminPricingAcknowledge')}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </AdminCard>
   );
 }
 
@@ -913,7 +928,7 @@ function TestExtractionPanel({
           <span className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
             {t('adminPricingTestUrl')}
           </span>
-          <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+          <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
             {t('adminPricingTestHint')}
           </span>
         </div>
@@ -943,18 +958,18 @@ function TestExtractionPanel({
               {outcomeLabelText(result.outcome, language)}
             </Badge>
             {result.httpStatus != null && (
-              <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+              <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                 HTTP {result.httpStatus}
               </span>
             )}
             {result.source && (
-              <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+              <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                 · {result.source}
               </span>
             )}
           </div>
           {result.outcome === 'SUCCESS' && result.price != null ? (
-            <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+            <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
               {t('adminPricingTestPrice')}: {formatPrice(result.price, result.currency, language)}
             </div>
           ) : (
@@ -1019,22 +1034,19 @@ function HistoryDrawer({
       title={provider ? `${provider.platformCode} · ${provider.planName}` : ''}
     >
       {loading && (
-        <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-          {t('loading')}
+        <div className="flex flex-col gap-3" aria-busy="true" aria-label={t('loading')}>
+          <Skeleton height={84} rounded={8} />
+          <Skeleton height={60} rounded={8} />
+          <Skeleton height={60} rounded={8} />
+          <Skeleton height={60} rounded={8} />
         </div>
       )}
-      {error && !loading && (
-        <div className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
-          {error}
-        </div>
-      )}
+      {error && !loading && <AdminErrorState message={error} />}
       {!loading && !error && provider && (
         <div className="flex flex-col gap-3">
           {priceSeries.length >= 2 && <Sparkline points={priceSeries} />}
           {snapshots.length === 0 ? (
-            <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {t('adminPricingHistoryEmpty')}
-            </div>
+            <AdminEmptyState icon={History} title={t('adminPricingHistoryEmpty')} compact />
           ) : (
             snapshots.map((s) => (
               <div
@@ -1043,15 +1055,15 @@ function HistoryDrawer({
                 style={{ background: 'var(--eco-surface)' }}
               >
                 <div className="flex flex-col min-w-0">
-                  <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+                  <div className="text-[13px] tabular-nums" style={{ color: 'var(--eco-text)' }}>
                     {formatPrice(s.price, s.currency, language)}
                   </div>
-                  <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  <div className="text-[12px] tabular-nums" style={{ color: 'var(--eco-text-tertiary)' }}>
                     {formatDateTime(s.capturedAt, language)}
                   </div>
                   {s.errorMessage && (
                     <div
-                      className="text-[11px] mt-0.5"
+                      className="text-[12px] mt-0.5 break-words"
                       style={{ color: 'var(--eco-text-tertiary)' }}
                     >
                       {s.errorMessage}

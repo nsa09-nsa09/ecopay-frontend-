@@ -202,6 +202,7 @@ export function buildSupportWebSocketUrl() {
 }
 
 import { getCurrentLanguage, getFriendlyApiMessage, type FriendlyApiErrorCode } from './locale';
+import { resolveServerMessage } from './server-messages';
 
 /**
  * Heuristic: detect server-side internals that must never leak to end users
@@ -259,6 +260,21 @@ function buildFriendlyApiMessage(
   code: FriendlyApiErrorCode,
 ): string {
   const activeLanguage = getCurrentLanguage();
+
+  // Preferred path: a curated, localized mapping of known backend errors. This
+  // turns a 409 "Cannot join room after start date" into specific localized
+  // copy instead of the generic "Couldn't load the data." It also guarantees
+  // INTERNAL/provider strings never surface (they resolve to null → generic
+  // fallback below). NOTE: ErrorResponse.code is not yet plumbed into this
+  // function (requestJson/ApiError are owned elsewhere), so only the exact
+  // English-message path is active today; see docs/BACKEND_ERROR_CODES.md.
+  const resolved = resolveServerMessage(status, null, rawMessage, activeLanguage);
+  if (resolved) {
+    return resolved;
+  }
+
+  // Backstop defenses (kept, never weakened): never echo English into RU/KZ,
+  // never echo server internals, never echo an over-long blob.
   const isUnsafeLocaleMessage =
     (activeLanguage === 'ru' || activeLanguage === 'kz') && looksLikeEnglishMessage(rawMessage);
   if (

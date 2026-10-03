@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Card, Button, Badge, Modal, Select } from '../ds-primitives';
+import { Button, Modal, Select, Skeleton } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n } from '../i18n-provider';
 import { formatDateTime } from '../../lib/datetime';
@@ -17,8 +17,7 @@ import {
 } from '../../lib/api';
 import {
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
+  MousePointerClick,
   Shield,
   UserPlus,
   Scale,
@@ -28,21 +27,25 @@ import {
   X,
 } from 'lucide-react';
 import { FlashBanner, formatAdminApiError, useFlash, REASON_MIN_LENGTH } from './admin-action-ui';
+import {
+  AdminCard,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminField,
+  AdminId,
+  AdminListSkeleton,
+  AdminPage,
+  AdminPageHeader,
+  AdminPagination,
+  AdminRefreshButton,
+  AdminStatusBadge,
+} from './admin-ui';
 
 const PAGE_SIZE = 20;
-
-const statusVar: Record<string, 'warning' | 'info' | 'success' | 'danger' | 'default'> = {
-  OPEN: 'warning',
-  UNDER_REVIEW: 'info',
-  RESOLVED: 'success',
-  REJECTED: 'danger',
-};
 
 export function AdminDisputesPage() {
   const { t, language } = useI18n();
   const { authorizedRequest, user } = useAuth();
-  const tx = (ru: string, kz: string, en: string) =>
-    language === 'ru' ? ru : language === 'kz' ? kz : en;
 
   const [items, setItems] = useState<DisputeResponse[]>([]);
   const [page, setPage] = useState(0);
@@ -140,244 +143,189 @@ export function AdminDisputesPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-[1100px]">
-        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
-          <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
-            {t('disputesPageTitle')}
-          </h1>
-          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-            <RefreshCw size={13} /> {t('retry')}
-          </Button>
-        </div>
+      <AdminPage>
+        <AdminPageHeader
+          title={t('disputesPageTitle')}
+          actions={<AdminRefreshButton onClick={() => void load()} loading={loading} />}
+        />
 
         <FlashBanner flash={flash} />
 
-        {error && !loading && (
-          <Card className="flex flex-col gap-2 mb-4">
-            <div className="text-[14px]" style={{ color: 'var(--eco-negative)' }}>
-              {t('loadFailedTitle')}
-            </div>
-            <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {error}
-            </div>
-            <Button variant="primary" size="sm" onClick={() => void load()}>
-              <RefreshCw size={13} /> {t('retry')}
-            </Button>
-          </Card>
+        {error && !loading && items.length > 0 && (
+          <AdminErrorState inline message={error} onRetry={() => void load()} />
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 flex flex-col gap-2">
-            {loading && items.length === 0 && (
-              <>
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-xl"
-                    style={{
-                      background: 'var(--eco-surface-raised)',
-                      border: '1px solid var(--eco-border)',
-                      minHeight: 70,
-                    }}
-                  />
-                ))}
-              </>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-1 flex flex-col gap-2 min-w-0">
+            {loading && items.length === 0 && <AdminListSkeleton rows={4} height={76} />}
+            {!loading && error && items.length === 0 && (
+              <AdminCard>
+                <AdminErrorState message={error} onRetry={() => void load()} />
+              </AdminCard>
             )}
-            {!loading && items.length === 0 && (
-              <Card
-                className="text-center text-[13px]"
-                style={{ color: 'var(--eco-text-tertiary)' }}
-              >
-                {t('emptyDisputes')}
-              </Card>
+            {!loading && !error && items.length === 0 && (
+              <AdminCard>
+                <AdminEmptyState
+                  icon={Scale}
+                  title={t('emptyDisputes')}
+                  description={t('adminDisputesEmptyHint')}
+                  compact
+                />
+              </AdminCard>
             )}
             {items.map((d) => {
               const active = selectedId === d.id;
               return (
                 <button
                   key={d.id}
+                  type="button"
                   onClick={() => setSelectedId(d.id)}
-                  className="text-left p-4 rounded-xl cursor-pointer"
-                  style={{
-                    background: active ? 'var(--eco-brand-50)' : 'var(--eco-surface-raised)',
-                    border: `1px solid ${active ? 'var(--eco-primary)' : 'var(--eco-border)'}`,
-                  }}
+                  aria-pressed={active}
+                  className={`eco-admin-record is-clickable text-left px-4 py-3 rounded-xl ${active ? 'is-active' : ''}`}
+                  style={{ minHeight: 76 }}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span
-                      className="text-[12px]"
-                      style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                    >
-                      D-{d.id}
-                    </span>
-                    <Badge variant={statusVar[d.status] ?? 'default'}>{d.status}</Badge>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <AdminId>D-{d.id}</AdminId>
+                    <AdminStatusBadge status={d.status}>{d.status}</AdminStatusBadge>
                   </div>
-                  <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+                  <div
+                    className="text-[13px] font-semibold"
+                    style={{ color: 'var(--eco-text)' }}
+                  >
                     {d.roomId ? `${t('rooms')} #${d.roomId}` : '—'}
                   </div>
-                  <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  <div
+                    className="text-[12px] tabular-nums"
+                    style={{ color: 'var(--eco-text-secondary)' }}
+                  >
                     {formatDateTime(d.createdAt, language)}
                   </div>
                 </button>
               );
             })}
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-2 text-[12px]">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={page <= 0 || loading}
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                >
-                  <ChevronLeft size={12} /> {t('prevPage')}
-                </Button>
-                <span style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {t('pageOf', { page: page + 1, total: totalPages })}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={page >= totalPages - 1 || loading}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  {t('nextPage')} <ChevronRight size={12} />
-                </Button>
-              </div>
-            )}
+            <AdminPagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              disabled={loading}
+            />
           </div>
 
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 min-w-0">
             {!selected ? (
-              <Card
-                className="flex items-center justify-center py-16 text-[14px]"
-                style={{ color: 'var(--eco-text-tertiary)' }}
-              >
-                {t('selectDispute')}
-              </Card>
+              <AdminCard>
+                <AdminEmptyState icon={MousePointerClick} title={t('selectDispute')} />
+              </AdminCard>
             ) : (
               <div className="flex flex-col gap-4">
-                <Card className="flex flex-col gap-3">
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div className="min-w-0">
-                      <div className="text-[18px] break-words" style={{ color: 'var(--eco-text)' }}>
-                        D-{selected.id}
-                        {selected.roomId ? ` · ${t('rooms')} #${selected.roomId}` : ''}
-                      </div>
-                      <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                        {selected.ticketId
-                          ? `${t('fromTicket', { ticket: selected.ticketId })} · `
-                          : ''}
-                        {t('createdLabel')} {formatDateTime(selected.createdAt, language)}
-                      </div>
-                    </div>
-                    <Badge variant={statusVar[selected.status] ?? 'default'}>
-                      {selected.status}
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
-                    <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
-                      <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                        {t('claimant')}
-                      </div>
-                      <div style={{ color: 'var(--eco-text)' }}>
-                        #{selected.openedByUserId ?? '—'}
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
-                      <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                        {t('assignToMe')}
-                      </div>
-                      <div style={{ color: 'var(--eco-text)' }}>
-                        {selected.assignedAdminId ? `#${selected.assignedAdminId}` : '—'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {selected.description && (
-                    <div>
-                      <div
-                        className="text-[12px] mb-1"
-                        style={{ color: 'var(--eco-text-tertiary)' }}
-                      >
-                        {t('summaryLabel')}
-                      </div>
-                      <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-                        {selected.description}
-                      </div>
-                    </div>
-                  )}
-
-                  {selected.reasonCode && (
-                    <div className="p-3 rounded-lg text-[13px]" style={{ background: 'var(--eco-surface)' }}>
-                      <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                        {tx('Причина жалобы', 'Шағым себебі', 'Complaint reason')}
-                      </div>
-                      <div className="mt-1" style={{ color: 'var(--eco-text)' }}>
-                        {selected.reasonCode.replace(/_/g, ' ')}
-                      </div>
-                    </div>
-                  )}
-
-                  {selected.decision && (
-                    <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
-                      <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                        {t('decision')}
-                      </div>
-                      <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
-                        {selected.decision}
-                      </div>
-                      {selected.decisionComment && (
-                        <div
-                          className="text-[12px] mt-1"
-                          style={{ color: 'var(--eco-text-secondary)' }}
-                        >
-                          {selected.decisionComment}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {actionError && (
-                    <div
-                      className="text-[13px]"
-                      role="alert"
-                      style={{ color: 'var(--eco-negative)' }}
-                    >
-                      {actionError}
-                    </div>
-                  )}
-
-                  {selected.status !== 'RESOLVED' && selected.status !== 'REJECTED' && (
-                    <div className="flex flex-wrap gap-2">
-                      {(!selected.assignedAdminId || selected.assignedAdminId !== user?.id) && (
+                <AdminCard
+                  title={
+                    <span className="break-words">
+                      D-{selected.id}
+                      {selected.roomId ? ` · ${t('rooms')} #${selected.roomId}` : ''}
+                    </span>
+                  }
+                  description={
+                    <>
+                      {selected.ticketId
+                        ? `${t('fromTicket', { ticket: selected.ticketId })} · `
+                        : ''}
+                      {t('createdLabel')}{' '}
+                      <span className="tabular-nums">
+                        {formatDateTime(selected.createdAt, language)}
+                      </span>
+                    </>
+                  }
+                  actions={
+                    <AdminStatusBadge status={selected.status}>{selected.status}</AdminStatusBadge>
+                  }
+                  footer={
+                    selected.status !== 'RESOLVED' && selected.status !== 'REJECTED' ? (
+                      <>
+                        {(!selected.assignedAdminId || selected.assignedAdminId !== user?.id) && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            loading={assignSubmitting}
+                            onClick={() => void handleAssignToMe()}
+                          >
+                            <UserPlus size={13} /> {t('assignToMe')}
+                          </Button>
+                        )}
                         <Button
-                          variant="secondary"
+                          variant="primary"
                           size="sm"
-                          loading={assignSubmitting}
-                          onClick={() => void handleAssignToMe()}
+                          onClick={() => setDecisionModalOpen(true)}
                         >
-                          <UserPlus size={13} /> {t('assignToMe')}
+                          <Scale size={13} /> {t('decision')}
                         </Button>
-                      )}
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => setDecisionModalOpen(true)}
-                      >
-                        <Scale size={13} /> {t('decision')}
-                      </Button>
-                      <OwnerViolationButton
-                        dispute={selected}
-                        onApplied={(updated) => {
-                          applyUpdate(updated);
-                          showFlash('success', t('actionCompletedAndLogged'));
-                        }}
-                      />
+                        <OwnerViolationButton
+                          dispute={selected}
+                          onApplied={(updated) => {
+                            applyUpdate(updated);
+                            showFlash('success', t('actionCompletedAndLogged'));
+                          }}
+                        />
+                      </>
+                    ) : undefined
+                  }
+                >
+                  <div className="flex flex-col gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+                        <AdminField label={t('claimant')}>
+                          #{selected.openedByUserId ?? '—'}
+                        </AdminField>
+                      </div>
+                      <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+                        <AdminField label={t('assignToMe')}>
+                          {selected.assignedAdminId ? `#${selected.assignedAdminId}` : '—'}
+                        </AdminField>
+                      </div>
                     </div>
-                  )}
-                </Card>
+
+                    {selected.description && (
+                      <AdminField label={t('summaryLabel')}>
+                        <span style={{ color: 'var(--eco-text-secondary)' }}>
+                          {selected.description}
+                        </span>
+                      </AdminField>
+                    )}
+
+                    {selected.reasonCode && (
+                      <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+                        <AdminField label={t('adminComplaintReason')}>
+                          {selected.reasonCode.replace(/_/g, ' ')}
+                        </AdminField>
+                      </div>
+                    )}
+
+                    {selected.decision && (
+                      <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+                        <AdminField label={t('decision')}>{selected.decision}</AdminField>
+                        {selected.decisionComment && (
+                          <div
+                            className="text-[12px] mt-1"
+                            style={{ color: 'var(--eco-text-secondary)' }}
+                          >
+                            {selected.decisionComment}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {actionError && (
+                      <div
+                        className="text-[13px]"
+                        role="alert"
+                        style={{ color: 'var(--eco-negative)' }}
+                      >
+                        {actionError}
+                      </div>
+                    )}
+                  </div>
+                </AdminCard>
 
                 <DisputeRefundsPanel disputeId={selected.id} />
               </div>
@@ -398,22 +346,22 @@ export function AdminDisputesPage() {
               onChange={(e) => setDecisionType(e.target.value)}
             />
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+              <label
+                htmlFor="admin-dispute-decision-comment"
+                className="text-[13px]"
+                style={{ color: 'var(--eco-text)' }}
+              >
                 {t('comment')} <span style={{ color: 'var(--eco-negative)' }}>*</span>
               </label>
               <textarea
+                id="admin-dispute-decision-comment"
                 rows={3}
                 value={decisionComment}
                 onChange={(e) => setDecisionComment(e.target.value)}
                 placeholder={t('decisionCommentPlaceholder')}
-                className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
-                style={{
-                  background: 'var(--eco-surface)',
-                  border: '1px solid var(--eco-border)',
-                  color: 'var(--eco-text)',
-                }}
+                className="eco-input px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
               />
-              <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+              <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                 {t('reasonMinLength', { n: REASON_MIN_LENGTH })}
               </span>
             </div>
@@ -423,10 +371,10 @@ export function AdminDisputesPage() {
               </div>
             )}
             <div
-              className="text-[11px] flex items-center gap-1"
+              className="text-[12px] flex items-center gap-1"
               style={{ color: 'var(--eco-text-tertiary)' }}
             >
-              <Shield size={11} /> {t('auditLoggedShort')}
+              <Shield size={12} /> {t('auditLoggedShort')}
             </div>
             <Button
               variant="primary"
@@ -438,7 +386,7 @@ export function AdminDisputesPage() {
             </Button>
           </div>
         </Modal>
-      </div>
+      </AdminPage>
     </AdminLayout>
   );
 }
@@ -450,10 +398,8 @@ function OwnerViolationButton({
   dispute: DisputeResponse;
   onApplied: (updated: DisputeResponse) => void;
 }) {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const { authorizedRequest } = useAuth();
-  const tx = (ru: string, kz: string, en: string) =>
-    language === 'ru' ? ru : language === 'kz' ? kz : en;
 
   const [open, setOpen] = useState(false);
   // Kept only to preserve the old form markup while it remains hidden below. Refund selection,
@@ -503,33 +449,21 @@ function OwnerViolationButton({
   return (
     <>
       <Button variant="destructive" size="sm" onClick={() => setOpen(true)}>
-        <AlertTriangle size={13} /> {tx('Санкции владельцу', 'Иесіне санкция', 'Owner violation')}
+        <AlertTriangle size={13} /> {t('adminOwnerViolation')}
       </Button>
 
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={tx(
-          'Санкции: нарушение владельца',
-          'Санкция: иесінің бұзушылығы',
-          'Sanction: owner violation',
-        )}
+        title={t('adminSanctionOwnerViolation')}
       >
         <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
           <div className="hidden" aria-hidden="true">
-            {tx(
-              'Зафиксировать нарушение со стороны владельца по этому спору. Опционально: инициировать возврат участнику.',
-              'Осы дау бойынша иесінің бұзушылығын тіркеу. Қаласаңыз, қатысушыға қайтаруды бастаңыз.',
-              'Record an owner violation on this dispute. Optionally start a refund to the member.',
-            )}
+            {t('adminRecordAnOwnerViolationOnThis')}
           </div>
 
           <div className="p-3 rounded-lg text-[13px]" style={{ background: 'var(--eco-warning-100)', color: 'var(--eco-text)' }}>
-            {tx(
-              'После подтверждения будут автоматически созданы возвраты по всем успешным оплатам участников этой комнаты. Суммы и транзакции вручную вводить не нужно.',
-              'Расталғаннан кейін осы бөлме қатысушыларының барлық сәтті төлемдері бойынша қайтарулар автоматты түрде жасалады. Сома мен транзакцияны қолмен енгізу қажет емес.',
-              'Confirmation automatically creates refunds for every successful member payment in this room. No transaction IDs or amounts are entered manually.',
-            )}
+            {t('adminConfirmationAutomaticallyCreatesRefundsForEvery')}
           </div>
 
           <div className="hidden" aria-hidden="true">
@@ -541,7 +475,7 @@ function OwnerViolationButton({
               onChange={(e) => setCreateRefund(e.target.checked)}
             />
             <span className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
-              {tx('Создать возврат', 'Қайтаруды құру', 'Create a refund')}
+              {t('adminCreateARefund')}
             </span>
           </label>
 
@@ -549,7 +483,7 @@ function OwnerViolationButton({
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[12px]" style={{ color: 'var(--eco-text)' }}>
-                  {tx('ID транзакции (опц.)', 'Транзакция ID (міндетті емес)', 'Tx ID (optional)')}
+                  {t('adminTxIdOptional')}
                 </label>
                 <input
                   value={paymentTxId}
@@ -565,7 +499,7 @@ function OwnerViolationButton({
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[12px]" style={{ color: 'var(--eco-text)' }}>
-                  {tx('Сумма (опц.)', 'Сома (міндетті емес)', 'Amount (optional)')}
+                  {t('adminAmountOptional')}
                 </label>
                 <input
                   value={refundAmount}
@@ -592,15 +526,11 @@ function OwnerViolationButton({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder={t('mandatoryAuditLogged')}
-              className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
-              style={{
-                background: 'var(--eco-surface)',
-                border: '1px solid var(--eco-border)',
-                color: 'var(--eco-text)',
-              }}
+              aria-label={t('reason')}
+              className="eco-input px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
             />
             <span
-              className="text-[11px]"
+              className="text-[12px]"
               style={{ color: tooShort ? 'var(--eco-text-tertiary)' : 'var(--eco-positive)' }}
             >
               {t('reasonMinLength', { n: REASON_MIN_LENGTH })}
@@ -619,7 +549,7 @@ function OwnerViolationButton({
             loading={submitting}
             onClick={() => void submit()}
           >
-            {tx('Применить санкции', 'Санкцияны қолдану', 'Apply sanction')}
+            {t('adminApplySanction')}
           </Button>
         </div>
       </Modal>
@@ -628,10 +558,8 @@ function OwnerViolationButton({
 }
 
 function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const { authorizedRequest } = useAuth();
-  const tx = (ru: string, kz: string, en: string) =>
-    language === 'ru' ? ru : language === 'kz' ? kz : en;
 
   const [refunds, setRefunds] = useState<RefundTransactionResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -662,11 +590,7 @@ function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
   const handleSuccess = async (id: number) => {
     const providerRefundId =
       window.prompt(
-        tx(
-          'Provider refund ID (опц.)',
-          'Provider refund ID (міндетті емес)',
-          'Provider refund ID (optional)',
-        ),
+        t('adminProviderRefundIdOptional'),
       ) ?? undefined;
     setBusyId(id);
     try {
@@ -684,11 +608,7 @@ function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
   const handleFail = async (id: number) => {
     const providerRefundId =
       window.prompt(
-        tx(
-          'Provider refund ID (опц.)',
-          'Provider refund ID (міндетті емес)',
-          'Provider refund ID (optional)',
-        ),
+        t('adminProviderRefundIdOptional'),
       ) ?? undefined;
     setBusyId(id);
     try {
@@ -704,85 +624,91 @@ function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
   };
 
   return (
-    <Card className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <div className="text-[14px] flex items-center gap-2" style={{ color: 'var(--eco-text)' }}>
-          <Banknote size={14} />{' '}
-          {tx('Возвраты по спору', 'Дау бойынша қайтарулар', 'Refunds for dispute')}
-        </div>
+    <AdminCard
+      title={
+        <span className="flex items-center gap-2">
+          <Banknote size={15} aria-hidden />
+          {t('adminRefundsForDispute')}
+        </span>
+      }
+      actions={
         <Button variant="ghost" size="sm" onClick={() => void load()} disabled={loading}>
-          <RefreshCw size={12} /> {t('retry')}
+          <RefreshCw size={12} className={loading ? 'animate-spin' : undefined} />{' '}
+          {t('adminRefresh')}
         </Button>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        {error && refunds.length > 0 && (
+          <AdminErrorState inline message={error} onRetry={() => void load()} />
+        )}
+        {error && refunds.length === 0 && !loading && (
+          <AdminErrorState message={error} onRetry={() => void load()} />
+        )}
+
+        {loading && refunds.length === 0 && (
+          <div className="flex flex-col gap-2" aria-busy="true" aria-label={t('loading')}>
+            <Skeleton height={64} rounded={8} />
+            <Skeleton height={64} rounded={8} />
+          </div>
+        )}
+
+        {!loading && refunds.length === 0 && !error && (
+          <AdminEmptyState
+            icon={Banknote}
+            title={t('adminNoRefundsYet')}
+            compact
+          />
+        )}
+
+        {refunds.map((r) => (
+          <div
+            key={r.id}
+            className="p-3 rounded-lg flex flex-col gap-2"
+            style={{ background: 'var(--eco-surface)' }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <AdminId>R-{r.id}</AdminId>
+              <AdminStatusBadge status={r.status}>{r.status}</AdminStatusBadge>
+            </div>
+            <div className="text-[13px] tabular-nums" style={{ color: 'var(--eco-text)' }}>
+              <span className="whitespace-nowrap font-semibold">
+                {r.amount} {r.currency ?? ''}
+              </span>{' '}
+              {r.paymentTransactionId ? (
+                <span style={{ color: 'var(--eco-text-tertiary)' }}>
+                  · tx #{r.paymentTransactionId}
+                </span>
+              ) : null}
+            </div>
+            {r.reason && (
+              <div className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                {r.reason}
+              </div>
+            )}
+            {r.status === 'PENDING' && (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  loading={busyId === r.id}
+                  onClick={() => void handleSuccess(r.id)}
+                >
+                  <Check size={13} /> {t('adminMarkSuccess')}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  loading={busyId === r.id}
+                  onClick={() => void handleFail(r.id)}
+                >
+                  <X size={13} /> {t('adminMarkFailed')}
+                </Button>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
-
-      {error && (
-        <div className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
-          {error}
-        </div>
-      )}
-
-      {!loading && refunds.length === 0 && !error && (
-        <div className="text-[13px] text-center py-3" style={{ color: 'var(--eco-text-tertiary)' }}>
-          {tx('Возвратов нет.', 'Қайтарулар жоқ.', 'No refunds yet.')}
-        </div>
-      )}
-
-      {refunds.map((r) => (
-        <div
-          key={r.id}
-          className="p-3 rounded-lg flex flex-col gap-2"
-          style={{ background: 'var(--eco-surface)' }}
-        >
-          <div className="flex items-center justify-between">
-            <span
-              className="text-[12px]"
-              style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-            >
-              R-{r.id}
-            </span>
-            <Badge
-              variant={
-                r.status === 'SUCCESS' ? 'success' : r.status === 'FAILED' ? 'danger' : 'warning'
-              }
-            >
-              {r.status}
-            </Badge>
-          </div>
-          <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
-            {r.amount} {r.currency ?? ''}{' '}
-            {r.paymentTransactionId ? (
-              <span style={{ color: 'var(--eco-text-tertiary)' }}>
-                · tx #{r.paymentTransactionId}
-              </span>
-            ) : null}
-          </div>
-          {r.reason && (
-            <div className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
-              {r.reason}
-            </div>
-          )}
-          {r.status === 'PENDING' && (
-            <div className="flex gap-2">
-              <Button
-                variant="primary"
-                size="sm"
-                loading={busyId === r.id}
-                onClick={() => void handleSuccess(r.id)}
-              >
-                <Check size={13} /> {tx('Отметить успешным', 'Сәтті деп белгілеу', 'Mark success')}
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                loading={busyId === r.id}
-                onClick={() => void handleFail(r.id)}
-              >
-                <X size={13} /> {tx('Отметить неудачным', 'Сәтсіз деп белгілеу', 'Mark failed')}
-              </Button>
-            </div>
-          )}
-        </div>
-      ))}
-    </Card>
+    </AdminCard>
   );
 }

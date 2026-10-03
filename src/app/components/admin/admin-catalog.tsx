@@ -1,11 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AdminLayout } from './admin-layout';
-import { useI18n, type Language } from '../i18n-provider';
+import { useI18n } from '../i18n-provider';
 import { useAuth } from '../auth/auth-provider';
-import { Badge, Button, Card, Input, Modal, Select, Tabs } from '../ds-primitives';
+import { Badge, Button, Input, Modal, Select } from '../ds-primitives';
 import { FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
 import { LogoCropModal } from './logo-crop-modal';
-import { Image as ImageIcon, Pencil, Plus, RefreshCw, Trash2, Upload, X } from 'lucide-react';
+import { Image as ImageIcon, Layers, Pencil, Plus, RefreshCw, Trash2, Upload, X } from 'lucide-react';
+import {
+  AdminCard,
+  AdminConfirm,
+  AdminDataTable,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminId,
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminStatusBadge,
+  AdminTabs,
+  AdminToolbar,
+  type AdminColumn,
+} from './admin-ui';
 import { formatNumber } from '../../lib/datetime';
 import {
   adminCreateCategory,
@@ -34,8 +49,6 @@ import {
   type UpdateTariffPayload,
 } from '../../lib/api';
 
-const tx = (l: Language, ru: string, kz: string, en: string) =>
-  l === 'ru' ? ru : l === 'kz' ? kz : en;
 
 type CatalogTab = 'categories' | 'services' | 'tariffs';
 
@@ -43,14 +56,27 @@ const PROVIDER_TYPES = ['OPERATOR', 'ISP', 'DIGITAL'];
 const ACCESS_TYPES: ServiceAccessType[] = ['EMAIL', 'PHONE', 'BOTH'];
 const PERIOD_TYPES = ['MONTHLY', 'YEARLY', 'OTHER'];
 
-function providerTypeLabel(value: string, language: Language): string {
+function providerTypeLabel(value: string, t: (key: string) => string): string {
   switch (value) {
     case 'OPERATOR':
-      return tx(language, 'Мобильный оператор', 'Мобильді оператор', 'Mobile operator');
+      return t('adminMobileOperator');
     case 'ISP':
-      return tx(language, 'Интернет-провайдер', 'Интернет-провайдер', 'Internet provider');
+      return t('adminInternetProvider');
     case 'DIGITAL':
-      return tx(language, 'Цифровая подписка', 'Цифрлық жазылым', 'Digital subscription');
+      return t('adminDigitalSubscription');
+    default:
+      return value;
+  }
+}
+
+function periodTypeLabel(value: string, t: (key: string) => string): string {
+  switch (value) {
+    case 'MONTHLY':
+      return t('adminPeriodMonthly');
+    case 'YEARLY':
+      return t('adminPeriodYearly');
+    case 'OTHER':
+      return t('adminPeriodOther');
     default:
       return value;
   }
@@ -74,27 +100,23 @@ export function AdminCatalogPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-[1200px]">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
-            {t('adminCatalog')}
-          </h1>
-        </div>
-        <Tabs
+      <AdminPage width="wide">
+        <AdminPageHeader title={t('adminCatalog')} />
+        <AdminTabs<CatalogTab>
           active={tab}
-          onChange={(v) => setTab(v as CatalogTab)}
+          onChange={setTab}
           tabs={[
             { id: 'categories', label: t('catalogCategoriesTab') },
             { id: 'services', label: t('catalogServicesTab') },
             { id: 'tariffs', label: t('catalogTariffsTab') },
           ]}
         />
-        <div className="mt-6">
+        <div>
           {tab === 'categories' && <CategoriesSection />}
           {tab === 'services' && <ServicesSection />}
           {tab === 'tariffs' && <TariffsSection />}
         </div>
-      </div>
+      </AdminPage>
     </AdminLayout>
   );
 }
@@ -104,7 +126,7 @@ export function AdminCatalogPage() {
 // ────────────────────────────────────────────────────────────
 
 function CategoriesSection() {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const { authorizedRequest } = useAuth();
   const [items, setItems] = useState<AdminCategoryDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,158 +166,113 @@ function CategoriesSection() {
     }
   };
 
+  const columns: AdminColumn<AdminCategoryDto>[] = [
+    {
+      id: 'name',
+      header: t('catalogFieldName'),
+      priority: 'primary',
+      minWidth: 180,
+      cell: (c) => <span className="font-medium">{c.name}</span>,
+    },
+    {
+      id: 'status',
+      header: t('adminPricingColStatus'),
+      priority: 'primary',
+      nowrap: true,
+      cell: (c) => (
+        <AdminStatusBadge tone={c.isActive ? 'success' : 'default'}>
+          {c.isActive ? t('catalogActive') : t('catalogInactive')}
+        </AdminStatusBadge>
+      ),
+    },
+    {
+      id: 'id',
+      header: 'ID',
+      label: 'ID',
+      priority: 'secondary',
+      nowrap: true,
+      cell: (c) => <AdminId>C-{c.id}</AdminId>,
+    },
+    {
+      id: 'slug',
+      header: t('adminColSlug'),
+      nowrap: true,
+      cell: (c) => <code className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>{c.slug}</code>,
+    },
+    {
+      id: 'sort',
+      header: t('catalogFieldSortOrder'),
+      numeric: true,
+      cell: (c) => c.sortOrder,
+    },
+    {
+      id: 'services',
+      header: t('catalogServicesTab'),
+      numeric: true,
+      cell: (c) => c.servicesCount,
+    },
+    {
+      id: 'actions',
+      header: <span className="sr-only">{t('colActions')}</span>,
+      label: t('colActions'),
+      priority: 'actions',
+      align: 'right',
+      nowrap: true,
+      cell: (c) => (
+        <div className="inline-flex gap-1">
+          <Button variant="ghost" size="sm" onClick={() => setEditing(c)}>
+            <Pencil size={13} /> {t('catalogEdit')}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setDeleting(c)} disabled={!c.isActive}>
+            <Trash2 size={13} /> {t('catalogDelete')}
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-4">
       <FlashBanner flash={flash} />
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <AdminToolbar className="justify-between items-center">
         <span className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-          {tx(language, 'Включая неактивные', 'Белсенді еместерді қоса', 'Including inactive')}
+          {t('adminIncludingInactive')}
         </span>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-            <RefreshCw size={13} /> {t('retry')}
-          </Button>
+          <AdminRefreshButton onClick={() => void load()} loading={loading} />
           <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
             <Plus size={13} /> {t('catalogCreateCategory')}
           </Button>
         </div>
-      </div>
+      </AdminToolbar>
 
-      {error && (
-        <Card>
-          <span className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
-            {error}
-          </span>
-        </Card>
+      {error && !loading && items.length > 0 && (
+        <AdminErrorState inline message={error} onRetry={() => void load()} />
       )}
 
-      {loading ? (
-        <Card>
-          <span className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-            {t('loading')}
-          </span>
-        </Card>
-      ) : (
-        <Card className="p-0 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-[13px]">
-              <thead>
-                <tr style={{ background: 'var(--eco-surface)' }}>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    ID
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('catalogFieldName')}
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    Slug
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('catalogFieldSortOrder')}
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('catalogServicesTab')}
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {tx(language, 'Статус', 'Мәртебесі', 'Status')}
-                  </th>
-                  <th
-                    className="text-right px-4 py-3"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  ></th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((c) => (
-                  <tr key={c.id} style={{ borderTop: '1px solid var(--eco-border)' }}>
-                    <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                    >
-                      C-{c.id}
-                    </td>
-                    <td className="px-4 py-3" style={{ color: 'var(--eco-text)' }}>
-                      {c.name}
-                    </td>
-                    <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: 'var(--eco-text-secondary)', fontFamily: 'monospace' }}
-                    >
-                      {c.slug}
-                    </td>
-                    <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: 'var(--eco-text-secondary)' }}
-                    >
-                      {c.sortOrder}
-                    </td>
-                    <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: 'var(--eco-text-secondary)' }}
-                    >
-                      {c.servicesCount}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <Badge variant={c.isActive ? 'success' : 'default'}>
-                        {c.isActive ? t('catalogActive') : t('catalogInactive')}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <div className="inline-flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => setEditing(c)}>
-                          <Pencil size={12} /> {t('catalogEdit')}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleting(c)}
-                          disabled={!c.isActive}
-                        >
-                          <Trash2 size={12} /> {t('catalogDelete')}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {items.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="px-4 py-10 text-center text-[13px]"
-                      style={{ color: 'var(--eco-text-tertiary)' }}
-                    >
-                      {tx(
-                        language,
-                        'Категорий пока нет',
-                        'Әзірге санаттар жоқ',
-                        'No categories yet',
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+      <AdminDataTable
+        columns={columns}
+        rows={items}
+        rowKey={(c) => c.id}
+        loading={loading}
+        error={error}
+        onRetry={() => void load()}
+        minWidth={820}
+        empty={
+          <AdminCard>
+            <AdminEmptyState
+              icon={Layers}
+              title={t('adminNoCategoriesYet')}
+              description={t('adminCatalogEmptyHint')}
+              action={
+                <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
+                  <Plus size={13} /> {t('catalogCreateCategory')}
+                </Button>
+              }
+            />
+          </AdminCard>
+        }
+      />
 
       <CategoryFormModal
         open={creating || !!editing}
@@ -311,29 +288,21 @@ function CategoriesSection() {
         }}
       />
 
-      <Modal open={!!deleting} onClose={() => setDeleting(null)} title={t('catalogConfirmDelete')}>
-        <div className="flex flex-col gap-4">
-          <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-            {tx(
-              language,
-              'Категория будет деактивирована.',
-              'Санат өшіріледі.',
-              'The category will be deactivated.',
-            )}
-          </p>
-          {deleting && (
-            <div
-              className="p-3 rounded-lg text-[12px]"
-              style={{ background: 'var(--eco-surface)' }}
-            >
-              C-{deleting.id} · {deleting.name}
-            </div>
-          )}
-          <Button variant="destructive" onClick={() => void handleDelete()}>
-            {t('catalogDelete')}
-          </Button>
-        </div>
-      </Modal>
+      <AdminConfirm
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        title={t('catalogConfirmDelete')}
+        irreversible={false}
+        description={t('adminTheCategoryWillBeDeactivated')}
+        confirmLabel={t('catalogDelete')}
+        onConfirm={handleDelete}
+      >
+        {deleting && (
+          <div className="p-3 rounded-lg text-[12px]" style={{ background: 'var(--eco-surface)' }}>
+            C-{deleting.id} · {deleting.name}
+          </div>
+        )}
+      </AdminConfirm>
     </div>
   );
 }
@@ -414,7 +383,7 @@ function CategoryFormModal({
           onChange={(e) => setName(e.target.value)}
         />
         <Input
-          label="Slug"
+          label={t('adminColSlug')}
           hint={t('catalogFieldSlug')}
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
@@ -501,27 +470,107 @@ function ServicesSection() {
 
   const categoryOptions = useMemo(
     () => [
-      { value: 'ALL', label: tx(language, 'Все категории', 'Барлық санаттар', 'All categories') },
+      { value: 'ALL', label: t('adminAllCategories') },
       ...categories.map((c) => ({ value: String(c.id), label: c.name })),
     ],
     [categories, language],
   );
 
+  const columns: AdminColumn<AdminServiceDto>[] = [
+    {
+      id: 'name',
+      header: t('catalogFieldName'),
+      priority: 'primary',
+      minWidth: 180,
+      cell: (s) => (
+        <div className="min-w-0">
+          <div className="font-medium">{s.name}</div>
+          <code className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+            {s.slug}
+          </code>
+        </div>
+      ),
+    },
+    {
+      id: 'status',
+      header: t('adminPricingColStatus'),
+      priority: 'primary',
+      nowrap: true,
+      cell: (s) => (
+        <AdminStatusBadge tone={s.isActive ? 'success' : 'default'}>
+          {s.isActive ? t('catalogActive') : t('catalogInactive')}
+        </AdminStatusBadge>
+      ),
+    },
+    {
+      id: 'id',
+      header: 'ID',
+      priority: 'secondary',
+      nowrap: true,
+      cell: (s) => <AdminId>S-{s.id}</AdminId>,
+    },
+    {
+      id: 'category',
+      header: t('catalogCategoriesTab'),
+      nowrap: true,
+      cell: (s) => <span style={{ color: 'var(--eco-text-secondary)' }}>{s.categoryName}</span>,
+    },
+    {
+      id: 'provider',
+      header: t('catalogFieldProviderType'),
+      nowrap: true,
+      cell: (s) => <Badge variant="info">{providerTypeLabel(s.providerType, t)}</Badge>,
+    },
+    {
+      id: 'access',
+      header: t('adminServiceAccessType'),
+      nowrap: true,
+      cell: (s) => (
+        <span style={{ color: 'var(--eco-text-secondary)' }}>
+          {accessTypeLabel(s.accessType ?? 'EMAIL', t)}
+        </span>
+      ),
+    },
+    {
+      id: 'tariffs',
+      header: t('catalogTariffsTab'),
+      numeric: true,
+      cell: (s) => s.tariffsCount,
+    },
+    {
+      id: 'actions',
+      header: <span className="sr-only">{t('colActions')}</span>,
+      label: t('colActions'),
+      priority: 'actions',
+      align: 'right',
+      nowrap: true,
+      cell: (s) => (
+        <div className="inline-flex gap-1">
+          <Button variant="ghost" size="sm" onClick={() => setEditing(s)}>
+            <Pencil size={13} /> {t('catalogEdit')}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setDeleting(s)} disabled={!s.isActive}>
+            <Trash2 size={13} /> {t('catalogDelete')}
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-4">
       <FlashBanner flash={flash} />
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="w-full sm:w-64">
+      <AdminToolbar className="justify-between">
+        <div className="flex-[1_1_220px] min-w-0 max-w-[280px]">
           <Select
+            aria-label={t('catalogCategoriesTab')}
             value={filterCategoryId}
             onChange={(e) => setFilterCategoryId(e.target.value)}
             options={categoryOptions}
           />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-            <RefreshCw size={13} /> {t('retry')}
-          </Button>
+          <AdminRefreshButton onClick={() => void load()} loading={loading} />
           <Button
             variant="primary"
             size="sm"
@@ -531,150 +580,30 @@ function ServicesSection() {
             <Plus size={13} /> {t('catalogCreateService')}
           </Button>
         </div>
-      </div>
+      </AdminToolbar>
 
-      {error && (
-        <Card>
-          <span className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
-            {error}
-          </span>
-        </Card>
+      {error && !loading && items.length > 0 && (
+        <AdminErrorState inline message={error} onRetry={() => void load()} />
       )}
 
-      {loading ? (
-        <Card>
-          <span className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-            {t('loading')}
-          </span>
-        </Card>
-      ) : (
-        <Card className="p-0 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-[13px]">
-              <thead>
-                <tr style={{ background: 'var(--eco-surface)' }}>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    ID
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('catalogFieldName')}
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('catalogCategoriesTab')}
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('catalogFieldProviderType')}
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('adminServiceAccessType')}
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('catalogTariffsTab')}
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {tx(language, 'Статус', 'Мәртебесі', 'Status')}
-                  </th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((s) => (
-                  <tr key={s.id} style={{ borderTop: '1px solid var(--eco-border)' }}>
-                    <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                    >
-                      S-{s.id}
-                    </td>
-                    <td className="px-4 py-3" style={{ color: 'var(--eco-text)' }}>
-                      {s.name}
-                      <div
-                        className="text-[11px]"
-                        style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                      >
-                        {s.slug}
-                      </div>
-                    </td>
-                    <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: 'var(--eco-text-secondary)' }}
-                    >
-                      {s.categoryName}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <Badge variant="info">{s.providerType}</Badge>
-                    </td>
-                    <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: 'var(--eco-text-secondary)' }}
-                    >
-                      {accessTypeLabel(s.accessType ?? 'EMAIL', t)}
-                    </td>
-                    <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: 'var(--eco-text-secondary)' }}
-                    >
-                      {s.tariffsCount}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <Badge variant={s.isActive ? 'success' : 'default'}>
-                        {s.isActive ? t('catalogActive') : t('catalogInactive')}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <div className="inline-flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => setEditing(s)}>
-                          <Pencil size={12} /> {t('catalogEdit')}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleting(s)}
-                          disabled={!s.isActive}
-                        >
-                          <Trash2 size={12} /> {t('catalogDelete')}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {items.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="px-4 py-10 text-center text-[13px]"
-                      style={{ color: 'var(--eco-text-tertiary)' }}
-                    >
-                      {tx(language, 'Сервисов пока нет', 'Әзірге сервистер жоқ', 'No services yet')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+      <AdminDataTable
+        columns={columns}
+        rows={items}
+        rowKey={(s) => s.id}
+        loading={loading}
+        error={error}
+        onRetry={() => void load()}
+        minWidth={900}
+        empty={
+          <AdminCard>
+            <AdminEmptyState
+              icon={Layers}
+              title={t('adminNoServicesYet')}
+              description={t('adminCatalogEmptyHint')}
+            />
+          </AdminCard>
+        }
+      />
 
       <ServiceFormModal
         open={creating || !!editing}
@@ -691,29 +620,21 @@ function ServicesSection() {
         }}
       />
 
-      <Modal open={!!deleting} onClose={() => setDeleting(null)} title={t('catalogConfirmDelete')}>
-        <div className="flex flex-col gap-4">
-          <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-            {tx(
-              language,
-              'Сервис будет деактивирован.',
-              'Сервис өшіріледі.',
-              'The service will be deactivated.',
-            )}
-          </p>
-          {deleting && (
-            <div
-              className="p-3 rounded-lg text-[12px]"
-              style={{ background: 'var(--eco-surface)' }}
-            >
-              S-{deleting.id} · {deleting.name}
-            </div>
-          )}
-          <Button variant="destructive" onClick={() => void handleDelete()}>
-            {t('catalogDelete')}
-          </Button>
-        </div>
-      </Modal>
+      <AdminConfirm
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        title={t('catalogConfirmDelete')}
+        irreversible={false}
+        description={t('adminTheServiceWillBeDeactivated')}
+        confirmLabel={t('catalogDelete')}
+        onConfirm={handleDelete}
+      >
+        {deleting && (
+          <div className="p-3 rounded-lg text-[12px]" style={{ background: 'var(--eco-surface)' }}>
+            S-{deleting.id} · {deleting.name}
+          </div>
+        )}
+      </AdminConfirm>
     </div>
   );
 }
@@ -736,7 +657,7 @@ function ServiceFormModal({
   onClose: () => void;
   onSaved: (saved: AdminServiceDto) => void;
 }) {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const { authorizedRequest } = useAuth();
   const [categoryId, setCategoryId] = useState<string>('');
   const [name, setName] = useState('');
@@ -942,7 +863,7 @@ function ServiceFormModal({
           onChange={(e) => setName(e.target.value)}
         />
         <Input
-          label="Slug"
+          label={t('adminColSlug')}
           hint={t('catalogFieldSlug')}
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
@@ -951,7 +872,7 @@ function ServiceFormModal({
           label={t('catalogFieldProviderType')}
           value={providerType}
           onChange={(e) => setProviderType(e.target.value)}
-          options={PROVIDER_TYPES.map((p) => ({ value: p, label: providerTypeLabel(p, language) }))}
+          options={PROVIDER_TYPES.map((p) => ({ value: p, label: providerTypeLabel(p, t) }))}
         />
         <Select
           label={t('adminServiceAccessType')}
@@ -1026,7 +947,7 @@ function ServiceFormModal({
                   </Button>
                 )}
               </div>
-              <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+              <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                 {current ? t('catalogLogoHint') : t('catalogLogoAtCreateHint')}
               </span>
             </div>
@@ -1058,7 +979,7 @@ function ServiceFormModal({
 // ────────────────────────────────────────────────────────────
 
 function TariffsSection() {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const { authorizedRequest } = useAuth();
   const [services, setServices] = useState<AdminServiceDto[]>([]);
   const [serviceId, setServiceId] = useState<string>('');
@@ -1117,11 +1038,92 @@ function TariffsSection() {
     }
   };
 
+  const columns: AdminColumn<AdminTariffDto>[] = [
+    {
+      id: 'name',
+      header: t('catalogFieldName'),
+      priority: 'primary',
+      minWidth: 180,
+      cell: (tariff) => <span className="font-medium">{tariff.name}</span>,
+    },
+    {
+      id: 'status',
+      header: t('adminPricingColStatus'),
+      priority: 'primary',
+      nowrap: true,
+      cell: (tariff) => (
+        <AdminStatusBadge tone={tariff.isActive ? 'success' : 'default'}>
+          {tariff.isActive ? t('catalogActive') : t('catalogInactive')}
+        </AdminStatusBadge>
+      ),
+    },
+    {
+      id: 'id',
+      header: 'ID',
+      priority: 'secondary',
+      nowrap: true,
+      cell: (tariff) => <AdminId>T-{tariff.id}</AdminId>,
+    },
+    {
+      id: 'period',
+      header: t('catalogFieldPeriodType'),
+      nowrap: true,
+      cell: (tariff) => (
+        <span style={{ color: 'var(--eco-text-secondary)' }}>
+          {periodTypeLabel(tariff.periodType, t)}
+        </span>
+      ),
+    },
+    {
+      id: 'members',
+      header: t('catalogFieldMaxMembers'),
+      numeric: true,
+      cell: (tariff) => tariff.maxMembers,
+    },
+    {
+      id: 'price',
+      header: t('catalogFieldBasePrice'),
+      numeric: true,
+      cell: (tariff) => (
+        <span className="font-medium">{formatNumber(Number(tariff.basePriceTotal))}</span>
+      ),
+    },
+    {
+      id: 'currency',
+      header: t('catalogFieldCurrency'),
+      nowrap: true,
+      cell: (tariff) => <span style={{ color: 'var(--eco-text-secondary)' }}>{tariff.currency}</span>,
+    },
+    {
+      id: 'actions',
+      header: <span className="sr-only">{t('colActions')}</span>,
+      label: t('colActions'),
+      priority: 'actions',
+      align: 'right',
+      nowrap: true,
+      cell: (tariff) => (
+        <div className="inline-flex gap-1">
+          <Button variant="ghost" size="sm" onClick={() => setEditing(tariff)}>
+            <Pencil size={13} /> {t('catalogEdit')}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setDeleting(tariff)}
+            disabled={!tariff.isActive}
+          >
+            <Trash2 size={13} /> {t('catalogDelete')}
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-4">
       <FlashBanner flash={flash} />
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div className="w-full sm:w-72">
+      <AdminToolbar className="justify-between">
+        <div className="flex-[1_1_240px] min-w-0 max-w-[320px]">
           <Select
             label={t('catalogPickService')}
             value={serviceId}
@@ -1139,7 +1141,8 @@ function TariffsSection() {
             onClick={() => void load()}
             disabled={loading || !serviceId}
           >
-            <RefreshCw size={13} /> {t('retry')}
+            <RefreshCw size={13} className={loading ? 'animate-spin' : undefined} />{' '}
+            {t('adminRefresh')}
           </Button>
           <Button
             variant="primary"
@@ -1150,147 +1153,30 @@ function TariffsSection() {
             <Plus size={13} /> {t('catalogCreateTariff')}
           </Button>
         </div>
-      </div>
+      </AdminToolbar>
 
-      {error && (
-        <Card>
-          <span className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
-            {error}
-          </span>
-        </Card>
+      {error && !loading && items.length > 0 && (
+        <AdminErrorState inline message={error} onRetry={() => void load()} />
       )}
 
-      {loading ? (
-        <Card>
-          <span className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-            {t('loading')}
-          </span>
-        </Card>
-      ) : (
-        <Card className="p-0 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-[13px]">
-              <thead>
-                <tr style={{ background: 'var(--eco-surface)' }}>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    ID
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('catalogFieldName')}
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('catalogFieldPeriodType')}
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('catalogFieldMaxMembers')}
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('catalogFieldBasePrice')}
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('catalogFieldCurrency')}
-                  </th>
-                  <th
-                    className="text-left px-4 py-3 whitespace-nowrap"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {tx(language, 'Статус', 'Мәртебесі', 'Status')}
-                  </th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((tariff) => (
-                  <tr key={tariff.id} style={{ borderTop: '1px solid var(--eco-border)' }}>
-                    <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                    >
-                      T-{tariff.id}
-                    </td>
-                    <td className="px-4 py-3" style={{ color: 'var(--eco-text)' }}>
-                      {tariff.name}
-                    </td>
-                    <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: 'var(--eco-text-secondary)' }}
-                    >
-                      {tariff.periodType}
-                    </td>
-                    <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: 'var(--eco-text-secondary)' }}
-                    >
-                      {tariff.maxMembers}
-                    </td>
-                    <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: 'var(--eco-text-secondary)' }}
-                    >
-                      {formatNumber(Number(tariff.basePriceTotal))}
-                    </td>
-                    <td
-                      className="px-4 py-3 whitespace-nowrap"
-                      style={{ color: 'var(--eco-text-secondary)' }}
-                    >
-                      {tariff.currency}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <Badge variant={tariff.isActive ? 'success' : 'default'}>
-                        {tariff.isActive ? t('catalogActive') : t('catalogInactive')}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <div className="inline-flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => setEditing(tariff)}>
-                          <Pencil size={12} /> {t('catalogEdit')}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleting(tariff)}
-                          disabled={!tariff.isActive}
-                        >
-                          <Trash2 size={12} /> {t('catalogDelete')}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {items.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="px-4 py-10 text-center text-[13px]"
-                      style={{ color: 'var(--eco-text-tertiary)' }}
-                    >
-                      {tx(language, 'Тарифов пока нет', 'Әзірге тарифтер жоқ', 'No tariffs yet')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+      <AdminDataTable
+        columns={columns}
+        rows={items}
+        rowKey={(tariff) => tariff.id}
+        loading={loading}
+        error={error}
+        onRetry={serviceId ? () => void load() : undefined}
+        minWidth={900}
+        empty={
+          <AdminCard>
+            <AdminEmptyState
+              icon={Layers}
+              title={t('adminNoTariffsYet')}
+              description={t('adminCatalogEmptyHint')}
+            />
+          </AdminCard>
+        }
+      />
 
       <TariffFormModal
         open={creating || !!editing}
@@ -1307,29 +1193,21 @@ function TariffsSection() {
         }}
       />
 
-      <Modal open={!!deleting} onClose={() => setDeleting(null)} title={t('catalogConfirmDelete')}>
-        <div className="flex flex-col gap-4">
-          <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-            {tx(
-              language,
-              'Тариф будет деактивирован.',
-              'Тариф өшіріледі.',
-              'The tariff will be deactivated.',
-            )}
-          </p>
-          {deleting && (
-            <div
-              className="p-3 rounded-lg text-[12px]"
-              style={{ background: 'var(--eco-surface)' }}
-            >
-              T-{deleting.id} · {deleting.name}
-            </div>
-          )}
-          <Button variant="destructive" onClick={() => void handleDelete()}>
-            {t('catalogDelete')}
-          </Button>
-        </div>
-      </Modal>
+      <AdminConfirm
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        title={t('catalogConfirmDelete')}
+        irreversible={false}
+        description={t('adminTheTariffWillBeDeactivated')}
+        confirmLabel={t('catalogDelete')}
+        onConfirm={handleDelete}
+      >
+        {deleting && (
+          <div className="p-3 rounded-lg text-[12px]" style={{ background: 'var(--eco-surface)' }}>
+            T-{deleting.id} · {deleting.name}
+          </div>
+        )}
+      </AdminConfirm>
     </div>
   );
 }
@@ -1453,7 +1331,7 @@ function TariffFormModal({
           label={t('catalogFieldPeriodType')}
           value={periodType}
           onChange={(e) => setPeriodType(e.target.value)}
-          options={PERIOD_TYPES.map((p) => ({ value: p, label: p }))}
+          options={PERIOD_TYPES.map((p) => ({ value: p, label: periodTypeLabel(p, t) }))}
         />
         <Input
           label={t('catalogFieldMaxMembers')}
