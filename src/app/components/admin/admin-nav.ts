@@ -22,6 +22,16 @@ import type { UserRole } from '../../lib/api';
 
 export type StaffRole = Extract<UserRole, 'ADMIN' | 'SUPPORT'>;
 
+/** Sidebar section an entry is listed under. Presentation only. */
+export type AdminNavGroup = 'operations' | 'finance' | 'content' | 'system';
+
+export const ADMIN_NAV_GROUPS: readonly { id: AdminNavGroup; labelKey: string }[] = [
+  { id: 'operations', labelKey: 'adminNavGroupOperations' },
+  { id: 'finance', labelKey: 'adminNavGroupFinance' },
+  { id: 'content', labelKey: 'adminNavGroupContent' },
+  { id: 'system', labelKey: 'adminNavGroupSystem' },
+];
+
 export interface AdminNavItem {
   /** i18n key used for the link label. */
   labelKey: string;
@@ -36,6 +46,8 @@ export interface AdminNavItem {
    * GET /admin/dashboard/kpis. Renders as a sidebar badge when > 0.
    */
   badgeKpi?: 'pendingModeration' | 'openDisputes';
+  /** Sidebar section. */
+  group: AdminNavGroup;
 }
 
 /**
@@ -50,36 +62,38 @@ export interface AdminNavItem {
  * and are ADMIN-only.
  */
 export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
-  { labelKey: 'dashboard', path: '/admin/dashboard', icon: LayoutDashboard, roles: ['ADMIN'] },
+  { labelKey: 'dashboard', path: '/admin/dashboard', icon: LayoutDashboard, roles: ['ADMIN'], group: 'operations' },
   {
     labelKey: 'moderationQueue',
     path: '/admin/moderation',
     icon: ShieldCheck,
     roles: ['ADMIN'],
     badgeKpi: 'pendingModeration',
+    group: 'operations',
   },
-  { labelKey: 'rooms', path: '/admin/rooms', icon: Home, roles: ['ADMIN'] },
-  { labelKey: 'users', path: '/admin/users', icon: Users, roles: ['ADMIN'] },
-  { labelKey: 'adminCatalog', path: '/admin/catalog', icon: Layers, roles: ['ADMIN'] },
-  { labelKey: 'adminPricingNav', path: '/admin/pricing', icon: LineChart, roles: ['ADMIN'] },
-  { labelKey: 'adminServiceReviews', path: '/admin/service-reviews', icon: Star, roles: ['ADMIN'] },
-  { labelKey: 'tickets', path: '/admin/tickets', icon: MessageSquare, roles: ['ADMIN', 'SUPPORT'] },
-  { labelKey: 'adminFeedbackNav', path: '/admin/feedback', icon: Inbox, roles: ['ADMIN'] },
+  { labelKey: 'rooms', path: '/admin/rooms', icon: Home, roles: ['ADMIN'], group: 'operations' },
+  { labelKey: 'users', path: '/admin/users', icon: Users, roles: ['ADMIN'], group: 'operations' },
+  { labelKey: 'adminCatalog', path: '/admin/catalog', icon: Layers, roles: ['ADMIN'], group: 'content' },
+  { labelKey: 'adminPricingNav', path: '/admin/pricing', icon: LineChart, roles: ['ADMIN'], group: 'finance' },
+  { labelKey: 'adminServiceReviews', path: '/admin/service-reviews', icon: Star, roles: ['ADMIN'], group: 'content' },
+  { labelKey: 'tickets', path: '/admin/tickets', icon: MessageSquare, roles: ['ADMIN', 'SUPPORT'], group: 'operations' },
+  { labelKey: 'adminFeedbackNav', path: '/admin/feedback', icon: Inbox, roles: ['ADMIN'], group: 'operations' },
   {
     labelKey: 'disputes',
     path: '/admin/disputes',
     icon: Scale,
     roles: ['ADMIN'],
     badgeKpi: 'openDisputes',
+    group: 'operations',
   },
-  { labelKey: 'refunds', path: '/admin/refunds', icon: Undo2, roles: ['ADMIN'] },
-  { labelKey: 'adminFinanceNav', path: '/admin/finance', icon: Wallet, roles: ['ADMIN'] },
-  { labelKey: 'adminLogs', path: '/admin/logs', icon: FileText, roles: ['ADMIN'] },
-  { labelKey: 'adminAboutNav', path: '/admin/about', icon: Info, roles: ['ADMIN'] },
-  { labelKey: 'adminNewsNav', path: '/admin/news', icon: Newspaper, roles: ['ADMIN'] },
-  { labelKey: 'adminStoriesNav', path: '/admin/stories', icon: Sparkles, roles: ['ADMIN'] },
-  { labelKey: 'adminLegalNav', path: '/admin/legal', icon: ScrollText, roles: ['ADMIN'] },
-  { labelKey: 'adminBackToSite', path: '/', icon: ExternalLink, roles: ['ADMIN', 'SUPPORT'] },
+  { labelKey: 'refunds', path: '/admin/refunds', icon: Undo2, roles: ['ADMIN'], group: 'finance' },
+  { labelKey: 'adminFinanceNav', path: '/admin/finance', icon: Wallet, roles: ['ADMIN'], group: 'finance' },
+  { labelKey: 'adminLogs', path: '/admin/logs', icon: FileText, roles: ['ADMIN'], group: 'system' },
+  { labelKey: 'adminAboutNav', path: '/admin/about', icon: Info, roles: ['ADMIN'], group: 'content' },
+  { labelKey: 'adminNewsNav', path: '/admin/news', icon: Newspaper, roles: ['ADMIN'], group: 'content' },
+  { labelKey: 'adminStoriesNav', path: '/admin/stories', icon: Sparkles, roles: ['ADMIN'], group: 'content' },
+  { labelKey: 'adminLegalNav', path: '/admin/legal', icon: ScrollText, roles: ['ADMIN'], group: 'content' },
+  { labelKey: 'adminBackToSite', path: '/', icon: ExternalLink, roles: ['ADMIN', 'SUPPORT'], group: 'system' },
 ];
 
 export function findNavItem(pathname: string): AdminNavItem | undefined {

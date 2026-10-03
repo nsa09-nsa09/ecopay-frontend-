@@ -23,7 +23,12 @@ import {
   type AdminSearchResponse,
 } from '../../lib/api';
 import type { FriendlyApiErrorCode } from '../../lib/locale';
-import { ADMIN_NAV_ITEMS, defaultLandingForRole, isRoleAllowedFor } from './admin-nav';
+import {
+  ADMIN_NAV_GROUPS,
+  ADMIN_NAV_ITEMS,
+  defaultLandingForRole,
+  isRoleAllowedFor,
+} from './admin-nav';
 
 function translateSearchError(
   code: FriendlyApiErrorCode | null,
@@ -102,19 +107,20 @@ function AdminGlobalSearch({ variant, onResultPicked }: AdminGlobalSearchProps) 
     return () => controller.abort();
   }, [debounced, authorizedRequest]);
 
-  // Outside click closes the dropdown on desktop. The mobile overlay handles
-  // its own backdrop.
+  // Outside tap/click closes the dropdown on desktop. `pointerdown` fires
+  // consistently for mouse, pen and touch (mousedown is emulated late, or not
+  // at all, after a touch). The mobile overlay handles its own backdrop.
   useEffect(() => {
     if (variant !== 'desktop') return;
     if (!open) return;
-    const handle = (event: MouseEvent) => {
+    const handle = (event: PointerEvent) => {
       if (!containerRef.current) return;
       if (!containerRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
-    document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
+    document.addEventListener('pointerdown', handle);
+    return () => document.removeEventListener('pointerdown', handle);
   }, [open, variant]);
 
   // Esc closes the panel from anywhere.
@@ -293,7 +299,7 @@ function SearchGroup({
   return (
     <div className="border-b last:border-b-0" style={{ borderColor: 'var(--eco-border)' }}>
       <div
-        className="flex items-center gap-1.5 px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide"
+        className="flex items-center gap-1.5 px-4 pt-3 pb-1 text-[12px] uppercase tracking-wide"
         style={{ color: 'var(--eco-text-tertiary)' }}
       >
         <Icon size={12} /> {title}
@@ -323,7 +329,7 @@ function SearchResultRow({
       <div className="text-[13px] truncate" style={{ color: 'var(--eco-text)' }}>
         {primary}
       </div>
-      <div className="text-[11px] truncate" style={{ color: 'var(--eco-text-tertiary)' }}>
+      <div className="text-[12px] truncate" style={{ color: 'var(--eco-text-tertiary)' }}>
         {secondary}
       </div>
     </button>
@@ -339,8 +345,39 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [kpis, setKpis] = useState<AdminDashboardKpisDto | null>(null);
+  const profileRef = useRef<HTMLDivElement | null>(null);
 
   const role = user?.role;
+
+  // Profile menu: close on outside pointerdown (reliable for touch, unlike the
+  // old full-screen click catcher) and on Escape.
+  useEffect(() => {
+    if (!profileOpen) return;
+    const onPointer = (event: PointerEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setProfileOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [profileOpen]);
+
+  // Escape closes the mobile drawer.
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSidebarOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [sidebarOpen]);
 
   // KPI badges are admin-only data; SUPPORT must not hit the ADMIN-only endpoint.
   useEffect(() => {
@@ -383,6 +420,10 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   };
 
   const navItems = ADMIN_NAV_ITEMS.filter((item) => isRoleAllowedFor(item, role));
+  const navSections = ADMIN_NAV_GROUPS.map((group) => ({
+    ...group,
+    items: navItems.filter((item) => item.group === group.id),
+  })).filter((section) => section.items.length > 0);
 
   const landingPath = defaultLandingForRole(role);
 
@@ -424,47 +465,55 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 py-3 px-2 flex flex-col gap-0.5 overflow-y-auto">
-          {navItems.map((item) => {
-            const active =
-              location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-            const Icon = item.icon;
-            const badgeValue = item.badgeKpi && kpis ? Number(kpis[item.badgeKpi] ?? 0) : 0;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setSidebarOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-colors"
-                style={{
-                  color: active ? 'var(--eco-primary)' : 'var(--eco-text-secondary)',
-                  background: active ? 'var(--eco-brand-50)' : 'transparent',
-                  textDecoration: 'none',
-                }}
-              >
-                <Icon size={16} />
-                {t(item.labelKey)}
-                {badgeValue > 0 && (
-                  <span
-                    className="ml-auto text-[11px] px-1.5 py-0.5 rounded-full"
-                    style={{ background: 'var(--eco-danger-100)', color: 'var(--eco-danger-500)' }}
-                  >
-                    {badgeValue}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Footer */}
-        <div
-          className="px-3 py-3 border-t text-[12px]"
-          style={{ borderColor: 'var(--eco-border)', color: 'var(--eco-text-tertiary)' }}
+        {/* Nav — grouped into labelled sections; role filtering unchanged. */}
+        <nav
+          className="flex-1 py-3 px-2 flex flex-col gap-4 overflow-y-auto"
+          aria-label={t('adminPortal')}
         >
-          v1.0.0
-        </div>
+          {navSections.map((section) => (
+            <div key={section.id} className="flex flex-col gap-0.5">
+              <div
+                className="px-3 pb-1 text-[12px] font-medium"
+                style={{ color: 'var(--eco-text-tertiary)' }}
+              >
+                {t(section.labelKey)}
+              </div>
+              {section.items.map((item) => {
+                const active =
+                  location.pathname === item.path ||
+                  location.pathname.startsWith(item.path + '/');
+                const Icon = item.icon;
+                const badgeValue =
+                  item.badgeKpi && kpis ? Number(kpis[item.badgeKpi] ?? 0) : 0;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setSidebarOpen(false)}
+                    aria-current={active ? 'page' : undefined}
+                    className="eco-admin-nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px]"
+                  >
+                    <Icon size={16} aria-hidden className="shrink-0" />
+                    <span className="truncate">{t(item.labelKey)}</span>
+                    {badgeValue > 0 && (
+                      <span
+                        className="ml-auto text-[12px] leading-4 px-1.5 py-0.5 rounded-full tabular-nums"
+                        style={{
+                          background: 'var(--eco-danger-100)',
+                          color: 'var(--eco-danger-500)',
+                        }}
+                      >
+                        {badgeValue}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+        {/* No sidebar footer: the build does not expose a version via
+            import.meta.env, and a hardcoded number would be wrong. */}
       </aside>
 
       {/* Main area */}
@@ -519,8 +568,11 @@ export function AdminLayout({ children }: { children: ReactNode }) {
             </button>
 
             {/* Profile */}
-            <div className="relative">
+            <div className="relative" ref={profileRef}>
               <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={profileOpen}
                 onClick={() => setProfileOpen(!profileOpen)}
                 className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg cursor-pointer"
                 style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
@@ -541,20 +593,20 @@ export function AdminLayout({ children }: { children: ReactNode }) {
               </button>
               {profileOpen && (
                 <>
-                  <div className="fixed inset-0" onClick={() => setProfileOpen(false)} />
                   <div
-                    className="absolute right-0 top-10 w-48 rounded-xl p-1 shadow-lg z-50"
+                    role="menu"
+                    className="absolute right-0 top-10 w-56 max-w-[calc(100vw-2rem)] rounded-xl p-1 shadow-lg z-50"
                     style={{ background: 'var(--eco-bg)', border: '1px solid var(--eco-border)' }}
                   >
                     <div
-                      className="px-3 py-2 text-[12px]"
+                      className="px-3 py-2 text-[12px] break-all"
                       style={{ color: 'var(--eco-text-tertiary)' }}
                     >
                       {user?.email ?? ''}
                     </div>
                     {role && (
                       <div
-                        className="px-3 pb-2 text-[11px]"
+                        className="px-3 pb-2 text-[12px]"
                         style={{ color: 'var(--eco-text-tertiary)' }}
                       >
                         {role}
@@ -562,6 +614,8 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                     )}
                     <div className="border-t my-1" style={{ borderColor: 'var(--eco-border)' }} />
                     <button
+                      type="button"
+                      role="menuitem"
                       onClick={() => {
                         setProfileOpen(false);
                         void handleSignOut();

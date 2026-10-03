@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Card, Button, RoomStatusBadge } from '../ds-primitives';
+import { Button, RoomStatusBadge } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n } from '../i18n-provider';
 import { useAuth } from '../auth/auth-provider';
@@ -10,10 +10,22 @@ import {
   getAdminRoomsRequest,
   type RoomSummaryDto,
 } from '../../lib/api';
-import { ShieldX, ShieldCheck, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShieldX, ShieldCheck, Home, MousePointerClick } from 'lucide-react';
 import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
 import { AdminRoomSettingsCard } from './admin-room-settings-card';
 import { formatNumber } from '../../lib/datetime';
+import {
+  AdminCard,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminField,
+  AdminId,
+  AdminListSkeleton,
+  AdminPage,
+  AdminPageHeader,
+  AdminPagination,
+  AdminRefreshButton,
+} from './admin-ui';
 
 const PAGE_SIZE = 20;
 
@@ -120,15 +132,11 @@ export function AdminRoomsPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-[1100px]">
-        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
-          <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
-            {t('rooms')}
-          </h1>
-          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-            <RefreshCw size={13} /> {t('retry')}
-          </Button>
-        </div>
+      <AdminPage>
+        <AdminPageHeader
+          title={t('rooms')}
+          actions={<AdminRefreshButton onClick={() => void load()} loading={loading} />}
+        />
 
         <FlashBanner flash={flash} />
 
@@ -137,160 +145,81 @@ export function AdminRoomsPage() {
           onError={(message) => showFlash('error', message)}
         />
 
-        {error && !loading && (
-          <Card className="flex flex-col gap-2 mb-4">
-            <div className="text-[14px]" style={{ color: 'var(--eco-negative)' }}>
-              {t('loadFailedTitle')}
-            </div>
-            <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {error}
-            </div>
-            <Button variant="primary" size="sm" onClick={() => void load()}>
-              <RefreshCw size={13} /> {t('retry')}
-            </Button>
-          </Card>
+        {error && !loading && items.length > 0 && (
+          <AdminErrorState inline message={error} onRetry={() => void load()} />
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 flex flex-col gap-2">
-            {loading && items.length === 0 && (
-              <>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-xl"
-                    style={{
-                      background: 'var(--eco-surface-raised)',
-                      border: '1px solid var(--eco-border)',
-                      minHeight: 80,
-                    }}
-                  />
-                ))}
-              </>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-1 flex flex-col gap-2 min-w-0">
+            {loading && items.length === 0 && <AdminListSkeleton rows={5} height={80} />}
+            {!loading && error && items.length === 0 && (
+              <AdminCard>
+                <AdminErrorState message={error} onRetry={() => void load()} />
+              </AdminCard>
             )}
-            {!loading && items.length === 0 && (
-              <Card
-                className="text-center text-[13px]"
-                style={{ color: 'var(--eco-text-tertiary)' }}
-              >
-                {t('emptyRooms')}
-              </Card>
+            {!loading && !error && items.length === 0 && (
+              <AdminCard>
+                <AdminEmptyState
+                  icon={Home}
+                  title={t('emptyRooms')}
+                  description={t('adminRoomsEmptyHint')}
+                  compact
+                />
+              </AdminCard>
             )}
             {items.map((r) => {
               const active = String(selectedId) === String(r.id);
               return (
                 <button
                   key={r.id}
+                  type="button"
                   onClick={() => setSelectedId(r.id)}
-                  className="text-left p-4 rounded-xl transition-all cursor-pointer"
-                  style={{
-                    background: active ? 'var(--eco-brand-50)' : 'var(--eco-surface-raised)',
-                    border: `1px solid ${active ? 'var(--eco-primary)' : 'var(--eco-border)'}`,
-                  }}
+                  aria-pressed={active}
+                  className={`eco-admin-record is-clickable text-left px-4 py-3 rounded-xl ${active ? 'is-active' : ''}`}
+                  style={{ minHeight: 80 }}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span
-                      className="text-[12px]"
-                      style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                    >
-                      R-{r.id}
-                    </span>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <AdminId>R-{r.id}</AdminId>
                     <RoomStatusBadge status={r.status} />
                   </div>
-                  <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+                  <div
+                    className="text-[13px] font-semibold break-words"
+                    style={{ color: 'var(--eco-text)' }}
+                  >
                     {r.title}
                   </div>
-                  <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                    {r.serviceName} · {r.maxMembers} {t('seatsLower')}
+                  <div className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                    {r.serviceName} · <span className="tabular-nums">{r.maxMembers}</span>{' '}
+                    {t('seatsLower')}
                   </div>
                 </button>
               );
             })}
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-2 text-[12px]">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={page <= 0 || loading}
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                >
-                  <ChevronLeft size={12} /> {t('prevPage')}
-                </Button>
-                <span style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {t('pageOf', { page: page + 1, total: totalPages })}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={page >= totalPages - 1 || loading}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  {t('nextPage')} <ChevronRight size={12} />
-                </Button>
-              </div>
-            )}
+            <AdminPagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              disabled={loading}
+            />
           </div>
 
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 min-w-0">
             {!selected ? (
-              <Card
-                className="flex items-center justify-center py-16 text-[14px]"
-                style={{ color: 'var(--eco-text-tertiary)' }}
-              >
-                {t('selectRoomToView')}
-              </Card>
+              <AdminCard>
+                <AdminEmptyState icon={MousePointerClick} title={t('selectRoomToView')} />
+              </AdminCard>
             ) : (
-              <div className="flex flex-col gap-4">
-                <Card className="flex flex-col gap-3">
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div className="min-w-0">
-                      <div className="text-[18px] break-words" style={{ color: 'var(--eco-text)' }}>
-                        {selected.title}
-                      </div>
-                      <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                        R-{selected.id} · {selected.serviceName}
-                      </div>
-                    </div>
-                    <RoomStatusBadge status={selected.status} />
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[13px]">
-                    {[
-                      { label: t('seats'), value: `${selected.maxMembers}` },
-                      { label: t('startLabel'), value: selected.startDate },
-                      {
-                        label: t('totalCost'),
-                        value: `₸${formatNumber(selected.priceTotal ?? 0)}`,
-                      },
-                    ].map((s) => (
-                      <div key={s.label}>
-                        <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                          {s.label}
-                        </div>
-                        <div style={{ color: 'var(--eco-text)' }}>{s.value}</div>
-                      </div>
-                    ))}
-                    <div>
-                      <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                        {t('owner')}
-                      </div>
-                      <div style={{ color: 'var(--eco-text)' }}>
-                        {selected.ownerUserId ? (
-                          <Link
-                            to={`/admin/users?selected=${selected.ownerUserId}`}
-                            style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
-                          >
-                            {selected.ownerDisplayName ?? `#${selected.ownerUserId}`}
-                          </Link>
-                        ) : (
-                          (selected.ownerDisplayName ?? `#${selected.ownerUserId}`)
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
+              <AdminCard
+                title={<span className="break-words">{selected.title}</span>}
+                description={
+                  <>
+                    R-{selected.id} · {selected.serviceName}
+                  </>
+                }
+                actions={<RoomStatusBadge status={selected.status} />}
+                footer={
+                  <>
                     {selected.status !== 'BLOCKED' && (
                       <Button
                         variant="destructive"
@@ -309,9 +238,35 @@ export function AdminRoomsPage() {
                         <ShieldCheck size={13} /> {t('unblockRoom')}
                       </Button>
                     )}
-                  </div>
-                </Card>
-              </div>
+                  </>
+                }
+              >
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <AdminField label={t('seats')} numeric>
+                    {selected.maxMembers}
+                  </AdminField>
+                  <AdminField label={t('startLabel')} numeric>
+                    {selected.startDate}
+                  </AdminField>
+                  <AdminField label={t('totalCost')} numeric>
+                    <span className="whitespace-nowrap">
+                      ₸{formatNumber(selected.priceTotal ?? 0)}
+                    </span>
+                  </AdminField>
+                  <AdminField label={t('owner')}>
+                    {selected.ownerUserId ? (
+                      <Link
+                        to={`/admin/users?selected=${selected.ownerUserId}`}
+                        style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+                      >
+                        {selected.ownerDisplayName ?? `#${selected.ownerUserId}`}
+                      </Link>
+                    ) : (
+                      (selected.ownerDisplayName ?? `#${selected.ownerUserId}`)
+                    )}
+                  </AdminField>
+                </div>
+              </AdminCard>
             )}
           </div>
         </div>
@@ -340,7 +295,7 @@ export function AdminRoomsPage() {
           errorMessage={unblockError}
           onConfirm={submitUnblock}
         />
-      </div>
+      </AdminPage>
     </AdminLayout>
   );
 }
