@@ -255,6 +255,7 @@ export function AppLayout() {
   const [heldBalance, setHeldBalance] = useState<PayoutBalanceDto | null>(null);
   const location = useLocation();
   const lastTrackedPath = useRef<string | null>(null);
+  const visitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep a small balance summary in the global header so owners can see their
   // currently held money and jump directly to the payout details page.
@@ -277,17 +278,34 @@ export function AppLayout() {
     };
   }, [authorizedRequest, isAuthenticated, isReady]);
 
-  // Fire-and-forget analytics ping for every route change. The backend
-  // sets a cookie to dedupe unique guests; we just keep the client side
-  // cheap and noiseless. We track per pathname (not search/hash) and skip
-  // duplicates so React StrictMode double-render in dev doesn't spam.
+  // Fire-and-forget analytics ping for route changes. The backend cookies the
+  // guest to dedupe uniques; the client just keeps it cheap and noiseless.
+  //
+  // Hard rules:
+  //  - Report only the pathname, with any query/hash stripped, so sensitive
+  //    correlation ids (reset tokens, payment intent ids) are never reported.
+  //  - Debounce + coalesce bursts: fast menu clicking through several routes
+  //    produces a single write for the path the user settles on, not one per
+  //    click. Each navigation cancels the previously queued ping.
+  //  - Never block navigation, never retry — failures are swallowed.
   useEffect(() => {
-    const path = location.pathname;
+    // Strip query/hash defensively (location.pathname already excludes them).
+    const path = location.pathname.split('?')[0].split('#')[0];
+    if (visitTimer.current) clearTimeout(visitTimer.current);
     if (lastTrackedPath.current === path) return;
-    lastTrackedPath.current = path;
-    void trackVisitRequest(path).catch(() => {
-      // Swallow — analytics must never break the UI.
-    });
+    visitTimer.current = setTimeout(() => {
+      visitTimer.current = null;
+      lastTrackedPath.current = path;
+      void trackVisitRequest(path).catch(() => {
+        // Swallow — analytics must never break the UI.
+      });
+    }, 600);
+    return () => {
+      if (visitTimer.current) {
+        clearTimeout(visitTimer.current);
+        visitTimer.current = null;
+      }
+    };
   }, [location.pathname]);
 
   // Auto-close the mobile search overlay on navigation.

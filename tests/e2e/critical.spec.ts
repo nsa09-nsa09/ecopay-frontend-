@@ -974,10 +974,47 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
     }
     if (path.includes('/admin/finance/transactions')) {
       return body({
-        items: [],
+        items: [
+          {
+            id: 9001,
+            publicId: 'T-9001',
+            createdAt: '2026-09-05T10:00:00Z',
+            status: 'CAPTURE_ANOMALY',
+            amount: 2500,
+            currency: 'KZT',
+            roomId: 303,
+            roomTitle: 'Microsoft 365 Family',
+            payerUserId: 10,
+            payerDisplayName: 'Member',
+            providerName: 'FreedomPay',
+            providerReference: 'fp-ref-1',
+            cardPanMask: '•••• 1234',
+            safeErrorReason: null,
+            failureMessage: null,
+            reason: null,
+          },
+          {
+            id: 9002,
+            publicId: 'T-9002',
+            createdAt: '2026-09-04T10:00:00Z',
+            status: 'SUCCESS',
+            amount: 4000,
+            currency: 'KZT',
+            roomId: 304,
+            roomTitle: 'Spotify Duo',
+            payerUserId: 11,
+            payerDisplayName: 'Member Two',
+            providerName: 'FreedomPay',
+            providerReference: 'fp-ref-2',
+            cardPanMask: '•••• 5678',
+            safeErrorReason: null,
+            failureMessage: null,
+            reason: null,
+          },
+        ],
         page: 0,
         size: 20,
-        totalItems: 0,
+        totalItems: 2,
         totalPages: 1,
         hasNext: false,
         hasPrevious: false,
@@ -1142,7 +1179,7 @@ test('registration is email-only and opens email code confirmation', async ({ pa
   await expect(page.getByPlaceholder(/phone/i)).toHaveCount(0);
 });
 
-test('login submits email only and never offers phone auth', async ({ page }) => {
+test('login submits email only and never offers phone auth @critical', async ({ page }) => {
   const api = await mockApi(page);
 
   await page.goto('/login');
@@ -1382,7 +1419,7 @@ test('freeSeats zero disables concrete room join', async ({ page }) => {
   await expect(join).toBeDisabled();
 });
 
-test('ROOM_FULL join race rematches once and shows the normal no-spots state', async ({ page }) => {
+test('ROOM_FULL join race rematches once and shows the normal no-spots state @critical', async ({ page }) => {
   const api = await mockApi(page);
   api.joinFullOnce = true;
   api.matchResult = { action: 'CREATE', roomId: null };
@@ -1564,7 +1601,7 @@ test('room payment CTA shows KZT settlement breakdown without raw status leaks',
   await expect(page.getByText('APPLIED')).toHaveCount(0);
 });
 
-test('payment return success and unknown states are distinct', async ({ page }) => {
+test('payment return success and unknown states are distinct @critical', async ({ page }) => {
   await mockApi(page);
   await seedSession(page);
 
@@ -1574,7 +1611,7 @@ test('payment return success and unknown states are distinct', async ({ page }) 
   await expect(page.getByText('Do not pay again.')).toBeVisible();
 });
 
-test('payment history normalizes DEBIT/CREDIT and keeps technical IDs in details', async ({
+test('payment history normalizes DEBIT/CREDIT and keeps technical IDs in details @critical', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -1639,7 +1676,7 @@ test('support list uses subject-first rows without horizontal overflow or raw co
   ).toBeTruthy();
 });
 
-test('delete account requires two confirmations and calls DELETE once', async ({ page }) => {
+test('delete account requires two confirmations and calls DELETE once @critical', async ({ page }) => {
   const api = await mockApi(page);
   await seedSession(page);
   await page.goto('/profile');
@@ -1746,7 +1783,22 @@ test('admin finance operations opens for admin', async ({ page }) => {
   await seedSession(page, 'ADMIN');
 
   await page.goto('/admin/finance');
-  await expect(page.getByRole('button', { name: 'PAYMENT REVIEW' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Payment review' })).toBeVisible();
+});
+
+test('admin finance localizes operational statuses and never shows raw enums @critical', async ({ page }) => {
+  await mockApi(page, 'ADMIN');
+  await seedSession(page, 'ADMIN');
+
+  await page.goto('/admin/finance');
+  // CAPTURE_ANOMALY must be distinguishable and human-readable, not a raw enum.
+  await expect(page.getByText('Payment under additional review')).toBeVisible();
+  await expect(page.getByText('CAPTURE_ANOMALY')).toHaveCount(0);
+  await expect(page.getByText('SUCCESS', { exact: true })).toHaveCount(0);
+  // The status filter exposes localized options, not raw enum values.
+  await expect(page.getByRole('option', { name: 'Partially refunded' })).toHaveCount(1);
+  await expect(page.getByRole('option', { name: 'Fully refunded' })).toHaveCount(1);
+  await expect(page.locator('option', { hasText: 'REFUNDED_PARTIAL' })).toHaveCount(0);
 });
 
 test('admin room setting loads and saves the PATCH contract without reloading', async ({

@@ -313,10 +313,37 @@ function ErrorFallback() {
       : lang === 'en'
         ? 'Please try again or go back.'
         : 'Попробуйте ещё раз или вернитесь назад.';
+  const retryLabel =
+    lang === 'kz' ? 'Қайта жүктеу' : lang === 'en' ? 'Reload' : 'Перезагрузить';
+  // A reload re-attempts the failed dynamic import (chunk-load errors otherwise
+  // leave the router stuck on this boundary with no way forward).
+  const retry = () => {
+    try {
+      window.location.reload();
+    } catch {
+      /* no-op */
+    }
+  };
   return (
     <div style={{ padding: 40, textAlign: 'center', color: 'var(--eco-text)' }}>
       <h2>{title}</h2>
       <p style={{ color: 'var(--eco-text-secondary)' }}>{body}</p>
+      <button
+        type="button"
+        onClick={retry}
+        style={{
+          marginTop: 16,
+          padding: '10px 20px',
+          borderRadius: 8,
+          border: 'none',
+          cursor: 'pointer',
+          background: 'var(--eco-primary)',
+          color: 'var(--eco-text-on-primary, #fff)',
+          fontSize: 14,
+        }}
+      >
+        {retryLabel}
+      </button>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Badge, Button, Card, Select } from '../ds-primitives';
 import { useI18n } from '../i18n-provider';
 import { useAuth } from '../auth/auth-provider';
 import { formatDateTime } from '../../lib/datetime';
+import { userStatusLabel, userStatusVariant } from '../../lib/user-facing-enums';
 import { formatAdminApiError } from './admin-action-ui';
 import {
   getAdminFinanceRefundsRequest,
@@ -19,6 +20,7 @@ import {
 } from '../../lib/api';
 
 type FinanceTab = 'payment-review' | 'refunds' | 'payouts' | 'webhooks';
+type TFn = (key: string, params?: Record<string, string | number>) => string;
 const TABS: FinanceTab[] = ['payment-review', 'refunds', 'payouts', 'webhooks'];
 const PAGE_SIZE = 20;
 
@@ -39,11 +41,11 @@ const PAYOUT_STATUSES = [
   'REVERSED',
 ];
 const WEBHOOK_STATUSES = ['PENDING', 'PROCESSING', 'FAILED', 'PROCESSED', 'DEAD_LETTER'];
-const TAB_LABELS: Record<FinanceTab, string> = {
-  'payment-review': 'PAYMENT REVIEW',
-  refunds: 'REFUNDS',
-  payouts: 'PAYOUTS',
-  webhooks: 'WEBHOOKS',
+const TAB_I18N: Record<FinanceTab, string> = {
+  'payment-review': 'financeTabPaymentReview',
+  refunds: 'financeTabRefunds',
+  payouts: 'financeTabPayouts',
+  webhooks: 'financeTabWebhooks',
 };
 
 function parseTab(value: string | null): FinanceTab {
@@ -59,33 +61,18 @@ function formatMoney(amount: number | string | null | undefined, currency: strin
   return (currency ?? 'KZT') === 'KZT' ? `₸${formatted}` : `${formatted} ${currency}`;
 }
 
-function statusVariant(
-  status: string | null,
-): 'default' | 'success' | 'warning' | 'danger' | 'info' {
-  if (!status) return 'default';
-  if (['SUCCESS', 'COMPLETED', 'REFUNDED', 'APPROVED', 'PROCESSED'].includes(status))
-    return 'success';
-  if (
-    ['FAILED', 'REJECTED', 'CAPTURE_ANOMALY', 'CLAWBACK_REQUIRED', 'DEAD_LETTER'].includes(status)
-  )
-    return 'danger';
-  if (
-    [
-      'UNKNOWN',
-      'RECONCILING',
-      'REQUESTED',
-      'UNDER_REVIEW',
-      'REQUIRES_REVIEW',
-      'PENDING',
-      'PENDING_METHOD',
-    ].includes(status)
-  )
-    return 'warning';
-  return 'info';
-}
-
 function formatOptionalDateTime(value: string | null | undefined, language: 'ru' | 'kz' | 'en') {
   return value ? formatDateTime(value, language) : '-';
+}
+
+function StatusBadge({
+  status,
+  language,
+}: {
+  status: string | null | undefined;
+  language: 'ru' | 'kz' | 'en';
+}) {
+  return <Badge variant={userStatusVariant(status)}>{userStatusLabel(status, language)}</Badge>;
 }
 
 function PublicId({ label }: { label: ReactNode }) {
@@ -156,9 +143,9 @@ export function AdminFinancePage() {
             : WEBHOOK_STATUSES;
     return [
       { value: '', label: t('financeFilterAll') },
-      ...values.map((value) => ({ value, label: value })),
+      ...values.map((value) => ({ value, label: userStatusLabel(value, language) })),
     ];
-  }, [tab, t]);
+  }, [tab, t, language]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -244,7 +231,7 @@ export function AdminFinancePage() {
               {t('financePageTitle')}
             </h1>
             <p className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
-              Payments, refunds, owner holds, payouts and FreedomPay webhook processing.
+              {t('financePageHint')}
             </p>
           </div>
           <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
@@ -265,7 +252,7 @@ export function AdminFinancePage() {
                 color: tab === key ? 'var(--eco-primary)' : 'var(--eco-text-secondary)',
               }}
             >
-              {TAB_LABELS[key]}
+              {t(TAB_I18N[key])}
             </button>
           ))}
         </div>
@@ -296,13 +283,13 @@ export function AdminFinancePage() {
         )}
 
         {tab === 'payment-review' ? (
-          <TransactionsTable items={txItems} language={language} loading={loading} />
+          <TransactionsTable items={txItems} language={language} loading={loading} t={t} />
         ) : tab === 'refunds' ? (
-          <RefundsTable items={refundItems} language={language} loading={loading} />
+          <RefundsTable items={refundItems} language={language} loading={loading} t={t} />
         ) : tab === 'payouts' ? (
-          <PayoutsTable items={payoutItems} language={language} loading={loading} />
+          <PayoutsTable items={payoutItems} language={language} loading={loading} t={t} />
         ) : (
-          <WebhooksTable items={webhookItems} language={language} loading={loading} />
+          <WebhooksTable items={webhookItems} language={language} loading={loading} t={t} />
         )}
 
         {totalItems > 0 && (
@@ -337,23 +324,25 @@ function TransactionsTable({
   items,
   language,
   loading,
+  t,
 }: {
   items: FinanceTransactionDto[];
   language: 'ru' | 'kz' | 'en';
   loading: boolean;
+  t: TFn;
 }) {
-  if (loading && items.length === 0) return <SkeletonRows />;
-  if (items.length === 0) return <EmptyOps />;
+  if (loading && items.length === 0) return <SkeletonRows t={t} />;
+  if (items.length === 0) return <EmptyOps t={t} />;
   return (
     <Table>
       <thead>
         <tr>
-          <Th>Date / IDs</Th>
-          <Th>Status</Th>
-          <Th className="text-right">Amount</Th>
-          <Th>Room / member</Th>
-          <Th>Provider</Th>
-          <Th>Safe reason</Th>
+          <Th>{t('financeColDateIds')}</Th>
+          <Th>{t('financeColStatus')}</Th>
+          <Th className="text-right">{t('financeColAmount')}</Th>
+          <Th>{t('financeColRoomMember')}</Th>
+          <Th>{t('financeColProvider')}</Th>
+          <Th>{t('financeColSafeReason')}</Th>
         </tr>
       </thead>
       <tbody>
@@ -364,7 +353,7 @@ function TransactionsTable({
               <div>{formatDateTime(item.createdAt, language)}</div>
             </Td>
             <Td>
-              <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
+              <StatusBadge status={item.status} language={language} />
             </Td>
             <Td className="text-right">{formatMoney(item.amount, item.currency)}</Td>
             <Td>
@@ -389,23 +378,25 @@ function RefundsTable({
   items,
   language,
   loading,
+  t,
 }: {
   items: FinanceRefundDto[];
   language: 'ru' | 'kz' | 'en';
   loading: boolean;
+  t: TFn;
 }) {
-  if (loading && items.length === 0) return <SkeletonRows />;
-  if (items.length === 0) return <EmptyOps />;
+  if (loading && items.length === 0) return <SkeletonRows t={t} />;
+  if (items.length === 0) return <EmptyOps t={t} />;
   return (
     <Table>
       <thead>
         <tr>
-          <Th>Date / IDs</Th>
-          <Th>Status</Th>
-          <Th className="text-right">Amount</Th>
-          <Th>Room / member</Th>
-          <Th>Provider ref</Th>
-          <Th>Safe reason</Th>
+          <Th>{t('financeColDateIds')}</Th>
+          <Th>{t('financeColStatus')}</Th>
+          <Th className="text-right">{t('financeColAmount')}</Th>
+          <Th>{t('financeColRoomMember')}</Th>
+          <Th>{t('financeColProviderRef')}</Th>
+          <Th>{t('financeColSafeReason')}</Th>
         </tr>
       </thead>
       <tbody>
@@ -416,7 +407,7 @@ function RefundsTable({
               <div>{formatDateTime(item.createdAt, language)}</div>
             </Td>
             <Td>
-              <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
+              <StatusBadge status={item.status} language={language} />
             </Td>
             <Td className="text-right">{formatMoney(item.amount, item.currency)}</Td>
             <Td>
@@ -440,24 +431,26 @@ function PayoutsTable({
   items,
   language,
   loading,
+  t,
 }: {
   items: FinancePayoutDto[];
   language: 'ru' | 'kz' | 'en';
   loading: boolean;
+  t: TFn;
 }) {
-  if (loading && items.length === 0) return <SkeletonRows />;
-  if (items.length === 0) return <EmptyOps />;
+  if (loading && items.length === 0) return <SkeletonRows t={t} />;
+  if (items.length === 0) return <EmptyOps t={t} />;
   return (
     <Table>
       <thead>
         <tr>
-          <Th>Date / IDs</Th>
-          <Th>Status</Th>
-          <Th className="text-right">Owner amount</Th>
-          <Th>Room / owner</Th>
-          <Th>Hold / sent</Th>
-          <Th>Provider</Th>
-          <Th>Reason</Th>
+          <Th>{t('financeColDateIds')}</Th>
+          <Th>{t('financeColStatus')}</Th>
+          <Th className="text-right">{t('financeColOwnerAmount')}</Th>
+          <Th>{t('financeColRoomOwner')}</Th>
+          <Th>{t('financeColHoldSent')}</Th>
+          <Th>{t('financeColProvider')}</Th>
+          <Th>{t('financeColReason')}</Th>
         </tr>
       </thead>
       <tbody>
@@ -471,7 +464,7 @@ function PayoutsTable({
               )}
             </Td>
             <Td>
-              <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
+              <StatusBadge status={item.status} language={language} />
             </Td>
             <Td className="text-right">{formatMoney(item.amount, item.currency)}</Td>
             <Td>
@@ -508,24 +501,26 @@ function WebhooksTable({
   items,
   language,
   loading,
+  t,
 }: {
   items: FinanceWebhookDto[];
   language: 'ru' | 'kz' | 'en';
   loading: boolean;
+  t: TFn;
 }) {
-  if (loading && items.length === 0) return <SkeletonRows />;
-  if (items.length === 0) return <EmptyOps />;
+  if (loading && items.length === 0) return <SkeletonRows t={t} />;
+  if (items.length === 0) return <EmptyOps t={t} />;
   return (
     <Table>
       <thead>
         <tr>
-          <Th>Received / ID</Th>
-          <Th>Status</Th>
-          <Th>Script</Th>
-          <Th>Attempts</Th>
-          <Th>Processed</Th>
-          <Th>Provider request</Th>
-          <Th>Error</Th>
+          <Th>{t('financeColReceivedId')}</Th>
+          <Th>{t('financeColStatus')}</Th>
+          <Th>{t('financeColScript')}</Th>
+          <Th>{t('financeColAttempts')}</Th>
+          <Th>{t('financeColProcessed')}</Th>
+          <Th>{t('financeColProviderRequest')}</Th>
+          <Th>{t('financeColError')}</Th>
         </tr>
       </thead>
       <tbody>
@@ -536,7 +531,7 @@ function WebhooksTable({
               <div>{formatDateTime(item.receivedAt, language)}</div>
             </Td>
             <Td>
-              <Badge variant={statusVariant(item.processingStatus)}>{item.processingStatus}</Badge>
+              <StatusBadge status={item.processingStatus} language={language} />
               <div>
                 <PublicId
                   label={
@@ -605,18 +600,18 @@ function Table({ children }: { children: ReactNode }) {
   );
 }
 
-function SkeletonRows() {
+function SkeletonRows({ t }: { t: TFn }) {
   return (
     <Card className="text-[13px] py-10" style={{ color: 'var(--eco-text-tertiary)' }}>
-      Loading operations...
+      {t('financeOpsLoading')}
     </Card>
   );
 }
 
-function EmptyOps() {
+function EmptyOps({ t }: { t: TFn }) {
   return (
     <Card className="text-center text-[13px] py-10">
-      <span style={{ color: 'var(--eco-text-tertiary)' }}>No operations in this queue.</span>
+      <span style={{ color: 'var(--eco-text-tertiary)' }}>{t('financeOpsEmpty')}</span>
     </Card>
   );
 }

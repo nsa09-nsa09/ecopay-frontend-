@@ -25,6 +25,8 @@ export type FriendlyApiErrorCode =
   | 'sessionExpired' // 401 (when token expired)
   | 'serverError' // 5xx
   | 'rateLimited' // 429 (too many requests)
+  | 'conflict' // 409 (state conflict, e.g. seat already taken)
+  | 'validation' // 422 (request understood but semantically invalid)
   | 'network' // fetch failure, no response
   | 'generic'; // anything else
 
@@ -53,6 +55,16 @@ const FRIENDLY: Record<FriendlyApiErrorCode, Record<Language, string>> = {
     ru: 'Слишком много запросов. Попробуйте позже.',
     kz: 'Сұраныстар тым көп. Кейінірек қайталап көріңіз.',
     en: 'Too many requests. Please try again later.',
+  },
+  conflict: {
+    ru: 'Действие конфликтует с текущим состоянием. Обновите страницу и попробуйте снова.',
+    kz: 'Әрекет ағымдағы күймен қайшы келеді. Бетті жаңартып, қайталап көріңіз.',
+    en: 'This action conflicts with the current state. Refresh and try again.',
+  },
+  validation: {
+    ru: 'Проверьте правильность заполнения полей.',
+    kz: 'Өрістердің дұрыс толтырылғанын тексеріңіз.',
+    en: 'Please check the form and correct the highlighted fields.',
   },
   network: {
     ru: 'Проблема с подключением. Проверьте сеть.',

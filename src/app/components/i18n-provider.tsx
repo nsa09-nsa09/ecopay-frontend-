@@ -3541,6 +3541,26 @@ paymentIntentValid24h: {
   financeColReason: { ru: 'Причина', kz: 'Себебі', en: 'Reason' },
   financeColDispute: { ru: 'Спор', kz: 'Дау', en: 'Dispute' },
 
+  // Operational tables (payment review / refunds / payouts / webhooks)
+  financeTabPaymentReview: { ru: 'Проверка платежей', kz: 'Төлемдерді тексеру', en: 'Payment review' },
+  financeTabPayouts: { ru: 'Выплаты', kz: 'Аударымдар', en: 'Payouts' },
+  financeTabWebhooks: { ru: 'Вебхуки', kz: 'Вебхуктар', en: 'Webhooks' },
+  financeColDateIds: { ru: 'Дата / ID', kz: 'Күні / ID', en: 'Date / IDs' },
+  financeColRoomMember: { ru: 'Комната / участник', kz: 'Бөлме / қатысушы', en: 'Room / member' },
+  financeColRoomOwner: { ru: 'Комната / владелец', kz: 'Бөлме / иесі', en: 'Room / owner' },
+  financeColSafeReason: { ru: 'Безопасная причина', kz: 'Қауіпсіз себеп', en: 'Safe reason' },
+  financeColProviderRef: { ru: 'Реф. провайдера', kz: 'Провайдер сілтемесі', en: 'Provider ref' },
+  financeColOwnerAmount: { ru: 'Сумма владельцу', kz: 'Иесіне сома', en: 'Owner amount' },
+  financeColHoldSent: { ru: 'Удержание / отправка', kz: 'Ұстау / жіберу', en: 'Hold / sent' },
+  financeColReceivedId: { ru: 'Получено / ID', kz: 'Алынды / ID', en: 'Received / ID' },
+  financeColScript: { ru: 'Скрипт', kz: 'Скрипт', en: 'Script' },
+  financeColAttempts: { ru: 'Попытки', kz: 'Әрекеттер', en: 'Attempts' },
+  financeColProcessed: { ru: 'Обработано', kz: 'Өңделді', en: 'Processed' },
+  financeColProviderRequest: { ru: 'Запрос провайдера', kz: 'Провайдер сұрауы', en: 'Provider request' },
+  financeColError: { ru: 'Ошибка', kz: 'Қате', en: 'Error' },
+  financeOpsEmpty: { ru: 'В этой очереди нет операций.', kz: 'Бұл кезекте операциялар жоқ.', en: 'No operations in this queue.' },
+  financeOpsLoading: { ru: 'Загрузка операций...', kz: 'Операциялар жүктелуде...', en: 'Loading operations...' },
+
   financeEmptyList: { ru: 'Записей нет', kz: 'Жазбалар жоқ', en: 'No records' },
   financeSubscriptionsPending: {
     ru: 'Список активных подписок появится в следующей версии.',

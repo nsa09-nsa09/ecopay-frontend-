@@ -186,6 +186,10 @@ export interface PagedResponse<T> {
 
 interface ErrorPayload {
   message?: string;
+  // Stable, locale-agnostic backend error code (ErrorResponse.code). Optional:
+  // the backend is rolling these out, so this branch must build and behave
+  // correctly both before and after the field starts arriving.
+  code?: string;
   errors?: Record<string, string>;
 }
 
@@ -243,6 +247,8 @@ function classifyApiErrorCode(
   if (status === 403) return 'noAccess';
   if (status === 404) return 'notAvailable';
   if (status === 429) return 'rateLimited';
+  if (status === 409) return 'conflict';
+  if (status === 422) return 'validation';
   if (rawMessage && /no static resource/i.test(rawMessage)) return 'notAvailable';
   if (status >= 500) return 'serverError';
   return 'generic';
@@ -258,6 +264,7 @@ function buildFriendlyApiMessage(
   status: number,
   rawMessage: string | undefined | null,
   code: FriendlyApiErrorCode,
+  serverCode: string | null = null,
 ): string {
   const activeLanguage = getCurrentLanguage();
 
@@ -265,12 +272,26 @@ function buildFriendlyApiMessage(
   // turns a 409 "Cannot join room after start date" into specific localized
   // copy instead of the generic "Couldn't load the data." It also guarantees
   // INTERNAL/provider strings never surface (they resolve to null → generic
-  // fallback below). NOTE: ErrorResponse.code is not yet plumbed into this
-  // function (requestJson/ApiError are owned elsewhere), so only the exact
-  // English-message path is active today; see docs/BACKEND_ERROR_CODES.md.
-  const resolved = resolveServerMessage(status, null, rawMessage, activeLanguage);
+  // fallback below).
+  //
+  // The stable ErrorResponse.code is the PRIMARY key (locale- and
+  // wording-independent); the exact English message is the fallback for the
+  // rollout window while some endpoints still omit a code. resolveServerMessage
+  // tries BY_CODE first, then BY_MESSAGE.
+  const resolved = resolveServerMessage(status, serverCode, rawMessage, activeLanguage);
   if (resolved) {
     return resolved;
+  }
+
+  // Dev-only visibility: a real backend error (it carried a code or a message)
+  // that we did not map to curated copy. This makes new/unmapped errors loud in
+  // development instead of silently collapsing to generic copy in production.
+  if (import.meta.env.DEV && (serverCode || rawMessage) && status !== 0) {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn(
+        `[i18n] unmapped backend error (status ${status}, code ${serverCode ?? 'none'}): ${rawMessage ?? ''}`,
+      );
+    }
   }
 
   // Backstop defenses (kept, never weakened): never echo English into RU/KZ,
@@ -302,16 +323,27 @@ export class ApiError extends Error {
    * `getFriendlyApiMessage(error.code)` instead.
    */
   serverMessage: string | null;
+  /**
+   * Stable backend error code (ErrorResponse.code) when the server supplied one.
+   * Locale-agnostic; safe for UI branching. Null until the backend sends it.
+   */
+  serverCode: string | null;
 
-  constructor(status: number, rawMessage: string, errors: Record<string, string> = {}) {
+  constructor(
+    status: number,
+    rawMessage: string,
+    errors: Record<string, string> = {},
+    serverCode: string | null = null,
+  ) {
     const code = classifyApiErrorCode(status, rawMessage);
-    const friendly = buildFriendlyApiMessage(status, rawMessage, code);
+    const friendly = buildFriendlyApiMessage(status, rawMessage, code, serverCode);
     super(friendly);
     this.name = 'ApiError';
     this.status = status;
     this.errors = errors;
     this.code = code;
     this.serverMessage = rawMessage ?? null;
+    this.serverCode = serverCode;
   }
 }
 
@@ -382,6 +414,7 @@ async function requestJson<T>(
 
   if (!response.ok) {
     const payload = typeof body === 'object' && body !== null ? (body as ErrorPayload) : {};
+    const serverCode = typeof payload.code === 'string' && payload.code.trim() ? payload.code.trim() : null;
     const rawMessage =
       payload.message ??
       (typeof body === 'string' && body.trim()
@@ -397,7 +430,7 @@ async function requestJson<T>(
       );
     }
 
-    throw new ApiError(response.status, rawMessage, payload.errors ?? {});
+    throw new ApiError(response.status, rawMessage, payload.errors ?? {}, serverCode);
   }
 
   if (response.status === 204 || body == null) {

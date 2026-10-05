@@ -10,6 +10,7 @@ import {
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
+import { userStatusLabel } from '../../lib/user-facing-enums';
 
 const PENDING_KEY = 'ecopay.pendingPayment';
 const tx = (l: Language, ru: string, kz: string, en: string) =>
@@ -23,45 +24,57 @@ interface PendingContext {
   roomMemberId?: string;
 }
 
-function readContext(): PendingContext | null {
-  const params = new URLSearchParams(window.location.search);
-  const urlIntentId = params.get('intentId') ?? params.get('paymentIntentId');
-  const urlRoomId = params.get('roomId');
-  const urlRoomMemberId = params.get('roomMemberId');
-  if (urlIntentId) {
-    return {
-      intentId: urlIntentId,
-      roomId: urlRoomId ?? undefined,
-      roomMemberId: urlRoomMemberId ?? undefined,
-    };
-  }
+function safeGetItem(key: string): string | null {
   try {
-    if (urlIntentId) {
-      const scoped = window.localStorage.getItem(`ecopay.pendingPayment.${urlIntentId}`);
-      if (scoped) {
-        const parsed = JSON.parse(scoped) as PendingContext;
-        if (typeof parsed.intentId === 'string') {
-          return parsed;
-        }
-      }
-    }
-    const raw = window.localStorage.getItem(PENDING_KEY);
-    if (!raw) return null;
+    return window.localStorage.getItem(key);
+  } catch {
+    // private mode / storage disabled / corrupted
+    return null;
+  }
+}
+
+function parseContext(raw: string | null): PendingContext | null {
+  if (!raw) return null;
+  try {
     const parsed = JSON.parse(raw) as PendingContext;
-    if (typeof parsed.intentId === 'string') {
-      return parsed;
-    }
+    if (typeof parsed.intentId === 'string') return parsed;
   } catch {
     // ignore malformed context
   }
   return null;
 }
 
+function readContext(): PendingContext | null {
+  const params = new URLSearchParams(window.location.search);
+  const urlIntentId = params.get('intentId') ?? params.get('paymentIntentId');
+  const urlRoomId = params.get('roomId') ?? undefined;
+  const urlRoomMemberId = params.get('roomMemberId') ?? undefined;
+
+  if (urlIntentId) {
+    // The intent id from the URL is authoritative, but the provider redirect
+    // usually drops roomId / roomMemberId — recover those from the scoped entry
+    // we wrote before leaving for the gateway so navigation back still works.
+    const stored = parseContext(safeGetItem(`ecopay.pendingPayment.${urlIntentId}`));
+    return {
+      intentId: urlIntentId,
+      roomId: urlRoomId ?? stored?.roomId,
+      roomMemberId: urlRoomMemberId ?? stored?.roomMemberId,
+    };
+  }
+
+  return parseContext(safeGetItem(PENDING_KEY));
+}
+
 function clearContext(context: PendingContext) {
-  window.localStorage.removeItem(PENDING_KEY);
-  window.localStorage.removeItem(`ecopay.pendingPayment.${context.intentId}`);
-  if (context.roomMemberId) {
-    window.localStorage.removeItem(`ecopay.pendingPayment.${context.roomMemberId}`);
+  try {
+    window.localStorage.removeItem(PENDING_KEY);
+    window.localStorage.removeItem(`ecopay.pendingPayment.${context.intentId}`);
+    if (context.roomMemberId) {
+      window.localStorage.removeItem(`ecopay.pendingPayment.${context.roomMemberId}`);
+    }
+  } catch {
+    // private mode / storage disabled — nothing to clean up, and a throw here
+    // must never flip a confirmed SUCCESS into an error screen.
   }
 }
 
@@ -91,7 +104,15 @@ export function PaymentReturnPage() {
   const [intent, setIntent] = useState<PaymentIntentResponseDto | null>(null);
   const [phase, setPhase] = useState<'loading' | 'done' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
   const startedRef = useRef<string | null>(null);
+
+  // Explicit, user-driven refresh for non-terminal states. Re-runs the bounded
+  // reconcile without re-triggering any payment — never auto-retries the charge.
+  const refreshStatus = () => {
+    startedRef.current = null;
+    setReloadNonce((n) => n + 1);
+  };
 
   useEffect(() => {
     if (!isReady) return;
@@ -129,6 +150,7 @@ export function PaymentReturnPage() {
       status === 'SUCCESS' ||
       status === 'FAILED' ||
       status === 'EXPIRED' ||
+      status === 'CANCELLED' ||
       status === 'UNKNOWN' ||
       status === 'RECONCILING' ||
       status === 'REFUND_REQUIRED' ||
@@ -179,7 +201,7 @@ export function PaymentReturnPage() {
     return () => {
       cancelled = true;
     };
-  }, [isReady, isAuthenticated, authorizedRequest, context, language]);
+  }, [isReady, isAuthenticated, authorizedRequest, context, language, reloadNonce]);
 
   const goToMembership = () => {
     if (context?.roomId) navigate(`/rooms/member/${context.roomId}`);
@@ -237,7 +259,7 @@ export function PaymentReturnPage() {
     status === 'UNKNOWN' ||
     status === 'RECONCILING' ||
     status === 'CAPTURE_ANOMALY';
-  const failed = status === 'FAILED' || status === 'EXPIRED';
+  const failed = status === 'FAILED' || status === 'EXPIRED' || status === 'CANCELLED';
 
   return (
     <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-8">
@@ -342,22 +364,28 @@ export function PaymentReturnPage() {
               >
                 {tx(
                   language,
-                  'Платёж ещё подтверждается. Статус можно проверить на странице участия, он обновится автоматически.',
-                  'Төлем әлі расталып жатыр. Мәртебесін қатысу бетінде тексеруге болады, ол автоматты түрде жаңарады.',
-                  'We are checking the payment status. Do not pay again.',
+                  'Мы проверяем статус платежа. Не платите повторно. Нажмите «Проверить статус», чтобы обновить.',
+                  'Төлем мәртебесін тексеріп жатырмыз. Қайта төлемеңіз. Жаңарту үшін «Мәртебені тексеру» түймесін басыңыз.',
+                  'We are checking your payment status. Do not pay again. Tap "Refresh status" to update.',
                 )}
               </p>
             </div>
-            <Button variant="primary" size="lg" onClick={goToMembership}>
-              {tx(language, 'К участию', 'Қатысуға өту', 'Go to Membership')}
-            </Button>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button variant="primary" size="lg" onClick={refreshStatus}>
+                <RefreshCw size={14} />{' '}
+                {tx(language, 'Проверить статус', 'Мәртебені тексеру', 'Refresh status')}
+              </Button>
+              <Button variant="secondary" size="lg" onClick={goToMembership}>
+                {tx(language, 'К участию', 'Қатысуға өту', 'Go to Membership')}
+              </Button>
+            </div>
           </>
         ) : (
           <>
             <Clock size={32} style={{ color: 'var(--eco-warning)' }} />
             <div>
               <h2 className="text-[22px]" style={{ color: 'var(--eco-text)' }}>
-                {status.replace(/_/g, ' ')}
+                {userStatusLabel(status, language)}
               </h2>
               <p
                 className="text-[14px] mt-2 max-w-sm mx-auto"
@@ -365,15 +393,21 @@ export function PaymentReturnPage() {
               >
                 {tx(
                   language,
-                  'Статус платежа обновлён. Проверьте детали участия.',
-                  'Төлем мәртебесі жаңартылды. Қатысу мәліметін тексеріңіз.',
-                  'Payment status was updated. Check your membership details.',
+                  'Статус платежа ещё проверяется. Пожалуйста, не платите повторно — обновите статус или проверьте детали участия.',
+                  'Төлем мәртебесі әлі тексерілуде. Қайта төлемеңіз — мәртебені жаңартыңыз немесе қатысу мәліметін тексеріңіз.',
+                  'The payment status is still being checked. Please do not pay again — refresh the status or check your membership details.',
                 )}
               </p>
             </div>
-            <Button variant="primary" size="lg" onClick={goToMembership}>
-              {tx(language, 'К участию', 'Қатысуға өту', 'Go to Membership')}
-            </Button>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button variant="primary" size="lg" onClick={refreshStatus}>
+                <RefreshCw size={14} />{' '}
+                {tx(language, 'Проверить статус', 'Мәртебені тексеру', 'Refresh status')}
+              </Button>
+              <Button variant="secondary" size="lg" onClick={goToMembership}>
+                {tx(language, 'К участию', 'Қатысуға өту', 'Go to Membership')}
+              </Button>
+            </div>
           </>
         )}
       </Card>

@@ -138,6 +138,16 @@ const STATUS_LABELS: Record<string, Labels> = {
   // UserStatus (shown on own profile / membership rows).
   BANNED: { ru: 'Заблокирован', kz: 'Бұғатталған', en: 'Banned' },
   DELETED: { ru: 'Удалён', kz: 'Жойылған', en: 'Deleted' },
+
+  // Operational exception states — admin-only (FreedomPay webhook processing and
+  // payout reconciliation). Never reached by a customer, but routed through the
+  // same source of truth so the admin finance console stays label-consistent.
+  DEAD_LETTER: { ru: 'В архиве ошибок', kz: 'Қателер мұрағатында', en: 'Dead-lettered' },
+  CLAWBACK_REQUIRED: {
+    ru: 'Требуется возврат выплаты',
+    kz: 'Аударымды қайтару қажет',
+    en: 'Clawback required',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -201,6 +211,8 @@ const STATUS_VARIANTS: Record<string, StatusVariant> = {
   DELETED: 'danger',
   REVOKED: 'danger',
   REVERSED: 'danger',
+  DEAD_LETTER: 'danger',
+  CLAWBACK_REQUIRED: 'danger',
 };
 
 const EVENT_LABELS: Record<string, Labels> = {
@@ -254,6 +266,8 @@ export const KNOWN_BACKEND_STATUSES: readonly string[] = Object.freeze([
   'BANNED', 'DELETED',
   // Generic payout/history terminals
   'SUCCEEDED', 'PAID', 'PROCESSED', 'QUEUED', 'HOLD',
+  // Admin-only webhook / payout exception states
+  'DEAD_LETTER', 'CLAWBACK_REQUIRED',
 ]);
 
 /** Never returns an untrusted/raw enum value on a customer-facing surface. */
