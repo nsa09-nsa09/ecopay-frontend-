@@ -27,11 +27,23 @@ jobs:
       - name: Install
         run: npm ci --no-audit --no-fund --legacy-peer-deps
 
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+      # The release gate runs the critical E2E suite on Chromium, Firefox and
+      # WebKit (desktop, Pixel 7, iPhone 15, iPad incl. landscape).
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Release gate
         run: npm run release:gate
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
 
       - name: Source map/security scan
         run: node -e "const fs=require('fs'); const path=require('path'); const hits=[]; const walk=d=>fs.readdirSync(d,{withFileTypes:true}).forEach(e=>{const p=path.join(d,e.name); if(e.isDirectory()) walk(p); else if(p.endsWith('.map')) hits.push(p)}); walk('dist'); if(hits.length){console.error(hits.join('\n')); process.exit(1)}"
