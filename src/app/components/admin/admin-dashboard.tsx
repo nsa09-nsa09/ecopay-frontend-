@@ -360,6 +360,14 @@ export function AdminDashboardPage() {
             variant: 'warning',
             linkTo: '/admin/finance?tab=refunds',
           },
+          ...optional('successfulPayments30d', {
+            key: 'kpiSuccessfulPayments30d',
+            hint: 'kpiHintSuccessfulPayments30d',
+            value: formatCount(kpis.successfulPayments30d),
+            icon: ShieldCheck,
+            variant: 'success',
+            linkTo: '/admin/finance?tab=payment-review&status=SUCCESS',
+          }),
           {
             key: 'kpiRefundRate',
             hint: 'kpiHintRefundRate',
@@ -434,6 +442,7 @@ export function AdminDashboardPage() {
           {
             key: 'kpiConversion30d',
             hint: 'kpiHintVisitorConversion',
+            // Already a percentage (0..100) — not scaled like avgRoomFillRate.
             value: formatPercent(kpis.conversionVisitorToUser30d ?? null),
             icon: UserPlus,
             variant: 'success',

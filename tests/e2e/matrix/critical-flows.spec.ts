@@ -173,12 +173,21 @@ test('admin dashboard and finance render for staff', async ({ page }) => {
       mau: 40,
       paymentSuccessRate30d: 92.5,
       freedomWebhookDeadLetterCount: 1,
+      successfulPayments30d: 57,
+      conversionVisitorToUser30d: 4.2,
     },
   });
   await page.goto('/admin/dashboard');
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Business' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Risk & operations' })).toBeVisible();
+  const business = page.getByRole('region', { name: 'Business' });
+  await expect(business.getByText('Successful payments (30d)')).toBeVisible();
+  await expect(business.getByText('57', { exact: true })).toBeVisible();
+  // Already a percentage from the backend: 4.2 → "4,2%" (not 420%).
+  const growth = page.getByRole('region', { name: 'Growth' });
+  await expect(growth.getByText('Visitor → registration (30d)')).toBeVisible();
+  await expect(growth.getByText('4,2%', { exact: true })).toBeVisible();
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
   await page.goto('/admin/finance');
   await expect(page.getByRole('button', { name: 'PAYMENT REVIEW' })).toBeVisible();

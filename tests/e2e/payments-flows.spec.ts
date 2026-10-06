@@ -184,3 +184,29 @@ test('analytics sends one masked path per page without query strings', async ({ 
   expect(state.analyticsPaths).toEqual(['/reset-password/confirm', '/u/:id']);
   expect(state.analyticsPaths.join(' ')).not.toContain('secret');
 });
+
+test('admin dashboard hides KPIs the backend does not send and shows null as a dash', async ({
+  page,
+}) => {
+  await installMockBackend(page, {
+    role: 'ADMIN',
+    dashboardKpis: { successfulPayments30d: null, payoutDueCount: 3 },
+  });
+  await page.goto('/admin/dashboard');
+  const business = page.getByRole('region', { name: 'Business' });
+  // Value and label are siblings inside the card body.
+  const card = business.locator('div.flex-col.gap-1', { hasText: 'Successful payments (30d)' });
+  await expect(card).toBeVisible();
+  await expect(card.getByText('—', { exact: true })).toBeVisible();
+  // Fields absent from the response have no card at all (never a fake 0).
+  await expect(page.getByText('DAU (daily active)')).toHaveCount(0);
+  await expect(page.getByText('Webhook dead letters')).toHaveCount(0);
+  await expect(page.getByText('Payouts due')).toBeVisible();
+});
+
+test('admin dashboard hides successful payments when the field is absent', async ({ page }) => {
+  await installMockBackend(page, { role: 'ADMIN' });
+  await page.goto('/admin/dashboard');
+  await expect(page.getByRole('heading', { name: 'Business' })).toBeVisible();
+  await expect(page.getByText('Successful payments (30d)')).toHaveCount(0);
+});

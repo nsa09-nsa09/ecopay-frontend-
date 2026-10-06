@@ -1365,6 +1365,7 @@ export interface AdminDashboardKpisDto {
   avgMembersPerRoom?: number | string | null;
   totalActiveSubscriptionsValueKzt?: number | string | null;
   newRoomsLast30Days?: number | null;
+  /** registrations30d / uniqueVisitors30d as a percentage (0..100, not a ratio). */
   conversionVisitorToUser30d?: number | string | null;
   refundRatePercent?: number | string | null;
   openTickets?: number | null;
@@ -1387,6 +1388,8 @@ export interface AdminDashboardKpisDto {
   paymentPendingRate30d?: number | string | null;
   /** Intents needing manual review (REQUIRES_REVIEW / CAPTURE_ANOMALY / reviewRequired). */
   paymentRequiresReviewCount?: number | null;
+  /** Captured member charges in the last 30 days (including later refunded). */
+  successfulPayments30d?: number | null;
   payoutHeldAmountKzt?: number | string | null;
   payoutDueCount?: number | null;
   payoutPendingProviderCount?: number | null;

@@ -2837,9 +2837,9 @@ paymentIntentValid24h: {
     en: 'Page views (30d)',
   },
   kpiConversion30d: {
-    ru: 'Конверсия гость → регистрация',
-    kz: 'Конверсия қонақ → тіркелу',
-    en: 'Visitor → signup conversion',
+    ru: 'Посетитель → регистрация (30 дн.)',
+    kz: 'Келуші → тіркелу (30 күн)',
+    en: 'Visitor → registration (30d)',
   },
   kpiAvgRoomFill: {
     ru: 'Средняя заполняемость комнат',
@@ -2972,8 +2972,8 @@ paymentIntentValid24h: {
     en: 'Sign-up → first payment',
   },
   kpiPaymentSuccessRate: {
-    ru: 'Успешные платежи (30 дн.)',
-    kz: 'Сәтті төлемдер (30 күн)',
+    ru: 'Доля успешных платежей (30 дн.)',
+    kz: 'Сәтті төлемдер үлесі (30 күн)',
     en: 'Payment success rate (30d)',
   },
   kpiPaymentFailureRate: {
@@ -2985,6 +2985,16 @@ paymentIntentValid24h: {
     ru: 'Платежи в обработке (30 дн.)',
     kz: 'Өңделудегі төлемдер (30 күн)',
     en: 'Payments still pending (30d)',
+  },
+  kpiSuccessfulPayments30d: {
+    ru: 'Успешные платежи (30 дн.)',
+    kz: 'Сәтті төлемдер (30 күн)',
+    en: 'Successful payments (30d)',
+  },
+  kpiHintSuccessfulPayments30d: {
+    ru: 'Списания участников за 30 дней, подтверждённые провайдером (включая позже возвращённые).',
+    kz: '30 күнде провайдер растаған қатысушылар төлемдері (кейін қайтарылғандарын қоса).',
+    en: 'Member charges captured in the last 30 days, including ones later refunded.',
   },
   kpiPaymentRequiresReview: {
     ru: 'Платежи на проверке',
