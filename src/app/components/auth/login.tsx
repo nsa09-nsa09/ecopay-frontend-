@@ -253,7 +253,7 @@ export function LoginPage() {
         </Card>
         <p className="text-center text-[13px] mt-4" style={{ color: 'var(--eco-text-secondary)' }}>
           {t('dontHaveAccount')}{' '}
-          <Link to="/register" style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}>
+          <Link to="/register" style={{ color: 'var(--eco-primary)', textDecoration: 'underline' }}>
             {t('createAccount')}
           </Link>
         </p>

@@ -222,12 +222,26 @@ export function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShow(!show)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer"
+                  aria-label={
+                    show
+                      ? language === 'ru'
+                        ? 'Скрыть пароль'
+                        : language === 'kz'
+                          ? 'Құпия сөзді жасыру'
+                          : 'Hide password'
+                      : language === 'ru'
+                        ? 'Показать пароль'
+                        : language === 'kz'
+                          ? 'Құпия сөзді көрсету'
+                          : 'Show password'
+                  }
+                  aria-pressed={show}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer w-8 h-8 flex items-center justify-center rounded-md"
                 >
                   {show ? (
-                    <EyeOff size={16} style={{ color: 'var(--eco-text-tertiary)' }} />
+                    <EyeOff size={16} aria-hidden="true" style={{ color: 'var(--eco-text-tertiary)' }} />
                   ) : (
-                    <Eye size={16} style={{ color: 'var(--eco-text-tertiary)' }} />
+                    <Eye size={16} aria-hidden="true" style={{ color: 'var(--eco-text-tertiary)' }} />
                   )}
                 </button>
               </div>
@@ -322,7 +336,7 @@ export function RegisterPage() {
         </Card>
         <p className="text-center text-[13px] mt-4" style={{ color: 'var(--eco-text-secondary)' }}>
           {t('alreadyHaveAccount')}{' '}
-          <Link to="/login" style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}>
+          <Link to="/login" style={{ color: 'var(--eco-primary)', textDecoration: 'underline' }}>
             {t('signIn')}
           </Link>
         </p>

@@ -1169,7 +1169,7 @@ export function HomePage() {
                 <button
                   type="button"
                   onClick={scrollToMarketplace}
-                  className="text-[14px] inline-flex items-center gap-1 shrink-0 cursor-pointer"
+                  className="text-[14px] inline-flex items-center gap-1 shrink-0 cursor-pointer min-h-[44px] px-1"
                   style={{
                     color: 'var(--eco-primary)',
                     background: 'transparent',

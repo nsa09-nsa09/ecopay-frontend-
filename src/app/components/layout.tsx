@@ -194,7 +194,7 @@ function CatalogSearchBox({ variant, onPicked, autoFocus }: CatalogSearchBoxProp
 
   if (variant === 'desktop') {
     return (
-      <div ref={containerRef} className="relative hidden md:flex items-center w-56">
+      <div ref={containerRef} className="relative hidden md:flex items-center w-40 lg:w-56">
         <Search
           size={15}
           className="absolute left-2.5 pointer-events-none"
@@ -210,7 +210,6 @@ function CatalogSearchBox({ variant, onPicked, autoFocus }: CatalogSearchBoxProp
           onFocus={() => setOpen(true)}
           placeholder={t('navbarSearchPlaceholder')}
           aria-label={t('navbarSearchPlaceholder')}
-          aria-expanded={showPanel}
           aria-controls={showPanel ? panelId : undefined}
           type="search"
           enterKeyHint="search"
@@ -237,6 +236,8 @@ function CatalogSearchBox({ variant, onPicked, autoFocus }: CatalogSearchBoxProp
         <input
           ref={inputRef}
           autoFocus={autoFocus}
+          type="search"
+          enterKeyHint="search"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -379,7 +380,9 @@ export function AppLayout() {
         <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 sm:gap-6 h-16">
           <div className="flex items-center gap-4 lg:gap-8 min-w-0">
             <BrandLogo to="/" size="md" className="shrink-0" />
-            <div className="hidden md:flex items-center gap-1">
+            {/* Inline links only where they fit next to the search and account
+                controls; below xl they live in the menu (avoids overlap). */}
+            <div className="hidden xl:flex items-center gap-1">
               {navItems.map((item) => (
                 <Link
                   key={item.path}
@@ -442,7 +445,7 @@ export function AppLayout() {
                 aria-label={`${heldLabel}: ${heldAmount}`}
               >
                 <Wallet size={14} style={{ color: 'var(--eco-primary)' }} />
-                <span>{heldLabel}:</span>
+                <span className="hidden 2xl:inline">{heldLabel}:</span>
                 <span className="font-medium" style={{ color: 'var(--eco-text)' }}>
                   {heldAmount}
                 </span>
@@ -540,7 +543,7 @@ export function AppLayout() {
 
             <button
               type="button"
-              className="md:hidden cursor-pointer w-10 h-10 flex items-center justify-center rounded-lg"
+              className="xl:hidden cursor-pointer w-10 h-10 flex items-center justify-center rounded-lg"
               onClick={() => setMobileMenu(!mobileMenu)}
               aria-label={mobileMenu ? t('closeMenu') : t('openMenu')}
               aria-expanded={mobileMenu}
@@ -558,7 +561,7 @@ export function AppLayout() {
         {mobileMenu && (
           <div
             id="eco-mobile-menu"
-            className="md:hidden border-t px-4 sm:px-6 py-4 flex flex-col gap-3 max-h-[calc(100dvh-4rem)] overflow-y-auto"
+            className="xl:hidden border-t px-4 sm:px-6 py-4 flex flex-col gap-3 max-h-[calc(100dvh-4rem)] overflow-y-auto"
             style={{ borderColor: 'var(--eco-border)' }}
           >
             <div className="pb-3 border-b" style={{ borderColor: 'var(--eco-border)' }}>
