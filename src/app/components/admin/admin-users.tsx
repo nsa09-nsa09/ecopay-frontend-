@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Card, Button, Badge, Input, Modal, Select } from '../ds-primitives';
+import { Button, Badge, Input, Modal, Select, Skeleton } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
-import { useI18n, type Language } from '../i18n-provider';
+import { useI18n } from '../i18n-provider';
 import { formatDate, formatDateTime } from '../../lib/datetime';
 import { useAuth } from '../auth/auth-provider';
 import {
@@ -30,9 +30,8 @@ import {
   Home,
   MessageSquare,
   AlertTriangle,
-  RefreshCw,
-  ChevronLeft,
-  ChevronRight,
+  MousePointerClick,
+  Users as UsersIcon,
   UserPlus,
   Repeat2,
   BadgeCheck,
@@ -47,23 +46,26 @@ import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from '
 import { RestrictionModal } from './restriction-modal';
 import { reputationOutOfTen } from '../../lib/reputation';
 import { localizeFieldErrors } from '../../lib/field-errors';
+import {
+  AdminCard,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminId,
+  AdminListSkeleton,
+  AdminPage,
+  AdminPageHeader,
+  AdminPagination,
+  AdminRefreshButton,
+  AdminStatCard,
+  AdminTabs,
+  AdminToolbar,
+} from './admin-ui';
 
 const PAGE_SIZE = 20;
 
-const tx = (l: Language, ru: string, kz: string, en: string) =>
-  l === 'ru' ? ru : l === 'kz' ? kz : en;
 
 type AdminRole = 'USER' | 'SUPPORT' | 'ADMIN';
 const ROLE_OPTIONS: AdminRole[] = ['USER', 'SUPPORT', 'ADMIN'];
-
-function roleBadgeVariant(
-  role: string | null | undefined,
-): 'default' | 'info' | 'warning' | 'danger' {
-  if (role === 'ADMIN') return 'danger';
-  if (role === 'SUPPORT') return 'warning';
-  if (role === 'USER') return 'info';
-  return 'default';
-}
 
 function generatePassword(length = 14): string {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
@@ -257,25 +259,20 @@ export function AdminUsersPage() {
   const restrictionLabel = (u: AdminUserDto) => {
     if (u.banStartsAt && new Date(u.banStartsAt) > new Date())
       return (
-        tx(
-          language,
-          'Блокировка запланирована с',
-          'Бұғаттау жоспарланған уақыт:',
-          'Restriction scheduled from',
-        ) + ` ${formatDateTime(u.banStartsAt, language)}`
+        t('adminRestrictionScheduledFrom') + ` ${formatDateTime(u.banStartsAt, language)}`
       );
     if (!isBanned(u)) return null;
     return u.banUntil
-      ? tx(language, 'Заблокирован до', 'Дейін бұғатталған:', 'Blocked until') +
+      ? t('adminBlockedUntil') +
           ` ${formatDateTime(u.banUntil, language)}`
-      : tx(language, 'Заблокирован бессрочно', 'Мерзімсіз бұғатталған', 'Blocked indefinitely');
+      : t('adminBlockedIndefinitely');
   };
   const roleLabel = (role: string) =>
     role === 'ADMIN'
-      ? tx(language, 'Администратор', 'Әкімші', 'Administrator')
+      ? t('adminAdministrator')
       : role === 'SUPPORT'
-        ? tx(language, 'Поддержка', 'Қолдау', 'Support')
-        : tx(language, 'Пользователь', 'Пайдаланушы', 'User');
+        ? t('notFoundSupport')
+        : t('adminUser');
 
   const replaceUser = (updated: AdminUserDto) => {
     setItems((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
@@ -370,165 +367,142 @@ export function AdminUsersPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-[1100px]">
-        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
-            {t('users')}
-          </h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}>
-              <UserPlus size={13} />{' '}
-              {tx(language, 'Добавить пользователя', 'Пайдаланушы қосу', 'Add user')}
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-              <RefreshCw size={13} /> {t('retry')}
-            </Button>
-          </div>
-        </div>
+      <AdminPage>
+        <AdminPageHeader
+          title={t('users')}
+          actions={
+            <>
+              <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}>
+                <UserPlus size={13} />{' '}
+                {t('adminAddUser')}
+              </Button>
+              <AdminRefreshButton onClick={() => void load()} loading={loading} />
+            </>
+          }
+        />
 
-        <div className="flex items-center gap-2 flex-wrap mb-4">
-          {[
-            { key: 'USERS' as const, label: t('usersSegmentUsers'), count: usersCount },
-            { key: 'ADMINS' as const, label: t('usersSegmentAdmins'), count: adminsCount },
+        <AdminTabs<'USERS' | 'ADMINS' | 'DELETED'>
+          tabs={[
             {
-              key: 'DELETED' as const,
-              label: tx(language, 'Удалённые', 'Жойылғандар', 'Deleted'),
-              count: null,
-            },
-          ].map((s) => {
-            const active = segment === s.key;
-            return (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => {
-                  if (segment === s.key) return;
-                  setSegment(s.key);
-                  setPage(0);
-                  setSelectedId(null);
-                }}
-                className="px-3 py-1.5 rounded-lg text-[13px] cursor-pointer"
-                style={{
-                  background: active ? 'var(--eco-brand-50)' : 'var(--eco-surface-raised)',
-                  border: `1px solid ${active ? 'var(--eco-primary)' : 'var(--eco-border)'}`,
-                  color: active ? 'var(--eco-primary)' : 'var(--eco-text-secondary)',
-                }}
-              >
-                {s.label}
-                {s.key !== 'DELETED' && (
-                  <span className="ml-1.5" style={{ color: 'var(--eco-text-tertiary)' }}>
-                    ({s.count ?? '…'})
+              id: 'USERS',
+              label: (
+                <>
+                  {t('usersSegmentUsers')}
+                  <span className="tabular-nums" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    ({usersCount ?? '…'})
                   </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                </>
+              ),
+            },
+            {
+              id: 'ADMINS',
+              label: (
+                <>
+                  {t('usersSegmentAdmins')}
+                  <span className="tabular-nums" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    ({adminsCount ?? '…'})
+                  </span>
+                </>
+              ),
+            },
+            { id: 'DELETED', label: t('adminDeleted') },
+          ]}
+          active={segment}
+          onChange={(key) => {
+            if (segment === key) return;
+            setSegment(key);
+            setPage(0);
+            setSelectedId(null);
+          }}
+        />
 
         {segment === 'DELETED' && <DeletedUsersPanel />}
         {segment !== 'DELETED' && (
           <>
-            <div className="mb-4 max-w-md">
-              <Input
-                placeholder={t('searchUsersPlaceholder')}
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-              />
-            </div>
+            <AdminToolbar>
+              <div className="flex-[1_1_240px] min-w-0 max-w-md">
+                <Input
+                  placeholder={t('searchUsersPlaceholder')}
+                  aria-label={t('searchUsersPlaceholder')}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                />
+              </div>
+            </AdminToolbar>
 
             <FlashBanner flash={flash} />
 
-            {error && !loading && (
-              <Card className="flex flex-col gap-2 mb-4">
-                <div className="text-[14px]" style={{ color: 'var(--eco-negative)' }}>
-                  {t('loadFailedTitle')}
-                </div>
-                <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {error}
-                </div>
-                <Button variant="primary" size="sm" onClick={() => void load()}>
-                  <RefreshCw size={13} /> {t('retry')}
-                </Button>
-              </Card>
+            {error && !loading && items.length > 0 && (
+              <AdminErrorState inline message={error} onRetry={() => void load()} />
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-1 flex flex-col gap-2">
-                {loading && items.length === 0 && (
-                  <>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="p-4 rounded-xl"
-                        style={{
-                          background: 'var(--eco-surface-raised)',
-                          border: '1px solid var(--eco-border)',
-                          minHeight: 80,
-                        }}
-                      />
-                    ))}
-                  </>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <div className="lg:col-span-1 flex flex-col gap-2 min-w-0">
+                {loading && items.length === 0 && <AdminListSkeleton rows={5} height={84} />}
+                {!loading && error && items.length === 0 && (
+                  <AdminCard>
+                    <AdminErrorState message={error} onRetry={() => void load()} />
+                  </AdminCard>
                 )}
-                {!loading && items.length === 0 && (
-                  <Card
-                    className="text-center text-[13px]"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('emptyUsers')}
-                  </Card>
+                {!loading && !error && items.length === 0 && (
+                  <AdminCard>
+                    <AdminEmptyState
+                      icon={UsersIcon}
+                      title={t('emptyUsers')}
+                      description={t('adminFilteredEmptyHint')}
+                      compact
+                    />
+                  </AdminCard>
                 )}
                 {items.map((u) => {
                   const active = String(selectedId) === String(u.id);
                   return (
                     <button
                       key={u.id}
+                      type="button"
                       onClick={() => setSelectedId(u.id)}
-                      className="text-left p-4 rounded-xl cursor-pointer transition-all"
-                      style={{
-                        background: active ? 'var(--eco-brand-50)' : 'var(--eco-surface-raised)',
-                        border: `1px solid ${active ? 'var(--eco-primary)' : 'var(--eco-border)'}`,
-                      }}
+                      aria-pressed={active}
+                      className={`eco-admin-record is-clickable text-left px-4 py-3 rounded-xl ${active ? 'is-active' : ''}`}
+                      style={{ minHeight: 84 }}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span
-                          className="text-[12px]"
-                          style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                        >
-                          U-{u.id}
-                        </span>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <AdminId>U-{u.id}</AdminId>
                         <div className="flex items-center gap-1.5">
                           {u.role && <Badge variant="default">{roleLabel(u.role)}</Badge>}
                         </div>
                       </div>
-                      <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+                      <div
+                        className="text-[13px] font-semibold break-words"
+                        style={{ color: 'var(--eco-text)' }}
+                      >
                         {u.displayName}
                       </div>
                       {restrictionLabel(u) && (
-                        <div className="mt-1 text-[11px]" style={{ color: 'var(--eco-negative)' }}>
+                        <div className="mt-1 text-[12px]" style={{ color: 'var(--eco-negative)' }}>
                           {restrictionLabel(u)}
                         </div>
                       )}
                       <div
-                        className="flex items-center gap-2 text-[12px]"
-                        style={{ color: 'var(--eco-text-tertiary)' }}
+                        className="flex items-center gap-2 text-[12px] min-w-0"
+                        style={{ color: 'var(--eco-text-secondary)' }}
                       >
                         <span
-                          className="flex items-center gap-0.5"
+                          className="flex items-center gap-0.5 tabular-nums shrink-0"
                           style={{ color: 'var(--eco-warning-500)' }}
                         >
-                          <Star size={10} fill="currentColor" />{' '}
+                          <Star size={11} fill="currentColor" />{' '}
                           {reputationOutOfTen(u.reputation).toFixed(1)}/10
                         </span>
-                        · {u.emailMasked ?? u.email}
+                        <span className="truncate">· {u.emailMasked ?? u.email}</span>
                       </div>
                       {segment === 'ADMINS' && (
                         <div
-                          className="mt-1 flex items-center gap-1 text-[11px]"
+                          className="mt-1 flex items-center gap-1 text-[12px]"
                           style={{ color: 'var(--eco-text-tertiary)' }}
                         >
-                          <Clock size={10} />
+                          <Clock size={11} />
                           <span>{t('usersLastLogin')}:</span>
-                          <span style={{ color: 'var(--eco-text-secondary)' }}>
+                          <span className="tabular-nums" style={{ color: 'var(--eco-text-secondary)' }}>
                             {u.lastLoginAt ? formatDateTime(u.lastLoginAt, language) : '—'}
                           </span>
                         </div>
@@ -537,273 +511,221 @@ export function AdminUsersPage() {
                   );
                 })}
 
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-2 text-[12px]">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={page <= 0 || loading}
-                      onClick={() => setPage((p) => Math.max(0, p - 1))}
-                    >
-                      <ChevronLeft size={12} /> {t('prevPage')}
-                    </Button>
-                    <span style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {t('pageOf', { page: page + 1, total: totalPages })}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={page >= totalPages - 1 || loading}
-                      onClick={() => setPage((p) => p + 1)}
-                    >
-                      {t('nextPage')} <ChevronRight size={12} />
-                    </Button>
-                  </div>
-                )}
+                <AdminPagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                  disabled={loading}
+                />
               </div>
 
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 min-w-0">
                 {!selected ? (
-                  <Card
-                    className="flex items-center justify-center py-16 text-[14px]"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('selectUserToView')}
-                  </Card>
+                  <AdminCard>
+                    <AdminEmptyState icon={MousePointerClick} title={t('selectUserToView')} />
+                  </AdminCard>
                 ) : (
                   <div className="flex flex-col gap-4">
-                    <Card className="flex flex-col gap-4">
-                      <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] shrink-0"
-                            style={{
-                              background: 'var(--eco-surface)',
-                              color: 'var(--eco-text-secondary)',
-                            }}
+                    <AdminCard
+                      footer={
+                        <>
+                          {selected.publicId && (
+                            <Link
+                              to={`/u/${selected.publicId}`}
+                              className="eco-btn eco-btn-secondary inline-flex items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-[13px]"
+                              style={{ textDecoration: 'none' }}
+                            >
+                              <ExternalLink size={13} /> {t('openPublicProfile')}
+                            </Link>
+                          )}
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => openRoleModal(selected)}
                           >
-                            {(selected.displayName || '?').charAt(0)}
-                          </div>
-                          <div className="min-w-0">
-                            <div
-                              className="text-[18px] flex items-center gap-2 break-words"
-                              style={{ color: 'var(--eco-text)' }}
+                            <Repeat2 size={13} />{' '}
+                            {t('adminChangeRole')}
+                          </Button>
+                          <Button
+                            variant={selected.ownerVerified ? 'ghost' : 'secondary'}
+                            size="sm"
+                            onClick={() => openVerifyModal(selected, !selected.ownerVerified)}
+                          >
+                            {selected.ownerVerified ? (
+                              <>
+                                <RotateCcw size={13} />{' '}
+                                {t('adminRevokeOwnerMark')}
+                              </>
+                            ) : (
+                              <>
+                                <BadgeCheck size={13} />{' '}
+                                {t('adminMarkAsOwner')}
+                              </>
+                            )}
+                          </Button>
+                          {!isBanned(selected) && !hasScheduledRestriction(selected) ? (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setRestrictionUserId(selected.id)}
                             >
-                              {selected.displayName}
-                              {detailLoading && (
-                                <Loader2
-                                  size={12}
-                                  className="animate-spin"
-                                  style={{ color: 'var(--eco-text-tertiary)' }}
-                                />
-                              )}
+                              <Ban size={13} />{' '}
+                              {t('adminBlockUser2')}
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => setBanModal({ user: selected, action: 'UNBAN' })}
+                            >
+                              <ShieldCheck size={13} />{' '}
+                              {selected.banStartsAt && new Date(selected.banStartsAt) > new Date()
+                                ? t('adminCancelScheduledRestriction')
+                                : t('adminRemoveRestriction')}
+                            </Button>
+                          )}
+                        </>
+                      }
+                    >
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-semibold shrink-0"
+                              style={{
+                                background: 'var(--eco-brand-50)',
+                                color: 'var(--eco-brand-700)',
+                              }}
+                              aria-hidden
+                            >
+                              {(selected.displayName || '?').charAt(0)}
                             </div>
-                            <div
-                              className="text-[12px] break-all"
-                              style={{ color: 'var(--eco-text-tertiary)' }}
-                            >
-                              U-{selected.id} · {selected.emailMasked ?? selected.email}
-                              {selected.createdAt
-                                ? ` · ${t('sinceLabel')} ${formatDate(selected.createdAt, language)}`
-                                : ''}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {restrictionLabel(selected) && (
-                            <Badge variant="danger">{restrictionLabel(selected)}</Badge>
-                          )}
-                          {selected.role && (
-                            <Badge variant="default">{roleLabel(selected.role)}</Badge>
-                          )}
-                          {selected.ownerVerified && (
-                            <Badge variant="success">
-                              <BadgeCheck size={11} /> {tx(language, 'Владелец', 'Иесі', 'Owner')}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                        {[
-                          {
-                            label: t('rating'),
-                            value: `${reputationOutOfTen(selected.reputation).toFixed(1)}/10`,
-                            icon: Star,
-                          },
-                          { label: t('owned'), value: `${selected.roomsOwned ?? 0}`, icon: Home },
-                          {
-                            label: t('joinedCount'),
-                            value: `${selected.roomsJoined ?? 0}`,
-                            icon: Home,
-                          },
-                          {
-                            label: t('tickets'),
-                            value: `${selected.tickets ?? 0}`,
-                            icon: MessageSquare,
-                          },
-                          {
-                            label: t('disputes'),
-                            value: `${selected.disputes ?? 0}`,
-                            icon: AlertTriangle,
-                          },
-                        ].map((s) => {
-                          const Icon = s.icon;
-                          return (
-                            <div
-                              key={s.label}
-                              className="p-2.5 rounded-lg"
-                              style={{ background: 'var(--eco-surface)' }}
-                            >
-                              <div
-                                className="flex items-center gap-1.5 text-[11px] mb-0.5"
-                                style={{ color: 'var(--eco-text-tertiary)' }}
+                            <div className="min-w-0">
+                              <h2
+                                className="text-[15px] font-semibold flex items-center gap-2 break-words"
+                                style={{ color: 'var(--eco-text)' }}
                               >
-                                <Icon size={11} /> {s.label}
-                              </div>
-                              <div className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
-                                {s.value}
+                                {selected.displayName}
+                                {detailLoading && (
+                                  <Loader2
+                                    size={12}
+                                    className="animate-spin"
+                                    style={{ color: 'var(--eco-text-tertiary)' }}
+                                  />
+                                )}
+                              </h2>
+                              <div
+                                className="text-[12px] break-all"
+                                style={{ color: 'var(--eco-text-secondary)' }}
+                              >
+                                U-{selected.id} · {selected.emailMasked ?? selected.email}
+                                {selected.createdAt
+                                  ? ` · ${t('sinceLabel')} ${formatDate(selected.createdAt, language)}`
+                                  : ''}
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {restrictionLabel(selected) && (
+                              <Badge variant="danger">{restrictionLabel(selected)}</Badge>
+                            )}
+                            {selected.role && (
+                              <Badge variant="default">{roleLabel(selected.role)}</Badge>
+                            )}
+                            {selected.ownerVerified && (
+                              <Badge variant="success">
+                                <BadgeCheck size={12} /> {t('financeColOwner')}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
 
-                      {selected.phoneMasked && (
-                        <div
-                          className="flex items-center gap-2 text-[12px] pt-3 border-t"
-                          style={{ borderColor: 'var(--eco-border)' }}
-                        >
-                          <Shield size={12} style={{ color: 'var(--eco-text-tertiary)' }} />
-                          <span
-                            style={{ color: 'var(--eco-text-secondary)', fontFamily: 'monospace' }}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
+                          {[
+                            {
+                              label: t('rating'),
+                              value: `${reputationOutOfTen(selected.reputation).toFixed(1)}/10`,
+                              icon: Star,
+                            },
+                            { label: t('owned'), value: `${selected.roomsOwned ?? 0}`, icon: Home },
+                            {
+                              label: t('joinedCount'),
+                              value: `${selected.roomsJoined ?? 0}`,
+                              icon: Home,
+                            },
+                            {
+                              label: t('tickets'),
+                              value: `${selected.tickets ?? 0}`,
+                              icon: MessageSquare,
+                            },
+                            {
+                              label: t('disputes'),
+                              value: `${selected.disputes ?? 0}`,
+                              icon: AlertTriangle,
+                            },
+                          ].map((s) => (
+                            <AdminStatCard
+                              key={s.label}
+                              label={s.label}
+                              value={s.value}
+                              icon={s.icon}
+                            />
+                          ))}
+                        </div>
+
+                        {selected.phoneMasked && (
+                          <div
+                            className="flex items-center gap-2 text-[12px] pt-3 border-t"
+                            style={{ borderColor: 'var(--eco-border)' }}
                           >
-                            {selected.phoneMasked}
+                            <Shield size={12} style={{ color: 'var(--eco-text-tertiary)' }} />
+                            <span
+                              style={{
+                                color: 'var(--eco-text-secondary)',
+                                fontFamily: 'ui-monospace, monospace',
+                              }}
+                            >
+                              {selected.phoneMasked}
+                            </span>
+                          </div>
+                        )}
+
+                        <div
+                          className="flex items-center flex-wrap gap-2 text-[12px] pt-3 border-t"
+                          style={{
+                            borderColor: 'var(--eco-border)',
+                            color: 'var(--eco-text-tertiary)',
+                          }}
+                        >
+                          <Clock size={12} />
+                          <span>{t('lastLoginLabel')}:</span>
+                          <span className="tabular-nums" style={{ color: 'var(--eco-text-secondary)' }}>
+                            {selected.lastLoginAt
+                              ? formatDateTime(selected.lastLoginAt, language)
+                              : t('lastLoginNever')}
                           </span>
                         </div>
-                      )}
-
-                      <div
-                        className="flex items-center gap-2 text-[12px] pt-3 border-t"
-                        style={{
-                          borderColor: 'var(--eco-border)',
-                          color: 'var(--eco-text-tertiary)',
-                        }}
-                      >
-                        <Clock size={12} />
-                        <span>{t('lastLoginLabel')}:</span>
-                        <span style={{ color: 'var(--eco-text-secondary)' }}>
-                          {selected.lastLoginAt
-                            ? formatDateTime(selected.lastLoginAt, language)
-                            : t('lastLoginNever')}
-                        </span>
                       </div>
+                    </AdminCard>
 
-                      <div className="flex flex-wrap gap-2">
-                        {selected.publicId && (
-                          <Link to={`/u/${selected.publicId}`} style={{ textDecoration: 'none' }}>
-                            <Button variant="secondary" size="sm">
-                              <ExternalLink size={13} /> {t('openPublicProfile')}
-                            </Button>
-                          </Link>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => openRoleModal(selected)}
-                        >
-                          <Repeat2 size={13} />{' '}
-                          {tx(language, 'Изменить роль', 'Рөлді өзгерту', 'Change role')}
-                        </Button>
-                        <Button
-                          variant={selected.ownerVerified ? 'ghost' : 'secondary'}
-                          size="sm"
-                          onClick={() => openVerifyModal(selected, !selected.ownerVerified)}
-                        >
-                          {selected.ownerVerified ? (
-                            <>
-                              <RotateCcw size={13} />{' '}
-                              {tx(
-                                language,
-                                'Снять метку владельца',
-                                'Иесі белгісін алу',
-                                'Revoke owner mark',
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              <BadgeCheck size={13} />{' '}
-                              {tx(
-                                language,
-                                'Отметить как владельца',
-                                'Иесі деп белгілеу',
-                                'Mark as owner',
-                              )}
-                            </>
-                          )}
-                        </Button>
-                        {!isBanned(selected) && !hasScheduledRestriction(selected) ? (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setRestrictionUserId(selected.id)}
-                          >
-                            <Ban size={13} />{' '}
-                            {tx(language, 'Заблокировать', 'Бұғаттау', 'Block user')}
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => setBanModal({ user: selected, action: 'UNBAN' })}
-                          >
-                            <ShieldCheck size={13} />{' '}
-                            {selected.banStartsAt && new Date(selected.banStartsAt) > new Date()
-                              ? tx(
-                                  language,
-                                  'Отменить запланированную блокировку',
-                                  'Жоспарланған бұғаттауды болдырмау',
-                                  'Cancel scheduled restriction',
-                                )
-                              : tx(
-                                  language,
-                                  'Снять блокировку',
-                                  'Бұғаттауды алып тастау',
-                                  'Remove restriction',
-                                )}
-                          </Button>
-                        )}
-                      </div>
-                    </Card>
-
-                    <Card className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <h2 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
-                          {tx(
-                            language,
-                            'События комнат пользователя',
-                            'Пайдаланушы бөлмелерінің оқиғалары',
-                            'User room events',
-                          )}
-                        </h2>
-                        <Badge variant="info">{roomEvents.length}</Badge>
-                      </div>
-
+                    <AdminCard
+                      title={t('adminUserRoomEvents')}
+                      actions={<Badge variant="info">{roomEvents.length}</Badge>}
+                    >
                       {roomEventsLoading ? (
-                        <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                          {t('loading')}
+                        <div className="flex flex-col gap-2" aria-busy="true" aria-label={t('loading')}>
+                          <Skeleton height={36} rounded={6} />
+                          <Skeleton height={36} rounded={6} />
+                          <Skeleton height={36} rounded={6} />
                         </div>
                       ) : roomEventsError ? (
-                        <div className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
-                          {roomEventsError}
-                        </div>
+                        <AdminErrorState inline message={roomEventsError} />
                       ) : roomEvents.length === 0 ? (
-                        <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                          {tx(language, 'Событий нет', 'Оқиғалар жоқ', 'No room events')}
-                        </div>
+                        <AdminEmptyState
+                          icon={Home}
+                          title={t('adminNoRoomEvents')}
+                          compact
+                        />
                       ) : (
                         <div className="flex flex-col">
                           {roomEvents.map((event) => (
@@ -813,11 +735,14 @@ export function AdminUsersPage() {
                               style={{ borderColor: 'var(--eco-border)' }}
                             >
                               <div className="min-w-0">
-                                <code className="text-[12px]" style={{ color: 'var(--eco-text)' }}>
+                                <code
+                                  className="text-[12px] break-all"
+                                  style={{ color: 'var(--eco-text)' }}
+                                >
                                   {event.eventType}
                                 </code>
                                 <div
-                                  className="text-[11px] mt-0.5"
+                                  className="text-[12px] mt-0.5 tabular-nums"
                                   style={{ color: 'var(--eco-text-tertiary)' }}
                                 >
                                   {formatDateTime(event.createdAt, language)}
@@ -836,7 +761,7 @@ export function AdminUsersPage() {
                           ))}
                         </div>
                       )}
-                    </Card>
+                    </AdminCard>
                   </div>
                 )}
               </div>
@@ -910,7 +835,7 @@ export function AdminUsersPage() {
             setCreateOpen(false);
           }}
         />
-      </div>
+      </AdminPage>
     </AdminLayout>
   );
 }
@@ -1020,60 +945,58 @@ function DeletedUsersPanel() {
 
   return (
     <>
-      <div className="mb-4 max-w-md">
-        <Input
-          placeholder={tx(
-            language,
-            'Поиск удалённых пользователей',
-            'Жойылған пайдаланушыларды іздеу',
-            'Search deleted users',
-          )}
-          value={searchInput}
-          onChange={(event) => {
-            setSearchInput(event.target.value);
-          }}
-        />
-      </div>
-      {error && (
-        <Card className="mb-4 text-[13px]" style={{ color: 'var(--eco-negative)' }}>
-          {error}
-        </Card>
-      )}
+      <AdminToolbar>
+        <div className="flex-[1_1_240px] min-w-0 max-w-md">
+          <Input
+            placeholder={t('adminSearchDeletedUsers')}
+            aria-label={t('adminSearchDeletedUsers')}
+            value={searchInput}
+            onChange={(event) => {
+              setSearchInput(event.target.value);
+            }}
+          />
+        </div>
+      </AdminToolbar>
+      {error && !loading && items.length > 0 && <AdminErrorState inline message={error} />}
       {loading ? (
-        <p className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-          {tx(language, 'Загрузка...', 'Жүктелуде...', 'Loading...')}
-        </p>
+        <AdminListSkeleton rows={4} height={92} />
+      ) : error && items.length === 0 ? (
+        <AdminCard>
+          <AdminErrorState message={error} />
+        </AdminCard>
       ) : items.length === 0 ? (
-        <Card className="text-[13px]">
-          {tx(
-            language,
-            'Удалённых пользователей нет.',
-            'Жойылған пайдаланушылар жоқ.',
-            'No deleted users.',
-          )}
-        </Card>
+        <AdminCard>
+          <AdminEmptyState
+            icon={UsersIcon}
+            title={t('adminNoDeletedUsers')}
+            compact
+          />
+        </AdminCard>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {items.map((item) => (
-            <Card
+            <div
               key={item.userId}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0"
+              className="eco-admin-record rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0"
             >
               <div className="min-w-0 flex-1">
                 <div
-                  className="text-[16px] font-semibold break-words"
+                  className="text-[13px] font-semibold break-words"
                   style={{ color: 'var(--eco-text)' }}
                 >
                   {item.displayNameAtDeletion}
                 </div>
                 <div
                   className="text-[12px] break-all"
-                  style={{ color: 'var(--eco-text-tertiary)' }}
+                  style={{ color: 'var(--eco-text-secondary)' }}
                 >
                   {item.slugAtDeletion ? `@${item.slugAtDeletion}` : `U-${item.userId}`}
                 </div>
-                <div className="mt-2 text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {tx(language, 'Удалён', 'Жойылған', 'Deleted')}{' '}
+                <div
+                  className="mt-1 text-[12px] tabular-nums"
+                  style={{ color: 'var(--eco-text-tertiary)' }}
+                >
+                  {t('adminDeleted2')}{' '}
                   {formatDateTime(item.deletedAt, language)}
                 </div>
               </div>
@@ -1087,12 +1010,7 @@ function DeletedUsersPanel() {
                     <div>{item.phoneMasked || '—'}</div>
                   </>
                 ) : (
-                  tx(
-                    language,
-                    'Контакты были удалены до включения архива',
-                    'Контактілер архив қосылғанға дейін жойылған',
-                    'Contacts were deleted before archiving was enabled',
-                  )
+                  t('adminContactsWereDeletedBeforeArchivingWas')
                 )}
               </div>
               {item.identityArchived && (
@@ -1110,50 +1028,28 @@ function DeletedUsersPanel() {
                   }}
                 >
                   <Eye size={13} />{' '}
-                  {tx(language, 'Показать контакты', 'Контактілерді көрсету', 'Show contacts')}
+                  {t('adminShowContacts')}
                 </Button>
               )}
-            </Card>
+            </div>
           ))}
         </div>
       )}
-      {totalPages > 1 && (
-        <div className="mt-4 flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={page === 0 || loading}
-            onClick={() => setPage(page - 1)}
-          >
-            {tx(language, 'Назад', 'Артқа', 'Previous')}
-          </Button>
-          <span>
-            {page + 1}/{totalPages}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={page >= totalPages - 1 || loading}
-            onClick={() => setPage(page + 1)}
-          >
-            {tx(language, 'Далее', 'Келесі', 'Next')}
-          </Button>
-        </div>
-      )}
+      <AdminPagination
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        disabled={loading}
+      />
       <Modal
         open={selected != null}
         onClose={close}
         title={
           stage === 1
-            ? tx(
-                language,
-                'Показать исходные контактные данные?',
-                'Бастапқы байланыс деректерін көрсету керек пе?',
-                'Reveal original contact details?',
-              )
+            ? t('adminRevealOriginalContactDetails')
             : stage === 2
-              ? tx(language, 'Подтвердить просмотр?', 'Қарауды растау керек пе?', 'Confirm access?')
-              : tx(language, 'Контактные данные', 'Байланыс деректері', 'Contact details')
+              ? t('adminConfirmAccess')
+              : t('adminContactDetails')
         }
       >
         {stage === 3 && revealed ? (
@@ -1161,13 +1057,15 @@ function DeletedUsersPanel() {
             className="flex flex-col gap-3 text-[13px] break-all"
             style={{ color: 'var(--eco-text)' }}
           >
-            <div>Email: {revealed.email || '—'}</div>
             <div>
-              {tx(language, 'Телефон', 'Телефон', 'Phone')}: {revealed.phone || '—'}
+              {t('email')}: {revealed.email || '—'}
+            </div>
+            <div>
+              {t('adminPhone')}: {revealed.phone || '—'}
             </div>
             <div>@{revealed.slug || '—'}</div>
             <Button variant="secondary" onClick={close}>
-              {tx(language, 'Закрыть', 'Жабу', 'Close')}
+              {t('navbarSearchClose')}
             </Button>
           </div>
         ) : (
@@ -1175,18 +1073,13 @@ function DeletedUsersPanel() {
             {stage === 1 ? (
               <>
                 <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-                  {tx(
-                    language,
-                    'Просмотр фиксируется в журнале безопасности.',
-                    'Қарау қауіпсіздік журналында тіркеледі.',
-                    'Access is recorded in the security log.',
-                  )}
+                  {t('adminAccessIsRecordedInTheSecurity')}
                 </p>
                 <label
                   className="text-[13px] flex flex-col gap-1"
                   style={{ color: 'var(--eco-text-secondary)' }}
                 >
-                  {tx(language, 'Причина просмотра', 'Қарау себебі', 'Reason for access')}
+                  {t('adminReasonForAccess')}
                   <textarea
                     rows={3}
                     value={reason}
@@ -1202,12 +1095,7 @@ function DeletedUsersPanel() {
               </>
             ) : (
               <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-                {tx(
-                  language,
-                  'Исходные данные будут показаны только в этом окне.',
-                  'Бастапқы деректер тек осы терезеде көрсетіледі.',
-                  'Original details will appear only in this window.',
-                )}
+                {t('adminOriginalDetailsWillAppearOnlyIn')}
               </p>
             )}
             {revealError && (
@@ -1223,8 +1111,8 @@ function DeletedUsersPanel() {
                 onClick={() => (stage === 1 ? close() : setStage(1))}
               >
                 {stage === 1
-                  ? tx(language, 'Отмена', 'Бас тарту', 'Cancel')
-                  : tx(language, 'Назад', 'Артқа', 'Back')}
+                  ? t('adminCancel')
+                  : t('adminNewsCarouselPrev')}
               </Button>
               <Button
                 className="flex-1"
@@ -1233,8 +1121,8 @@ function DeletedUsersPanel() {
                 onClick={() => (stage === 1 ? setStage(2) : void reveal())}
               >
                 {stage === 1
-                  ? tx(language, 'Продолжить', 'Жалғастыру', 'Continue')
-                  : tx(language, 'Подтвердить', 'Растау', 'Confirm')}
+                  ? t('adminContinue')
+                  : t('confirmLabel')}
               </Button>
             </div>
           </div>
@@ -1267,13 +1155,13 @@ function RoleChangeModal({
   onSubmit: () => void;
   onClose: () => void;
 }) {
-  const { language, t } = useI18n();
+  const { t } = useI18n();
   const tooShort = reason.trim().length < 10;
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={tx(language, 'Изменить роль', 'Рөлді өзгерту', 'Change role')}
+      title={t('adminChangeRole')}
     >
       <div className="flex flex-col gap-4">
         {user && (
@@ -1283,12 +1171,12 @@ function RoleChangeModal({
           >
             U-{user.id} · {user.displayName}{' '}
             <span style={{ color: 'var(--eco-text-tertiary)' }}>
-              · {tx(language, 'сейчас', 'қазір', 'currently')}: {user.role ?? '—'}
+              · {t('adminCurrently')}: {user.role ?? '—'}
             </span>
           </div>
         )}
         <Select
-          label={tx(language, 'Новая роль', 'Жаңа рөл', 'New role')}
+          label={t('adminNewRole')}
           value={role}
           onChange={(e) => onRoleChange(e.target.value as AdminRole)}
           options={ROLE_OPTIONS.map((r) => ({ value: r, label: r }))}
@@ -1310,7 +1198,7 @@ function RoleChangeModal({
             }}
           />
           <span
-            className="text-[11px]"
+            className="text-[12px]"
             style={{ color: tooShort ? 'var(--eco-text-tertiary)' : 'var(--eco-positive)' }}
           >
             {t('reasonMinLength', { n: 10 })}
@@ -1327,7 +1215,7 @@ function RoleChangeModal({
           loading={submitting}
           onClick={onSubmit}
         >
-          {tx(language, 'Сохранить новую роль', 'Жаңа рөлді сақтау', 'Save new role')}
+          {t('adminSaveNewRole')}
         </Button>
       </div>
     </Modal>
@@ -1355,25 +1243,15 @@ function OwnerVerifyModal({
   onSubmit: () => void;
   onClose: () => void;
 }) {
-  const { language, t } = useI18n();
+  const { t } = useI18n();
   return (
     <Modal
       open={open}
       onClose={onClose}
       title={
         next
-          ? tx(
-              language,
-              'Отметить как проверенного владельца',
-              'Расталған иесі деп белгілеу',
-              'Mark as verified owner',
-            )
-          : tx(
-              language,
-              'Снять метку проверенного владельца',
-              'Иесі белгісін алу',
-              'Revoke verified owner',
-            )
+          ? t('adminMarkAsVerifiedOwner')
+          : t('adminRevokeVerifiedOwner')
       }
     >
       <div className="flex flex-col gap-4">
@@ -1387,24 +1265,14 @@ function OwnerVerifyModal({
         )}
         <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
           {next
-            ? tx(
-                language,
-                'Пользователь получит метку проверенного владельца. Это влияет на доверие и риск-скор.',
-                'Пайдаланушы расталған иесі белгісін алады. Бұл сенім мен тәуекел ұпайына әсер етеді.',
-                'The user will be marked as a verified owner. This affects trust and risk scoring.',
-              )
-            : tx(
-                language,
-                'Метка проверенного владельца будет снята.',
-                'Расталған иесі белгісі алынады.',
-                'The verified owner mark will be removed.',
-              )}
+            ? t('adminTheUserWillBeMarkedAs')
+            : t('adminTheVerifiedOwnerMarkWillBe')}
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
             {t('reason')}{' '}
             <span style={{ color: 'var(--eco-text-tertiary)' }}>
-              ({tx(language, 'опционально', 'міндетті емес', 'optional')})
+              ({t('adminOptional')})
             </span>
           </label>
           <textarea
@@ -1427,8 +1295,8 @@ function OwnerVerifyModal({
         )}
         <Button variant={next ? 'primary' : 'destructive'} loading={submitting} onClick={onSubmit}>
           {next
-            ? tx(language, 'Подтвердить', 'Растау', 'Confirm')
-            : tx(language, 'Снять метку', 'Белгіні алу', 'Revoke')}
+            ? t('confirmLabel')
+            : t('adminRevoke')}
         </Button>
       </div>
     </Modal>
@@ -1472,23 +1340,13 @@ function CreateUserModal({
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errs.email = tx(
-        language,
-        'Введите корректный email',
-        'Дұрыс email енгізіңіз',
-        'Enter a valid email',
-      );
+      errs.email = t('adminEnterAValidEmail');
     }
     if (!displayName.trim()) {
-      errs.displayName = tx(language, 'Укажите имя', 'Атын көрсетіңіз', 'Display name required');
+      errs.displayName = t('adminDisplayNameRequired');
     }
     if (password.length < 8) {
-      errs.password = tx(
-        language,
-        'Минимум 8 символов',
-        'Кемінде 8 таңба',
-        'At least 8 characters',
-      );
+      errs.password = t('adminAtLeast8Characters');
     }
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
@@ -1525,11 +1383,11 @@ function CreateUserModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={tx(language, 'Добавить пользователя', 'Пайдаланушы қосу', 'Add user')}
+      title={t('adminAddUser')}
     >
       <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
         <Input
-          label="Email"
+          label={t('email')}
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -1537,14 +1395,14 @@ function CreateUserModal({
           placeholder="user@example.com"
         />
         <Input
-          label={tx(language, 'Отображаемое имя', 'Көрсетілетін ат', 'Display name')}
+          label={t('adminDisplayName')}
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           error={fieldErrors.displayName}
         />
         <div className="flex flex-col gap-1.5">
           <label className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
-            {tx(language, 'Пароль', 'Құпия сөз', 'Password')}
+            {t('password')}
           </label>
           <div className="flex gap-2">
             <input
@@ -1565,8 +1423,8 @@ function CreateUserModal({
               style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
               aria-label={
                 showPassword
-                  ? tx(language, 'Скрыть', 'Жасыру', 'Hide')
-                  : tx(language, 'Показать', 'Көрсету', 'Show')
+                  ? t('hide')
+                  : t('show')
               }
             >
               {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -1584,28 +1442,23 @@ function CreateUserModal({
                 color: 'var(--eco-text-secondary)',
               }}
             >
-              {tx(language, 'Сгенерировать', 'Жасау', 'Generate')}
+              {t('adminGenerate')}
             </button>
           </div>
           {fieldErrors.password && (
-            <span className="text-[11px]" style={{ color: 'var(--eco-negative)' }}>
+            <span className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
               {fieldErrors.password}
             </span>
           )}
         </div>
         <Select
-          label={tx(language, 'Роль', 'Рөл', 'Role')}
+          label={t('adminRole')}
           value={role}
           onChange={(e) => setRole(e.target.value as AdminRole)}
           options={ROLE_OPTIONS.map((r) => ({ value: r, label: r }))}
         />
         <Input
-          label={tx(
-            language,
-            'Телефон (опционально)',
-            'Телефон (міндетті емес)',
-            'Phone (optional)',
-          )}
+          label={t('adminPhoneOptional')}
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="+77001234567"
@@ -1618,10 +1471,10 @@ function CreateUserModal({
         )}
         <div className="flex gap-2">
           <Button variant="ghost" className="flex-1" onClick={onClose}>
-            {tx(language, 'Отмена', 'Болдырмау', 'Cancel')}
+            {t('cancel')}
           </Button>
           <Button variant="primary" className="flex-1" loading={submitting} onClick={submit}>
-            {tx(language, 'Создать', 'Жасау', 'Create')}
+            {t('adminPricingCreate')}
           </Button>
         </div>
       </div>

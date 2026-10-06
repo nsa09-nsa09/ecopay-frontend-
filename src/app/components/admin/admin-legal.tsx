@@ -3,9 +3,18 @@ import { AdminLayout } from './admin-layout';
 import { useI18n, type Language } from '../i18n-provider';
 import { formatDateTime } from '../../lib/datetime';
 import { useAuth } from '../auth/auth-provider';
-import { Button, Card, Input, Tabs } from '../ds-primitives';
+import { Button, Input, Skeleton } from '../ds-primitives';
 import { FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
-import { RefreshCw, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
+import {
+  AdminCard,
+  AdminErrorState,
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminTabs,
+  type AdminTabItem,
+} from './admin-ui';
 import {
   adminGetLegalDocument,
   adminUpdateLegalDocument,
@@ -130,53 +139,65 @@ export function AdminLegalPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-[860px]">
-        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
-            {t('adminLegalTitle')}
-          </h1>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => void load(docType)}
-            disabled={loading || saving}
-          >
-            <RefreshCw size={13} /> {t('retry')}
-          </Button>
-        </div>
+      <AdminPage width="narrow">
+        <AdminPageHeader
+          title={t('adminLegalTitle')}
+          subtitle={t('adminLegalHint')}
+          actions={
+            <AdminRefreshButton onClick={() => void load(docType)} loading={loading || saving} />
+          }
+        />
 
         <FlashBanner flash={flash} />
 
-        {error && (
-          <Card>
-            <span className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
-              {error}
-            </span>
-          </Card>
+        <AdminTabs<LegalDocType>
+          tabs={docTabs as AdminTabItem<LegalDocType>[]}
+          active={docType}
+          onChange={setDocType}
+        />
+
+        {error && !loading && (
+          <AdminErrorState inline message={error} onRetry={() => void load(docType)} />
         )}
 
-        <Card>
+        <AdminCard
+          footer={
+            loading ? undefined : (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 w-full">
+                <span
+                  className="text-[12px] tabular-nums"
+                  style={{ color: 'var(--eco-text-tertiary)' }}
+                >
+                  {updatedAt
+                    ? `${t('adminLegalLastUpdated')}: ${formatDateTime(updatedAt, language)}${version != null ? ` · v${version}` : ''}`
+                    : ''}
+                </span>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => void handleSave()}
+                  disabled={saving}
+                  loading={saving}
+                >
+                  <Save size={13} /> {t('save')}
+                </Button>
+              </div>
+            )
+          }
+        >
           <div className="flex flex-col gap-4">
-            <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-              {t('adminLegalHint')}
-            </p>
-
-            <Tabs
-              tabs={docTabs}
-              active={docType}
-              onChange={(id) => setDocType(id as LegalDocType)}
-            />
-
             {loading ? (
-              <span className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                {t('loading')}
-              </span>
+              <div className="flex flex-col gap-4" aria-busy="true" aria-label={t('loading')}>
+                <Skeleton width="60%" height={36} rounded={8} />
+                <Skeleton height={38} rounded={8} />
+                <Skeleton height={380} rounded={8} />
+              </div>
             ) : (
               <>
-                <Tabs
-                  tabs={langTabs}
+                <AdminTabs<LegalLang>
+                  tabs={langTabs as AdminTabItem<LegalLang>[]}
                   active={activeLang}
-                  onChange={(id) => setActiveLang(id as LegalLang)}
+                  onChange={setActiveLang}
                 />
 
                 <FormRow label={t('adminLegalDocTitle')}>
@@ -198,47 +219,29 @@ export function AdminLegalPage() {
                     }
                     rows={18}
                     maxLength={BODY_MAX}
-                    className="w-full px-3 py-2 rounded-lg text-[13px] leading-relaxed font-mono"
-                    style={{
-                      background: 'var(--eco-bg)',
-                      color: 'var(--eco-text)',
-                      border: '1px solid var(--eco-border)',
-                      resize: 'vertical',
-                    }}
+                    className="eco-input w-full px-3 py-2 rounded-lg text-[13px] leading-relaxed font-mono outline-none"
+                    style={{ resize: 'vertical' }}
                   />
-                  <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  <span
+                    className="text-[12px] tabular-nums"
+                    style={{ color: 'var(--eco-text-tertiary)' }}
+                  >
                     {currentFields.body.length} / {BODY_MAX}
                   </span>
                 </FormRow>
-
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2">
-                  <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                    {updatedAt
-                      ? `${t('adminLegalLastUpdated')}: ${formatDateTime(updatedAt, language)}${version != null ? ` · v${version}` : ''}`
-                      : ''}
-                  </span>
-                  <Button
-                    variant="primary"
-                    onClick={() => void handleSave()}
-                    disabled={saving}
-                    loading={saving}
-                  >
-                    <Save size={13} /> {t('save')}
-                  </Button>
-                </div>
               </>
             )}
           </div>
-        </Card>
-      </div>
+        </AdminCard>
+      </AdminPage>
     </AdminLayout>
   );
 }
 
 function FormRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
         {label}
       </span>
       {children}

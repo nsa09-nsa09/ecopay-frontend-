@@ -3,7 +3,7 @@ import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { AppLayout } from './components/layout';
 import { HomePage } from './components/catalog/home';
 import { RouteFallback } from './components/route-fallback';
-import { NotFoundPage, RouteErrorFallback } from './components/route-error';
+import { RouteErrorFallback } from './components/route-error';
 
 /**
  * React.lazy with one delayed retry: a transient network failure while
@@ -179,6 +179,12 @@ const NotificationPreferencesPage = lazyRoute(() =>
   import('./components/notifications/notification-preferences').then((m) => ({
     default: m.NotificationPreferencesPage,
   })),
+);
+const NotFoundPage = lazyRoute(() =>
+  import('./components/static/not-found').then((m) => ({ default: m.NotFoundPage })),
+);
+const AdminNotFoundPage = lazyRoute(() =>
+  import('./components/static/not-found').then((m) => ({ default: m.AdminNotFoundPage })),
 );
 
 const internalStaticRoutes =
@@ -365,6 +371,8 @@ export const router = createBrowserRouter([
           { path: 'notifications-inbox', Component: NotificationsInboxPage },
           { path: 'notification-prefs', Component: NotificationPreferencesPage },
           ...internalStaticRoutes,
+          // Catch-all: any unmapped public URL renders the localized 404 inside
+          // the normal layout + ErrorBoundary, not React Router's English screen.
           { path: '*', Component: NotFoundPage },
         ],
       },
@@ -404,6 +412,9 @@ export const router = createBrowserRouter([
           { path: 'news', Component: AdminNewsPage },
           { path: 'stories', Component: AdminStoriesPage },
           { path: 'legal', Component: AdminLegalPage },
+          // Admin catch-all: unmapped /admin/* keeps the admin shell (via
+          // AdminNotFoundPage → AdminLayout) and leaks no admin data.
+          { path: '*', Component: AdminNotFoundPage },
         ],
       },
     ],

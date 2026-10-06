@@ -117,7 +117,7 @@ export function AdminLoginPage() {
     // can switch accounts without the page silently doing nothing.
     return (
       <div
-        className="min-h-screen flex items-center justify-center px-6"
+        className="min-h-screen flex items-center justify-center px-4 sm:px-6 py-8"
         style={{ background: 'var(--eco-bg)' }}
       >
         <div className="w-full max-w-md text-center">
@@ -257,7 +257,7 @@ export function AdminLoginPage() {
         {stage === 'credentials' && (
           <form
             onSubmit={handleCredentialsSubmit}
-            className="rounded-xl p-6 flex flex-col gap-4"
+            className="eco-card rounded-xl p-5 sm:p-6 flex flex-col gap-4"
             style={{
               background: 'var(--eco-surface-raised)',
               border: '1px solid var(--eco-border)',
@@ -275,20 +275,21 @@ export function AdminLoginPage() {
             />
 
             <div className="flex flex-col gap-1.5">
-              <label style={{ color: 'var(--eco-text)', fontSize: 14 }}>{t('password')}</label>
+              <label
+                htmlFor="admin-login-password"
+                style={{ color: 'var(--eco-text)', fontSize: 14 }}
+              >
+                {t('password')}
+              </label>
               <div className="relative">
                 <input
+                  id="admin-login-password"
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2 pr-10 rounded-lg outline-none"
-                  style={{
-                    background: 'var(--eco-surface)',
-                    border: '1px solid var(--eco-border)',
-                    color: 'var(--eco-text)',
-                    fontSize: 14,
-                  }}
+                  className="eco-input w-full px-3 py-2 pr-10 rounded-lg outline-none"
+                  style={{ fontSize: 14 }}
                   autoComplete="current-password"
                   required
                 />
@@ -334,7 +335,7 @@ export function AdminLoginPage() {
         {stage === 'twoFactor' && challenge && (
           <form
             onSubmit={handleTwoFactorSubmit}
-            className="rounded-xl p-6 flex flex-col gap-4"
+            className="eco-card rounded-xl p-5 sm:p-6 flex flex-col gap-4"
             style={{
               background: 'var(--eco-surface-raised)',
               border: '1px solid var(--eco-border)',
@@ -375,7 +376,7 @@ export function AdminLoginPage() {
               <Lock size={15} /> {t('verifyAndSignIn')}
             </Button>
 
-            <div className="flex items-center justify-between text-[12px]">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[12px]">
               <button
                 type="button"
                 className="flex items-center gap-1 cursor-pointer"

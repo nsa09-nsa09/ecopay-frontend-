@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { Card, Badge, Button, Input } from '../ds-primitives';
+import { Badge, Button, Input } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n } from '../i18n-provider';
 import { formatDateTime } from '../../lib/datetime';
@@ -12,8 +12,22 @@ import {
   type RoomEventLogDto,
 } from '../../lib/api';
 import { formatAdminApiError } from './admin-action-ui';
-import { Shield, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Shield, FileText } from 'lucide-react';
 import { userEventLabel } from '../../lib/user-facing-enums';
+import {
+  AdminCard,
+  AdminDataTable,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminId,
+  AdminPage,
+  AdminPageHeader,
+  AdminPagination,
+  AdminRefreshButton,
+  AdminTabs,
+  AdminToolbar,
+  type AdminColumn,
+} from './admin-ui';
 
 const PAGE_SIZE = 25;
 
@@ -105,62 +119,178 @@ export function AdminLogsPage() {
     setPage(0);
   };
 
+  const userLink = (id: number | string | null | undefined, name: string | null | undefined) =>
+    id ? (
+      <Link
+        to={`/admin/users?selected=${id}`}
+        style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+      >
+        {name ?? `#${id}`}
+      </Link>
+    ) : (
+      '—'
+    );
+
+  const typeCell = (raw: string) => (
+    <div className="flex flex-col items-start gap-1">
+      <Badge variant="info">{userEventLabel(raw, language)}</Badge>
+      <code className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+        {raw}
+      </code>
+    </div>
+  );
+
+  const timeCell = (iso: string) => (
+    <span className="tabular-nums whitespace-nowrap" style={{ color: 'var(--eco-text-secondary)' }}>
+      {formatDateTime(iso, language)}
+    </span>
+  );
+
+  const ipCell = (ip: string | null | undefined) =>
+    ip ? (
+      <span className="text-[12px]" style={{ fontFamily: 'ui-monospace, monospace' }}>
+        {ip}
+      </span>
+    ) : (
+      <span style={{ color: 'var(--eco-text-tertiary)' }}>—</span>
+    );
+
+  const adminColumns: AdminColumn<AdminActionLogDto>[] = [
+    {
+      id: 'type',
+      header: t('colType'),
+      priority: 'primary',
+      minWidth: 170,
+      cell: (log) => typeCell(log.actionType),
+    },
+    {
+      id: 'time',
+      header: t('colTimestamp'),
+      priority: 'secondary',
+      nowrap: true,
+      cell: (log) => timeCell(log.createdAt),
+    },
+    {
+      id: 'actor',
+      header: t('colActor'),
+      nowrap: true,
+      cell: (log) => userLink(log.adminUserId, log.adminDisplayName),
+    },
+    {
+      id: 'entity',
+      header: t('colEntity'),
+      nowrap: true,
+      cell: (log) => (
+        <span className="tabular-nums">
+          {log.entityType} #{log.entityId}
+        </span>
+      ),
+    },
+    {
+      id: 'reason',
+      header: t('colReason'),
+      minWidth: 200,
+      cell: (log) => (
+        <span style={{ color: 'var(--eco-text-secondary)' }}>{log.reason ?? '—'}</span>
+      ),
+    },
+    {
+      id: 'ip',
+      header: t('logsIpLabel'),
+      nowrap: true,
+      cell: (log) => ipCell(log.ipAddress),
+    },
+  ];
+
+  const roomColumns: AdminColumn<RoomEventLogDto>[] = [
+    {
+      id: 'type',
+      header: t('colType'),
+      priority: 'primary',
+      minWidth: 170,
+      cell: (log) => typeCell(log.eventType),
+    },
+    {
+      id: 'room',
+      header: t('rooms'),
+      priority: 'primary',
+      nowrap: true,
+      cell: (log) => <AdminId>R-{log.roomId}</AdminId>,
+    },
+    {
+      id: 'time',
+      header: t('colTimestamp'),
+      priority: 'secondary',
+      nowrap: true,
+      cell: (log) => timeCell(log.createdAt),
+    },
+    {
+      id: 'actor',
+      header: t('colActor'),
+      nowrap: true,
+      cell: (log) => (
+        <>
+          <span style={{ color: 'var(--eco-text-secondary)' }}>{log.actorRole ?? '—'}</span>
+          {log.actorUserId ? <> {userLink(log.actorUserId, log.actorDisplayName)}</> : null}
+        </>
+      ),
+    },
+    {
+      id: 'owner',
+      header: t('logsRoomOwnerLabel'),
+      nowrap: true,
+      cell: (log) => userLink(log.roomOwnerUserId, log.roomOwnerDisplayName),
+    },
+    {
+      id: 'event',
+      header: t('adminColEventId'),
+      cell: (log) => (
+        <span
+          className="text-[12px] break-all"
+          style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'ui-monospace, monospace' }}
+        >
+          {log.eventId}
+        </span>
+      ),
+    },
+    {
+      id: 'ip',
+      header: t('logsIpLabel'),
+      nowrap: true,
+      cell: (log) => ipCell(log.ipAddress),
+    },
+  ];
+
   return (
     <AdminLayout>
-      <div className="max-w-[1100px]">
-        <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
-          <div>
-            <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
-              {t('adminLogs')}
-            </h1>
-            <p className="text-[13px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {t('auditTrailSubtitle')}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <div
-              className="flex items-center gap-1.5 text-[12px]"
-              style={{ color: 'var(--eco-text-tertiary)' }}
-            >
-              <Shield size={13} /> {t('immutableAuditLog')}
-            </div>
-            <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-              <RefreshCw size={13} /> {t('retry')}
-            </Button>
-          </div>
-        </div>
+      <AdminPage width="wide">
+        <AdminPageHeader
+          title={t('adminLogs')}
+          subtitle={t('auditTrailSubtitle')}
+          meta={
+            <>
+              <Shield size={13} aria-hidden /> {t('immutableAuditLog')}
+            </>
+          }
+          actions={<AdminRefreshButton onClick={() => void load()} loading={loading} />}
+        />
 
-        {/* Tabs */}
-        <div className="flex gap-0 border-b mb-6" style={{ borderColor: 'var(--eco-border)' }}>
-          {(['admin-actions', 'room-events'] as const).map((tabKey) => (
-            <button
-              key={tabKey}
-              onClick={() => {
-                setTab(tabKey);
-                setPage(0);
-              }}
-              className="px-4 py-2.5 text-[14px] cursor-pointer"
-              style={{
-                color: tab === tabKey ? 'var(--eco-primary)' : 'var(--eco-text-secondary)',
-                borderBottom:
-                  tab === tabKey ? '2px solid var(--eco-primary)' : '2px solid transparent',
-                marginBottom: -1,
-                background: 'transparent',
-                border: 'none',
-                borderBottomStyle: 'solid',
-                borderBottomWidth: 2,
-                borderBottomColor: tab === tabKey ? 'var(--eco-primary)' : 'transparent',
-              }}
-            >
-              {tabKey === 'admin-actions' ? t('tabAdminActions') : t('tabRoomEvents')}
-            </button>
-          ))}
-        </div>
+        <AdminTabs<Tab>
+          tabs={[
+            { id: 'admin-actions', label: t('tabAdminActions') },
+            { id: 'room-events', label: t('tabRoomEvents') },
+          ]}
+          active={tab}
+          onChange={(tabKey) => {
+            setTab(tabKey);
+            setPage(0);
+          }}
+        />
 
         {/* Filters */}
-        <Card className="flex flex-wrap items-end gap-3 mb-4">
+        <AdminToolbar>
           {tab === 'admin-actions' ? (
-            <div className="flex flex-col gap-1.5" style={{ minWidth: 160 }}>
+            <div className="flex-[1_1_160px] min-w-0">
               <Input
                 label={t('filterEntityType')}
                 placeholder="USER / ROOM"
@@ -169,7 +299,7 @@ export function AdminLogsPage() {
               />
             </div>
           ) : (
-            <div className="flex flex-col gap-1.5" style={{ minWidth: 160 }}>
+            <div className="flex-[1_1_160px] min-w-0">
               <Input
                 label={t('filterEventType')}
                 placeholder="room_created"
@@ -178,18 +308,22 @@ export function AdminLogsPage() {
               />
             </div>
           )}
-          <Input
-            label={t('filterDateFrom')}
-            type="date"
-            value={filters.dateFrom}
-            onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-          />
-          <Input
-            label={t('filterDateTo')}
-            type="date"
-            value={filters.dateTo}
-            onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-          />
+          <div className="flex-[1_1_140px] min-w-0">
+            <Input
+              label={t('filterDateFrom')}
+              type="date"
+              value={filters.dateFrom}
+              onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+            />
+          </div>
+          <div className="flex-[1_1_140px] min-w-0">
+            <Input
+              label={t('filterDateTo')}
+              type="date"
+              value={filters.dateTo}
+              onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+            />
+          </div>
           <div className="flex gap-2">
             <Button variant="primary" size="sm" onClick={applyFilters} disabled={loading}>
               {t('filterApply')}
@@ -198,243 +332,61 @@ export function AdminLogsPage() {
               {t('filterReset')}
             </Button>
           </div>
-        </Card>
+        </AdminToolbar>
 
-        {error && !loading && (
-          <Card className="flex flex-col gap-2 mb-4">
-            <div className="text-[14px]" style={{ color: 'var(--eco-negative)' }}>
-              {t('loadFailedTitle')}
-            </div>
-            <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {error}
-            </div>
-            <Button variant="primary" size="sm" onClick={() => void load()}>
-              <RefreshCw size={13} /> {t('retry')}
-            </Button>
-          </Card>
+        {error && !loading && (tab === 'admin-actions' ? adminLogs : roomLogs).length > 0 && (
+          <AdminErrorState inline message={error} onRetry={() => void load()} />
         )}
 
         {tab === 'admin-actions' && (
-          <div className="overflow-x-auto">
-            <div className="min-w-[860px]">
-              <div
-                className="grid grid-cols-12 gap-3 px-5 py-2 text-[12px]"
-                style={{ color: 'var(--eco-text-tertiary)' }}
-              >
-                <div className="col-span-3">{t('colTimestamp')}</div>
-                <div className="col-span-2">{t('colActor')}</div>
-                <div className="col-span-2">{t('colType')}</div>
-                <div className="col-span-2">{t('colEntity')}</div>
-                <div className="col-span-3">{t('colReason')}</div>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                {loading && adminLogs.length === 0 && (
-                  <Card
-                    className="text-center text-[13px]"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('loading')}
-                  </Card>
-                )}
-                {!loading && adminLogs.length === 0 && (
-                  <Card
-                    className="text-center text-[13px]"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('emptyAdminLogs')}
-                  </Card>
-                )}
-                {adminLogs.map((log) => (
-                  <Card key={log.id}>
-                    <div className="grid grid-cols-12 gap-3 items-center">
-                      <div
-                        className="col-span-3 text-[12px] whitespace-nowrap"
-                        style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                      >
-                        {formatDateTime(log.createdAt, language)}
-                      </div>
-                      <div
-                        className="col-span-2 text-[12px] whitespace-nowrap"
-                        style={{ color: 'var(--eco-text-secondary)' }}
-                      >
-                        {log.adminUserId ? (
-                          <Link
-                            to={`/admin/users?selected=${log.adminUserId}`}
-                            style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
-                          >
-                            {log.adminDisplayName ?? `#${log.adminUserId}`}
-                          </Link>
-                        ) : (
-                          '—'
-                        )}
-                      </div>
-                      <div className="col-span-2">
-                        <div className="flex flex-col items-start gap-1">
-                          <Badge variant="info">{userEventLabel(log.actionType, language)}</Badge>
-                          <code className="text-[10px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                            {log.actionType}
-                          </code>
-                        </div>
-                      </div>
-                      <div
-                        className="col-span-2 text-[12px] whitespace-nowrap"
-                        style={{ color: 'var(--eco-text)' }}
-                      >
-                        {log.entityType} #{log.entityId}
-                      </div>
-                      <div
-                        className="col-span-3 text-[12px]"
-                        style={{ color: 'var(--eco-text-tertiary)' }}
-                      >
-                        {log.reason ?? '—'}
-                      </div>
-                    </div>
-                    {log.ipAddress && (
-                      <div
-                        className="mt-1.5 text-[11px]"
-                        style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                      >
-                        {t('logsIpLabel')}: {log.ipAddress}
-                      </div>
-                    )}
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </div>
+          <AdminDataTable
+            columns={adminColumns}
+            rows={adminLogs}
+            rowKey={(log) => log.id}
+            loading={loading}
+            error={error}
+            onRetry={() => void load()}
+            minWidth={960}
+            empty={
+              <AdminCard>
+                <AdminEmptyState
+                  icon={FileText}
+                  title={t('emptyAdminLogs')}
+                  description={t('adminLogsEmptyHint')}
+                />
+              </AdminCard>
+            }
+          />
         )}
 
         {tab === 'room-events' && (
-          <div className="overflow-x-auto">
-            <div className="min-w-[860px]">
-              <div
-                className="grid grid-cols-12 gap-3 px-5 py-2 text-[12px]"
-                style={{ color: 'var(--eco-text-tertiary)' }}
-              >
-                <div className="col-span-3">{t('colTimestamp')}</div>
-                <div className="col-span-2">{t('colActor')}</div>
-                <div className="col-span-2">{t('colType')}</div>
-                <div className="col-span-2">{t('rooms')}</div>
-                <div className="col-span-3">{t('colReason')}</div>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                {loading && roomLogs.length === 0 && (
-                  <Card
-                    className="text-center text-[13px]"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('loading')}
-                  </Card>
-                )}
-                {!loading && roomLogs.length === 0 && (
-                  <Card
-                    className="text-center text-[13px]"
-                    style={{ color: 'var(--eco-text-tertiary)' }}
-                  >
-                    {t('emptyRoomEvents')}
-                  </Card>
-                )}
-                {roomLogs.map((log) => (
-                  <Card key={log.id}>
-                    <div className="grid grid-cols-12 gap-3 items-center">
-                      <div
-                        className="col-span-3 text-[12px] whitespace-nowrap"
-                        style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                      >
-                        {formatDateTime(log.createdAt, language)}
-                      </div>
-                      <div
-                        className="col-span-2 text-[12px] whitespace-nowrap"
-                        style={{ color: 'var(--eco-text-secondary)' }}
-                      >
-                        <span>{log.actorRole ?? '—'}</span>
-                        {log.actorUserId ? (
-                          <>
-                            {' '}
-                            <Link
-                              to={`/admin/users?selected=${log.actorUserId}`}
-                              style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
-                            >
-                              {log.actorDisplayName ?? `#${log.actorUserId}`}
-                            </Link>
-                          </>
-                        ) : null}
-                      </div>
-                      <div className="col-span-2">
-                        <div className="flex flex-col items-start gap-1">
-                          <Badge variant="info">{userEventLabel(log.eventType, language)}</Badge>
-                          <code className="text-[10px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                            {log.eventType}
-                          </code>
-                        </div>
-                      </div>
-                      <div
-                        className="col-span-2 text-[12px] whitespace-nowrap"
-                        style={{ color: 'var(--eco-text)' }}
-                      >
-                        R-{log.roomId}
-                      </div>
-                      <div
-                        className="col-span-3 text-[12px]"
-                        style={{ color: 'var(--eco-text-tertiary)' }}
-                      >
-                        {log.eventId}
-                      </div>
-                    </div>
-                    <div
-                      className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]"
-                      style={{ color: 'var(--eco-text-tertiary)' }}
-                    >
-                      <span>
-                        {t('logsRoomOwnerLabel')}:{' '}
-                        {log.roomOwnerUserId ? (
-                          <Link
-                            to={`/admin/users?selected=${log.roomOwnerUserId}`}
-                            style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
-                          >
-                            {log.roomOwnerDisplayName ?? `#${log.roomOwnerUserId}`}
-                          </Link>
-                        ) : (
-                          '—'
-                        )}
-                      </span>
-                      {log.ipAddress && (
-                        <span style={{ fontFamily: 'monospace' }}>
-                          {t('logsIpLabel')}: {log.ipAddress}
-                        </span>
-                      )}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </div>
+          <AdminDataTable
+            columns={roomColumns}
+            rows={roomLogs}
+            rowKey={(log) => log.id}
+            loading={loading}
+            error={error}
+            onRetry={() => void load()}
+            minWidth={1040}
+            empty={
+              <AdminCard>
+                <AdminEmptyState
+                  icon={FileText}
+                  title={t('emptyRoomEvents')}
+                  description={t('adminLogsEmptyHint')}
+                />
+              </AdminCard>
+            }
+          />
         )}
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 text-[12px]">
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={page <= 0 || loading}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-            >
-              <ChevronLeft size={12} /> {t('prevPage')}
-            </Button>
-            <span style={{ color: 'var(--eco-text-tertiary)' }}>
-              {t('pageOf', { page: page + 1, total: totalPages })}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={page >= totalPages - 1 || loading}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              {t('nextPage')} <ChevronRight size={12} />
-            </Button>
-          </div>
-        )}
-      </div>
+        <AdminPagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          disabled={loading}
+        />
+      </AdminPage>
     </AdminLayout>
   );
 }

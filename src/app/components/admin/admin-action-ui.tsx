@@ -112,7 +112,7 @@ export function ConfirmActionModal({
             }}
           />
           <span
-            className="text-[11px]"
+            className="text-[12px]"
             style={{ color: tooShort ? 'var(--eco-text-tertiary)' : 'var(--eco-positive)' }}
           >
             {t('reasonMinLength', { n: minReasonLength })}
@@ -124,7 +124,7 @@ export function ConfirmActionModal({
           </div>
         )}
         <div
-          className="text-[11px] flex items-center gap-1"
+          className="text-[12px] flex items-center gap-1"
           style={{ color: 'var(--eco-text-tertiary)' }}
         >
           <Shield size={11} /> {t('auditLoggedShort')}

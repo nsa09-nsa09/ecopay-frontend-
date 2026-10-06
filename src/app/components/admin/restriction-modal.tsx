@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Button, Modal } from '../ds-primitives';
 import { useAuth } from '../auth/auth-provider';
-import { useI18n, type Language } from '../i18n-provider';
+import { useI18n } from '../i18n-provider';
 import { formatDateTime } from '../../lib/datetime';
 import { restrictAdminUserRequest, type AdminUserDto } from '../../lib/api';
+import { AdminSegmented } from './admin-ui';
 
-const tx = (l: Language, ru: string, kz: string, en: string) =>
-  l === 'ru' ? ru : l === 'kz' ? kz : en;
 const localDateTime = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 
@@ -20,7 +19,7 @@ export function RestrictionModal({
   onSaved: (updated: AdminUserDto) => void;
 }) {
   const { authorizedRequest } = useAuth();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const [mode, setMode] = useState<'NOW' | 'SCHEDULED'>('NOW');
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
@@ -74,12 +73,7 @@ export function RestrictionModal({
       setError(
         err instanceof Error
           ? err.message
-          : tx(
-              language,
-              'Не удалось установить блокировку.',
-              'Бұғаттауды орнату мүмкін болмады.',
-              'Could not set restriction.',
-            ),
+          : t('adminCouldNotSetRestriction'),
       );
     } finally {
       setSaving(false);
@@ -92,78 +86,54 @@ export function RestrictionModal({
       onClose={() => {
         if (!saving) onClose();
       }}
-      title={tx(language, 'Заблокировать пользователя', 'Пайдаланушыны бұғаттау', 'Block user')}
+      title={t('adminBlockUser')}
     >
       <div
         className="flex flex-col gap-4 text-[13px]"
         style={{ color: 'var(--eco-text-secondary)' }}
       >
-        <div className="flex gap-2">
-          <Button
-            variant={mode === 'NOW' ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={() => setMode('NOW')}
-          >
-            {tx(language, 'Сразу', 'Бірден', 'Immediately')}
-          </Button>
-          <Button
-            variant={mode === 'SCHEDULED' ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={() => setMode('SCHEDULED')}
-          >
-            {tx(language, 'Запланировать', 'Жоспарлау', 'Schedule')}
-          </Button>
-        </div>
+        <AdminSegmented<'NOW' | 'SCHEDULED'>
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: 'NOW', label: t('adminImmediately') },
+            { value: 'SCHEDULED', label: t('adminSchedule') },
+          ]}
+        />
         {mode === 'SCHEDULED' && (
           <label className="flex flex-col gap-1">
-            {tx(language, 'Начало', 'Басталуы', 'Start')}
+            {t('adminStart')}
             <input
               type="datetime-local"
               value={startsAt}
               onChange={(event) => setStartsAt(event.target.value)}
-              className="rounded-lg p-2"
-              style={{
-                background: 'var(--eco-surface)',
-                color: 'var(--eco-text)',
-                border: '1px solid var(--eco-border)',
-              }}
+              className="eco-input rounded-lg px-3 py-2 outline-none"
             />
           </label>
         )}
         <label className="flex flex-col gap-1">
-          {tx(language, 'Окончание', 'Аяқталуы', 'End')}
+          {t('adminEnd')}
           <input
             type="datetime-local"
             value={endsAt}
             onChange={(event) => setEndsAt(event.target.value)}
-            className="rounded-lg p-2"
-            style={{
-              background: 'var(--eco-surface)',
-              color: 'var(--eco-text)',
-              border: '1px solid var(--eco-border)',
-            }}
+            className="eco-input rounded-lg px-3 py-2 outline-none"
           />
         </label>
         <div className="flex flex-wrap gap-2">
           {[1, 7, 30].map((days) => (
             <Button key={days} variant="ghost" size="sm" onClick={() => setPreset(days)}>
-              {days}{' '}
-              {tx(language, days === 1 ? 'день' : 'дней', 'күн', days === 1 ? 'day' : 'days')}
+              {t('adminDaysCount', { count: days })}
             </Button>
           ))}
         </div>
         <label className="flex flex-col gap-1">
-          {tx(language, 'Причина блокировки', 'Бұғаттау себебі', 'Reason for restriction')}
+          {t('adminReasonForRestriction')}
           <textarea
             rows={3}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            className="rounded-lg p-2"
-            style={{
-              background: 'var(--eco-surface)',
-              color: 'var(--eco-text)',
-              border: '1px solid var(--eco-border)',
-            }}
+            className="eco-input rounded-lg px-3 py-2 outline-none"
           />
         </label>
         {valid && (
@@ -171,21 +141,20 @@ export function RestrictionModal({
             className="rounded-lg p-3"
             style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
           >
-            {tx(
-              language,
-              'Пользователь будет заблокирован',
-              'Пайдаланушы бұғатталады',
-              'The user will be blocked',
-            )}{' '}
-            {tx(language, 'с', 'бастап', 'from')}{' '}
+            {t('adminTheUserWillBeBlocked')}{' '}
+            {t('adminFrom')}{' '}
             {formatDateTime(startDate.toISOString(), language)}{' '}
-            {tx(language, 'до', 'дейін', 'until')} {formatDateTime(endDate.toISOString(), language)}
+            {t('adminUntil')} {formatDateTime(endDate.toISOString(), language)}
           </div>
         )}
-        {error && <p style={{ color: 'var(--eco-negative)' }}>{error}</p>}
-        <div className="flex gap-2">
+        {error && (
+          <p role="alert" style={{ color: 'var(--eco-negative)' }}>
+            {error}
+          </p>
+        )}
+        <div className="flex flex-col-reverse sm:flex-row gap-2">
           <Button variant="ghost" className="flex-1" disabled={saving} onClick={onClose}>
-            {tx(language, 'Отмена', 'Бас тарту', 'Cancel')}
+            {t('adminCancel')}
           </Button>
           <Button
             variant="destructive"
@@ -194,7 +163,7 @@ export function RestrictionModal({
             loading={saving}
             onClick={() => void submit()}
           >
-            {tx(language, 'Подтвердить блокировку', 'Бұғаттауды растау', 'Confirm restriction')}
+            {t('adminConfirmRestriction')}
           </Button>
         </div>
       </div>

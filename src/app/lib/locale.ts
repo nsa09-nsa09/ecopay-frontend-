@@ -25,10 +25,10 @@ export type FriendlyApiErrorCode =
   | 'sessionExpired' // 401 (when token expired)
   | 'serverError' // 5xx
   | 'rateLimited' // 429 (too many requests)
+  | 'conflict' // 409 (state conflict, e.g. seat already taken)
+  | 'validation' // 400 / 422 (request rejected as invalid)
   | 'network' // fetch failure, no response
   | 'timeout' // no response within the client time budget
-  | 'validation' // 400 / 422 — the request was rejected as invalid
-  | 'conflict' // 409 — state changed (already done, taken, stale data)
   | 'generic'; // anything else
 
 const FRIENDLY: Record<FriendlyApiErrorCode, Record<Language, string>> = {
@@ -57,6 +57,16 @@ const FRIENDLY: Record<FriendlyApiErrorCode, Record<Language, string>> = {
     kz: 'Сұраныстар тым көп. Кейінірек қайталап көріңіз.',
     en: 'Too many requests. Please try again later.',
   },
+  conflict: {
+    ru: 'Действие конфликтует с текущим состоянием. Обновите страницу и попробуйте снова.',
+    kz: 'Әрекет ағымдағы күймен қайшы келеді. Бетті жаңартып, қайталап көріңіз.',
+    en: 'This action conflicts with the current state. Refresh and try again.',
+  },
+  validation: {
+    ru: 'Проверьте правильность заполнения полей.',
+    kz: 'Өрістердің дұрыс толтырылғанын тексеріңіз.',
+    en: 'Please check the form and correct the highlighted fields.',
+  },
   network: {
     ru: 'Проблема с подключением. Проверьте сеть.',
     kz: 'Желіге қосылу мәселесі. Қосылымды тексеріңіз.',
@@ -66,16 +76,6 @@ const FRIENDLY: Record<FriendlyApiErrorCode, Record<Language, string>> = {
     ru: 'Сервер долго не отвечает. Проверьте результат, прежде чем повторять действие.',
     kz: 'Сервер ұзақ жауап бермей тұр. Әрекетті қайталамас бұрын нәтижесін тексеріңіз.',
     en: 'The server is taking too long. Check the result before repeating the action.',
-  },
-  validation: {
-    ru: 'Проверьте введённые данные.',
-    kz: 'Енгізілген деректерді тексеріңіз.',
-    en: 'Please check the entered data.',
-  },
-  conflict: {
-    ru: 'Данные изменились. Обновите страницу и попробуйте снова.',
-    kz: 'Деректер өзгерді. Бетті жаңартып, қайталап көріңіз.',
-    en: 'The data has changed. Refresh the page and try again.',
   },
   generic: {
     ru: 'Не удалось загрузить данные.',

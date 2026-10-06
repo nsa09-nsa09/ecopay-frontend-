@@ -56,7 +56,7 @@ const ROUTES: Array<{ path: string; role: Role; ready: (page: Page) => Promise<v
   {
     path: '/admin/finance',
     role: 'ADMIN',
-    ready: (p) => expect(p.getByRole('button', { name: 'PAYMENT REVIEW' })).toBeVisible(),
+    ready: (p) => expect(p.getByRole('button', { name: 'Payment review' })).toBeVisible(),
   },
 ];
 

@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Button, Card, Input } from '../ds-primitives';
+import { Button, Input } from '../ds-primitives';
 import { useAuth } from '../auth/auth-provider';
-import { useI18n, type Language } from '../i18n-provider';
+import { useI18n } from '../i18n-provider';
 import {
   getAdminRoomSettingsRequest,
   updateAdminRoomSettingsRequest,
 } from '../../lib/api';
 import { formatAdminApiError } from './admin-action-ui';
-
-const tx = (l: Language, ru: string, kz: string, en: string) =>
-  l === 'ru' ? ru : l === 'kz' ? kz : en;
+import { AdminCard } from './admin-ui';
 
 export function AdminRoomSettingsCard({
   onSuccess,
@@ -19,7 +17,7 @@ export function AdminRoomSettingsCard({
   onError: (message: string) => void;
 }) {
   const { authorizedRequest } = useAuth();
-  const { language, t } = useI18n();
+  const { t } = useI18n();
   const [value, setValue] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -49,7 +47,7 @@ export function AdminRoomSettingsCard({
   const save = async () => {
     const minimumRoomMembers = Number(value);
     if (!Number.isInteger(minimumRoomMembers) || minimumRoomMembers < 2) {
-      setError(tx(language, 'Укажите целое число не меньше 2.', 'Кемінде 2 болатын бүтін санды көрсетіңіз.', 'Enter a whole number of at least 2.'));
+      setError(t('adminRoomSettingsMinError'));
       return;
     }
     setSaving(true);
@@ -70,18 +68,14 @@ export function AdminRoomSettingsCard({
   };
 
   return (
-    <Card className="mb-6 flex flex-col gap-3 max-w-[520px]">
-      <div>
-        <h2 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
-          {tx(language, 'Минимальное количество мест в новых комнатах', 'Жаңа бөлмелердегі ең аз орын саны', 'Minimum seats in new rooms')}
-        </h2>
-        <p className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
-          {tx(language, 'Настройка применяется только к новым комнатам. Уже созданные комнаты с меньшей вместимостью не изменяются.', 'Баптау тек жаңа бөлмелерге қолданылады. Сыйымдылығы аз жасалған бөлмелер өзгермейді.', 'This setting applies only to new rooms. Existing rooms with fewer seats are unchanged.')}
-        </p>
-      </div>
+    <AdminCard
+      className="max-w-[560px]"
+      title={t('adminRoomSettingsTitle')}
+      description={t('adminRoomSettingsHint')}
+    >
       <div className="flex flex-col sm:flex-row sm:items-end gap-2">
         <Input
-          label={tx(language, 'Количество мест', 'Орын саны', 'Seat count')}
+          label={t('adminRoomSettingsSeatCount')}
           type="number"
           min={2}
           step={1}
@@ -91,9 +85,9 @@ export function AdminRoomSettingsCard({
           error={error ?? undefined}
         />
         <Button variant="primary" size="sm" disabled={loading} loading={saving} onClick={() => void save()}>
-          {tx(language, 'Сохранить', 'Сақтау', 'Save')}
+          {t('save')}
         </Button>
       </div>
-    </Card>
+    </AdminCard>
   );
 }

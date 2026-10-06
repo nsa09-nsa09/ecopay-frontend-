@@ -225,6 +225,7 @@ export function MemberDetailPage() {
   };
 
   const handlePay = async () => {
+    if (paying) return; // guard against double-submit of a non-idempotent money action
     if (!membership) return;
     if (!room?.settlementCurrency || room.shareKzt == null || room.payableTotalKzt == null) {
       setPayError(

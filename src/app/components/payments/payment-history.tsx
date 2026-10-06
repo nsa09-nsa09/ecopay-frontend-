@@ -11,7 +11,7 @@ import {
   type PaymentHistoryItemDto,
   type PagedResponse,
 } from '../../lib/api';
-import { userStatusLabel } from '../../lib/user-facing-enums';
+import { userStatusLabel, userStatusVariant } from '../../lib/user-facing-enums';
 
 type L = Language;
 
@@ -25,15 +25,11 @@ function money(amount: number | string, currency: string): string {
   return currency === 'KZT' ? `₸${formatted}` : `${currency} ${formatted}`;
 }
 
+// Single source of truth: lib/user-facing-enums owns every status colour so
+// that payment history, ds-primitives badges and activity feeds never diverge
+// (and so the Defect-1 money states get a meaningful, non-neutral colour).
 function statusVariant(status: string): 'warning' | 'info' | 'success' | 'danger' | 'default' {
-  const s = status.toUpperCase();
-  if (['SUCCESS', 'SUCCEEDED', 'COMPLETED', 'ACTIVE', 'SENT', 'PROCESSED', 'PAID'].includes(s)) {
-    return 'success';
-  }
-  if (['FAILED', 'REJECTED', 'CANCELLED', 'EXPIRED', 'ERROR'].includes(s)) return 'danger';
-  if (['PENDING', 'QUEUED', 'HOLD'].includes(s)) return 'warning';
-  if (['PROCESSING', 'APPROVED', 'REQUESTED', 'IN_REVIEW'].includes(s)) return 'info';
-  return 'default';
+  return userStatusVariant(status);
 }
 
 function kindLabel(kind: string, l: L): string {
@@ -58,31 +54,10 @@ export function normalizeDirection(direction: string | null | undefined): 'INCOM
   return null;
 }
 
+// Delegates to the single source of truth so a refunded / under-review / held
+// payment renders a specific label instead of the generic unknown fallback.
 function statusLabel(status: string, l: L): string {
-  const s = status.toUpperCase();
-  const labels: Record<string, [string, string, string]> = {
-    SUCCESS: ['Успешно', 'Сәтті', 'Success'],
-    SUCCEEDED: ['Успешно', 'Сәтті', 'Succeeded'],
-    COMPLETED: ['Завершён', 'Аяқталды', 'Completed'],
-    PAID: ['Оплачен', 'Төленді', 'Paid'],
-    SENT: ['Отправлен', 'Жіберілді', 'Sent'],
-    PROCESSED: ['Обработан', 'Өңделді', 'Processed'],
-    PENDING: ['Ожидает', 'Күтуде', 'Pending'],
-    PENDING_METHOD: ['Ожидает способ выплаты', 'Төлем әдісін күтуде', 'Awaiting payout method'],
-    FROZEN: ['Удерживается EcoPay', 'EcoPay ұстап тұр', 'Held by EcoPay'],
-    QUEUED: ['В очереди', 'Кезекте', 'Queued'],
-    HOLD: ['Удержание', 'Ұсталым', 'Hold'],
-    PROCESSING: ['Обрабатывается', 'Өңделуде', 'Processing'],
-    APPROVED: ['Одобрен', 'Мақұлданды', 'Approved'],
-    REQUESTED: ['Запрошен', 'Сұралды', 'Requested'],
-    IN_REVIEW: ['На проверке', 'Тексеруде', 'In review'],
-    FAILED: ['Ошибка', 'Сәтсіз', 'Failed'],
-    REJECTED: ['Отклонён', 'Қабылданбады', 'Rejected'],
-    CANCELLED: ['Отменён', 'Бас тартылды', 'Cancelled'],
-    EXPIRED: ['Истёк', 'Мерзімі өтті', 'Expired'],
-  };
-  const entry = labels[s];
-  return entry ? tx(l, ...entry) : userStatusLabel(status, l);
+  return userStatusLabel(status, l);
 }
 
 function historyDate(item: PaymentHistoryItemDto): string | null {

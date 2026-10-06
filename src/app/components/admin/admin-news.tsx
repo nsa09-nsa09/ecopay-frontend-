@@ -3,15 +3,15 @@ import { AdminLayout } from './admin-layout';
 import { useI18n, type Language } from '../i18n-provider';
 import { formatDateTime } from '../../lib/datetime';
 import { useAuth } from '../auth/auth-provider';
-import { Badge, Button, Card, Input, Modal, Select, Skeleton, Tabs } from '../ds-primitives';
+import { Button, Input, Modal, Select, Skeleton, Tabs } from '../ds-primitives';
 import { FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
 import {
   ChevronLeft,
   ChevronRight,
   Image as ImageIcon,
+  Newspaper,
   Pencil,
   Plus,
-  RefreshCw,
   Save,
   Trash2,
   Upload,
@@ -31,6 +31,25 @@ import {
   type NewsStatus,
   type UpsertNewsPayload,
 } from '../../lib/api';
+import {
+  AdminCard,
+  AdminConfirm,
+  AdminDataTable,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminStatusBadge,
+  type AdminColumn,
+  type AdminStatusTone,
+} from './admin-ui';
+
+const NEWS_STATUS: Record<NewsStatus, { tone: AdminStatusTone; key: string }> = {
+  PUBLISHED: { tone: 'success', key: 'adminNewsStatusPublished' },
+  DRAFT: { tone: 'info', key: 'adminNewsStatusDraft' },
+  ARCHIVED: { tone: 'default', key: 'adminNewsStatusArchived' },
+};
 
 const NEWS_LANGS: readonly Language[] = ['kz', 'ru', 'en'] as const;
 type NewsLang = (typeof NEWS_LANGS)[number];
@@ -394,158 +413,156 @@ export function AdminNewsPage() {
 
   const currentFields = form.langs[activeLang];
 
+  const columns: AdminColumn<AdminNewsDto>[] = [
+    {
+      id: 'title',
+      header: t('adminNewsListColTitle'),
+      priority: 'primary',
+      minWidth: 260,
+      cell: (it) => {
+        const { title } = pickLocalized(it, language);
+        return (
+          <div className="flex items-center gap-2 min-w-0">
+            {it.imageUrl ? (
+              <img
+                src={it.imageUrl}
+                alt=""
+                width={36}
+                height={36}
+                loading="lazy"
+                decoding="async"
+                className="w-9 h-9 rounded-md object-cover shrink-0"
+              />
+            ) : (
+              <div
+                className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
+                style={{ background: 'var(--eco-surface)' }}
+              >
+                <ImageIcon size={14} style={{ color: 'var(--eco-text-tertiary)' }} />
+              </div>
+            )}
+            <span className="min-w-0 break-words md:truncate md:max-w-[360px]">
+              {title || `#${it.id}`}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      id: 'status',
+      header: t('adminNewsListColStatus'),
+      priority: 'primary',
+      nowrap: true,
+      cell: (it) => (
+        <AdminStatusBadge tone={NEWS_STATUS[it.status].tone}>
+          {t(NEWS_STATUS[it.status].key)}
+        </AdminStatusBadge>
+      ),
+    },
+    {
+      id: 'sort',
+      header: t('adminNewsListColSort'),
+      numeric: true,
+      cell: (it) => it.sortOrder ?? 0,
+    },
+    {
+      id: 'updated',
+      header: t('adminNewsListColUpdated'),
+      priority: 'secondary',
+      nowrap: true,
+      cell: (it) => (
+        <span className="tabular-nums" style={{ color: 'var(--eco-text-secondary)' }}>
+          {formatDateTime(it.updatedAt, language)}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: <span className="sr-only">{t('colActions')}</span>,
+      label: t('colActions'),
+      priority: 'actions',
+      align: 'right',
+      nowrap: true,
+      cell: (it) => (
+        <div className="inline-flex gap-1">
+          <Button variant="ghost" size="sm" onClick={() => openEdit(it)}>
+            <Pencil size={13} /> {t('adminNewsEdit')}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfirmDelete(it)}
+            disabled={deletingId === it.id}
+            aria-label={t('adminNewsDelete')}
+            title={t('adminNewsDelete')}
+          >
+            <Trash2 size={13} style={{ color: 'var(--eco-negative)' }} />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <AdminLayout>
-      <div className="max-w-[1200px]">
-        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
-            {t('adminNewsTitle')}
-          </h1>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void load()}
-              disabled={loading || saving}
-            >
-              <RefreshCw size={13} /> {t('retry')}
-            </Button>
-            <Button variant="primary" size="sm" onClick={openCreate}>
-              <Plus size={13} /> {t('adminNewsCreate')}
-            </Button>
-          </div>
-        </div>
+      <AdminPage width="wide">
+        <AdminPageHeader
+          title={t('adminNewsTitle')}
+          subtitle={t('adminNewsHint')}
+          actions={
+            <>
+              <AdminRefreshButton onClick={() => void load()} loading={loading || saving} />
+              <Button variant="primary" size="sm" onClick={openCreate}>
+                <Plus size={13} /> {t('adminNewsCreate')}
+              </Button>
+            </>
+          }
+        />
 
         <FlashBanner flash={flash} />
 
-        <Card className="mb-5">
-          <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-            {t('adminNewsHint')}
-          </p>
-        </Card>
-
         {/* Published carousel */}
-        <Card className="mb-5">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <h2 className="text-[16px]" style={{ color: 'var(--eco-text)' }}>
-              {t('adminNewsCarouselTitle')}
-            </h2>
-          </div>
+        <AdminCard title={t('adminNewsCarouselTitle')}>
           {loading ? (
-            <Skeleton height={200} />
+            <Skeleton height={262} rounded={12} />
           ) : (
             <PublishedCarousel items={published} language={language} t={t} />
           )}
-        </Card>
+        </AdminCard>
 
         {/* List */}
-        <Card>
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <h2 className="text-[16px]" style={{ color: 'var(--eco-text)' }}>
-              {t('adminNewsListTitle')}
-            </h2>
-          </div>
-
-          {error && (
-            <div className="mb-3 text-[13px]" style={{ color: 'var(--eco-negative)' }}>
-              {error}
-            </div>
+        <section className="flex flex-col gap-3 min-w-0">
+          <h2 className="text-[15px] font-semibold" style={{ color: 'var(--eco-text)' }}>
+            {t('adminNewsListTitle')}
+          </h2>
+          {error && !loading && items.length > 0 && (
+            <AdminErrorState inline message={error} onRetry={() => void load()} />
           )}
-
-          {loading ? (
-            <div className="flex flex-col gap-2">
-              <Skeleton height={48} />
-              <Skeleton height={48} />
-              <Skeleton height={48} />
-            </div>
-          ) : items.length === 0 ? (
-            <div
-              className="py-6 text-center text-[13px]"
-              style={{ color: 'var(--eco-text-tertiary)' }}
-            >
-              {t('adminNewsEmpty')}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-[13px]" style={{ borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr
-                    style={{
-                      borderBottom: '1px solid var(--eco-border)',
-                      color: 'var(--eco-text-tertiary)',
-                    }}
-                  >
-                    <th className="text-left py-2 pr-3">{t('adminNewsListColTitle')}</th>
-                    <th className="text-left py-2 pr-3">{t('adminNewsListColStatus')}</th>
-                    <th className="text-left py-2 pr-3">{t('adminNewsListColSort')}</th>
-                    <th className="text-left py-2 pr-3">{t('adminNewsListColUpdated')}</th>
-                    <th className="py-2"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((it) => {
-                    const { title } = pickLocalized(it, language);
-                    return (
-                      <tr key={it.id} style={{ borderBottom: '1px solid var(--eco-border)' }}>
-                        <td className="py-2 pr-3" style={{ color: 'var(--eco-text)' }}>
-                          <div className="flex items-center gap-2">
-                            {it.imageUrl ? (
-                              <img
-                                src={it.imageUrl}
-                                alt=""
-                                width={36}
-                                height={36}
-                                loading="lazy"
-                                decoding="async"
-                                className="rounded-md object-cover shrink-0"
-                              />
-                            ) : (
-                              <div
-                                className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
-                                style={{ background: 'var(--eco-surface)' }}
-                              >
-                                <ImageIcon
-                                  size={14}
-                                  style={{ color: 'var(--eco-text-tertiary)' }}
-                                />
-                              </div>
-                            )}
-                            <span className="truncate" style={{ maxWidth: 360 }}>
-                              {title || `#${it.id}`}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-2 pr-3">
-                          <StatusBadge status={it.status} t={t} />
-                        </td>
-                        <td className="py-2 pr-3" style={{ color: 'var(--eco-text-secondary)' }}>
-                          {it.sortOrder ?? 0}
-                        </td>
-                        <td className="py-2 pr-3" style={{ color: 'var(--eco-text-tertiary)' }}>
-                          {formatDateTime(it.updatedAt, language)}
-                        </td>
-                        <td className="py-2 text-right whitespace-nowrap">
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(it)}>
-                            <Pencil size={13} /> {t('adminNewsEdit')}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setConfirmDelete(it)}
-                            disabled={deletingId === it.id}
-                          >
-                            <Trash2 size={13} style={{ color: 'var(--eco-negative)' }} />
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
-      </div>
+          <AdminDataTable
+            columns={columns}
+            rows={items}
+            rowKey={(it) => it.id}
+            loading={loading}
+            error={error}
+            onRetry={() => void load()}
+            skeletonRows={4}
+            minWidth={760}
+            empty={
+              <AdminCard>
+                <AdminEmptyState
+                  icon={Newspaper}
+                  title={t('adminNewsEmpty')}
+                  action={
+                    <Button variant="primary" size="sm" onClick={openCreate}>
+                      <Plus size={13} /> {t('adminNewsCreate')}
+                    </Button>
+                  }
+                />
+              </AdminCard>
+            }
+          />
+        </section>
+      </AdminPage>
 
       {/* Editor modal */}
       <Modal
@@ -585,7 +602,7 @@ export function AdminNewsPage() {
                 resize: 'vertical',
               }}
             />
-            <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+            <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
               {currentFields.body.length} / {BODY_MAX}
             </span>
           </FormRow>
@@ -625,8 +642,8 @@ export function AdminNewsPage() {
               return (
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-wrap gap-2 text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
-                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={imageMode === 'shared'} onChange={() => setImageMode('shared')} /> {language === 'ru' ? 'Одна картинка для всех языков' : language === 'kz' ? 'Барлық тілге бір сурет' : 'One image for all languages'}</label>
-                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={imageMode === 'localized'} onChange={() => setImageMode('localized')} /> {language === 'ru' ? 'Отдельная для каждого языка' : language === 'kz' ? 'Әр тілге бөлек' : 'A separate image for each language'}</label>
+                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={imageMode === 'shared'} onChange={() => setImageMode('shared')} /> {t('adminImageModeShared')}</label>
+                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={imageMode === 'localized'} onChange={() => setImageMode('localized')} /> {t('adminImageModeLocalized')}</label>
                   </div>
                 <div className="flex items-center gap-3">
                   {previewUrl ? (
@@ -685,8 +702,8 @@ export function AdminNewsPage() {
                         </Button>
                       )}
                     </div>
-                    <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      {imageMode === 'localized' ? (language === 'ru' ? `Картинка — ${langTabs.find((tab) => tab.id === activeLang)?.label}` : language === 'kz' ? `Сурет — ${langTabs.find((tab) => tab.id === activeLang)?.label}` : `Image — ${langTabs.find((tab) => tab.id === activeLang)?.label}`) : (editing ? t('adminNewsImageHint') : t('adminNewsImageAtCreateHint'))}
+                    <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                      {imageMode === 'localized' ? t('adminImageForLang', { lang: langTabs.find((tab) => tab.id === activeLang)?.label ?? '' }) : (editing ? t('adminNewsImageHint') : t('adminNewsImageAtCreateHint'))}
                     </span>
                   </div>
                 </div>
@@ -718,32 +735,20 @@ export function AdminNewsPage() {
       </Modal>
 
       {/* Delete confirmation */}
-      <Modal
+      <AdminConfirm
         open={confirmDelete !== null}
         onClose={() => setConfirmDelete(null)}
         title={t('adminNewsDeleteConfirm')}
+        confirmLabel={t('adminNewsDelete')}
+        loading={confirmDelete !== null && deletingId === confirmDelete.id}
+        onConfirm={() => (confirmDelete ? handleDelete(confirmDelete) : undefined)}
       >
         {confirmDelete && (
-          <div className="flex flex-col gap-3">
-            <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-              {pickLocalized(confirmDelete, language).title || `#${confirmDelete.id}`}
-            </p>
-            <div className="flex items-center justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(null)}>
-                {t('cancel')}
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                loading={deletingId === confirmDelete.id}
-                onClick={() => void handleDelete(confirmDelete)}
-              >
-                <Trash2 size={13} /> {t('adminNewsDelete')}
-              </Button>
-            </div>
-          </div>
+          <p className="text-[13px] break-words" style={{ color: 'var(--eco-text-secondary)' }}>
+            {pickLocalized(confirmDelete, language).title || `#${confirmDelete.id}`}
+          </p>
         )}
-      </Modal>
+      </AdminConfirm>
     </AdminLayout>
   );
 }
@@ -757,16 +762,6 @@ function FormRow({ label, children }: { label: string; children: React.ReactNode
       {children}
     </label>
   );
-}
-
-function StatusBadge({ status, t }: { status: NewsStatus; t: (k: string) => string }) {
-  const map: Record<NewsStatus, { variant: 'success' | 'info' | 'default'; key: string }> = {
-    PUBLISHED: { variant: 'success', key: 'adminNewsStatusPublished' },
-    DRAFT: { variant: 'info', key: 'adminNewsStatusDraft' },
-    ARCHIVED: { variant: 'default', key: 'adminNewsStatusArchived' },
-  };
-  const cfg = map[status];
-  return <Badge variant={cfg.variant}>{t(cfg.key)}</Badge>;
 }
 
 function PublishedCarousel({
@@ -849,7 +844,7 @@ function PublishedCarousel({
           <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
             {formatDateTime(current.publishedAt ?? current.updatedAt, language)}
           </div>
-          <div className="text-[16px]" style={{ color: 'var(--eco-text)' }}>
+          <div className="text-[15px] font-semibold" style={{ color: 'var(--eco-text)' }}>
             {title || `#${current.id}`}
           </div>
           <div className="text-[13px] line-clamp-4" style={{ color: 'var(--eco-text-secondary)' }}>

@@ -3,9 +3,18 @@ import { AdminLayout } from './admin-layout';
 import { useI18n, type Language } from '../i18n-provider';
 import { formatDateTime } from '../../lib/datetime';
 import { useAuth } from '../auth/auth-provider';
-import { Button, Card, Input, Tabs } from '../ds-primitives';
+import { Button, Input, Skeleton } from '../ds-primitives';
 import { FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
-import { RefreshCw, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
+import {
+  AdminCard,
+  AdminErrorState,
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminTabs,
+  type AdminTabItem,
+} from './admin-ui';
 import {
   adminGetSiteAbout,
   adminUpdateSiteAbout,
@@ -181,44 +190,57 @@ export function AdminAboutPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-[860px]">
-        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
-            {t('adminAboutTitle')}
-          </h1>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => void load()}
-            disabled={loading || saving}
-          >
-            <RefreshCw size={13} /> {t('retry')}
-          </Button>
-        </div>
+      <AdminPage width="narrow">
+        <AdminPageHeader
+          title={t('adminAboutTitle')}
+          subtitle={t('adminAboutHint')}
+          actions={<AdminRefreshButton onClick={() => void load()} loading={loading || saving} />}
+        />
 
         <FlashBanner flash={flash} />
 
-        {error && (
-          <Card>
-            <span className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
-              {error}
-            </span>
-          </Card>
+        {error && !loading && (
+          <AdminErrorState inline message={error} onRetry={() => void load()} />
         )}
 
         {loading ? (
-          <Card>
-            <span className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {t('loading')}
-            </span>
-          </Card>
+          <AdminCard>
+            <div className="flex flex-col gap-4" aria-busy="true" aria-label={t('loading')}>
+              <Skeleton height={38} rounded={8} />
+              <Skeleton width="60%" height={36} rounded={8} />
+              <Skeleton height={38} rounded={8} />
+              <Skeleton height={96} rounded={8} />
+              <Skeleton height={140} rounded={8} />
+              <Skeleton height={38} rounded={8} />
+              <Skeleton height={38} rounded={8} />
+              <Skeleton height={38} rounded={8} />
+            </div>
+          </AdminCard>
         ) : (
-          <Card>
+          <AdminCard
+            footer={
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 w-full">
+                <span
+                  className="text-[12px] tabular-nums"
+                  style={{ color: 'var(--eco-text-tertiary)' }}
+                >
+                  {updatedAt
+                    ? `${t('adminAboutLastUpdated')}: ${formatDateTime(updatedAt, language)}`
+                    : ''}
+                </span>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => void handleSave()}
+                  disabled={!canSave}
+                  loading={saving}
+                >
+                  <Save size={13} /> {t('save')}
+                </Button>
+              </div>
+            }
+          >
             <div className="flex flex-col gap-4">
-              <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-                {t('adminAboutHint')}
-              </p>
-
               <FormRow label={t('adminAboutCompanyName')} htmlFor="admin-about-company-name">
                 <Input
                   id="admin-about-company-name"
@@ -228,10 +250,10 @@ export function AdminAboutPage() {
               </FormRow>
 
               <div className="flex flex-col gap-2">
-                <Tabs
-                  tabs={langTabs}
+                <AdminTabs<AboutLang>
+                  tabs={langTabs as AdminTabItem<AboutLang>[]}
                   active={activeLang}
-                  onChange={(id) => setActiveLang(id as AboutLang)}
+                  onChange={setActiveLang}
                 />
                 <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                   {t('adminAboutLangHint')}
@@ -259,15 +281,13 @@ export function AdminAboutPage() {
                   }
                   rows={4}
                   maxLength={MISSION_MAX}
-                  className="w-full px-3 py-2 rounded-lg text-[14px]"
-                  style={{
-                    background: 'var(--eco-bg)',
-                    color: 'var(--eco-text)',
-                    border: '1px solid var(--eco-border)',
-                    resize: 'vertical',
-                  }}
+                  className="eco-input w-full px-3 py-2 rounded-lg text-[13px] outline-none"
+                  style={{ resize: 'vertical' }}
                 />
-                <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                <span
+                  className="text-[12px] tabular-nums"
+                  style={{ color: 'var(--eco-text-tertiary)' }}
+                >
                   {currentFields.mission.length} / {MISSION_MAX}
                 </span>
               </FormRow>
@@ -285,37 +305,37 @@ export function AdminAboutPage() {
                   }
                   rows={6}
                   maxLength={DESCRIPTION_MAX}
-                  className="w-full px-3 py-2 rounded-lg text-[14px]"
-                  style={{
-                    background: 'var(--eco-bg)',
-                    color: 'var(--eco-text)',
-                    border: '1px solid var(--eco-border)',
-                    resize: 'vertical',
-                  }}
+                  className="eco-input w-full px-3 py-2 rounded-lg text-[13px] outline-none"
+                  style={{ resize: 'vertical' }}
                 />
-                <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                <span
+                  className="text-[12px] tabular-nums"
+                  style={{ color: 'var(--eco-text-tertiary)' }}
+                >
                   {currentFields.description.length} / {DESCRIPTION_MAX}
                 </span>
               </FormRow>
 
-              <FormRow label={t('adminAboutContactEmail')} htmlFor="admin-about-contact-email">
-                <Input
-                  id="admin-about-contact-email"
-                  type="email"
-                  value={form.contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="support@example.com"
-                />
-              </FormRow>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormRow label={t('adminAboutContactEmail')} htmlFor="admin-about-contact-email">
+                  <Input
+                    id="admin-about-contact-email"
+                    type="email"
+                    value={form.contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    placeholder="support@example.com"
+                  />
+                </FormRow>
 
-              <FormRow label={t('adminAboutContactPhone')} htmlFor="admin-about-contact-phone">
-                <Input
-                  id="admin-about-contact-phone"
-                  value={form.contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  placeholder="+7 ..."
-                />
-              </FormRow>
+                <FormRow label={t('adminAboutContactPhone')} htmlFor="admin-about-contact-phone">
+                  <Input
+                    id="admin-about-contact-phone"
+                    value={form.contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    placeholder="+7 ..."
+                  />
+                </FormRow>
+              </div>
 
               <FormRow label={t('adminAboutApexLink')} htmlFor="admin-about-apex-link">
                 <Input
@@ -325,26 +345,10 @@ export function AdminAboutPage() {
                   placeholder="https://example.com"
                 />
               </FormRow>
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2">
-                <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {updatedAt
-                    ? `${t('adminAboutLastUpdated')}: ${formatDateTime(updatedAt, language)}`
-                    : ''}
-                </span>
-                <Button
-                  variant="primary"
-                  onClick={() => void handleSave()}
-                  disabled={!canSave}
-                  loading={saving}
-                >
-                  <Save size={13} /> {t('save')}
-                </Button>
-              </div>
             </div>
-          </Card>
+          </AdminCard>
         )}
-      </div>
+      </AdminPage>
     </AdminLayout>
   );
 }
@@ -359,12 +363,11 @@ function FormRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={htmlFor} className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+    <div className="flex flex-col gap-1.5 min-w-0">
+      <label htmlFor={htmlFor} className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
         {label}
       </label>
       {children}
     </div>
   );
 }
-

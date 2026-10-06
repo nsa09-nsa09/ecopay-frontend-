@@ -145,29 +145,3 @@ export function RouteErrorFallback() {
     </div>
   );
 }
-
-/** In-layout 404 for unknown public paths (keeps header/footer navigation). */
-export function NotFoundPage() {
-  const copy = COPY[currentLanguage()];
-  return (
-    <div style={{ padding: '64px 16px', textAlign: 'center', color: 'var(--eco-text)' }}>
-      <h1 style={{ fontSize: 22, marginBottom: 8 }}>{copy.notFoundTitle}</h1>
-      <p style={{ color: 'var(--eco-text-secondary)', marginBottom: 24 }}>{copy.notFoundBody}</p>
-      <a
-        href="/"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          minHeight: 44,
-          padding: '0 18px',
-          borderRadius: 10,
-          background: 'var(--eco-primary)',
-          color: '#fff',
-          textDecoration: 'none',
-        }}
-      >
-        {copy.home}
-      </a>
-    </div>
-  );
-}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Card, Button, Badge } from '../ds-primitives';
+import { Button, Badge } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n, type Language } from '../i18n-provider';
 import { formatDate } from '../../lib/datetime';
@@ -13,9 +13,22 @@ import {
   rejectModerationItemRequest,
   type ModerationQueueItemDto,
 } from '../../lib/api';
-import { Shield, CheckCircle2, XCircle, ShieldX, UserPlus, RefreshCw } from 'lucide-react';
+import { CheckCircle2, XCircle, ShieldX, UserPlus } from 'lucide-react';
 import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
 import { AdminUserReports } from './admin-user-reports';
+import {
+  AdminCard,
+  AdminDataTable,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminId,
+  AdminPage,
+  AdminPageHeader,
+  AdminRefreshButton,
+  AdminStatusBadge,
+  AdminTabs,
+  type AdminColumn,
+} from './admin-ui';
 
 type ActionKind = 'CONFIRM' | 'REJECT' | 'BLOCK';
 
@@ -224,232 +237,213 @@ export function AdminModerationPage() {
   }, [action, t]);
 
   const tabs = (
-    <div className="flex flex-wrap gap-2 mb-6">
-      <Button
-        variant={tab === 'QUEUE' ? 'primary' : 'secondary'}
-        size="sm"
-        onClick={() => setTab('QUEUE')}
-      >
-        {t('moderationQueue')}
-      </Button>
-      <Button
-        variant={tab === 'REPORTS' ? 'primary' : 'secondary'}
-        size="sm"
-        onClick={() => setTab('REPORTS')}
-      >
-        {localized(language, {
-          ru: 'Жалобы на пользователей',
-          kz: 'Пайдаланушыларға шағымдар',
-          en: 'User reports',
-        })}
-      </Button>
-    </div>
+    <AdminTabs<'QUEUE' | 'REPORTS'>
+      tabs={[
+        { id: 'QUEUE', label: t('moderationQueue'), count: activeQueue.length },
+        { id: 'REPORTS', label: t('adminUserReportsTitle') },
+      ]}
+      active={tab}
+      onChange={setTab}
+    />
   );
 
   if (tab === 'REPORTS')
     return (
       <AdminLayout>
-        <div className="w-full max-w-none">
-          <h1 className="text-[24px] mb-5" style={{ color: 'var(--eco-text)' }}>
-            {localized(language, {
-              ru: 'Жалобы на пользователей',
-              kz: 'Пайдаланушыларға шағымдар',
-              en: 'User reports',
-            })}
-          </h1>
+        <AdminPage width="full">
+          <AdminPageHeader title={t('adminUserReportsTitle')} />
           {tabs}
           <AdminUserReports />
-        </div>
+        </AdminPage>
       </AdminLayout>
     );
 
+  const columns: AdminColumn<ModerationQueueItemDto>[] = [
+    {
+      id: 'entity',
+      header: t('colEntity'),
+      priority: 'primary',
+      minWidth: 220,
+      cell: (item) => (
+        <div className="min-w-0">
+          <div className="text-[13px] break-words" style={{ color: 'var(--eco-text)' }}>
+            {t(entityLabelKey(item.entityType))} #{item.entityId}
+          </div>
+          {(item.roomId || item.roomMemberId) && (
+            <div className="text-[12px] break-all" style={{ color: 'var(--eco-text-tertiary)' }}>
+              {item.roomId ? `R-${item.roomId}` : ''}
+              {item.roomMemberId ? ` · M-${item.roomMemberId}` : ''}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'score',
+      header: t('colScore'),
+      priority: 'primary',
+      numeric: true,
+      width: 90,
+      cell: (item) => {
+        const score = riskNumeric(item.riskScore);
+        return (
+          <span className="text-[13px] font-semibold" style={{ color: riskColor(score) }}>
+            {score ?? '—'}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'id',
+      header: t('colId'),
+      priority: 'secondary',
+      nowrap: true,
+      cell: (item) => <AdminId>MQ-{item.id}</AdminId>,
+    },
+    {
+      id: 'reason',
+      header: t('reasonCode'),
+      minWidth: 170,
+      cell: (item) =>
+        item.reasonCode ? (
+          <Badge variant="warning">{reasonCodeLabel(item.reasonCode, language)}</Badge>
+        ) : (
+          <span style={{ color: 'var(--eco-text-tertiary)' }}>—</span>
+        ),
+    },
+    {
+      id: 'status',
+      header: t('colStatus'),
+      nowrap: true,
+      cell: (item) => (
+        <AdminStatusBadge status={item.status}>
+          {moderationStatusLabel(item.status, language)}
+        </AdminStatusBadge>
+      ),
+    },
+    {
+      id: 'assigned',
+      header: t('assignedTo'),
+      nowrap: true,
+      cell: (item) => {
+        const isMine =
+          item.assignedAdminId != null && user?.id != null && item.assignedAdminId === user.id;
+        return (
+          <span style={{ color: 'var(--eco-text-secondary)' }}>
+            {item.assignedAdminId
+              ? isMine
+                ? t('meLabel')
+                : `#${item.assignedAdminId}`
+              : t('unassigned')}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'submitted',
+      header: t('colSubmitted'),
+      nowrap: true,
+      cell: (item) => (
+        <span className="tabular-nums" style={{ color: 'var(--eco-text-secondary)' }}>
+          {formatDate(item.createdAt, language)}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: t('colActions'),
+      priority: 'actions',
+      align: 'right',
+      nowrap: true,
+      cell: (item) => {
+        const isMine =
+          item.assignedAdminId != null && user?.id != null && item.assignedAdminId === user.id;
+        const canBlock = item.roomId != null;
+        return (
+          <div className="inline-flex gap-1.5 flex-wrap justify-end">
+            {!isMine && (
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={busyAssignId === item.id || undefined}
+                onClick={() => void handleAssign(item)}
+                title={t('assignToMe')}
+                aria-label={t('assignToMe')}
+              >
+                <UserPlus size={13} aria-hidden />
+              </Button>
+            )}
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => openAction('CONFIRM', item)}
+              title={t('confirmLabel')}
+              aria-label={t('confirmLabel')}
+            >
+              <CheckCircle2 size={13} aria-hidden />
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => openAction('REJECT', item)}
+              title={t('rejectLabel')}
+              aria-label={t('rejectLabel')}
+            >
+              <XCircle size={13} aria-hidden />
+            </Button>
+            {canBlock && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => openAction('BLOCK', item)}
+                title={t('blockRoomShort')}
+                aria-label={t('blockRoomShort')}
+              >
+                <ShieldX size={13} aria-hidden />
+              </Button>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <AdminLayout>
-      <div className="w-full max-w-none">
-        <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
-          <div>
-            <h1 className="text-[24px]" style={{ color: 'var(--eco-text)' }}>
-              {t('moderationQueue')}
-            </h1>
-            <p className="text-[13px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {t('itemsPendingReview', { count: activeQueue.length })}
-            </p>
-          </div>
-          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-            <RefreshCw size={13} /> {t('retry')}
-          </Button>
-        </div>
+      <AdminPage width="full">
+        <AdminPageHeader
+          title={t('moderationQueue')}
+          subtitle={t('itemsPendingReview', { count: activeQueue.length })}
+          actions={<AdminRefreshButton onClick={() => void load()} loading={loading} />}
+        />
 
         {tabs}
 
         <FlashBanner flash={flash} />
 
-        {error && !loading && (
-          <Card className="flex flex-col gap-2 mb-4">
-            <div className="text-[14px]" style={{ color: 'var(--eco-negative)' }}>
-              {t('loadFailedTitle')}
-            </div>
-            <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {error}
-            </div>
-            <Button variant="primary" size="sm" onClick={() => void load()}>
-              <RefreshCw size={13} /> {t('retry')}
-            </Button>
-          </Card>
+        {error && !loading && activeQueue.length > 0 && (
+          <AdminErrorState inline message={error} onRetry={() => void load()} />
         )}
 
-        {loading && items.length === 0 ? (
-          <div className="flex flex-col gap-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="p-4 rounded-xl"
-                style={{
-                  background: 'var(--eco-surface-raised)',
-                  border: '1px solid var(--eco-border)',
-                  minHeight: 80,
-                }}
+        <AdminDataTable
+          columns={columns}
+          rows={activeQueue}
+          rowKey={(item) => item.id}
+          loading={loading}
+          error={error}
+          onRetry={() => void load()}
+          minWidth={1100}
+          skeletonRows={4}
+          empty={
+            <AdminCard>
+              <AdminEmptyState
+                icon={CheckCircle2}
+                title={t('queueClear')}
+                description={t('noItemsPendingModeration')}
               />
-            ))}
-          </div>
-        ) : activeQueue.length === 0 && !error ? (
-          <Card className="text-center py-12">
-            <CheckCircle2
-              size={28}
-              className="mx-auto mb-3"
-              style={{ color: 'var(--eco-positive)' }}
-            />
-            <div className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
-              {t('queueClear')}
-            </div>
-            <div className="text-[13px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {t('noItemsPendingModeration')}
-            </div>
-          </Card>
-        ) : (
-          <div className="overflow-x-auto">
-            <div className="min-w-[1180px] flex flex-col gap-3">
-              <div
-                className="grid grid-cols-[minmax(150px,0.8fr)_minmax(300px,2fr)_minmax(190px,1.1fr)_minmax(90px,0.5fr)_minmax(160px,1fr)_minmax(130px,0.8fr)_minmax(190px,1fr)] gap-4 px-5 py-2 text-[12px]"
-                style={{ color: 'var(--eco-text-tertiary)' }}
-              >
-                <div>{t('colId')}</div>
-                <div>{t('colEntity')}</div>
-                <div>{t('reasonCode')}</div>
-                <div>{t('colScore')}</div>
-                <div>{t('assignedTo')}</div>
-                <div>{t('colSubmitted')}</div>
-                <div>{t('colActions')}</div>
-              </div>
-
-              {activeQueue.map((item) => {
-                const score = riskNumeric(item.riskScore);
-                const isMine =
-                  item.assignedAdminId != null &&
-                  user?.id != null &&
-                  item.assignedAdminId === user.id;
-                const canBlock = item.roomId != null;
-                return (
-                  <Card key={item.id} className="flex flex-col gap-3">
-                    <div className="grid grid-cols-[minmax(150px,0.8fr)_minmax(300px,2fr)_minmax(190px,1.1fr)_minmax(90px,0.5fr)_minmax(160px,1fr)_minmax(130px,0.8fr)_minmax(190px,1fr)] gap-4 items-center">
-                      <div
-                        className="text-[12px] break-all"
-                        style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'monospace' }}
-                      >
-                        MQ-{item.id}
-                      </div>
-                      <div className="min-w-0">
-                        <div
-                          className="text-[13px] break-words"
-                          style={{ color: 'var(--eco-text)' }}
-                        >
-                          {t(entityLabelKey(item.entityType))} #{item.entityId}
-                        </div>
-                        <div
-                          className="text-[11px] break-all"
-                          style={{ color: 'var(--eco-text-tertiary)' }}
-                        >
-                          {item.roomId ? `R-${item.roomId}` : ''}
-                          {item.roomMemberId ? ` · M-${item.roomMemberId}` : ''}
-                        </div>
-                      </div>
-                      <div>
-                        {item.reasonCode ? (
-                          <Badge variant="warning">
-                            {reasonCodeLabel(item.reasonCode, language)}
-                          </Badge>
-                        ) : (
-                          <span style={{ color: 'var(--eco-text-tertiary)' }}>—</span>
-                        )}
-                      </div>
-                      <div>
-                        <span className="text-[14px]" style={{ color: riskColor(score) }}>
-                          {score ?? '—'}
-                        </span>
-                      </div>
-                      <div className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
-                        {item.assignedAdminId
-                          ? isMine
-                            ? t('meLabel')
-                            : `#${item.assignedAdminId}`
-                          : t('unassigned')}
-                      </div>
-                      <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                        {formatDate(item.createdAt, language)}
-                      </div>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {!isMine && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            loading={busyAssignId === item.id}
-                            onClick={() => void handleAssign(item)}
-                            title={t('assignToMe')}
-                          >
-                            <UserPlus size={12} />
-                          </Button>
-                        )}
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => openAction('CONFIRM', item)}
-                          title={t('confirmLabel')}
-                        >
-                          <CheckCircle2 size={12} />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => openAction('REJECT', item)}
-                          title={t('rejectLabel')}
-                        >
-                          <XCircle size={12} />
-                        </Button>
-                        {canBlock && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => openAction('BLOCK', item)}
-                            title={t('blockRoomShort')}
-                          >
-                            <ShieldX size={12} />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <div
-                      className="flex items-center gap-2 text-[11px]"
-                      style={{ color: 'var(--eco-text-tertiary)' }}
-                    >
-                      <Shield size={11} />
-                      {t('colStatus')}: {moderationStatusLabel(item.status, language)}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        )}
+            </AdminCard>
+          }
+        />
 
         <ConfirmActionModal
           open={!!action}
@@ -473,7 +467,7 @@ export function AdminModerationPage() {
           errorMessage={actionError}
           onConfirm={submitAction}
         />
-      </div>
+      </AdminPage>
     </AdminLayout>
   );
 }

@@ -27,7 +27,7 @@ async function press(locator: Locator, testInfo: TestInfo) {
   else await locator.click();
 }
 
-test('home renders without horizontal overflow and navigation works', async ({
+test('home renders without horizontal overflow and navigation works @critical', async ({
   page,
 }, testInfo) => {
   await installMockBackend(page, { role: 'ANON' });
@@ -47,7 +47,7 @@ test('home renders without horizontal overflow and navigation works', async ({
   }
 });
 
-test('header search opens the picked service choice', async ({ page }, testInfo) => {
+test('header search opens the picked service choice @critical', async ({ page }, testInfo) => {
   await installMockBackend(page, { role: 'USER' });
   await page.goto('/');
   if (isNarrow(page)) {
@@ -65,7 +65,7 @@ test('header search opens the picked service choice', async ({ page }, testInfo)
   await expect(page).toHaveURL(/\/$/);
 });
 
-test('auth pages expose labelled fields', async ({ page }) => {
+test('auth pages expose labelled fields @critical', async ({ page }) => {
   await installMockBackend(page, { role: 'ANON' });
   for (const route of ['/login', '/register', '/forgot-password']) {
     await page.goto(route);
@@ -76,7 +76,9 @@ test('auth pages expose labelled fields', async ({ page }) => {
   await expect(page.getByLabel(/email/i).first()).toBeVisible();
 });
 
-test('member payment hands off to the provider exactly once', async ({ page }, testInfo) => {
+test('member payment hands off to the provider exactly once @critical', async ({
+  page,
+}, testInfo) => {
   const state = await installMockBackend(page, { role: 'USER' });
   await page.goto('/rooms/member/100');
   const pay = page.getByRole('button', { name: /^Pay\s/ });
@@ -93,7 +95,7 @@ test('member payment hands off to the provider exactly once', async ({ page }, t
   expect(state.intentCreatePayloads[0].idempotencyKey).toEqual(expect.any(String));
 });
 
-test('return page shows success only after backend confirmation', async ({ page }) => {
+test('return page shows success only after backend confirmation @critical', async ({ page }) => {
   const state = await installMockBackend(page, {
     role: 'USER',
     intentStatuses: { p1: ['SUCCESS'] },
@@ -105,7 +107,7 @@ test('return page shows success only after backend confirmation', async ({ page 
   await expect(page).not.toHaveURL(/pg_payment_id/);
 });
 
-test('slow reconciliation stays non-success, stops polling and allows refresh', async ({
+test('slow reconciliation stays non-success, stops polling and allows refresh @critical', async ({
   page,
 }) => {
   // Fake-clock stepping is slow on WebKit under load; allow more wall time.
@@ -135,14 +137,14 @@ test('slow reconciliation stays non-success, stops polling and allows refresh', 
   await expect(page.getByRole('heading', { name: 'Payment Successful' })).toBeVisible();
 });
 
-test('failed payment is reported without success copy', async ({ page }) => {
+test('failed payment is reported without success copy @critical', async ({ page }) => {
   await installMockBackend(page, { role: 'USER', intentStatuses: { p3: ['FAILED'] } });
   await page.goto('/payment/confirmation?intentId=p3&roomId=100');
   await expect(page.getByRole('heading', { name: 'Payment Failed' })).toBeVisible();
   await expect(page.getByText('Payment Successful')).toHaveCount(0);
 });
 
-test('payout card connection is confirmed by the backend, not by the redirect', async ({
+test('payout card connection is confirmed by the backend, not by the redirect @critical', async ({
   page,
 }, testInfo) => {
   // Fake-clock stepping is slow on WebKit under load; allow more wall time.
@@ -165,7 +167,7 @@ test('payout card connection is confirmed by the backend, not by the redirect', 
   expect(state.bindingConfirmCalls).toBeGreaterThanOrEqual(3);
 });
 
-test('admin dashboard and finance render for staff', async ({ page }) => {
+test('admin dashboard and finance render for staff @critical', async ({ page }) => {
   await installMockBackend(page, {
     role: 'ADMIN',
     dashboardKpis: {
@@ -190,11 +192,13 @@ test('admin dashboard and finance render for staff', async ({ page }) => {
   await expect(growth.getByText('4,2%', { exact: true })).toBeVisible();
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
   await page.goto('/admin/finance');
-  await expect(page.getByRole('button', { name: 'PAYMENT REVIEW' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Payment review' })).toBeVisible();
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
 });
 
-test('dialogs close with Escape and return focus (keyboard)', async ({ page }, testInfo) => {
+test('dialogs close with Escape and return focus (keyboard) @critical', async ({
+  page,
+}, testInfo) => {
   test.skip(isTouch(testInfo), 'Keyboard-only interaction is covered on desktop projects.');
   await installMockBackend(page, { role: 'USER' });
   await page.goto('/');

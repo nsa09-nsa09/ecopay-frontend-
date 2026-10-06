@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Modal, Button } from '../ds-primitives';
-import { useI18n, type Language } from '../i18n-provider';
+import { useI18n } from '../i18n-provider';
 
-const tx = (l: Language, ru: string, kz: string, en: string) =>
-  l === 'ru' ? ru : l === 'kz' ? kz : en;
 
 const DEFAULT_OUTPUT = { width: 512, height: 512 };
 
@@ -35,8 +33,7 @@ export function LogoCropModal({
   onCancel: () => void;
   onApply: (cropped: File) => void;
 }) {
-  const { language } = useI18n();
-  const lang = language as Language;
+  const { t } = useI18n();
 
   const frameRef = useRef<HTMLDivElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -200,17 +197,12 @@ export function LogoCropModal({
     <Modal
       open={open}
       onClose={onCancel}
-      title={title ?? tx(lang, 'Кадрирование логотипа', 'Логотипті кадрлау', 'Crop logo')}
+      title={title ?? t('adminCropLogo')}
     >
       <div className="flex flex-col gap-4">
         <p className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
           {description ??
-            tx(
-              lang,
-              'Перетащите и масштабируйте, чтобы логотип заполнил всю область.',
-              'Логотип бүкіл аумақты толтыру үшін жылжытып, масштабтаңыз.',
-              'Drag and zoom so the logo fills the whole area.',
-            )}
+            t('adminDragAndZoomSoTheLogo')}
         </p>
 
         <div
@@ -250,13 +242,13 @@ export function LogoCropModal({
 
         {imageError && (
           <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
-            {tx(lang, 'Не удалось прочитать изображение. Выберите PNG, JPG или JPEG.', 'Суретті оқу мүмкін болмады. PNG, JPG немесе JPEG таңдаңыз.', 'The image could not be read. Choose a PNG, JPG, or JPEG file.')}
+            {t('adminTheImageCouldNotBeRead')}
           </p>
         )}
 
         <div className="flex items-center gap-3">
           <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-            {tx(lang, 'Масштаб', 'Масштаб', 'Zoom')}
+            {t('adminZoom')}
           </span>
           <input
             type="range"
@@ -271,10 +263,10 @@ export function LogoCropModal({
 
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onCancel}>
-            {tx(lang, 'Отмена', 'Бас тарту', 'Cancel')}
+            {t('adminCancel')}
           </Button>
           <Button variant="primary" size="sm" loading={busy} onClick={apply} disabled={!nat || imageError}>
-            {tx(lang, 'Применить', 'Қолдану', 'Apply')}
+            {t('filterApply')}
           </Button>
         </div>
       </div>

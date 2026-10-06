@@ -3,16 +3,20 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "engines": {
+    "node": ">=22.6.0"
+  },
   "scripts": {
     "build": "vite build",
     "build:release": "vite build && node tools/check-internal-artifacts.mjs && npm run check:production-content && npm run check:brand && node tools/check-nginx-csp.mjs",
     "check:brand": "node tools/check-legacy-brand.mjs",
     "check:internal-artifacts": "node tools/check-internal-artifacts.mjs",
     "check:production-content": "node tools/check-production-content.mjs",
+    "check:untranslated": "node tools/check-untranslated.mjs",
     "dev": "vite",
     "format": "prettier --write .",
     "preview": "vite preview",
-    "release:gate": "npm run typecheck && npm run test:contracts && npm run test:smoke && npm run test:e2e && npm run build:release",
+    "release:gate": "npm run typecheck && npm run test:contracts && npm run test:i18n && npm run check:untranslated && npm run test:smoke && npm run test:e2e && npm run build:release",
     "test:contracts": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:matrix": "playwright test tests/e2e/matrix",

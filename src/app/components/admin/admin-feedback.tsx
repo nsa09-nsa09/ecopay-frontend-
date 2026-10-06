@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { Badge, Button, Card, Input, Select } from '../ds-primitives';
+import { Badge, Button, Input, Select, Skeleton } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n } from '../i18n-provider';
 import { formatDateTime } from '../../lib/datetime';
@@ -14,16 +14,21 @@ import {
   type FeedbackType,
 } from '../../lib/api';
 import { FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
-import { ChevronLeft, ChevronRight, Inbox, RefreshCw, Save, Search, X } from 'lucide-react';
+import { Inbox, MousePointerClick, Save, Search, X } from 'lucide-react';
+import {
+  AdminCard,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminListSkeleton,
+  AdminPage,
+  AdminPageHeader,
+  AdminPagination,
+  AdminRefreshButton,
+  AdminStatusBadge,
+  AdminToolbar,
+} from './admin-ui';
 
 const PAGE_SIZE = 20;
-
-const STATUS_VARIANT: Record<string, 'default' | 'info' | 'warning' | 'success' | 'danger'> = {
-  NEW: 'info',
-  IN_REVIEW: 'warning',
-  RESOLVED: 'success',
-  DISMISSED: 'default',
-};
 
 function typeKey(type: FeedbackType): string {
   switch (type) {
@@ -203,73 +208,73 @@ export function AdminFeedbackPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-[1200px]">
-        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <h1 className="flex items-center gap-2 text-[24px]" style={{ color: 'var(--eco-text)' }}>
-            <Inbox size={20} /> {t('adminFeedbackTitle')}
-          </h1>
-          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-            <RefreshCw size={13} /> {t('retry')}
-          </Button>
-        </div>
+      <AdminPage width="wide">
+        <AdminPageHeader
+          title={t('adminFeedbackTitle')}
+          actions={<AdminRefreshButton onClick={() => void load()} loading={loading} />}
+        />
 
         <FlashBanner flash={flash} />
 
-        <Card className="mb-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <AdminToolbar>
+          <div className="flex-[1_1_160px] min-w-0">
             <Select
               label={t('adminFeedbackFilterType')}
               options={typeOptions}
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
             />
+          </div>
+          <div className="flex-[1_1_160px] min-w-0">
             <Select
               label={t('adminFeedbackFilterStatus')}
               options={statusOptions}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             />
-            <form onSubmit={onSearchSubmit} className="lg:col-span-2 flex items-end gap-2">
-              <div className="flex-1 min-w-0">
-                <Input
-                  label={t('adminFeedbackSearchPlaceholder')}
-                  value={queryDraft}
-                  onChange={(e) => setQueryDraft(e.target.value)}
-                  placeholder={t('adminFeedbackSearchPlaceholder')}
-                />
-              </div>
-              <Button type="submit" variant="primary" size="sm">
-                <Search size={13} />
-              </Button>
-            </form>
           </div>
-        </Card>
+          <form onSubmit={onSearchSubmit} className="flex-[2_1_260px] min-w-0 flex items-end gap-2">
+            <div className="flex-1 min-w-0">
+              <Input
+                label={t('adminFeedbackSearchPlaceholder')}
+                value={queryDraft}
+                onChange={(e) => setQueryDraft(e.target.value)}
+                placeholder={t('adminFeedbackSearchPlaceholder')}
+              />
+            </div>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              className="h-[38px]"
+              aria-label={t('adminFeedbackSearchPlaceholder')}
+            >
+              <Search size={13} aria-hidden />
+            </Button>
+          </form>
+        </AdminToolbar>
 
-        {error && (
-          <Card className="mb-4">
-            <span className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
-              {error}
-            </span>
-          </Card>
+        {error && !loading && items.length > 0 && (
+          <AdminErrorState inline message={error} onRetry={() => void load()} />
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-1 flex flex-col gap-2">
-            {loading && items.length === 0 && (
-              <Card
-                className="text-center text-[13px]"
-                style={{ color: 'var(--eco-text-tertiary)' }}
-              >
-                {t('loading')}
-              </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-1 flex flex-col gap-2 min-w-0">
+            {loading && items.length === 0 && <AdminListSkeleton rows={6} height={84} />}
+            {!loading && error && items.length === 0 && (
+              <AdminCard>
+                <AdminErrorState message={error} onRetry={() => void load()} />
+              </AdminCard>
             )}
-            {!loading && items.length === 0 && (
-              <Card
-                className="text-center text-[13px]"
-                style={{ color: 'var(--eco-text-tertiary)' }}
-              >
-                {t('adminFeedbackEmpty')}
-              </Card>
+            {!loading && !error && items.length === 0 && (
+              <AdminCard>
+                <AdminEmptyState
+                  icon={Inbox}
+                  title={t('adminFeedbackEmpty')}
+                  description={t('adminFilteredEmptyHint')}
+                  compact
+                />
+              </AdminCard>
             )}
             {items.map((item) => {
               const isActive = String(selectedId) === String(item.id);
@@ -279,102 +284,75 @@ export function AdminFeedbackPage() {
                   key={item.id}
                   type="button"
                   onClick={() => setSelectedId(item.id)}
-                  className="text-left w-full rounded-xl p-3 transition-colors cursor-pointer"
-                  style={{
-                    background: isActive ? 'var(--eco-brand-50)' : 'var(--eco-bg)',
-                    border: `1px solid ${isActive ? 'var(--eco-primary)' : 'var(--eco-border)'}`,
-                  }}
+                  aria-pressed={isActive}
+                  className={`eco-admin-record is-clickable text-left w-full rounded-xl px-4 py-3 ${isActive ? 'is-active' : ''}`}
+                  style={{ minHeight: 84 }}
                 >
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <Badge variant="info">{t(typeKey(item.type))}</Badge>
-                    <Badge variant={STATUS_VARIANT[item.status] ?? 'default'}>
+                    <AdminStatusBadge status={item.status}>
                       {t(statusKey(item.status))}
-                    </Badge>
+                    </AdminStatusBadge>
                   </div>
                   <div
-                    className="mt-2 text-[13px] break-words"
+                    className="mt-2 text-[13px] font-semibold break-words"
                     style={{ color: 'var(--eco-text)' }}
                   >
                     {item.subject || item.message.slice(0, 80)}
                   </div>
-                  <div className="mt-1 text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                    {author} · {formatDateTime(item.createdAt, language)}
+                  <div className="mt-1 text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                    {author} · <span className="tabular-nums">{formatDateTime(item.createdAt, language)}</span>
                   </div>
                 </button>
               );
             })}
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-2 text-[12px]">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={page <= 0 || loading}
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                >
-                  <ChevronLeft size={12} /> {t('prevPage')}
-                </Button>
-                <span style={{ color: 'var(--eco-text-tertiary)' }}>
-                  {t('pageOf', { page: page + 1, total: totalPages })}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={page >= totalPages - 1 || loading}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  {t('nextPage')} <ChevronRight size={12} />
-                </Button>
-              </div>
-            )}
+            <AdminPagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              disabled={loading}
+            />
           </div>
 
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 min-w-0">
             {!selectedId ? (
-              <Card
-                className="flex items-center justify-center py-16 text-[14px]"
-                style={{ color: 'var(--eco-text-tertiary)' }}
-              >
-                {t('adminFeedbackSelect')}
-              </Card>
+              <AdminCard>
+                <AdminEmptyState icon={MousePointerClick} title={t('adminFeedbackSelect')} />
+              </AdminCard>
             ) : detailLoading && !detail ? (
-              <Card
-                className="text-center text-[13px]"
-                style={{ color: 'var(--eco-text-tertiary)' }}
-              >
-                {t('loading')}
-              </Card>
+              <AdminCard>
+                <div className="flex flex-col gap-3" aria-busy="true" aria-label={t('loading')}>
+                  <Skeleton width="60%" height={18} />
+                  <Skeleton width="40%" height={12} />
+                  <Skeleton height={96} rounded={8} />
+                  <Skeleton width="50%" height={36} rounded={8} />
+                  <Skeleton height={88} rounded={8} />
+                </div>
+              </AdminCard>
             ) : detailError ? (
-              <Card className="flex flex-col gap-2">
-                <span className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
-                  {detailError}
-                </span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => selectedId && void loadDetail(selectedId)}
-                >
-                  <RefreshCw size={13} /> {t('retry')}
-                </Button>
-              </Card>
+              <AdminCard>
+                <AdminErrorState
+                  message={detailError}
+                  onRetry={() => selectedId && void loadDetail(selectedId)}
+                />
+              </AdminCard>
             ) : detail ? (
-              <Card className="flex flex-col gap-4">
-                <div className="flex items-start gap-2 justify-between flex-wrap">
-                  <div className="min-w-0">
-                    <div className="text-[18px] break-words" style={{ color: 'var(--eco-text)' }}>
-                      {detail.subject || t(typeKey(detail.type))}
-                    </div>
-                    <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                      F-{detail.id} ·{' '}
-                      {detail.userDisplayName || detail.userEmail || t('adminFeedbackAuthorAnon')} ·{' '}
-                      {formatDateTime(detail.createdAt, language)}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
+              <AdminCard
+                title={<span className="break-words">{detail.subject || t(typeKey(detail.type))}</span>}
+                description={
+                  <>
+                    F-{detail.id} ·{' '}
+                    {detail.userDisplayName || detail.userEmail || t('adminFeedbackAuthorAnon')} ·{' '}
+                    <span className="tabular-nums">{formatDateTime(detail.createdAt, language)}</span>
+                  </>
+                }
+                actions={
+                  <>
                     <Badge variant="info">{t(typeKey(detail.type))}</Badge>
-                    <Badge variant={STATUS_VARIANT[detail.status] ?? 'default'}>
+                    <AdminStatusBadge status={detail.status}>
                       {t(statusKey(detail.status))}
-                    </Badge>
+                    </AdminStatusBadge>
                     <button
                       type="button"
                       onClick={() => setSelectedId(null)}
@@ -382,74 +360,78 @@ export function AdminFeedbackPage() {
                       style={{
                         background: 'var(--eco-surface)',
                         color: 'var(--eco-text-secondary)',
+                        border: 'none',
                       }}
                       aria-label={t('close')}
                     >
                       <X size={14} />
                     </button>
+                  </>
+                }
+                footer={
+                  <div className="ml-auto">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => void handleSave()}
+                      loading={saving}
+                      disabled={saving}
+                    >
+                      <Save size={13} /> {t('adminFeedbackSaveChanges')}
+                    </Button>
+                  </div>
+                }
+              >
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <div className="text-[12px] mb-1" style={{ color: 'var(--eco-text-tertiary)' }}>
+                      {t('adminFeedbackMessage')}
+                    </div>
+                    {/*
+                      Render as plain text (not HTML) — React escapes by default.
+                      `whitespace-pre-wrap` preserves user line breaks safely.
+                    */}
+                    <p
+                      className="text-[13px] whitespace-pre-wrap break-words p-3 rounded-lg"
+                      style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
+                    >
+                      {detail.message}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Select
+                      label={t('adminFeedbackSetStatus')}
+                      options={editableStatusOptions}
+                      value={statusDraft}
+                      onChange={(e) => setStatusDraft(e.target.value as FeedbackStatus)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label
+                      htmlFor="admin-feedback-note"
+                      className="text-[12px]"
+                      style={{ color: 'var(--eco-text-secondary)' }}
+                    >
+                      {t('adminFeedbackAdminNote')}
+                    </label>
+                    <textarea
+                      id="admin-feedback-note"
+                      value={noteDraft}
+                      onChange={(e) => setNoteDraft(e.target.value)}
+                      rows={4}
+                      className="eco-input w-full px-3 py-2 rounded-lg text-[13px] outline-none"
+                      style={{ resize: 'vertical' }}
+                      placeholder={t('adminFeedbackNotePlaceholder')}
+                    />
                   </div>
                 </div>
-
-                <div>
-                  <div className="text-[12px] mb-1" style={{ color: 'var(--eco-text-tertiary)' }}>
-                    {t('adminFeedbackMessage')}
-                  </div>
-                  {/*
-                    Render as plain text (not HTML) — React escapes by default.
-                    `whitespace-pre-wrap` preserves user line breaks safely.
-                  */}
-                  <p
-                    className="text-[14px] whitespace-pre-wrap break-words p-3 rounded-lg"
-                    style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
-                  >
-                    {detail.message}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Select
-                    label={t('adminFeedbackSetStatus')}
-                    options={editableStatusOptions}
-                    value={statusDraft}
-                    onChange={(e) => setStatusDraft(e.target.value as FeedbackStatus)}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-                    {t('adminFeedbackAdminNote')}
-                  </label>
-                  <textarea
-                    value={noteDraft}
-                    onChange={(e) => setNoteDraft(e.target.value)}
-                    rows={4}
-                    className="w-full px-3 py-2 rounded-lg text-[14px] mt-1"
-                    style={{
-                      background: 'var(--eco-bg)',
-                      color: 'var(--eco-text)',
-                      border: '1px solid var(--eco-border)',
-                      resize: 'vertical',
-                    }}
-                    placeholder={t('adminFeedbackNotePlaceholder')}
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-2">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => void handleSave()}
-                    loading={saving}
-                    disabled={saving}
-                  >
-                    <Save size={13} /> {t('adminFeedbackSaveChanges')}
-                  </Button>
-                </div>
-              </Card>
+              </AdminCard>
             ) : null}
           </div>
         </div>
-      </div>
+      </AdminPage>
     </AdminLayout>
   );
 }
