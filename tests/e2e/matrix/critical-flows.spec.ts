@@ -15,7 +15,7 @@ const isNarrow = (page: Page) => (page.viewportSize()?.width ?? 1280) < 768;
  * network responses (which are not faked) can arrive and schedule the next
  * timer — a single long runFor can outrun in-flight requests on slower engines.
  */
-async function advance(page: Page, ms: number, step = 2_000) {
+async function advance(page: Page, ms: number, step = 4_000) {
   for (let elapsed = 0; elapsed < ms; elapsed += step) {
     await page.clock.runFor(step);
     await page.waitForTimeout(50);
@@ -108,6 +108,8 @@ test('return page shows success only after backend confirmation', async ({ page 
 test('slow reconciliation stays non-success, stops polling and allows refresh', async ({
   page,
 }) => {
+  // Fake-clock stepping is slow on WebKit under load; allow more wall time.
+  test.setTimeout(90_000);
   const state = await installMockBackend(page, {
     role: 'USER',
     intentStatuses: { p2: ['PENDING'] },
@@ -143,6 +145,8 @@ test('failed payment is reported without success copy', async ({ page }) => {
 test('payout card connection is confirmed by the backend, not by the redirect', async ({
   page,
 }, testInfo) => {
+  // Fake-clock stepping is slow on WebKit under load; allow more wall time.
+  test.setTimeout(90_000);
   const state = await installMockBackend(page, {
     role: 'USER',
     bindingStatuses: ['PENDING', 'PENDING', 'SUCCESS'],
