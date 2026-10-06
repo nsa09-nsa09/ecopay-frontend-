@@ -56,7 +56,9 @@ test('header search opens the picked service choice', async ({ page }, testInfo)
   } else {
     await page.getByRole('searchbox', { name: 'Search plans…' }).fill('Stream');
   }
-  const hit = page.getByRole('button', { name: /StreamPlus\s*Video/ });
+  // Scope to the search UI: the catalog behind it has a card with the same name.
+  const searchScope = isNarrow(page) ? page.getByRole('dialog') : page.getByRole('navigation');
+  const hit = searchScope.getByRole('button', { name: /StreamPlus\s*Video/ });
   await expect(hit).toBeVisible();
   await press(hit, testInfo);
   await expect(page.getByText('I want a spot in a subscription')).toBeVisible();
