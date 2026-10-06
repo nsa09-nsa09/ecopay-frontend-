@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Card, Button } from '../ds-primitives';
 import { CheckCircle2, XCircle, Clock, CreditCard, RefreshCw, ShieldAlert } from 'lucide-react';
@@ -39,8 +39,13 @@ export function CardConnectedPage() {
 
   // Prefer the query param, but fall back to storage — the provider redirect
   // does not reliably preserve our query string. Ids stay strings (64-bit).
+  // Resolved once per URL: the stored id is cleared when the outcome is final,
+  // which must not turn this page into the "no connection" state.
   const paramBinding = params.get('binding');
-  const bindingId = isSafeId(paramBinding) ? paramBinding : readPendingBinding();
+  const bindingId = useMemo(
+    () => (isSafeId(paramBinding) ? paramBinding : readPendingBinding()),
+    [paramBinding],
+  );
 
   const [phase, setPhase] = useState<Phase>('loading');
   const [state, setState] = useState<BindingUiState>('pending');
