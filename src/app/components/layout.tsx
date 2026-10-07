@@ -435,7 +435,7 @@ export function AppLayout() {
             {isAuthenticated && !isAuthRoute && (
               <Link
                 to="/payment/payout"
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] whitespace-nowrap transition-colors hover:opacity-80"
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] whitespace-nowrap transition-colors hover:opacity-80"
                 style={{
                   background: 'var(--eco-surface)',
                   border: '1px solid var(--eco-border)',
