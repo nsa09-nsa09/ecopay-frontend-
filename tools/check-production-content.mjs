@@ -30,6 +30,10 @@ const forbidden = [
   'Saving over 8,000 KZT',
   'Microsoft 365 for studying',
   'As a room owner I get payouts reliably',
+  '5 операторов',
+  '5 operators',
+  'Поддержка 24/7',
+  '24/7 support',
 ];
 
 const legacyTechnicalBrandSnippets = [

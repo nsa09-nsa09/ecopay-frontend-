@@ -297,7 +297,14 @@ footerContactLine: {
 
   // ===== Static Pages =====
   aboutEcoPay: { ru: 'Об EcoPay', kz: 'EcoPay туралы', en: 'About EcoPay' },
+  aboutEyebrow: { ru: 'О нас', kz: 'Біз туралы', en: 'About us' },
+  aboutHowItWorksTitle: {
+    ru: 'Как это работает',
+    kz: 'Бұл қалай жұмыс істейді',
+    en: 'How it works',
+  },
   ourMission: { ru: 'Наша миссия', kz: 'Біздің миссия', en: 'Our Mission' },
+  missionEyebrow: { ru: 'Миссия', kz: 'Миссия', en: 'Mission' },
   aboutSubtitle: {
     ru: 'Надёжная платформа Казахстана для совместных тарифов связи',
     kz: 'Бірлескен байланыс тарифтеріне арналған Қазақстанның сенімді платформасы',
@@ -349,30 +356,6 @@ contactEmail: {
   contactLocation: { ru: 'Астана, Казахстан', kz: 'Астана, Қазақстан', en: 'Astana, Kazakhstan' },
   aboutCtaCatalog: { ru: 'Открыть каталог', kz: 'Каталогты ашу', en: 'Open catalog' },
   aboutCtaCreateRoom: { ru: 'Создать комнату', kz: 'Бөлме құру', en: 'Create a room' },
-  aboutFactSavingsValue: { ru: 'до 70%', kz: '70%-ға дейін', en: 'up to 70%' },
-  aboutFactSavingsLabel: {
-    ru: 'экономии на семейных тарифах',
-    kz: 'отбасылық тарифтерде үнемдеу',
-    en: 'savings on family plans',
-  },
-  aboutFactOperatorsValue: { ru: '5 операторов', kz: '5 оператор', en: '5 operators' },
-  aboutFactOperatorsLabel: {
-    ru: 'Beeline · Activ · Altel · Tele2 · Kcell',
-    kz: 'Beeline · Activ · Altel · Tele2 · Kcell',
-    en: 'Beeline · Activ · Altel · Tele2 · Kcell',
-  },
-  aboutFactSecureValue: { ru: 'Оплата защищена', kz: 'Төлем қорғалған', en: 'Payments secured' },
-  aboutFactSecureLabel: {
-    ru: 'Через платёжных провайдеров',
-    kz: 'Төлем провайдерлері арқылы',
-    en: 'Via payment providers',
-  },
-  aboutFactSupportValue: { ru: 'Поддержка 24/7', kz: '24/7 қолдау', en: '24/7 support' },
-  aboutFactSupportLabel: {
-    ru: 'Общение через нашу поддержку',
-    kz: 'Тек қолдау арқылы байланыс',
-    en: 'Communication through our support',
-  },
   aboutQrTitle: {
     ru: 'Откройте EcoPay на телефоне',
     kz: 'Телефоныңызда EcoPay-ды ашыңыз',

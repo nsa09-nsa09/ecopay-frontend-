@@ -29,6 +29,11 @@ const ROUTES: Array<{ path: string; role: Role; ready: (page: Page) => Promise<v
     ready: (p) => expect(p.locator('main h1, main h2').first()).toBeVisible(),
   },
   {
+    path: '/about',
+    role: 'ANON',
+    ready: (p) => expect(p.getByRole('heading', { level: 1 }).first()).toBeVisible(),
+  },
+  {
     path: '/rooms/member/100',
     role: 'USER',
     ready: (p) => expect(p.getByRole('button', { name: /^Pay\s/ })).toBeVisible(),
@@ -151,6 +156,7 @@ const AXE_DISABLED_RULES = ['color-contrast'];
 
 for (const route of [
   { path: '/', role: 'ANON' as Role },
+  { path: '/about', role: 'ANON' as Role },
   { path: '/login', role: 'ANON' as Role },
   { path: '/register', role: 'ANON' as Role },
   { path: '/rooms/member/100', role: 'USER' as Role },

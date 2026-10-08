@@ -86,9 +86,9 @@ const blocks: SecurityBlock[] = [
       },
       {
         icon: Headphones,
-        ru: "Поддержка 24/7: заявки и споры встроены в продукт и рассматриваются модерацией.",
-        kz: "24/7 қолдау: өтініштер мен даулар өнімге енгізілген және модерация қарайды.",
-        en: "24/7 support: tickets and disputes are built into the product and reviewed by moderation.",
+        ru: "Поддержка внутри продукта: обращения и споры рассматривает модерация.",
+        kz: "Өнім ішіндегі қолдау: өтініштер мен дауларды модерация қарайды.",
+        en: "In-product support: tickets and disputes are reviewed by our moderation team.",
       },
       {
         icon: ShieldCheck,

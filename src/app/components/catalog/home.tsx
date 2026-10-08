@@ -1332,7 +1332,7 @@ export function HomePage() {
                 ),
                 points: [
                   tx(lang, 'Гарантия возврата', 'Қайтару кепілдігі', 'Money-back guarantee'),
-                  tx(lang, 'Поддержка 24/7', '24/7 қолдау', '24/7 support'),
+                  tx(lang, 'Поддержка внутри продукта', 'Өнім ішіндегі қолдау', 'In-product support'),
                   tx(
                     lang,
                     'Ваши права защищены',
