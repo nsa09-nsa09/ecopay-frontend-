@@ -683,6 +683,14 @@ adminAboutApexLink: {
     en: 'Wait for admin resolution',
   },
   contactSupport: { ru: 'Связаться с поддержкой', kz: 'Қолдауға хабарласу', en: 'Contact support' },
+  supportCtaTitle: { ru: 'Нужна помощь?', kz: 'Көмек керек пе?', en: 'Need help?' },
+  supportCtaText: {
+    ru: 'Напишите нам — разберёмся с оплатой, доступом или комнатой.',
+    kz: 'Бізге жазыңыз — төлем, қол жеткізу немесе бөлме мәселесін шешеміз.',
+    en: 'Write to us — we will sort out payment, access, or your room.',
+  },
+  supportCtaButton: { ru: 'Написать в поддержку', kz: 'Қолдауға жазу', en: 'Message support' },
+  supportCtaMyTickets: { ru: 'Мои обращения', kz: 'Менің өтінімдерім', en: 'My tickets' },
   viewTicket: { ru: 'Посмотреть заявку', kz: 'Өтінімді қарау', en: 'View ticket' },
   idempotentNote: {
     ru: 'Одна заявка на участника (идемпотентно)',
