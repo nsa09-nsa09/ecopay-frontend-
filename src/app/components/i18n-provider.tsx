@@ -68,6 +68,13 @@ const translations: Translations = {
     kz: 'Қатысушылар пікірлері',
     en: 'Member reviews',
   },
+  reviewRatingAria: {
+    ru: 'Оценка {{rating}} из 5',
+    kz: 'Бағасы 5-тен {{rating}}',
+    en: 'Rated {{rating}} out of 5',
+  },
+  carouselPrevious: { ru: 'Предыдущий отзыв', kz: 'Алдыңғы пікір', en: 'Previous review' },
+  carouselNext: { ru: 'Следующий отзыв', kz: 'Келесі пікір', en: 'Next review' },
   inviteOffPlatformTitle: {
     ru: 'Пригласить вне платформы',
     kz: 'Платформадан тыс шақыру',
