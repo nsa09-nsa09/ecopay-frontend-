@@ -948,6 +948,16 @@ export interface MyRoomMembershipDto {
   ownerAccessConfirmedAt: string | null;
   memberConfirmedAt: string | null;
   activatedAt: string | null;
+  // Recurring-billing summary for an ACTIVE membership. Absent on older
+  // backends; the renewal UI only renders when this object is present.
+  billing?: {
+    nextBillingAt: string | null;
+    renewalOpen: boolean;
+    renewalAmountKzt: number | null;
+    renewalShareKzt: number | null;
+    renewalCommissionKzt: number | null;
+    overdue: boolean;
+  } | null;
 }
 
 export interface JoinedRoomDto {
@@ -1253,6 +1263,22 @@ export function createPaymentIntentRequest(
 
 export function getPaymentIntentRequest(intentId: string, accessToken: string) {
   return requestJson<PaymentIntentResponseDto>(`/payments/intents/${intentId}`, {}, accessToken);
+}
+
+/** Start a renewal (next-period) payment for an ACTIVE membership. */
+export function createRenewalIntentRequest(
+  roomMemberId: string,
+  payload: { idempotencyKey: string },
+  accessToken: string,
+) {
+  return requestJson<PaymentIntentResponseDto>(
+    `/payments/members/${roomMemberId}/renewal-intent`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    accessToken,
+  );
 }
 
 export function getCurrentPaymentIntentForMemberRequest(roomMemberId: string, accessToken: string) {

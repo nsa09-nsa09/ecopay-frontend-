@@ -18,6 +18,7 @@ import {
   confirmMemberAccessRequest,
   createRoomComplaintRequest,
   createPaymentIntentRequest,
+  createRenewalIntentRequest,
   getCurrentPaymentIntentForMemberRequest,
   getRoom,
   getMyMembership,
@@ -86,6 +87,57 @@ const identifierTypeLabel = (type: string | null | undefined, l: Language) => {
 
 const POST_PAYMENT = new Set(['PENDING', 'ACTIVE']);
 
+/** Map renewal-intent backend error codes to friendly, localized copy. */
+function renewalErrorMessage(err: unknown, l: Language): string {
+  const code = err instanceof ApiError ? (err.serverCode ?? '') : '';
+  switch (code) {
+    case 'RENEWAL_NOT_OPEN':
+      return tx(
+        l,
+        'Продление пока недоступно. Обновите страницу и попробуйте позже.',
+        'Ұзарту әзірге қолжетімсіз. Бетті жаңартып, кейінірек қайталаңыз.',
+        'Renewal is not open yet. Refresh the page and try again later.',
+      );
+    case 'RENEWAL_NOT_SUPPORTED':
+      return tx(
+        l,
+        'Для этой комнаты продление недоступно.',
+        'Бұл бөлме үшін ұзарту қолжетімсіз.',
+        'Renewal is not available for this room.',
+      );
+    case 'RENEWAL_ALREADY_PAID':
+      return tx(
+        l,
+        'Следующий период уже оплачен.',
+        'Келесі кезең төленген.',
+        'The next period is already paid.',
+      );
+    case 'PAYMENTS_TEMPORARILY_DISABLED':
+      return tx(
+        l,
+        'Оплата временно недоступна. Попробуйте позже.',
+        'Төлем уақытша қолжетімсіз. Кейінірек қайталаңыз.',
+        'Payments are temporarily unavailable. Please try again later.',
+      );
+    case 'RATE_LIMITED':
+      return tx(
+        l,
+        'Слишком много попыток. Подождите минуту и попробуйте снова.',
+        'Тым көп әрекет. Бір минут күтіп, қайта көріңіз.',
+        'Too many attempts. Wait a minute and try again.',
+      );
+    default:
+      return err instanceof ApiError
+        ? err.message
+        : tx(
+            l,
+            'Не удалось начать оплату.',
+            'Төлемді бастау мүмкін болмады.',
+            'Unable to start payment right now.',
+          );
+  }
+}
+
 /** Current intent for the membership, or null when none exists (404). */
 async function fetchCurrentIntent(
   memberId: string,
@@ -127,6 +179,11 @@ export function MemberDetailPage() {
   const [checkingIntent, setCheckingIntent] = useState(false);
   // Synchronous double-click guard: React state updates land a frame later.
   const payInFlightRef = useRef(false);
+
+  // Renewal (next-period) payment for an ACTIVE membership.
+  const [renewing, setRenewing] = useState(false);
+  const [renewError, setRenewError] = useState<string | null>(null);
+  const renewInFlightRef = useRef(false);
 
   const [complaintOpen, setComplaintOpen] = useState(false);
   const [complaintReason, setComplaintReason] = useState('ACCESS_NOT_PROVIDED');
@@ -328,6 +385,48 @@ export function MemberDetailPage() {
       if (!redirecting) {
         payInFlightRef.current = false;
         setPaying(false);
+      }
+    }
+  };
+
+  const handleRenewal = async () => {
+    const billing = membership?.billing;
+    if (!membership || !billing || !billing.renewalOpen) return;
+    if (renewInFlightRef.current) return; // same synchronous double-click guard as handlePay
+    renewInFlightRef.current = true;
+    setRenewing(true);
+    setRenewError(null);
+    let redirecting = false;
+    try {
+      const memberId = String(membership.id);
+      // Scope the stored attempt to this billing period so a new period always
+      // gets a fresh key (and the backend can replay an in-flight renewal).
+      const attemptKey = `${memberId}:renewal:${billing.nextBillingAt ?? 'next'}`;
+      const idempotencyKey = newIdempotencyKey();
+      writePaymentAttempt(attemptKey, { idempotencyKey });
+      const intent = await authorizedRequest((token) =>
+        createRenewalIntentRequest(memberId, { idempotencyKey }, token),
+      );
+      writePaymentAttempt(attemptKey, { idempotencyKey, intentId: intent.id });
+      if (
+        intent.status === 'PENDING' &&
+        intent.requiresRedirect &&
+        isSafePaymentUrl(intent.paymentUrl)
+      ) {
+        savePendingPaymentContext({ intentId: intent.id, roomId, roomMemberId: memberId });
+        redirecting = true;
+        window.location.assign(intent.paymentUrl);
+      } else {
+        // No safe redirect to follow: ask the user to try again rather than
+        // claiming anything about the payment.
+        setRenewError(renewalErrorMessage(null, language));
+      }
+    } catch (err) {
+      setRenewError(renewalErrorMessage(err, language));
+    } finally {
+      if (!redirecting) {
+        renewInFlightRef.current = false;
+        setRenewing(false);
       }
     }
   };
@@ -989,6 +1088,88 @@ export function MemberDetailPage() {
                 </Button>
               </Link>
             </div>
+          </Card>
+        )}
+
+        {isActive && membership.billing && (
+          <Card className="flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <CreditCard size={16} style={{ color: 'var(--eco-primary)' }} />
+              <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
+                {tx(language, 'Продление подписки', 'Жазылымды ұзарту', 'Subscription renewal')}
+              </h3>
+            </div>
+
+            {membership.billing.overdue && (
+              <div
+                className="p-3 rounded-lg flex items-start gap-2"
+                style={{ background: 'var(--eco-warning-100)' }}
+              >
+                <AlertTriangle
+                  size={16}
+                  className="mt-0.5 shrink-0"
+                  style={{ color: 'var(--eco-warning)' }}
+                />
+                <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+                  {tx(
+                    language,
+                    'Период закончился, оплатите продление, чтобы сохранить место.',
+                    'Кезең аяқталды, орныңызды сақтау үшін ұзартуды төлеңіз.',
+                    'The period has ended — pay the renewal to keep your spot.',
+                  )}
+                </div>
+              </div>
+            )}
+
+            {(membership.billing.nextBillingAt || membership.billing.renewalAmountKzt != null) && (
+              <div className="flex flex-col gap-1">
+                <div className="text-[14px]" style={{ color: 'var(--eco-text)' }}>
+                  {`${tx(language, 'Следующий платёж', 'Келесі төлем', 'Next payment')}${
+                    membership.billing.nextBillingAt
+                      ? `: ${formatAlmatyDate(membership.billing.nextBillingAt, language)}`
+                      : ''
+                  }${
+                    membership.billing.renewalAmountKzt != null
+                      ? ` · ${formatMoney(membership.billing.renewalAmountKzt)}`
+                      : ''
+                  }`}
+                </div>
+                {membership.billing.renewalShareKzt != null &&
+                  membership.billing.renewalCommissionKzt != null && (
+                    <div className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                      {tx(
+                        language,
+                        `доля ${formatMoney(membership.billing.renewalShareKzt)} + комиссия ${formatMoney(membership.billing.renewalCommissionKzt)}`,
+                        `үлес ${formatMoney(membership.billing.renewalShareKzt)} + комиссия ${formatMoney(membership.billing.renewalCommissionKzt)}`,
+                        `share ${formatMoney(membership.billing.renewalShareKzt)} + fee ${formatMoney(membership.billing.renewalCommissionKzt)}`,
+                      )}
+                    </div>
+                  )}
+              </div>
+            )}
+
+            {renewError && (
+              <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
+                {renewError}
+              </p>
+            )}
+
+            {membership.billing.renewalOpen && (
+              <Button
+                variant="primary"
+                size="md"
+                className="w-full sm:w-auto"
+                loading={renewing}
+                onClick={handleRenewal}
+              >
+                {tx(
+                  language,
+                  'Оплатить следующий период',
+                  'Келесі кезеңді төлеу',
+                  'Pay for the next period',
+                )}
+              </Button>
+            )}
           </Card>
         )}
 

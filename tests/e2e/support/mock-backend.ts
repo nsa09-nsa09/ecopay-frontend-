@@ -19,12 +19,15 @@ export interface MockState {
   /** When false, /auth/refresh returns 401 (session expired). */
   refreshOk: boolean;
   membershipStatus: string;
+  /** Optional billing block on the membership (renewal UI); null → omitted. */
+  membershipBilling: Record<string, unknown> | null;
   /** Current intent returned by /payments/members/:id/intent/current (null → 404). */
   currentIntent: Record<string, unknown> | null;
   /** Statuses returned by successive reads of an intent (last one repeats). */
   intentStatuses: Record<string, string[]>;
   createdIntents: Array<Record<string, unknown>>;
   intentCreatePayloads: Array<Record<string, unknown>>;
+  renewalIntentPayloads: Array<Record<string, unknown>>;
   confirmCalls: string[];
   intentReads: string[];
   payoutMethods: Array<Record<string, unknown>>;
@@ -147,10 +150,12 @@ export async function installMockBackend(
     role: 'USER',
     refreshOk: true,
     membershipStatus: 'APPLIED',
+    membershipBilling: null,
     currentIntent: null,
     intentStatuses: {},
     createdIntents: [],
     intentCreatePayloads: [],
+    renewalIntentPayloads: [],
     confirmCalls: [],
     intentReads: [],
     payoutMethods: [],
@@ -299,6 +304,7 @@ export async function installMockBackend(
         ownerAccessConfirmedAt: null,
         memberConfirmedAt: null,
         activatedAt: null,
+        billing: state.membershipBilling,
       });
     }
     if (path === '/rooms/100') return json(room(100));
@@ -316,6 +322,12 @@ export async function installMockBackend(
       state.createdIntents.push(created);
       state.currentIntent = created;
       return json(created);
+    }
+    if (path === '/payments/members/555/renewal-intent' && method === 'POST') {
+      const payload = request.postDataJSON() as Record<string, unknown>;
+      state.renewalIntentPayloads.push(payload);
+      const id = String(9500 + state.renewalIntentPayloads.length);
+      return json(intent(id, 'PENDING'));
     }
     const confirm = path.match(/^\/payments\/intents\/([\w-]+)\/confirm-success$/);
     if (confirm && method === 'POST') {

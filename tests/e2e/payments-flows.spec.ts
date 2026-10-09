@@ -180,6 +180,36 @@ test('an expired attempt (no open intent) starts a fresh payment with a new key'
   expect(state.intentCreatePayloads[0].idempotencyKey).not.toBe('stale-key');
 });
 
+test('active membership with an open renewal starts a renewal payment and redirects', async ({
+  page,
+}) => {
+  const state = await installMockBackend(page, {
+    membershipStatus: 'ACTIVE',
+    membershipBilling: {
+      nextBillingAt: '2026-10-01T00:00:00Z',
+      renewalOpen: true,
+      renewalAmountKzt: 5250,
+      renewalShareKzt: 4750,
+      renewalCommissionKzt: 500,
+      overdue: false,
+    },
+  });
+  await page.goto('/rooms/member/100');
+  const renew = page.getByRole('button', { name: 'Pay for the next period' });
+  await expect(renew).toBeVisible();
+  await renew.click();
+  await page.waitForURL(/pay\.freedompay\.test/);
+  expect(state.renewalIntentPayloads).toHaveLength(1);
+  expect(typeof state.renewalIntentPayloads[0].idempotencyKey).toBe('string');
+});
+
+test('active membership without a billing block shows no renewal UI', async ({ page }) => {
+  await installMockBackend(page, { membershipStatus: 'ACTIVE' });
+  await page.goto('/rooms/member/100');
+  await expect(page.getByText('Family plan room').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pay for the next period' })).toHaveCount(0);
+});
+
 test('payment history shows payments and refund states', async ({ page }) => {
   await installMockBackend(page);
   await page.setViewportSize({ width: 390, height: 844 });
