@@ -32,7 +32,6 @@ import {
   classifyPaymentStatus,
   clearPaymentAttempt,
   newIdempotencyKey,
-  readPaymentAttempt,
   savePendingPaymentContext,
   writePaymentAttempt,
 } from '../../lib/payment-context';
@@ -269,9 +268,14 @@ export function MemberDetailPage() {
       }
 
       if (!intent) {
-        const existingAttempt = readPaymentAttempt(memberId);
-        const idempotencyKey = existingAttempt?.idempotencyKey ?? newIdempotencyKey();
-        writePaymentAttempt(memberId, { idempotencyKey, intentId: existingAttempt?.intentId });
+        // `/current` returned no open intent (404). An open attempt would have
+        // been returned above, so any key still in storage belongs to a
+        // finished attempt and, replayed through idempotency, would only return
+        // that old FAILED/EXPIRED intent — the exact bug where the first click
+        // showed "payment failed" and only the second worked. Always start a
+        // fresh attempt with a new key.
+        const idempotencyKey = newIdempotencyKey();
+        writePaymentAttempt(memberId, { idempotencyKey });
         intent = await authorizedRequest((token) =>
           createPaymentIntentRequest(memberId, { idempotencyKey }, token),
         );

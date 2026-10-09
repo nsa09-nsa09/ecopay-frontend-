@@ -160,6 +160,26 @@ test('a failed previous attempt allows a fresh payment with a new idempotency ke
   expect(state.intentCreatePayloads[0].idempotencyKey).not.toBe('old-key');
 });
 
+test('an expired attempt (no open intent) starts a fresh payment with a new key', async ({
+  page,
+}) => {
+  // /current returns 404 (no open intent) because the previous attempt expired
+  // or failed. A stale key is still in storage; reusing it would replay the old
+  // terminal intent. The page must mint a new key and redirect to the provider.
+  const state = await installMockBackend(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'ecopay.paymentAttempt.555',
+      JSON.stringify({ idempotencyKey: 'stale-key', intentId: '6001' }),
+    );
+  });
+  await page.goto('/rooms/member/100');
+  await page.getByRole('button', { name: /^Pay\s/ }).click();
+  await page.waitForURL(/pay\.freedompay\.test/);
+  expect(state.intentCreatePayloads).toHaveLength(1);
+  expect(state.intentCreatePayloads[0].idempotencyKey).not.toBe('stale-key');
+});
+
 test('payment history shows payments and refund states', async ({ page }) => {
   await installMockBackend(page);
   await page.setViewportSize({ width: 390, height: 844 });
