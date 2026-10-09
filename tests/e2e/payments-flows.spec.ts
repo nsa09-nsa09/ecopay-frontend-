@@ -28,6 +28,33 @@ test('callback before redirect: first reconciliation already succeeds', async ({
   expect(state.intentReads).toHaveLength(0);
 });
 
+test('return after a provider POST (nginx 303→GET) reconciles from the saved context', async ({
+  page,
+}) => {
+  // FreedomPay may send the customer back with a POST; nginx converts it to a
+  // 303 GET of the same path with the query preserved. This exercises the
+  // frontend side: a saved pending context plus the preserved ?intentId lands
+  // the page on the real status instead of an error.
+  const state = await installMockBackend(page, { intentStatuses: { p1: ['SUCCESS'] } });
+  await page.addInitScript(() => {
+    const ctx = JSON.stringify({
+      intentId: 'p1',
+      roomId: '100',
+      roomMemberId: '555',
+      savedAt: Date.now(),
+    });
+    try {
+      window.localStorage.setItem('ecopay.paymentReturn.p1', ctx);
+      window.localStorage.setItem('ecopay.pendingPayment', ctx);
+    } catch {
+      /* storage may be blocked by a test */
+    }
+  });
+  await page.goto('/payment/confirmation?intentId=p1&roomId=100');
+  await expect(page.getByRole('heading', { name: 'Payment Successful' })).toBeVisible();
+  expect(state.confirmCalls).toContain('p1');
+});
+
 for (const [status, heading, extra] of [
   ['UNKNOWN', 'Payment Processing', 'Do not pay again.'],
   ['RECONCILING', 'Payment Processing', 'Do not pay again.'],
