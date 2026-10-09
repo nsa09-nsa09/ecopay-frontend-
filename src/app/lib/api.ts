@@ -3172,6 +3172,12 @@ export interface NewsDto {
   imageUrlKz?: string | null;
   imageUrlRu?: string | null;
   imageUrlEn?: string | null;
+  // Optional lightweight preview served from /images/thumb/{filename}; the
+  // filename matches the original image. Absent on older backends.
+  imageThumbUrl?: string | null;
+  imageThumbUrlKz?: string | null;
+  imageThumbUrlRu?: string | null;
+  imageThumbUrlEn?: string | null;
   status?: NewsStatus;
   publishedAt?: string | null;
   sortOrder?: number;
@@ -3318,6 +3324,12 @@ export interface StoryDto {
   imageUrlKz?: string | null;
   imageUrlRu?: string | null;
   imageUrlEn?: string | null;
+  // Optional lightweight preview served from /images/thumb/{filename}; the
+  // filename matches the original image. Absent on older backends.
+  imageThumbUrl?: string | null;
+  imageThumbUrlKz?: string | null;
+  imageThumbUrlRu?: string | null;
+  imageThumbUrlEn?: string | null;
   status?: StoryStatus;
   publishedAt?: string | null;
   sortOrder?: number;

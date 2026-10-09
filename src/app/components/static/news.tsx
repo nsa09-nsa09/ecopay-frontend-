@@ -135,7 +135,9 @@ export function NewsDetailPage() {
     };
   }, [newsId]);
 
-  const { title, body, image } = item ? pickLocalizedNews(item, language) : { title: '', body: '', image: null };
+  const { title, body, image, thumb } = item
+    ? pickLocalizedNews(item, language)
+    : { title: '', body: '', image: null, thumb: null };
   const paragraphs = splitArticleBody(body);
 
   useEffect(() => {
@@ -214,9 +216,13 @@ export function NewsDetailPage() {
         {image ? (
           <img
             src={image}
+            srcSet={thumb ? `${thumb} 640w, ${image} 1600w` : undefined}
+            sizes={thumb ? '(min-width:1000px) 960px, 100vw' : undefined}
             alt=""
             width={960}
             height={520}
+            fetchPriority="high"
+            decoding="async"
             className="w-full max-h-[560px] object-cover rounded-xl mb-8 sm:mb-10"
             style={{ background: 'var(--eco-surface)' }}
           />

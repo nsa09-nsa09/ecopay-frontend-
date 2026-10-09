@@ -57,6 +57,7 @@ const translations: Translations = {
     en: 'Deals, guides and short videos on saving with subscriptions',
   },
   socialFollowers: { ru: 'подписчиков', kz: 'жазылушы', en: 'followers' },
+  socialSubscribe: { ru: 'Подписаться', kz: 'Жазылу', en: 'Follow' },
   socialViewInstagram: {
     ru: 'Смотреть в Instagram',
     kz: 'Instagram-да көру',

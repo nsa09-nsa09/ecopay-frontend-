@@ -45,6 +45,13 @@ function localizedImage(item: StoryDto, lang: Lang): string | undefined {
   return exact || item.imageUrl || item.imageUrlRu || item.imageUrlKz || item.imageUrlEn || undefined;
 }
 
+/** Lightweight preview for the round cover bubbles, when the backend sends one. */
+function localizedThumb(item: StoryDto, lang: Lang): string | undefined {
+  const exact =
+    lang === 'kz' ? item.imageThumbUrlKz : lang === 'en' ? item.imageThumbUrlEn : item.imageThumbUrlRu;
+  return exact || item.imageThumbUrl || undefined;
+}
+
 function toUiStory(item: StoryDto, lang: Lang): Story {
   const title = localizedText(item, 'titleRu', 'titleKz', 'titleEn', `#${item.id}`);
   const heading = localizedText(item, 'headingRu', 'headingKz', 'headingEn', title.ru);
@@ -55,7 +62,9 @@ function toUiStory(item: StoryDto, lang: Lang): Story {
   return {
     id: `story-${item.id}`,
     title,
-    cover: localizedImage(item, lang),
+    // The small bubble uses the preview when available; the full image is
+    // reserved for the fullscreen viewer slide below.
+    cover: localizedThumb(item, lang) ?? localizedImage(item, lang),
     emoji: item.emoji ?? undefined,
     gradient,
     seen: false,
@@ -319,6 +328,21 @@ function StoryViewer({
 
   const story = stories[storyIndex];
   const slide = story.slides[slideIndex];
+
+  // Warm the next slide's image so the swipe/auto-advance shows it instantly
+  // instead of flashing the bare gradient while it downloads.
+  const nextImage = useMemo(() => {
+    const current = stories[storyIndex];
+    if (slideIndex < current.slides.length - 1) return current.slides[slideIndex + 1].image;
+    const next = stories[storyIndex + 1];
+    return next?.slides[0]?.image;
+  }, [stories, storyIndex, slideIndex]);
+
+  useEffect(() => {
+    if (!nextImage || typeof Image === 'undefined') return;
+    const img = new Image();
+    img.src = nextImage;
+  }, [nextImage]);
 
   const goNext = useCallback(() => {
     setProgress(0);

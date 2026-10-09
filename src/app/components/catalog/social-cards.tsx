@@ -1,6 +1,5 @@
-import { Heart, Play } from 'lucide-react';
 import { useI18n } from '../i18n-provider';
-import { socialAccounts, type SocialAccount, type SocialPost } from '../../data/social';
+import { socialAccounts, type SocialAccount } from '../../data/social';
 import type { LocalizedText } from '../../data/stories';
 
 type Lang = 'ru' | 'kz' | 'en';
@@ -36,83 +35,9 @@ function PlatformMark({ platform, size }: { platform: SocialAccount['platform'];
   return platform === 'instagram' ? <InstagramMark size={size} /> : <TikTokMark size={size} />;
 }
 
-// ─── Post preview tile ───
-function PostTile({
-  post,
-  platform,
-  lang,
-  href,
-}: {
-  post: SocialPost;
-  platform: SocialAccount['platform'];
-  lang: Lang;
-  href: string;
-}) {
-  const isVideo = platform === 'tiktok';
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="relative rounded-xl overflow-hidden shrink-0 eco-scale-hover block"
-      style={{
-        aspectRatio: isVideo ? '9 / 16' : '1 / 1',
-        background: post.gradient,
-        flex: '1 1 0',
-        minWidth: 0,
-      }}
-    >
-      {post.thumbnail && (
-        <img
-          src={post.thumbnail}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="lazy"
-          decoding="async"
-        />
-      )}
-      {/* legibility scrim */}
-      <span
-        className="absolute inset-0"
-        style={{
-          background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.6) 100%)',
-        }}
-      />
-      <span className="absolute top-2 left-2 text-[20px]" aria-hidden="true">
-        {post.emoji}
-      </span>
-      {isVideo && (
-        <span
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full"
-          style={{ width: 34, height: 34, background: 'rgba(0,0,0,0.35)' }}
-        >
-          <Play size={16} fill="#fff" color="#fff" />
-        </span>
-      )}
-      <span className="absolute inset-x-0 bottom-0 p-2 flex flex-col gap-1">
-        <span className="text-[11px] leading-tight line-clamp-2" style={{ color: '#fff' }}>
-          {pick(post.caption, lang)}
-        </span>
-        <span
-          className="flex items-center gap-1 text-[10px]"
-          style={{ color: 'rgba(255,255,255,0.9)' }}
-        >
-          {isVideo ? (
-            <Play size={11} fill="#fff" color="#fff" />
-          ) : (
-            <Heart size={11} fill="#fff" color="#fff" />
-          )}
-          {post.metric}
-        </span>
-      </span>
-    </a>
-  );
-}
-
 // ─── Single account card ───
 function SocialCard({ account, lang }: { account: SocialAccount; lang: Lang }) {
   const { t } = useI18n();
-  const ctaKey = account.platform === 'instagram' ? 'socialViewInstagram' : 'socialViewTikTok';
 
   return (
     <div
@@ -138,7 +63,7 @@ function SocialCard({ account, lang }: { account: SocialAccount; lang: Lang }) {
             {account.name}
           </div>
           <div className="text-[13px] truncate" style={{ color: 'var(--eco-text-secondary)' }}>
-            {account.handle} · {account.followers} {t('socialFollowers')}
+            {account.handle}
           </div>
         </div>
       </div>
@@ -146,19 +71,6 @@ function SocialCard({ account, lang }: { account: SocialAccount; lang: Lang }) {
       <p className="text-[13px] m-0" style={{ color: 'var(--eco-text-secondary)' }}>
         {pick(account.tagline, lang)}
       </p>
-
-      {/* Post previews */}
-      <div className="flex gap-2.5">
-        {account.posts.map((post) => (
-          <PostTile
-            key={post.id}
-            post={post}
-            platform={account.platform}
-            lang={lang}
-            href={account.url}
-          />
-        ))}
-      </div>
 
       {/* CTA */}
       <a
@@ -169,7 +81,7 @@ function SocialCard({ account, lang }: { account: SocialAccount; lang: Lang }) {
         style={{ background: PLATFORM_GRADIENT[account.platform], color: '#fff', fontWeight: 600 }}
       >
         <PlatformMark platform={account.platform} size={16} />
-        {t(ctaKey)}
+        {t('socialSubscribe')}
       </a>
     </div>
   );

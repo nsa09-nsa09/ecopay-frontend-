@@ -47,7 +47,11 @@ export function pickLocalizedNews(item: NewsDto, language: L) {
   const image =
     (item[imageKey as keyof NewsDto] as string | null | undefined) ||
     item.imageUrl || item.imageUrlRu || item.imageUrlKz || item.imageUrlEn || null;
-  return { title, body, image };
+  const thumbKey =
+    language === 'kz' ? 'imageThumbUrlKz' : language === 'en' ? 'imageThumbUrlEn' : 'imageThumbUrlRu';
+  const thumb =
+    (item[thumbKey as keyof NewsDto] as string | null | undefined) || item.imageThumbUrl || null;
+  return { title, body, image, thumb };
 }
 
 function snippet(text: string, maxChars = 160): string {
@@ -56,8 +60,89 @@ function snippet(text: string, maxChars = 160): string {
   return `${clean.slice(0, maxChars).trimEnd()}…`;
 }
 
-const NewsCard = memo(function NewsCard({ item, language }: { item: NewsDto; language: L }) {
-  const { title, body, image } = pickLocalizedNews(item, language);
+const NEWS_CARD_SIZES = '(min-width:1024px) 380px, (min-width:640px) 50vw, 100vw';
+
+/** Placeholder shown when there is no image or the image failed to load. */
+function NewsImagePlaceholder() {
+  return (
+    <div
+      className="w-full rounded-lg flex items-center justify-center"
+      style={{ aspectRatio: '16 / 9', background: 'var(--eco-surface)' }}
+    >
+      <Newspaper size={24} style={{ color: 'var(--eco-text-tertiary)' }} />
+    </div>
+  );
+}
+
+/**
+ * Fixed 16/9 frame with a skeleton background; the image fades in on load so
+ * there is no layout shift and no flash of a half-decoded picture. A preview
+ * (thumb) is used as the default source with the full image offered via
+ * srcSet, so a small card never downloads the 1600px original.
+ */
+function NewsImage({
+  thumb,
+  image,
+  loading,
+  fetchPriority,
+}: {
+  thumb: string | null;
+  image: string | null;
+  loading: 'eager' | 'lazy';
+  fetchPriority?: 'high' | 'low' | 'auto';
+}) {
+  const src = thumb ?? image;
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+  // Reset the fade/error state when the source changes (e.g. language switch).
+  useEffect(() => {
+    setLoaded(false);
+    setErrored(false);
+  }, [src]);
+  if (!src) return <NewsImagePlaceholder />;
+  const srcSet = thumb && image ? `${thumb} 640w, ${image} 1600w` : undefined;
+  return (
+    <div
+      className="relative w-full rounded-lg overflow-hidden"
+      style={{ aspectRatio: '16 / 9', background: 'var(--eco-surface)' }}
+    >
+      {/* The <img> stays mounted even on error so the element (and its src) is
+          always present; a broken image just fades out and the placeholder
+          shows over it. */}
+      <img
+        src={src}
+        srcSet={srcSet}
+        sizes={srcSet ? NEWS_CARD_SIZES : undefined}
+        alt=""
+        loading={loading}
+        fetchPriority={fetchPriority}
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        onError={() => setErrored(true)}
+        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-200"
+        style={{ opacity: loaded && !errored ? 1 : 0 }}
+      />
+      {errored && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Newspaper size={24} style={{ color: 'var(--eco-text-tertiary)' }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+const NewsCard = memo(function NewsCard({
+  item,
+  language,
+  loading = 'lazy',
+  fetchPriority,
+}: {
+  item: NewsDto;
+  language: L;
+  loading?: 'eager' | 'lazy';
+  fetchPriority?: 'high' | 'low' | 'auto';
+}) {
+  const { title, body, image, thumb } = pickLocalizedNews(item, language);
   return (
     <Link
       to={`/news/${item.id}`}
@@ -65,25 +150,7 @@ const NewsCard = memo(function NewsCard({ item, language }: { item: NewsDto; lan
       aria-label={title || readMoreLabel[language]}
     >
       <Card className="flex flex-col gap-3 h-full overflow-hidden eco-lift">
-        {image ? (
-          <img
-            src={image}
-            alt=""
-            width={480}
-            height={260}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-[180px] object-cover rounded-lg"
-            style={{ background: 'var(--eco-surface)' }}
-          />
-        ) : (
-          <div
-            className="w-full h-[180px] rounded-lg flex items-center justify-center"
-            style={{ background: 'var(--eco-surface)' }}
-          >
-            <Newspaper size={24} style={{ color: 'var(--eco-text-tertiary)' }} />
-          </div>
-        )}
+        <NewsImage thumb={thumb} image={image} loading={loading} fetchPriority={fetchPriority} />
         <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
           {formatShortDmyDate(item.publishedAt)}
         </div>
@@ -194,9 +261,23 @@ export function NewsSection({ language, t, limit = 6, mode = 'home' }: NewsSecti
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {visible.map((item) => (
-              <NewsCard key={item.id} item={item} language={language} />
-            ))}
+            {visible.map((item, index) => {
+              // On the dedicated /news page the first row is above the fold:
+              // eager-load the first three and give the very first high fetch
+              // priority so it becomes the LCP candidate. Everything else (and
+              // the whole home-page section, which sits far below the fold)
+              // loads lazily.
+              const eager = isPage && index < 3;
+              return (
+                <NewsCard
+                  key={item.id}
+                  item={item}
+                  language={language}
+                  loading={eager ? 'eager' : 'lazy'}
+                  fetchPriority={isPage && index === 0 ? 'high' : undefined}
+                />
+              );
+            })}
           </div>
         )}
       </div>

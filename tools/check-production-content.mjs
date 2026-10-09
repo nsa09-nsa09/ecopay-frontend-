@@ -34,6 +34,8 @@ const forbidden = [
   '5 operators',
   'Поддержка 24/7',
   '24/7 support',
+  '8.2K',
+  '128K',
 ];
 
 const legacyTechnicalBrandSnippets = [
