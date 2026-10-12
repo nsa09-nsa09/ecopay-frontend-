@@ -27,7 +27,6 @@ import {
   verifyEmailCodeRequest,
   verifyStaffTwoFactorRequest,
 } from '../../lib/api';
-import { clearAdminDashboardCache } from '../../lib/admin-dashboard-cache';
 import { readWithLegacyMigration, removeWithLegacyKeys } from '../../lib/legacy-storage';
 import { parseMessageBody, startRealtime } from '../../lib/realtime';
 
@@ -443,8 +442,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       commitSession(null);
       // Drop staff-only caches on sign-out so a fresh login (possibly as a
-      // different user) starts with no stale data leaking through.
-      clearAdminDashboardCache();
+      // different user) starts with no stale data leaking through. Dynamically
+      // imported so the admin-dashboard cache module stays out of the entry
+      // chunk the anonymous homepage ships — logout is never on that path.
+      try {
+        const { clearAdminDashboardCache } = await import(
+          '../../lib/admin-dashboard-cache'
+        );
+        clearAdminDashboardCache();
+      } catch {
+        /* best-effort — a stale admin cache is survivable */
+      }
     }
   };
 

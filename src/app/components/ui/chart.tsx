@@ -65,10 +65,61 @@ function ChartContainer({
   );
 }
 
+// Defense-in-depth: the chart config is author-controlled today, but this is
+// the only `dangerouslySetInnerHTML` site in the app. If a `color` ever starts
+// flowing in from an API, the DB, or user input, we must not let it break out
+// of the CSS context. The two filters below enforce that locally so callers
+// don't have to remember to sanitize upstream.
+//
+// Allowed CSS colors:
+//   - #rgb, #rgba, #rrggbb, #rrggbbaa
+//   - rgb()/rgba()/hsl()/hsla() with digits, commas, spaces, dots, % and /
+//   - CSS keywords from a short, well-known allowlist (plus "transparent" and
+//     "currentColor")
+// Anything else — including url(), var(), expression(), semicolons, braces,
+// quotes — is dropped silently (the CSS line for that key is skipped).
+const SAFE_COLOR_KEYWORDS = new Set([
+  'transparent',
+  'currentcolor',
+  'inherit',
+  'initial',
+  'unset',
+  'black',
+  'white',
+  'red',
+  'green',
+  'blue',
+  'yellow',
+  'orange',
+  'purple',
+  'pink',
+  'brown',
+  'gray',
+  'grey',
+  'cyan',
+  'magenta',
+]);
+const SAFE_HEX = /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+const SAFE_FUNC = /^(?:rgb|rgba|hsl|hsla)\(\s*[0-9.,\s%/\-]+\s*\)$/;
+function isSafeCssColor(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > 64) return false;
+  if (SAFE_HEX.test(trimmed)) return true;
+  if (SAFE_FUNC.test(trimmed)) return true;
+  return SAFE_COLOR_KEYWORDS.has(trimmed.toLowerCase());
+}
+// The data-chart id is generated internally, but still constrain it to the
+// shape ChartContainer actually produces so the selector cannot be subverted.
+const SAFE_CHART_ID = /^[A-Za-z0-9_-]{1,64}$/;
+// Config keys become `--color-<key>` custom properties; keep them to a safe
+// identifier shape so no stray character ends the declaration.
+const SAFE_CONFIG_KEY = /^[A-Za-z_][A-Za-z0-9_-]{0,63}$/;
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(([, config]) => config.theme || config.color);
 
-  if (!colorConfig.length) {
+  if (!colorConfig.length || !SAFE_CHART_ID.test(id)) {
     return null;
   }
 
@@ -81,9 +132,12 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
+    if (!SAFE_CONFIG_KEY.test(key)) return null;
     const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+    // Any unsafe color is silently skipped — no throw, no partial rule.
+    return isSafeCssColor(color) ? `  --color-${key}: ${color};` : null;
   })
+  .filter(Boolean)
   .join('\n')}
 }
 `,
