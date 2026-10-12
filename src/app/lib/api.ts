@@ -1321,6 +1321,11 @@ export interface PaymentHistoryItemDto {
   providerName?: string | null;
   failureCode?: string | null;
   releaseAt?: string | null;
+  /**
+   * What this payment was for, when the backend reports it. Older backends (and
+   * older rows) omit it → treat as null and render no badge.
+   */
+  purpose?: 'INITIAL' | 'RENEWAL' | 'RECURRING' | null;
 }
 
 export function getPaymentHistoryRequest(
@@ -2216,6 +2221,28 @@ export function getAdminFinanceWebhooksRequest(
   return requestJson<PagedResponse<FinanceWebhookDto>>(
     `/admin/finance/webhooks${toSearchParams(params)}`,
     {},
+    accessToken,
+  );
+}
+
+/**
+ * Operator-initiated manual refund for a stuck payment transaction (ADMIN).
+ * `amount` is optional: omit it to refund the full remaining balance. A fresh
+ * `idempotencyKey` must be generated per attempt (see newIdempotencyKey).
+ * Backends without this endpoint reject with 404/405 → surfaced as ApiError.
+ */
+export function createManualRefundRequest(
+  accessToken: string,
+  payload: {
+    paymentTransactionId: number;
+    amount?: number;
+    reason: string;
+    idempotencyKey: string;
+  },
+) {
+  return requestJson<RefundTransactionResponse>(
+    `/admin/finance/refunds/manual`,
+    { method: 'POST', body: JSON.stringify(payload) },
     accessToken,
   );
 }

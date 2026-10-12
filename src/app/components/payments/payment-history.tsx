@@ -94,6 +94,21 @@ function signedAmount(item: PaymentHistoryItemDto): string {
   return `${sign}${money(item.amountKzt ?? item.amount, item.settlementCurrency ?? item.currency)}`;
 }
 
+// Labels the payment purpose, when the backend reports it. Older rows / older
+// backends omit `purpose` → returns null and nothing is rendered.
+function purposeLabel(purpose: PaymentHistoryItemDto['purpose'], l: L): string | null {
+  switch (purpose) {
+    case 'INITIAL':
+      return tx(l, 'Первый платёж', 'Алғашқы төлем', 'First payment');
+    case 'RENEWAL':
+      return tx(l, 'Продление', 'Ұзарту', 'Renewal');
+    case 'RECURRING':
+      return tx(l, 'Автосписание', 'Автоматты төлем', 'Auto-charge');
+    default:
+      return null;
+  }
+}
+
 function SummaryBlock({ label, value }: { label: string; value: string }) {
   return (
     <Card className="py-4">
@@ -132,9 +147,9 @@ function PaymentHistoryTable({ items, language }: { items: PaymentHistoryItemDto
   return (
     <div className="flex flex-col divide-y" style={{ borderColor: 'var(--eco-border)' }}>
       {items.map((item, idx) => {
-        const ids = operationIds(item); const date = historyDate(item); const mask = cardMask(item); const copy = operationCopy(item, language);
+        const ids = operationIds(item); const date = historyDate(item); const mask = cardMask(item); const copy = operationCopy(item, language); const purpose = purposeLabel(item.purpose, language);
         const held = item.kind.toUpperCase() === 'PAYOUT' && ['FROZEN', 'PENDING', 'PENDING_METHOD'].includes(item.status.toUpperCase()) && item.releaseAt && Date.parse(item.releaseAt) > Date.now();
-        return <div key={ids[0] ?? `${item.kind}-${idx}`} className="p-4 sm:px-5 flex flex-col gap-2"><div className="flex flex-col sm:flex-row sm:items-start gap-3"><div className="min-w-0 flex-1"><div className="flex items-center gap-2 flex-wrap"><span className="text-[15px]" style={{ color: 'var(--eco-text)', fontWeight: 600 }}>{copy.title}</span><Badge variant={statusVariant(item.status)}>{statusLabel(item.status, language)}</Badge></div><div className="text-[13px] mt-1" style={{ color: 'var(--eco-text-secondary)' }}>{item.roomId != null ? <Link to={`/rooms/${item.roomId}`} style={{ color: 'var(--eco-primary)' }}>{copy.detail}</Link> : copy.detail}</div><div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>{copy.secondary ?? (mask ? tx(language, `Списано с карты ${mask}`, `${mask} картасынан алынды`, `Charged to card ${mask}`) : item.providerName || directionLabel(item.direction, language))}</div>{held && <div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>{tx(language, `EcoPay удерживает до ${formatShortDmyDate(item.releaseAt)}`, `EcoPay ${formatShortDmyDate(item.releaseAt)} дейін ұстайды`, `EcoPay holds it until ${formatShortDmyDate(item.releaseAt)}`)}</div>}</div><div className="sm:text-right shrink-0"><div className="text-[16px]" style={{ color: 'var(--eco-text)', fontWeight: 650 }}>{signedAmount(item)}</div><div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>{date ? formatDateTime(date, language) : '—'}</div></div></div><details className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}><summary className="cursor-pointer">{tx(language, 'Детали операции', 'Операция мәліметтері', 'Operation details')}</summary><div className="mt-2 break-all">{ids.join(' · ') || '—'}{item.providerName ? ` · ${item.providerName}` : ''}{mask ? ` · ${mask}` : ''}{item.failureCode ? ` · ${item.failureCode}` : ''}</div></details></div>;
+        return <div key={ids[0] ?? `${item.kind}-${idx}`} className="p-4 sm:px-5 flex flex-col gap-2"><div className="flex flex-col sm:flex-row sm:items-start gap-3"><div className="min-w-0 flex-1"><div className="flex items-center gap-2 flex-wrap"><span className="text-[15px]" style={{ color: 'var(--eco-text)', fontWeight: 600 }}>{copy.title}</span><Badge variant={statusVariant(item.status)}>{statusLabel(item.status, language)}</Badge></div><div className="text-[13px] mt-1" style={{ color: 'var(--eco-text-secondary)' }}>{item.roomId != null ? <Link to={`/rooms/${item.roomId}`} style={{ color: 'var(--eco-primary)' }}>{copy.detail}</Link> : copy.detail}</div><div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>{copy.secondary ?? (mask ? tx(language, `Списано с карты ${mask}`, `${mask} картасынан алынды`, `Charged to card ${mask}`) : item.providerName || directionLabel(item.direction, language))}</div>{held && <div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>{tx(language, `EcoPay удерживает до ${formatShortDmyDate(item.releaseAt)}`, `EcoPay ${formatShortDmyDate(item.releaseAt)} дейін ұстайды`, `EcoPay holds it until ${formatShortDmyDate(item.releaseAt)}`)}</div>}</div><div className="sm:text-right shrink-0">{purpose && <div className="mb-1 flex sm:justify-end"><Badge variant="default">{purpose}</Badge></div>}<div className="text-[16px]" style={{ color: 'var(--eco-text)', fontWeight: 650 }}>{signedAmount(item)}</div><div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>{date ? formatDateTime(date, language) : '—'}</div></div></div><details className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}><summary className="cursor-pointer">{tx(language, 'Детали операции', 'Операция мәліметтері', 'Operation details')}</summary><div className="mt-2 break-all">{ids.join(' · ') || '—'}{item.providerName ? ` · ${item.providerName}` : ''}{mask ? ` · ${mask}` : ''}{item.failureCode ? ` · ${item.failureCode}` : ''}</div></details></div>;
       })}
     </div>
   );

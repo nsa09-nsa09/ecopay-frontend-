@@ -2,13 +2,16 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { Link, useSearchParams } from 'react-router';
 import { AlertTriangle, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { AdminLayout } from './admin-layout';
-import { Badge, Button, Card, Select } from '../ds-primitives';
+import { Badge, Button, Card, Input, Modal, Select } from '../ds-primitives';
 import { useI18n } from '../i18n-provider';
 import { useAuth } from '../auth/auth-provider';
 import { formatDateTime } from '../../lib/datetime';
 import { userStatusLabel, userStatusVariant } from '../../lib/user-facing-enums';
-import { formatAdminApiError } from './admin-action-ui';
+import { newIdempotencyKey } from '../../lib/payment-context';
+import { FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
 import {
+  ApiError,
+  createManualRefundRequest,
   getAdminFinanceRefundsRequest,
   getAdminFinancePayoutsRequest,
   getAdminFinanceTransactionsRequest,
@@ -63,6 +66,44 @@ function formatMoney(amount: number | string | null | undefined, currency: strin
     ? new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(num)
     : String(amount);
   return (currency ?? 'KZT') === 'KZT' ? `₸${formatted}` : `${formatted} ${currency}`;
+}
+
+// Intent statuses that, together with an unspent balance, make a payment
+// transaction a manual-refund candidate.
+const REFUND_REVIEW_STATUSES = new Set(['REQUIRES_REVIEW', 'REFUND_REQUIRES_REVIEW']);
+
+/**
+ * Remaining refundable balance the backend reports on a transaction row, or
+ * null when the field is absent. Older backends omit it entirely — that absence
+ * is our feature flag: no field → the manual-refund endpoint isn't live, so we
+ * render no action and the page behaves exactly as before.
+ */
+function refundableAmount(item: FinanceTransactionDto): number | null {
+  const raw = item as unknown as Record<string, unknown>;
+  for (const key of ['refundableAmount', 'remainingRefundable', 'refundableBalance']) {
+    const value = raw[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) {
+      return Number(value);
+    }
+  }
+  return null;
+}
+
+/**
+ * Whether the operator can issue a manual refund for this row. Gated on the
+ * backend sending a refundable balance (feature flag) plus the stuck-payment
+ * conditions: a capture anomaly, or an unspent balance on a payment intent that
+ * is parked in review.
+ */
+function canManualRefund(item: FinanceTransactionDto): boolean {
+  const balance = refundableAmount(item);
+  if (balance === null) return false;
+  const status = (item.status ?? '').toUpperCase();
+  if (status === 'CAPTURE_ANOMALY') return true;
+  const type = (item.type ?? '').toUpperCase();
+  const isPayment = type === '' || type === 'PAYMENT';
+  return isPayment && balance > 0 && REFUND_REVIEW_STATUSES.has(status);
 }
 
 /** Statuses an operator must act on now. */
@@ -231,6 +272,9 @@ export function AdminFinancePage() {
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Manual-refund modal: the transaction being refunded (null = closed).
+  const [refundTarget, setRefundTarget] = useState<FinanceTransactionDto | null>(null);
+  const { flash, show: showFlash } = useFlash();
 
   const setTab = (next: FinanceTab) => {
     if (next === tab) return;
@@ -383,6 +427,8 @@ export function AdminFinancePage() {
           </div>
         </Card>
 
+        <FlashBanner flash={flash} />
+
         {error && (
           <Card className="flex flex-col gap-2 mb-4">
             <div className="text-[14px]" style={{ color: 'var(--eco-negative)' }}>
@@ -395,7 +441,13 @@ export function AdminFinancePage() {
         )}
 
         {tab === 'payment-review' ? (
-          <TransactionsTable items={txItems} language={language} loading={loading} t={t} />
+          <TransactionsTable
+            items={txItems}
+            language={language}
+            loading={loading}
+            t={t}
+            onRefund={setRefundTarget}
+          />
         ) : tab === 'refunds' ? (
           <RefundsTable items={refundItems} language={language} loading={loading} t={t} />
         ) : tab === 'payouts' ? (
@@ -437,8 +489,181 @@ export function AdminFinancePage() {
           </div>
         )}
       </div>
+      <ManualRefundModal
+        target={refundTarget}
+        language={language}
+        t={t}
+        onClose={() => setRefundTarget(null)}
+        onConfirm={(payload) =>
+          authorizedRequest((token) => createManualRefundRequest(token, payload))
+        }
+        onDone={() => {
+          setRefundTarget(null);
+          showFlash('success', t('financeRefundSuccess'));
+          void load();
+        }}
+      />
     </AdminLayout>
   );
+}
+
+/**
+ * Manual-refund dialog for a stuck transaction. Amount defaults to the backend
+ * reported remaining balance (when present); the operator may override it or
+ * leave it blank for a full refund. A reason is mandatory and a single
+ * idempotency key is reused across retries within one open dialog.
+ */
+function ManualRefundModal({
+  target,
+  language,
+  t,
+  onClose,
+  onConfirm,
+  onDone,
+}: {
+  target: FinanceTransactionDto | null;
+  language: 'ru' | 'kz' | 'en';
+  t: TFn;
+  onClose: () => void;
+  onConfirm: (payload: {
+    paymentTransactionId: number;
+    amount?: number;
+    reason: string;
+    idempotencyKey: string;
+  }) => Promise<unknown>;
+  onDone: () => void;
+}) {
+  const open = target != null;
+  const balance = target ? refundableAmount(target) : null;
+  const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // One key per opened dialog, so a retry after a transient error does not
+  // create a second refund.
+  const [idempotencyKey, setIdempotencyKey] = useState('');
+
+  // Reset the form each time a new transaction is targeted.
+  useEffect(() => {
+    if (!target) return;
+    const b = refundableAmount(target);
+    setAmount(b != null && b > 0 ? String(b) : '');
+    setReason('');
+    setErrorMessage(null);
+    setIdempotencyKey(newIdempotencyKey());
+  }, [target]);
+
+  if (!open || !target) return null;
+
+  const reasonTrimmed = reason.trim();
+  const amountTrimmed = amount.trim();
+  const parsedAmount = amountTrimmed === '' ? undefined : Number(amountTrimmed);
+  const amountInvalid =
+    amountTrimmed !== '' && (!Number.isFinite(parsedAmount) || (parsedAmount ?? 0) <= 0);
+  const canSubmit = reasonTrimmed.length > 0 && !amountInvalid && !submitting;
+
+  const submit = async () => {
+    if (reasonTrimmed.length === 0) {
+      setErrorMessage(t('financeRefundReasonRequired'));
+      return;
+    }
+    if (amountInvalid) {
+      setErrorMessage(t('financeRefundAmountInvalid'));
+      return;
+    }
+    setSubmitting(true);
+    setErrorMessage(null);
+    try {
+      await onConfirm({
+        paymentTransactionId: target.id,
+        amount: parsedAmount,
+        reason: reasonTrimmed,
+        idempotencyKey,
+      });
+      onDone();
+    } catch (err) {
+      setErrorMessage(refundErrorMessage(err, t));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title={t('financeRefundTitle')}>
+      <div className="flex flex-col gap-4">
+        <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+          {t('financeRefundDescription')}
+        </div>
+        <div
+          className="p-3 rounded-lg text-[12px] flex flex-col gap-1"
+          style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
+        >
+          <div>
+            <PublicId label={target.publicId ?? `T-${target.id}`} />{' '}
+            <StatusBadge status={target.status} language={language} />
+          </div>
+          <div>{formatMoney(target.amount, target.currency)}</div>
+          {balance != null && (
+            <div style={{ color: 'var(--eco-text-tertiary)' }}>
+              {t('financeRefundAmountLabel')}: {formatMoney(balance, target.currency)}
+            </div>
+          )}
+        </div>
+        <Input
+          label={t('financeRefundAmountLabel')}
+          hint={t('financeRefundAmountHint')}
+          inputMode="decimal"
+          value={amount}
+          onChange={(event) => setAmount(event.target.value)}
+          error={amountInvalid ? t('financeRefundAmountInvalid') : undefined}
+        />
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+            {t('reason')} <span style={{ color: 'var(--eco-negative)' }}>*</span>
+          </label>
+          <textarea
+            rows={3}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
+            style={{
+              background: 'var(--eco-surface)',
+              border: '1px solid var(--eco-border)',
+              color: 'var(--eco-text)',
+            }}
+          />
+        </div>
+        {errorMessage && (
+          <div className="text-[13px]" role="alert" style={{ color: 'var(--eco-negative)' }}>
+            {errorMessage}
+          </div>
+        )}
+        <Button variant="secondary" disabled={!canSubmit} loading={submitting} onClick={() => void submit()}>
+          {t('financeRefundSubmit')}
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Maps the manual-refund backend error codes to specific, translated copy so
+ * the operator sees why it failed inside the dialog — not a generic toast.
+ */
+function refundErrorMessage(err: unknown, t: TFn): string {
+  if (err instanceof ApiError) {
+    switch (err.serverCode) {
+      case 'REFUND_NOT_CAPTURED':
+        return t('financeRefundErrNotCaptured');
+      case 'REFUND_NO_BALANCE':
+        return t('financeRefundErrNoBalance');
+      case 'REFUND_AMOUNT_EXCEEDS_BALANCE':
+        return t('financeRefundErrExceedsBalance');
+      default:
+        break;
+    }
+  }
+  return formatAdminApiError(err, t);
 }
 
 function TransactionsTable({
@@ -446,13 +671,18 @@ function TransactionsTable({
   language,
   loading,
   t,
+  onRefund,
 }: {
   items: FinanceTransactionDto[];
   language: 'ru' | 'kz' | 'en';
   loading: boolean;
   t: TFn;
+  onRefund: (item: FinanceTransactionDto) => void;
 }) {
   const tx = txFor(language);
+  // Only surface the action column when the backend actually supports manual
+  // refunds for at least one row on this page — old backends see no new column.
+  const showAction = items.some(canManualRefund);
   if (loading && items.length === 0) return <SkeletonRows t={t} />;
   if (items.length === 0) return <EmptyOps t={t} />;
   return (
@@ -465,6 +695,7 @@ function TransactionsTable({
           <Th>{t('financeColRoomMember')}</Th>
           <Th>{t('financeColProvider')}</Th>
           <Th>{t('financeColSafeReason')}</Th>
+          {showAction && <Th>{t('financeColAction')}</Th>}
         </tr>
       </thead>
       <tbody>
@@ -492,6 +723,17 @@ function TransactionsTable({
                 <PublicId label={item.providerReference ?? item.cardPanMask ?? '-'} />
               </Td>
               <Td>{item.safeErrorReason ?? item.failureMessage ?? item.reason ?? '-'}</Td>
+              {showAction && (
+                <Td>
+                  {canManualRefund(item) ? (
+                    <Button variant="secondary" size="sm" onClick={() => onRefund(item)}>
+                      {t('financeRefundAction')}
+                    </Button>
+                  ) : (
+                    <span style={{ color: 'var(--eco-text-tertiary)' }}>-</span>
+                  )}
+                </Td>
+              )}
             </tr>
           );
         })}

@@ -3880,6 +3880,49 @@ paymentIntentValid24h: {
   },
   adminFinanceNav: { ru: 'Финансы', kz: 'Қаржы', en: 'Finance' },
 
+  // ===== Manual refund for stuck transactions (admin finance → transactions) =====
+  financeColAction: { ru: 'Действие', kz: 'Әрекет', en: 'Action' },
+  financeRefundAction: { ru: 'Оформить возврат', kz: 'Қайтаруды рәсімдеу', en: 'Issue refund' },
+  financeRefundTitle: { ru: 'Ручной возврат', kz: 'Қолмен қайтару', en: 'Manual refund' },
+  financeRefundDescription: {
+    ru: 'Инициировать возврат по застрявшей транзакции. Действие логируется.',
+    kz: 'Тұрып қалған транзакция бойынша қайтаруды бастау. Әрекет журналға жазылады.',
+    en: 'Start a refund for this stuck transaction. The action is logged.',
+  },
+  financeRefundAmountLabel: { ru: 'Сумма возврата', kz: 'Қайтару сомасы', en: 'Refund amount' },
+  financeRefundAmountHint: {
+    ru: 'Оставьте пустым, чтобы вернуть весь доступный остаток.',
+    kz: 'Бүкіл қолжетімді қалдықты қайтару үшін бос қалдырыңыз.',
+    en: 'Leave empty to refund the full remaining balance.',
+  },
+  financeRefundReasonRequired: {
+    ru: 'Укажите причину возврата.',
+    kz: 'Қайтару себебін көрсетіңіз.',
+    en: 'Enter a reason for the refund.',
+  },
+  financeRefundAmountInvalid: {
+    ru: 'Введите корректную сумму больше нуля.',
+    kz: 'Нөлден үлкен дұрыс соманы енгізіңіз.',
+    en: 'Enter a valid amount greater than zero.',
+  },
+  financeRefundSubmit: { ru: 'Подтвердить возврат', kz: 'Қайтаруды растау', en: 'Confirm refund' },
+  financeRefundSuccess: { ru: 'Возврат инициирован', kz: 'Қайтару басталды', en: 'Refund initiated' },
+  financeRefundErrNotCaptured: {
+    ru: 'Платёж не был списан — возврат невозможен.',
+    kz: 'Төлем алынбаған — қайтару мүмкін емес.',
+    en: 'This payment was not captured, so it can’t be refunded.',
+  },
+  financeRefundErrNoBalance: {
+    ru: 'По этому платежу нет доступного остатка для возврата.',
+    kz: 'Бұл төлем бойынша қайтаруға қолжетімді қалдық жоқ.',
+    en: 'There is no remaining balance to refund on this payment.',
+  },
+  financeRefundErrExceedsBalance: {
+    ru: 'Сумма превышает доступный остаток для возврата.',
+    kz: 'Сома қайтаруға қолжетімді қалдықтан асып тұр.',
+    en: 'The amount exceeds the refundable balance.',
+  },
+
   // ===== Service access type (what a member hands over to be let in) =====
   accessTypeEmail: { ru: 'Вход по email', kz: 'Email арқылы кіру', en: 'Access by email' },
   accessTypePhone: { ru: 'Вход по номеру', kz: 'Нөмір арқылы кіру', en: 'Access by phone' },
