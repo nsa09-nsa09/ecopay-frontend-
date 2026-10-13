@@ -82,6 +82,11 @@ const BY_CODE: Record<string, Entry> = {
     'Бұл шағым жабылған.',
     'This report has already been closed.',
   ),
+  INVALID_CREDENTIALS: a(
+    'Неверный email или пароль.',
+    'Қате email немесе құпия сөз.',
+    'Invalid email or password.',
+  ),
   // ACCOUNT_BANNED carries its own `reason`/`banUntil` and is rendered by the
   // auth screens directly; mapped here so generic callers stay safe.
   ACCOUNT_BANNED: s(
@@ -125,6 +130,46 @@ const BY_MESSAGE_RAW: Record<string, Entry> = {
     'С аккаунтом возникла проблема.',
     'Аккаунтпен мәселе туындады.',
     'There is a problem with your account.',
+  ),
+
+  // ---- Auth ----
+  'Invalid credentials': a(
+    'Неверный email или пароль.',
+    'Қате email немесе құпия сөз.',
+    'Invalid email or password.',
+  ),
+  // One-time link tokens. The backend sends these as 401 TOKEN_EXPIRED, the
+  // same code as an expired refresh token, so they are matched by message —
+  // otherwise /verify-email and the password-reset page say "Session expired".
+  'Invalid or expired verification token': a(
+    'Ссылка для подтверждения недействительна или устарела. Запросите новое письмо.',
+    'Растау сілтемесі жарамсыз немесе ескірген. Жаңа хат сұратыңыз.',
+    'This verification link is invalid or has expired. Request a new email.',
+  ),
+  'Verification token expired': a(
+    'Срок действия ссылки для подтверждения истёк. Запросите новое письмо.',
+    'Растау сілтемесінің мерзімі өтті. Жаңа хат сұратыңыз.',
+    'This verification link has expired. Request a new email.',
+  ),
+  'Verification token already used': a(
+    'Эта ссылка уже использована. Если email подтверждён, просто войдите.',
+    'Бұл сілтеме бұрын пайдаланылған. Email расталған болса, жай ғана кіріңіз.',
+    'This link has already been used. If your email is verified, just sign in.',
+  ),
+  'Invalid or expired reset token': a(
+    'Ссылка для сброса пароля недействительна или устарела. Запросите новую.',
+    'Құпия сөзді қалпына келтіру сілтемесі жарамсыз немесе ескірген. Жаңасын сұратыңыз.',
+    'This password reset link is invalid or has expired. Request a new one.',
+  ),
+  'Reset token expired': a(
+    'Срок действия ссылки для сброса пароля истёк. Запросите новую.',
+    'Құпия сөзді қалпына келтіру сілтемесінің мерзімі өтті. Жаңасын сұратыңыз.',
+    'This password reset link has expired. Request a new one.',
+  ),
+  'Reset token already used': a(
+    'Эта ссылка для сброса пароля уже использована. Запросите новую.',
+    'Бұл қалпына келтіру сілтемесі бұрын пайдаланылған. Жаңасын сұратыңыз.',
+    'This password reset link has already been used. Request a new one.',
   ),
 
   // ---- Rooms: join / capacity / start-date / lifecycle ----

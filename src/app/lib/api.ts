@@ -238,13 +238,23 @@ function looksLikeEnglishMessage(raw: string | undefined | null): boolean {
   return /[A-Za-z]/.test(s);
 }
 
+// 401s that come from the auth flow itself (wrong password, pending 2FA), not
+// from an expired session. Classifying them as 'sessionExpired' made the login
+// form say "Session expired" on a wrong password.
+const NON_SESSION_401_CODES = new Set(['INVALID_CREDENTIALS', 'TWO_FACTOR_REQUIRED']);
+
 function classifyApiErrorCode(
   status: number,
   rawMessage: string | undefined | null,
+  serverCode: string | null = null,
 ): FriendlyApiErrorCode {
   if (status === 0) return rawMessage === TIMEOUT_MESSAGE ? 'timeout' : 'network';
   if (status === 400 || status === 422) return 'validation';
-  if (status === 401) return 'sessionExpired';
+  if (status === 401) {
+    return serverCode && NON_SESSION_401_CODES.has(serverCode.toUpperCase())
+      ? 'validation'
+      : 'sessionExpired';
+  }
   if (status === 403) return 'noAccess';
   if (status === 404) return 'notAvailable';
   if (status === 409) return 'conflict';
@@ -337,7 +347,7 @@ export class ApiError extends Error {
     errors: Record<string, string> = {},
     serverCode: string | null = null,
   ) {
-    const code = classifyApiErrorCode(status, rawMessage);
+    const code = classifyApiErrorCode(status, rawMessage, serverCode);
     const friendly = buildFriendlyApiMessage(status, rawMessage, code, serverCode);
     super(friendly);
     this.name = 'ApiError';

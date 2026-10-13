@@ -126,6 +126,28 @@ test('a known coded conflict resolves via the message path today', () => {
   assert.ok(ru && /мест/i.test(ru));
 });
 
+test('auth-flow 401s resolve to specific copy, not "session expired"', () => {
+  assert.equal(
+    resolveServerMessage(401, 'INVALID_CREDENTIALS', 'Invalid credentials', 'ru'),
+    'Неверный email или пароль.',
+  );
+  assert.equal(
+    resolveServerMessage(401, null, 'Invalid credentials', 'ru'),
+    'Неверный email или пароль.',
+  );
+  for (const msg of [
+    'Invalid or expired verification token',
+    'Verification token expired',
+    'Verification token already used',
+    'Invalid or expired reset token',
+    'Reset token expired',
+    'Reset token already used',
+  ]) {
+    const ru = resolveServerMessage(401, 'TOKEN_EXPIRED', msg, 'ru');
+    assert.ok(ru && /ссылк/i.test(ru), `${msg} → ${ru}`);
+  }
+});
+
 function splitKey(key) {
   const idx = key.indexOf(':');
   return [key.slice(0, idx), key.slice(idx + 1)];
