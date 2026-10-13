@@ -236,6 +236,8 @@ export function OwnerDetailPage() {
               'You are not the owner of this room.',
             ),
           );
+        } else if (err instanceof ApiError && err.status === 404) {
+          setError(tx(language, 'Комната не найдена.', 'Бөлме табылмады.', 'Room not found.'));
         } else {
           setError(
             tx(

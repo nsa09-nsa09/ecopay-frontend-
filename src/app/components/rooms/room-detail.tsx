@@ -112,15 +112,17 @@ export function RoomDetailPage() {
           setRoom(roomResponse);
           setSummary(roomListResponse.items.find((item) => String(item.id) === roomId) ?? null);
         }
-      } catch {
+      } catch (err) {
         if (!isCancelled) {
           setLoadError(
-            tx(
-              language,
-              'Не удалось загрузить комнату.',
-              'Бөлмені жүктеу мүмкін болмады.',
-              'Unable to load this room right now.',
-            ),
+            err instanceof ApiError && err.status === 404
+              ? tx(language, 'Комната не найдена.', 'Бөлме табылмады.', 'Room not found.')
+              : tx(
+                  language,
+                  'Не удалось загрузить комнату.',
+                  'Бөлмені жүктеу мүмкін болмады.',
+                  'Unable to load this room right now.',
+                ),
           );
         }
       } finally {
