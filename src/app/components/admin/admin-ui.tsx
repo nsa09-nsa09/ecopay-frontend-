@@ -1026,6 +1026,7 @@ const TONE_BY_STATUS: Record<string, AdminStatusTone> = {
   BLOCKED: 'danger',
   BANNED: 'danger',
   REJECTED: 'danger',
+  DISMISSED: 'danger',
   FAILED: 'danger',
   ERROR: 'danger',
   CANCELLED: 'danger',

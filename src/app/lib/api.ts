@@ -2662,40 +2662,59 @@ export function getPublicProfile(publicId: string) {
 }
 
 export type UserReportCategory = 'FRAUD' | 'ABUSE' | 'HARASSMENT' | 'SPAM' | 'OTHER';
-export type UserReportStatus = 'OPEN' | 'IN_REVIEW' | 'REJECTED' | 'RESOLVED';
+export type UserReportStatus = 'OPEN' | 'IN_REVIEW' | 'DISMISSED' | 'RESOLVED';
 
-export interface UserReportActorDto {
+export interface UserReportPersonDto {
   id: number;
+  publicId: string | null;
   displayName: string;
+}
+
+export interface UserReportTargetDto {
+  id: number;
+  publicId: string | null;
   slug: string | null;
-  publicId?: string | null;
+  displayName: string;
+  status: string | null;
 }
 
 export interface AdminUserReportDto {
   id: number;
-  reporter: UserReportActorDto;
-  target: UserReportActorDto;
+  reporter: UserReportPersonDto;
+  target: UserReportTargetDto;
   category: UserReportCategory;
   description: string;
   status: UserReportStatus;
-  assignedAdmin: UserReportActorDto | null;
+  assignedAdminId: number | null;
+  assignedAdmin?: { id: number; displayName: string } | null;
+  resolutionNote?: string | null;
   createdAt: string;
   updatedAt?: string | null;
   resolvedAt?: string | null;
 }
 
-export interface UserInvestigationRoomDto {
-  id: number;
+export interface UserInvestigationOwnedRoomDto {
+  roomId: number;
   title: string;
-  status?: string | null;
+  status: string | null;
+  createdAt: string | null;
+  deletedAt?: string | null;
+}
+
+export interface UserInvestigationMembershipDto {
+  roomId: number;
+  roomTitle: string;
+  memberStatus: string | null;
+  joinedAt: string | null;
+  endedAt?: string | null;
 }
 
 export interface UserInvestigationDto {
-  user: UserReportActorDto;
-  ownedRooms: UserInvestigationRoomDto[];
-  memberships: UserInvestigationRoomDto[];
-  reportsAgainst: number;
-  reportsBy: number;
+  user: AdminUserDto;
+  ownedRooms: UserInvestigationOwnedRoomDto[];
+  memberships: UserInvestigationMembershipDto[];
+  reportsAgainst: AdminUserReportDto[];
+  reportsBy: AdminUserReportDto[];
   supportTicketsCount: number;
   disputesCount: number;
   recentRoomEvents: Array<{
@@ -2738,7 +2757,7 @@ export function assignAdminUserReportRequest(id: ApiId, accessToken: string) {
 
 export function updateAdminUserReportStatusRequest(
   id: ApiId,
-  payload: { status: UserReportStatus; reason: string },
+  payload: { status: UserReportStatus; resolutionNote: string },
   accessToken: string,
 ) {
   return requestJson<AdminUserReportDto>(

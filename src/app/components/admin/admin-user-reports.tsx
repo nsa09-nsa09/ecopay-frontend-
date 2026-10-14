@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Component, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Link, useSearchParams } from 'react-router';
 import { Button, Select, Skeleton } from '../ds-primitives';
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
@@ -32,7 +32,7 @@ import {
 
 
 const categories: UserReportCategory[] = ['FRAUD', 'ABUSE', 'HARASSMENT', 'SPAM', 'OTHER'];
-const statuses: UserReportStatus[] = ['OPEN', 'IN_REVIEW', 'REJECTED', 'RESOLVED'];
+const statuses: UserReportStatus[] = ['OPEN', 'IN_REVIEW', 'DISMISSED', 'RESOLVED'];
 function categoryLabel(category: UserReportCategory, l: Language) {
   const labels = {
     FRAUD: ['Мошенничество', 'Алаяқтық', 'Fraud'],
@@ -48,24 +48,69 @@ function statusLabel(status: UserReportStatus, l: Language) {
   const labels = {
     OPEN: ['Открыта', 'Ашық', 'Open'],
     IN_REVIEW: ['На проверке', 'Тексеруде', 'In review'],
-    REJECTED: ['Отклонена', 'Қабылданбады', 'Rejected'],
+    DISMISSED: ['Отклонена', 'Қабылданбады', 'Dismissed'],
     RESOLVED: ['Рассмотрена', 'Қаралды', 'Resolved'],
   } as const;
   const index = l === 'ru' ? 0 : l === 'kz' ? 1 : 2;
   return labels[status]?.[index] ?? (['Неизвестно', 'Белгісіз', 'Unknown'] as const)[index];
 }
-const displayPerson = (person: { displayName: string; slug: string | null }) =>
-  `${person.displayName}${person.slug ? ` · @${person.slug}` : ''}`;
+function displayTarget(target: { displayName: string; slug?: string | null }) {
+  return `${target.displayName}${target.slug ? ` · @${target.slug}` : ''}`;
+}
+function displayReporter(reporter: { displayName: string }) {
+  return reporter.displayName;
+}
+function displayAssignedAdmin(report: AdminUserReportDto): string | null {
+  if (report.assignedAdmin) return report.assignedAdmin.displayName;
+  if (report.assignedAdminId) return `#${report.assignedAdminId}`;
+  return null;
+}
+
+class ReportErrorBoundary extends Component<
+  { fallbackTitle: string; retryLabel: string; children: ReactNode },
+  { error: Error | null }
+> {
+  state: { error: Error | null } = { error: null };
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div
+          className="flex flex-col items-center gap-3 py-8 px-4 rounded-xl"
+          style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
+        >
+          <p className="text-[14px] font-medium" style={{ color: 'var(--eco-negative)' }}>
+            {this.props.fallbackTitle}
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => this.setState({ error: null })}
+          >
+            {this.props.retryLabel}
+          </Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export function AdminUserReports() {
   const { language, t } = useI18n();
   const { authorizedRequest } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<AdminUserReportDto[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(() => {
+    const sel = searchParams.get('selected');
+    return sel ? Number(sel) : null;
+  });
   const [detail, setDetail] = useState<AdminUserReportDto | null>(null);
   const [investigation, setInvestigation] = useState<UserInvestigationDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,6 +122,16 @@ export function AdminUserReports() {
   const [submitting, setSubmitting] = useState(false);
   const [restrictionUserId, setRestrictionUserId] = useState<number | null>(null);
   const { flash, show: showFlash } = useFlash();
+
+  const selectReport = useCallback((id: number | null) => {
+    setSelectedId(id);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id != null) next.set('selected', String(id));
+      else next.delete('selected');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -155,14 +210,14 @@ export function AdminUserReports() {
       setSubmitting(false);
     }
   };
-  const changeStatus = async (reason: string) => {
+  const changeStatus = async (resolutionNote: string) => {
     if (!detail || !actionStatus || submitting) return;
     setSubmitting(true);
     setActionError(null);
     try {
       updateReport(
         await authorizedRequest((token) =>
-          updateAdminUserReportStatusRequest(detail.id, { status: actionStatus, reason }, token),
+          updateAdminUserReportStatusRequest(detail.id, { status: actionStatus, resolutionNote }, token),
         ),
       );
       setActionStatus(null);
@@ -175,6 +230,7 @@ export function AdminUserReports() {
   };
 
   return (
+    <ReportErrorBoundary fallbackTitle={t('adminReportFailedToShow')} retryLabel={t('adminRetry')}>
     <div className="w-full min-w-0 flex flex-col gap-5">
       <AdminToolbar>
         <div className="flex-[1_1_180px] min-w-0 max-w-[260px]">
@@ -241,7 +297,7 @@ export function AdminUserReports() {
             <button
               key={item.id}
               type="button"
-              onClick={() => setSelectedId(item.id)}
+              onClick={() => selectReport(item.id)}
               aria-pressed={selectedId === item.id}
               className={`eco-admin-record is-clickable text-left rounded-xl px-4 py-3 min-w-0 ${selectedId === item.id ? 'is-active' : ''}`}
               style={{ minHeight: 88, opacity: loading ? 0.6 : 1 }}
@@ -251,7 +307,7 @@ export function AdminUserReports() {
                   className="text-[13px] font-semibold break-words min-w-0"
                   style={{ color: 'var(--eco-text)' }}
                 >
-                  {displayPerson(item.target)}
+                  {displayTarget(item.target)}
                 </strong>
                 <AdminStatusBadge status={item.status}>
                   {statusLabel(item.status, language)}
@@ -262,7 +318,7 @@ export function AdminUserReports() {
                 style={{ color: 'var(--eco-text-secondary)' }}
               >
                 {categoryLabel(item.category, language)} · {t('adminBy')}{' '}
-                {displayPerson(item.reporter)}
+                {displayReporter(item.reporter)}
               </div>
               <div
                 className="mt-1 text-[12px] tabular-nums"
@@ -321,8 +377,8 @@ export function AdminUserReports() {
                     >
                       {t('adminAssignToMe')}
                     </Button>
-                    <Button variant="secondary" size="sm" disabled={submitting} onClick={() => setActionStatus('REJECTED')}>
-                      {t('adminRejectReport')}
+                    <Button variant="secondary" size="sm" disabled={submitting} onClick={() => setActionStatus('DISMISSED')}>
+                      {t('adminDismissReport')}
                     </Button>
                     <Button variant="secondary" size="sm" disabled={submitting} onClick={() => setActionStatus('RESOLVED')}>
                       {t('adminResolveReport')}
@@ -344,17 +400,20 @@ export function AdminUserReports() {
                       {categoryLabel(detail.category, language)}
                     </AdminField>
                     <AdminField label={t('adminReporter')}>
-                      {displayPerson(detail.reporter)}
+                      {displayReporter(detail.reporter)}
                     </AdminField>
                     <AdminField label={t('financeColDate')} numeric>
                       {formatDateTime(detail.createdAt, language)}
                     </AdminField>
                     <AdminField label={t('adminAssignedTo')}>
-                      {detail.assignedAdmin
-                        ? displayPerson(detail.assignedAdmin)
-                        : t('unassigned')}
+                      {displayAssignedAdmin(detail) ?? t('unassigned')}
                     </AdminField>
                   </div>
+                  {detail.resolutionNote && (
+                    <AdminField label={t('adminResolutionNote')}>
+                      {detail.resolutionNote}
+                    </AdminField>
+                  )}
                   <Link
                     to={`/admin/users?selected=${detail.target.id}`}
                     className="text-[13px] self-start"
@@ -415,18 +474,28 @@ export function AdminUserReports() {
                       </div>
                       <div className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
                         {t('adminReportsAgainstUser')}
-                        : <span className="tabular-nums">{investigation.reportsAgainst}</span> ·{' '}
+                        : <span className="tabular-nums">{investigation.reportsAgainst.length}</span> ·{' '}
                         {t('adminReportsByUser')}
-                        : <span className="tabular-nums">{investigation.reportsBy}</span>
+                        : <span className="tabular-nums">{investigation.reportsBy.length}</span>
                       </div>
-                      {[...investigation.ownedRooms, ...investigation.memberships].map((room) => (
+                      {investigation.ownedRooms.map((room) => (
                         <Link
-                          key={room.id}
-                          to={`/admin/rooms?selected=${room.id}`}
+                          key={`owned-${room.roomId}`}
+                          to={`/admin/rooms?selected=${room.roomId}`}
                           className="text-[13px] break-words"
                           style={{ color: 'var(--eco-primary)' }}
                         >
-                          {room.title} · R-{room.id}
+                          {room.title} · R-{room.roomId}
+                        </Link>
+                      ))}
+                      {investigation.memberships.map((m) => (
+                        <Link
+                          key={`member-${m.roomId}`}
+                          to={`/admin/rooms?selected=${m.roomId}`}
+                          className="text-[13px] break-words"
+                          style={{ color: 'var(--eco-primary)' }}
+                        >
+                          {m.roomTitle} · R-{m.roomId}
                         </Link>
                       ))}
                       <div className="text-[12px] font-medium" style={{ color: 'var(--eco-text-secondary)' }}>
@@ -480,12 +549,12 @@ export function AdminUserReports() {
           }
         }}
         title={
-          actionStatus === 'REJECTED'
-            ? t('adminRejectReport2')
+          actionStatus === 'DISMISSED'
+            ? t('adminDismissReport2')
             : t('adminResolveReport2')
         }
-        subjectLabel={detail ? displayPerson(detail.target) : null}
-        destructive={actionStatus === 'REJECTED'}
+        subjectLabel={detail ? displayTarget(detail.target) : null}
+        destructive={actionStatus === 'DISMISSED'}
         submitLabel={t('confirmLabel')}
         submitting={submitting}
         errorMessage={actionError}
@@ -497,5 +566,6 @@ export function AdminUserReports() {
         onSaved={() => showFlash('success', t('actionCompletedAndLogged'))}
       />
     </div>
+    </ReportErrorBoundary>
   );
 }
