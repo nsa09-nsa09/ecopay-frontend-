@@ -348,7 +348,13 @@ export class ApiError extends Error {
     serverCode: string | null = null,
   ) {
     const code = classifyApiErrorCode(status, rawMessage, serverCode);
-    const friendly = buildFriendlyApiMessage(status, rawMessage, code, serverCode);
+    let friendly = buildFriendlyApiMessage(status, rawMessage, code, serverCode);
+    if (code === 'validation' && errors) {
+      const firstFieldError = Object.entries(errors).find(
+        ([k, v]) => typeof v === 'string' && v && k !== 'code' && k !== 'reason',
+      );
+      if (firstFieldError) friendly = firstFieldError[1];
+    }
     super(friendly);
     this.name = 'ApiError';
     this.status = status;

@@ -28,6 +28,7 @@ import { LeaveReviewModal } from './leave-review-modal';
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
 const REPORT_LIMIT = 2000;
+const REPORT_MIN = 20;
 
 function StarRating({
   rating,
@@ -222,7 +223,7 @@ export function PublicUserProfilePage() {
   const reportHandle = slug || profile?.publicId || null;
 
   const submitReport = async () => {
-    if (!reportHandle || reportSending || !reportDescription.trim()) return;
+    if (!reportHandle || reportSending || reportDescription.trim().length < REPORT_MIN) return;
     setReportSending(true);
     setReportError(null);
     try {
@@ -238,23 +239,30 @@ export function PublicUserProfilePage() {
       );
       setReportSuccess(true);
     } catch (err) {
-      setReportError(
-        err instanceof ApiError && err.status === 409
-          ? tx(
-              language,
-              'У вас уже есть открытая жалоба на этого пользователя по этой причине.',
-              'Осы себеп бойынша бұл пайдаланушыға қатысты ашық шағымыңыз бар.',
-              'You already have an open report about this user for this reason.',
-            )
-          : err instanceof ApiError
-            ? err.message
-            : tx(
-                language,
-                'Не удалось отправить жалобу.',
-                'Шағымды жіберу мүмкін болмады.',
-                'Could not submit the report.',
-              ),
-      );
+      if (err instanceof ApiError && err.status === 409) {
+        setReportError(
+          tx(
+            language,
+            'У вас уже есть открытая жалоба на этого пользователя по этой причине.',
+            'Осы себеп бойынша бұл пайдаланушыға қатысты ашық шағымыңыз бар.',
+            'You already have an open report about this user for this reason.',
+          ),
+        );
+      } else if (err instanceof ApiError && err.errors) {
+        const firstField = Object.values(err.errors).find((v) => typeof v === 'string' && v);
+        setReportError(firstField ?? err.message);
+      } else if (err instanceof ApiError) {
+        setReportError(err.message);
+      } else {
+        setReportError(
+          tx(
+            language,
+            'Не удалось отправить жалобу.',
+            'Шағымды жіберу мүмкін болмады.',
+            'Could not submit the report.',
+          ),
+        );
+      }
     } finally {
       setReportSending(false);
     }
@@ -612,9 +620,13 @@ export function PublicUserProfilePage() {
                   border: '1px solid var(--eco-border)',
                 }}
               />
-              <span className="self-end text-[11px]">
-                {reportDescription.length}/{REPORT_LIMIT}
-              </span>
+              <div className="flex justify-between text-[11px]">
+                <span style={{ color: reportDescription.trim().length < REPORT_MIN ? 'var(--eco-text-tertiary)' : 'var(--eco-text-tertiary)' }}>
+                  {reportDescription.trim().length < REPORT_MIN &&
+                    tx(language, `Минимум ${REPORT_MIN} символов`, `Кемінде ${REPORT_MIN} таңба`, `Minimum ${REPORT_MIN} characters`)}
+                </span>
+                <span>{reportDescription.length}/{REPORT_LIMIT}</span>
+              </div>
             </label>
             {reportError && (
               <p className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>
@@ -623,7 +635,7 @@ export function PublicUserProfilePage() {
             )}
             <Button
               loading={reportSending}
-              disabled={reportSending || !reportDescription.trim()}
+              disabled={reportSending || reportDescription.trim().length < REPORT_MIN}
               onClick={() => void submitReport()}
             >
               {tx(language, 'Отправить жалобу', 'Шағым жіберу', 'Submit report')}

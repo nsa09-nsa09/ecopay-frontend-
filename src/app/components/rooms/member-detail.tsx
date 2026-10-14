@@ -541,11 +541,16 @@ export function MemberDetailPage() {
       setComplaintOpen(false);
       setComplaintDescription('');
     } catch (err) {
-      setComplaintError(
-        err instanceof ApiError
-          ? err.message
-          : tx(language, 'Не удалось отправить жалобу.', 'Шағымды жіберу мүмкін болмады.', 'Unable to submit the complaint.'),
-      );
+      if (err instanceof ApiError && err.errors) {
+        const firstField = Object.values(err.errors).find((v) => typeof v === 'string' && v);
+        setComplaintError(firstField ?? err.message);
+      } else {
+        setComplaintError(
+          err instanceof ApiError
+            ? err.message
+            : tx(language, 'Не удалось отправить жалобу.', 'Шағымды жіберу мүмкін болмады.', 'Unable to submit the complaint.'),
+        );
+      }
     } finally {
       setComplaintSubmitting(false);
     }
@@ -1343,9 +1348,13 @@ export function MemberDetailPage() {
               className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
               style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', color: 'var(--eco-text)' }}
             />
-            <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {tx(language, 'Минимум 10 символов', 'Кемінде 10 таңба', 'At least 10 characters')}
-            </span>
+            <div className="flex justify-between text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+              <span>
+                {complaintDescription.trim().length < 10 &&
+                  tx(language, 'Минимум 10 символов', 'Кемінде 10 таңба', 'At least 10 characters')}
+              </span>
+              <span>{complaintDescription.length}/5000</span>
+            </div>
           </div>
           {complaintError && <p className="text-[13px]" style={{ color: 'var(--eco-negative)' }}>{complaintError}</p>}
           <Button
