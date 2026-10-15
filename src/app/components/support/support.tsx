@@ -117,21 +117,27 @@ function TicketListView({
     () => Object.fromEntries(TOPIC_OPTIONS.map((o) => [o.value, o.label])),
     [TOPIC_OPTIONS],
   );
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [quickFilter, setQuickFilter] = useState<'ALL' | 'ACTIVE' | 'CLOSED'>('ALL');
   const [topicFilter, setTopicFilter] = useState('ALL');
   const [query, setQuery] = useState('');
+
+  const CLOSED_STATUSES = new Set(['CLOSED']);
 
   const filtered = useMemo(
     () =>
       tickets.filter((t) => {
-        if (statusFilter !== 'ALL' && t.status !== statusFilter) return false;
+        if (quickFilter === 'ACTIVE' && CLOSED_STATUSES.has(t.status)) return false;
+        if (quickFilter === 'CLOSED' && !CLOSED_STATUSES.has(t.status)) return false;
         if (topicFilter !== 'ALL' && t.topic !== topicFilter) return false;
         const searchText = `${t.subject} T-${t.id} ${t.roomTitle ?? ''}`.toLocaleLowerCase();
         if (query.trim() && !searchText.includes(query.trim().toLocaleLowerCase())) return false;
         return true;
       }),
-    [tickets, statusFilter, topicFilter, query],
+    [tickets, quickFilter, topicFilter, query],
   );
+
+  const activeCount = useMemo(() => tickets.filter((t) => !CLOSED_STATUSES.has(t.status)).length, [tickets]);
+  const closedCount = useMemo(() => tickets.filter((t) => CLOSED_STATUSES.has(t.status)).length, [tickets]);
 
   return (
     <>
@@ -163,57 +169,64 @@ function TicketListView({
       </div>
 
       {!loading && !error && tickets.length > 0 && (
-        <div className="mb-5 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_190px_220px] gap-3 items-end">
-          <label
-            className="flex flex-col gap-1 text-[13px]"
-            style={{ color: 'var(--eco-text-secondary)' }}
-          >
-            {tx(language, 'Поиск', 'Іздеу', 'Search')}
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={tx(
-                language,
-                'Поиск по заявкам...',
-                'Өтінімдерді іздеу...',
-                'Search tickets...',
-              )}
-              className="w-full min-w-0 rounded-lg px-3 py-2.5 text-[14px] outline-none"
-              style={{
-                background: 'var(--eco-surface-raised)',
-                border: '1px solid var(--eco-border)',
-                color: 'var(--eco-text)',
-              }}
+        <div className="mb-5 flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2">
+            {([
+              { key: 'ALL' as const, label: tx(language, 'Все', 'Барлығы', 'All'), count: tickets.length },
+              { key: 'ACTIVE' as const, label: tx(language, 'Активные', 'Белсенді', 'Active'), count: activeCount },
+              { key: 'CLOSED' as const, label: tx(language, 'Закрытые', 'Жабық', 'Closed'), count: closedCount },
+            ]).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setQuickFilter(tab.key)}
+                className="px-3 py-1.5 rounded-lg text-[13px] font-medium cursor-pointer"
+                style={{
+                  background: quickFilter === tab.key ? 'var(--eco-primary)' : 'var(--eco-surface-raised)',
+                  color: quickFilter === tab.key ? 'var(--eco-text-on-primary)' : 'var(--eco-text-secondary)',
+                  border: quickFilter === tab.key ? 'none' : '1px solid var(--eco-border)',
+                }}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_220px] gap-3 items-end">
+            <label
+              className="flex flex-col gap-1 text-[13px]"
+              style={{ color: 'var(--eco-text-secondary)' }}
+            >
+              {tx(language, 'Поиск', 'Іздеу', 'Search')}
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={tx(
+                  language,
+                  'Поиск по заявкам...',
+                  'Өтінімдерді іздеу...',
+                  'Search tickets...',
+                )}
+                className="w-full min-w-0 rounded-lg px-3 py-2.5 text-[14px] outline-none"
+                style={{
+                  background: 'var(--eco-surface-raised)',
+                  border: '1px solid var(--eco-border)',
+                  color: 'var(--eco-text)',
+                }}
+              />
+            </label>
+            <Select
+              label={tx(language, 'Категория', 'Санат', 'Category')}
+              options={[
+                {
+                  value: 'ALL',
+                  label: tx(language, 'Все темы', 'Барлық тақырыптар', 'All topics'),
+                },
+                ...TOPIC_OPTIONS,
+              ]}
+              value={topicFilter}
+              onChange={(e) => setTopicFilter(e.target.value)}
             />
-          </label>
-          <Select
-            label={tx(language, 'Статус', 'Мәртебе', 'Status')}
-            options={[
-              {
-                value: 'ALL',
-                label: tx(language, 'Все статусы', 'Барлық мәртебелер', 'All statuses'),
-              },
-              { value: 'OPEN', label: tx(language, 'Открыта', 'Ашық', 'Open') },
-              { value: 'IN_PROGRESS', label: tx(language, 'В работе', 'Жұмыста', 'In Progress') },
-              { value: 'WAITING_USER', label: localizeStatus(language, 'WAITING_USER') },
-              { value: 'ESCALATED', label: localizeStatus(language, 'ESCALATED') },
-              { value: 'CLOSED', label: tx(language, 'Закрыта', 'Жабық', 'Closed') },
-            ]}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          />
-          <Select
-            label={tx(language, 'Категория', 'Санат', 'Category')}
-            options={[
-              {
-                value: 'ALL',
-                label: tx(language, 'Все темы', 'Барлық тақырыптар', 'All topics'),
-              },
-              ...TOPIC_OPTIONS,
-            ]}
-            value={topicFilter}
-            onChange={(e) => setTopicFilter(e.target.value)}
-          />
+          </div>
         </div>
       )}
 
@@ -246,17 +259,24 @@ function TicketListView({
       ) : (
         <div className="flex flex-col gap-3">
           {filtered.map((ticket) => (
-            <Card key={ticket.id} className="hover:shadow-sm transition-shadow">
+            <button
+              key={ticket.id}
+              type="button"
+              onClick={() => onSelect(ticket.id)}
+              className="block w-full text-left cursor-pointer rounded-xl p-4 sm:p-5 hover:shadow-sm transition-shadow"
+              style={{
+                background: 'var(--eco-surface-raised)',
+                border: '1px solid var(--eco-border)',
+              }}
+            >
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
                 <div className="min-w-0 flex-1">
-                  <button
-                    type="button"
-                    onClick={() => onSelect(ticket.id)}
-                    className="block text-left text-[16px] sm:text-[17px] font-semibold break-words cursor-pointer"
+                  <div
+                    className="text-[16px] sm:text-[17px] font-semibold break-words"
                     style={{ color: 'var(--eco-text)' }}
                   >
                     {ticket.subject}
-                  </button>
+                  </div>
                   <div
                     className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]"
                     style={{ color: 'var(--eco-text-tertiary)' }}
@@ -270,14 +290,10 @@ function TicketListView({
                     {ticket.roomId && (
                       <>
                         <span aria-hidden="true">·</span>
-                        <Link
-                          to={`/room/${ticket.roomId}`}
-                          className="break-words underline"
-                          style={{ color: 'var(--eco-text-secondary)' }}
-                        >
+                        <span className="break-words" style={{ color: 'var(--eco-text-secondary)' }}>
                           {ticket.roomTitle ||
                             `${tx(language, 'Комната', 'Бөлме', 'Room')} #${ticket.roomId}`}
-                        </Link>
+                        </span>
                       </>
                     )}
                   </div>
@@ -291,7 +307,7 @@ function TicketListView({
                   </span>
                 </div>
               </div>
-            </Card>
+            </button>
           ))}
         </div>
       )}
