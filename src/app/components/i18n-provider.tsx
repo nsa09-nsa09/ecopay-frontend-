@@ -2112,6 +2112,7 @@ adminAboutApexLink: {
   logsIpLabel: { ru: 'IP', kz: 'IP', en: 'IP' },
   logsRoomOwnerLabel: { ru: 'Владелец', kz: 'Иесі', en: 'Owner' },
   usersSegmentUsers: { ru: 'Пользователи', kz: 'Пайдаланушылар', en: 'Users' },
+  usersSegmentSupport: { ru: 'Поддержка', kz: 'Қолдау', en: 'Support' },
   usersSegmentAdmins: { ru: 'Админы', kz: 'Әкімшілер', en: 'Admins' },
   usersLastLogin: { ru: 'Последний вход', kz: 'Соңғы кіру', en: 'Last login' },
 

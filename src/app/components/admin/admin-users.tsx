@@ -91,8 +91,9 @@ export function AdminUsersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
 
-  const [segment, setSegment] = useState<'USERS' | 'ADMINS' | 'DELETED'>('USERS');
+  const [segment, setSegment] = useState<'USERS' | 'SUPPORT' | 'ADMINS' | 'DELETED'>('USERS');
   const [usersCount, setUsersCount] = useState<number | null>(null);
+  const [supportCount, setSupportCount] = useState<number | null>(null);
   const [adminsCount, setAdminsCount] = useState<number | null>(null);
 
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
@@ -148,7 +149,7 @@ export function AdminUsersPage() {
           page,
           size: PAGE_SIZE,
           search: search || undefined,
-          role: segment === 'ADMINS' ? 'ADMIN' : 'USER',
+          role: segment === 'ADMINS' ? 'ADMIN' : segment === 'SUPPORT' ? 'SUPPORT' : 'USER',
         }, controller.signal),
       );
       if (controller.signal.aborted) return;
@@ -165,11 +166,13 @@ export function AdminUsersPage() {
   // via the create/role-change modals) via lightweight size=1 requests.
   const refreshCounts = useCallback(async () => {
     try {
-      const [usersPage, adminsPage] = await Promise.all([
+      const [usersPage, supportPage, adminsPage] = await Promise.all([
         authorizedRequest((token) => getAdminUsersRequest(token, { size: 1, role: 'USER' })),
+        authorizedRequest((token) => getAdminUsersRequest(token, { size: 1, role: 'SUPPORT' })),
         authorizedRequest((token) => getAdminUsersRequest(token, { size: 1, role: 'ADMIN' })),
       ]);
       setUsersCount(usersPage.totalItems);
+      setSupportCount(supportPage.totalItems);
       setAdminsCount(adminsPage.totalItems);
     } catch {
       // counters are non-critical; leave as null on failure
@@ -381,7 +384,7 @@ export function AdminUsersPage() {
           }
         />
 
-        <AdminTabs<'USERS' | 'ADMINS' | 'DELETED'>
+        <AdminTabs<'USERS' | 'SUPPORT' | 'ADMINS' | 'DELETED'>
           tabs={[
             {
               id: 'USERS',
@@ -390,6 +393,17 @@ export function AdminUsersPage() {
                   {t('usersSegmentUsers')}
                   <span className="tabular-nums" style={{ color: 'var(--eco-text-tertiary)' }}>
                     ({usersCount ?? '…'})
+                  </span>
+                </>
+              ),
+            },
+            {
+              id: 'SUPPORT',
+              label: (
+                <>
+                  {t('usersSegmentSupport')}
+                  <span className="tabular-nums" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    ({supportCount ?? '…'})
                   </span>
                 </>
               ),
@@ -495,7 +509,7 @@ export function AdminUsersPage() {
                         </span>
                         <span className="truncate">· {u.emailMasked ?? u.email}</span>
                       </div>
-                      {segment === 'ADMINS' && (
+                      {(segment === 'ADMINS' || segment === 'SUPPORT') && (
                         <div
                           className="mt-1 flex items-center gap-1 text-[12px]"
                           style={{ color: 'var(--eco-text-tertiary)' }}
