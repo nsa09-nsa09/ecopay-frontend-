@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
 import { Button, Modal, Select, Skeleton } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n } from '../i18n-provider';
@@ -11,7 +12,6 @@ import {
   getAdminDisputesRequest,
   getRefundsByDisputeRequest,
   markRefundFailRequest,
-  markRefundSuccessRequest,
   type DisputeResponse,
   type RefundTransactionResponse,
 } from '../../lib/api';
@@ -23,7 +23,6 @@ import {
   Scale,
   AlertTriangle,
   Banknote,
-  Check,
   X,
 } from 'lucide-react';
 import { FlashBanner, formatAdminApiError, useFlash, REASON_MIN_LENGTH } from './admin-action-ui';
@@ -53,10 +52,15 @@ export function AdminDisputesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedId, setSelectedId] = useState<number | null>(() => {
+    const sel = searchParams.get('selected');
+    return sel ? Number(sel) : null;
+  });
   const [decisionModalOpen, setDecisionModalOpen] = useState(false);
   const [decisionType, setDecisionType] = useState<string>('FAVOR_MEMBER');
   const [decisionComment, setDecisionComment] = useState('');
+  const [refundAmountStr, setRefundAmountStr] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [assignSubmitting, setAssignSubmitting] = useState(false);
@@ -81,6 +85,16 @@ export function AdminDisputesPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const selectDispute = useCallback((id: number | null) => {
+    setSelectedId(id);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id != null) next.set('selected', String(id));
+      else next.delete('selected');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const selected = useMemo(
     () => items.find((d) => d.id === selectedId) ?? null,
@@ -113,6 +127,9 @@ export function AdminDisputesPage() {
     setSubmitting(true);
     setActionError(null);
     try {
+      const parsedRefund = decisionType === 'FAVOR_MEMBER' && refundAmountStr.trim()
+        ? Number(refundAmountStr.trim())
+        : undefined;
       const updated = await authorizedRequest((token) =>
         decideDisputeRequest(
           selected.id,
@@ -120,6 +137,7 @@ export function AdminDisputesPage() {
             status: decisionType === 'FAVOR_MEMBER' ? 'RESOLVED' : 'REJECTED',
             decision: decisionType,
             comment: decisionComment.trim(),
+            refundAmount: parsedRefund && parsedRefund > 0 ? parsedRefund : undefined,
           },
           token,
         ),
@@ -128,6 +146,7 @@ export function AdminDisputesPage() {
       showFlash('success', t('actionCompletedAndLogged'));
       setDecisionModalOpen(false);
       setDecisionComment('');
+      setRefundAmountStr('');
     } catch (err) {
       setActionError(formatAdminApiError(err, t));
     } finally {
@@ -179,7 +198,7 @@ export function AdminDisputesPage() {
                 <button
                   key={d.id}
                   type="button"
-                  onClick={() => setSelectedId(d.id)}
+                  onClick={() => selectDispute(d.id)}
                   aria-pressed={active}
                   className={`eco-admin-record is-clickable text-left px-4 py-3 rounded-xl ${active ? 'is-active' : ''}`}
                   style={{ minHeight: 76 }}
@@ -274,15 +293,84 @@ export function AdminDisputesPage() {
                   <div className="flex flex-col gap-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+                        <AdminField label={t('rooms')}>
+                          {selected.roomId ? (
+                            <Link to={`/admin/rooms?selected=${selected.roomId}`} className="text-[13px]" style={{ color: 'var(--eco-primary)' }}>
+                              {selected.roomTitle ?? `#${selected.roomId}`}
+                            </Link>
+                          ) : '—'}
+                        </AdminField>
+                        {selected.serviceName && (
+                          <div className="text-[12px] mt-0.5" style={{ color: 'var(--eco-text-tertiary)' }}>
+                            {selected.serviceName}
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
                         <AdminField label={t('claimant')}>
-                          #{selected.openedByUserId ?? '—'}
+                          {selected.openedBy ? (
+                            <Link to={`/admin/users?selected=${selected.openedBy.id}`} className="text-[13px]" style={{ color: 'var(--eco-primary)' }}>
+                              {selected.openedBy.displayName}
+                            </Link>
+                          ) : selected.openedByUserId ? `#${selected.openedByUserId}` : '—'}
+                        </AdminField>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+                        <AdminField label={t('adminOwner')}>
+                          {selected.owner ? (
+                            <Link to={`/admin/users?selected=${selected.owner.id}`} className="text-[13px]" style={{ color: 'var(--eco-primary)' }}>
+                              {selected.owner.displayName}
+                            </Link>
+                          ) : '—'}
                         </AdminField>
                       </div>
                       <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
-                        <AdminField label={t('assignToMe')}>
-                          {selected.assignedAdminId ? `#${selected.assignedAdminId}` : '—'}
+                        <AdminField label={t('adminMember')}>
+                          {selected.member ? (
+                            <Link to={`/admin/users?selected=${selected.member.userId}`} className="text-[13px]" style={{ color: 'var(--eco-primary)' }}>
+                              {selected.member.displayName}
+                            </Link>
+                          ) : '—'}
                         </AdminField>
                       </div>
+                    </div>
+
+                    {(selected.paidAmountKzt != null || selected.refundedAmountKzt != null || selected.refundableAmountKzt != null) && (
+                      <div className="grid grid-cols-3 gap-3 text-center">
+                        <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+                          <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>{t('disputePaid')}</div>
+                          <div className="text-[14px] font-semibold tabular-nums" style={{ color: 'var(--eco-text)' }}>₸{selected.paidAmountKzt ?? 0}</div>
+                        </div>
+                        <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+                          <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>{t('disputeRefunded')}</div>
+                          <div className="text-[14px] font-semibold tabular-nums" style={{ color: 'var(--eco-text)' }}>₸{selected.refundedAmountKzt ?? 0}</div>
+                        </div>
+                        <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+                          <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>{t('disputeRefundable')}</div>
+                          <div className="text-[14px] font-semibold tabular-nums" style={{ color: 'var(--eco-text)' }}>₸{selected.refundableAmountKzt ?? 0}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-2 text-[12px]">
+                      {selected.ticketId && (
+                        <Link to={`/admin/tickets?selected=${selected.ticketId}`} style={{ color: 'var(--eco-primary)' }}>
+                          {t('fromTicket', { ticket: selected.ticketId })}
+                        </Link>
+                      )}
+                      {selected.roomId && (
+                        <Link to={`/admin/logs?tab=room-events&roomId=${selected.roomId}`} style={{ color: 'var(--eco-primary)' }}>
+                          {t('adminRoomEvents')}
+                        </Link>
+                      )}
+                    </div>
+
+                    <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+                      <AdminField label={t('adminAssignedTo')}>
+                        {selected.assignedAdminId ? `#${selected.assignedAdminId}` : '—'}
+                      </AdminField>
                     </div>
 
                     {selected.description && (
@@ -365,6 +453,44 @@ export function AdminDisputesPage() {
                 {t('reasonMinLength', { n: REASON_MIN_LENGTH })}
               </span>
             </div>
+            {decisionType === 'FAVOR_MEMBER' && (
+              <>
+                <div className="p-3 rounded-lg text-[12px]" style={{ background: 'var(--eco-warning-100)', color: 'var(--eco-text)' }}>
+                  {t('disputeHintFavorMember')}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="admin-dispute-refund-amount"
+                    className="text-[13px]"
+                    style={{ color: 'var(--eco-text)' }}
+                  >
+                    {t('disputeRefundAmount')}
+                  </label>
+                  <input
+                    id="admin-dispute-refund-amount"
+                    type="text"
+                    inputMode="decimal"
+                    value={refundAmountStr}
+                    onChange={(e) => setRefundAmountStr(e.target.value.replace(/[^\d.]/g, ''))}
+                    placeholder={t('disputeRefundAmountPlaceholder', { max: selected?.refundableAmountKzt ?? 0 })}
+                    className="eco-input px-3 py-2 rounded-lg outline-none text-[13px]"
+                  />
+                  <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {t('disputeRefundAmountHint', { max: selected?.refundableAmountKzt ?? 0 })}
+                  </span>
+                </div>
+              </>
+            )}
+            {decisionType === 'FAVOR_OWNER' && (
+              <div className="p-3 rounded-lg text-[12px]" style={{ background: 'var(--eco-surface)', color: 'var(--eco-text-secondary)' }}>
+                {t('disputeHintFavorOwner')}
+              </div>
+            )}
+            {decisionType === 'REJECTED' && (
+              <div className="p-3 rounded-lg text-[12px]" style={{ background: 'var(--eco-surface)', color: 'var(--eco-text-secondary)' }}>
+                {t('disputeHintRejected')}
+              </div>
+            )}
             {actionError && (
               <div className="text-[13px]" role="alert" style={{ color: 'var(--eco-negative)' }}>
                 {actionError}
@@ -594,14 +720,14 @@ function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
   // outcome with the provider. Cancelling never submits.
   const [resolution, setResolution] = useState<{
     refund: RefundTransactionResponse;
-    outcome: 'SUCCESS' | 'FAILED';
+    outcome: 'FAILED';
   } | null>(null);
   const [providerRefundId, setProviderRefundId] = useState('');
   const [verified, setVerified] = useState(false);
   const [resolutionError, setResolutionError] = useState<string | null>(null);
 
-  const openResolution = (refund: RefundTransactionResponse, outcome: 'SUCCESS' | 'FAILED') => {
-    setResolution({ refund, outcome });
+  const openResolution = (refund: RefundTransactionResponse) => {
+    setResolution({ refund, outcome: 'FAILED' });
     setProviderRefundId('');
     setVerified(false);
     setResolutionError(null);
@@ -609,21 +735,18 @@ function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
 
   const submitResolution = async () => {
     if (!resolution || !verified || busyId != null) return;
-    const { refund, outcome } = resolution;
+    const { refund } = resolution;
     setBusyId(refund.id);
     setResolutionError(null);
     try {
       const payload = { providerRefundId: providerRefundId.trim() || undefined };
       const updated = await authorizedRequest((token) =>
-        outcome === 'SUCCESS'
-          ? markRefundSuccessRequest(refund.id, payload, token)
-          : markRefundFailRequest(refund.id, payload, token),
+        markRefundFailRequest(refund.id, payload, token),
       );
       apply(updated);
       setResolution(null);
     } catch (err) {
       setResolutionError(formatAdminApiError(err, t));
-      // The outcome may have been recorded before the error surfaced; re-read.
       void load();
     } finally {
       setBusyId(null);
@@ -696,18 +819,10 @@ function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
             {r.status === 'PENDING' && (
               <div className="flex flex-wrap gap-2">
                 <Button
-                  variant="primary"
-                  size="sm"
-                  disabled={busyId != null}
-                  onClick={() => openResolution(r, 'SUCCESS')}
-                >
-                  <Check size={13} /> {t('adminMarkSuccess')}
-                </Button>
-                <Button
                   variant="destructive"
                   size="sm"
                   disabled={busyId != null}
-                  onClick={() => openResolution(r, 'FAILED')}
+                  onClick={() => openResolution(r)}
                 >
                   <X size={13} /> {t('adminMarkFailed')}
                 </Button>
@@ -722,11 +837,7 @@ function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
         onClose={() => {
           if (busyId == null) setResolution(null);
         }}
-        title={
-          resolution?.outcome === 'SUCCESS'
-            ? tx('Подтвердить успешный возврат', 'Сәтті қайтаруды растау', 'Confirm refund succeeded')
-            : tx('Подтвердить неудачный возврат', 'Сәтсіз қайтаруды растау', 'Confirm refund failed')
-        }
+        title={tx('Подтвердить неудачный возврат', 'Сәтсіз қайтаруды растау', 'Confirm refund failed')}
       >
         {resolution && (
           <div className="flex flex-col gap-4">
@@ -741,17 +852,11 @@ function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
                 : ''}
             </div>
             <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-              {resolution.outcome === 'SUCCESS'
-                ? tx(
-                    'Возврат будет записан как выполненный. Используйте это только если провайдер подтвердил возврат в кабинете мерчанта.',
-                    'Қайтару орындалды деп жазылады. Мұны провайдер мерчант кабинетінде растаған жағдайда ғана қолданыңыз.',
-                    'The refund will be recorded as completed. Use this only if the provider confirmed the refund in the merchant cabinet.',
-                  )
-                : tx(
-                    'Возврат будет записан как неудачный. Участнику потребуется другой способ возврата.',
-                    'Қайтару сәтсіз деп жазылады. Қатысушыға басқа қайтару тәсілі қажет болады.',
-                    'The refund will be recorded as failed. The member will need another refund path.',
-                  )}
+              {tx(
+                'Возврат будет записан как неудачный. Участнику потребуется другой способ возврата.',
+                'Қайтару сәтсіз деп жазылады. Қатысушыға басқа қайтару тәсілі қажет болады.',
+                'The refund will be recorded as failed. The member will need another refund path.',
+              )}
             </div>
             <label
               className="flex flex-col gap-1.5 text-[13px]"
@@ -808,15 +913,13 @@ function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
                 {tx('Отмена', 'Болдырмау', 'Cancel')}
               </Button>
               <Button
-                variant={resolution.outcome === 'SUCCESS' ? 'primary' : 'destructive'}
+                variant="destructive"
                 size="sm"
                 disabled={!verified}
                 loading={busyId === resolution.refund.id}
                 onClick={() => void submitResolution()}
               >
-                {resolution.outcome === 'SUCCESS'
-                  ? tx('Записать как успешный', 'Сәтті деп жазу', 'Record as succeeded')
-                  : tx('Записать как неудачный', 'Сәтсіз деп жазу', 'Record as failed')}
+                {tx('Записать как неудачный', 'Сәтсіз деп жазу', 'Record as failed')}
               </Button>
             </div>
           </div>

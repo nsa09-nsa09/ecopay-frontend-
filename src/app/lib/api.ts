@@ -1891,6 +1891,7 @@ export interface SupportTicketResponse {
   status: string;
   priority: string;
   escalatedToDispute: boolean;
+  disputeId?: number | null;
   assignedAdminId: number | null;
   assignedAdminDisplayName: string | null;
   createdAt: string;
@@ -1967,9 +1968,23 @@ export function postStaffSupportTicketMessageRequest(
 
 // ---- Disputes ----
 
+export interface DisputePartyRef {
+  id: number;
+  displayName: string;
+  publicId: string | null;
+}
+export interface DisputeMemberRef {
+  id: number;
+  userId: number;
+  displayName: string;
+  publicId: string | null;
+  status: string | null;
+}
 export interface DisputeResponse {
   id: number;
   roomId: number | null;
+  roomTitle?: string | null;
+  serviceName?: string | null;
   roomMemberId: number | null;
   ticketId: number | null;
   openedByUserId: number | null;
@@ -1982,12 +1997,20 @@ export interface DisputeResponse {
   resolvedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  owner?: DisputePartyRef | null;
+  member?: DisputeMemberRef | null;
+  openedBy?: DisputePartyRef | null;
+  paidAmountKzt?: number | string | null;
+  refundedAmountKzt?: number | string | null;
+  refundableAmountKzt?: number | string | null;
+  refundTriggered?: boolean | null;
 }
 
 export interface DisputeDecisionRequest {
   status: 'RESOLVED' | 'REJECTED';
   decision: string;
   comment: string;
+  refundAmount?: number | null;
 }
 
 export function getAdminDisputesRequest(
@@ -2056,18 +2079,6 @@ export function getRefundsByDisputeRequest(disputeId: number, accessToken: strin
   return requestJson<RefundTransactionResponse[]>(
     `/admin/refunds/by-dispute/${disputeId}`,
     {},
-    accessToken,
-  );
-}
-
-export function markRefundSuccessRequest(
-  refundId: number,
-  payload: { providerRefundId?: string },
-  accessToken: string,
-) {
-  return requestJson<RefundTransactionResponse>(
-    `/admin/refunds/${refundId}/success`,
-    { method: 'PATCH', body: JSON.stringify(payload) },
     accessToken,
   );
 }

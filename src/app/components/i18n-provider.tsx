@@ -2211,6 +2211,8 @@ adminAboutApexLink: {
     en: 'This will create a dispute and notify the user and admin team.',
   },
   escalate: { ru: 'Эскалировать', kz: 'Күшейту', en: 'Escalate' },
+  escalateNoRoom: { ru: 'Спор можно открыть только по заявке, привязанной к комнате', kz: 'Дауды тек бөлмеге байланысты өтінім бойынша ашуға болады', en: 'A dispute can only be opened for a ticket linked to a room' },
+  disputeN: { ru: 'Спор #{{id}}', kz: 'Дау #{{id}}', en: 'Dispute #{{id}}' },
 
   // ===== Admin: disputes & refunds =====
   selectDispute: { ru: 'Выберите спор', kz: 'Дауды таңдаңыз', en: 'Select a dispute' },
@@ -2221,6 +2223,18 @@ adminAboutApexLink: {
   },
   createdLabel: { ru: 'Создан', kz: 'Жасалған', en: 'Created' },
   summaryLabel: { ru: 'Резюме', kz: 'Түйіндеме', en: 'Summary' },
+  adminOwner: { ru: 'Владелец', kz: 'Иесі', en: 'Owner' },
+  adminMember: { ru: 'Участник', kz: 'Қатысушы', en: 'Member' },
+  disputePaid: { ru: 'Оплачено', kz: 'Төленді', en: 'Paid' },
+  disputeRefunded: { ru: 'Возвращено', kz: 'Қайтарылды', en: 'Refunded' },
+  disputeRefundable: { ru: 'Доступно к возврату', kz: 'Қайтаруға қолжетімді', en: 'Refundable' },
+  adminRoomEvents: { ru: 'События комнаты', kz: 'Бөлме оқиғалары', en: 'Room events' },
+  disputeRefundAmount: { ru: 'Сумма возврата, ₸ (пусто = полный остаток)', kz: 'Қайтару сомасы, ₸ (бос = толық қалдық)', en: 'Refund amount, ₸ (empty = full remaining)' },
+  disputeHintFavorMember: { ru: 'Участнику будет оформлен возврат', kz: 'Қатысушыға қайтару жасалады', en: 'A refund will be issued to the member' },
+  disputeHintFavorOwner: { ru: 'Возврат не производится', kz: 'Қайтару жасалмайды', en: 'No refund will be issued' },
+  disputeHintRejected: { ru: 'Спор будет отклонён без возврата', kz: 'Дау қайтарусыз қабылданбайды', en: 'Dispute will be rejected without refund' },
+  disputeRefundAmountPlaceholder: { ru: 'Макс. ₸{{max}}', kz: 'Макс. ₸{{max}}', en: 'Max ₸{{max}}' },
+  disputeRefundAmountHint: { ru: 'Пусто = полный остаток (₸{{max}})', kz: 'Бос = толық қалдық (₸{{max}})', en: 'Empty = full remaining (₸{{max}})' },
   retry: { ru: 'Повторить', kz: 'Қайталау', en: 'Retry' },
   intentIdLabel: { ru: 'ID намерения', kz: 'Ниет ID', en: 'Intent ID' },
 

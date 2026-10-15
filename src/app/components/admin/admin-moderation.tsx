@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { Button, Badge } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n, type Language } from '../i18n-provider';
@@ -108,6 +109,11 @@ function entityLabelKey(type: string): string {
 export function AdminModerationPage() {
   const { t, language } = useI18n();
   const { authorizedRequest, user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const highlightedId = useMemo(() => {
+    const sel = searchParams.get('selected');
+    return sel ? Number(sel) : null;
+  }, [searchParams]);
   const [tab, setTab] = useState<'QUEUE' | 'REPORTS'>('QUEUE');
 
   const [items, setItems] = useState<ModerationQueueItemDto[]>([]);
@@ -429,6 +435,7 @@ export function AdminModerationPage() {
           columns={columns}
           rows={activeQueue}
           rowKey={(item) => item.id}
+          isRowActive={highlightedId != null ? (item) => item.id === highlightedId : undefined}
           loading={loading}
           error={error}
           onRetry={() => void load()}

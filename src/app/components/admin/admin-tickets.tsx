@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { Button, Select, Skeleton } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n } from '../i18n-provider';
@@ -51,7 +51,11 @@ export function AdminTicketsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedId, setSelectedId] = useState<number | null>(() => {
+    const sel = searchParams.get('selected');
+    return sel ? Number(sel) : null;
+  });
   const [detail, setDetail] = useState<SupportTicketResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -67,6 +71,15 @@ export function AdminTicketsPage() {
   const [replySending, setReplySending] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
+  const selectTicket = useCallback((id: number | null) => {
+    setSelectedId(id);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id != null) next.set('selected', String(id));
+      else next.delete('selected');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -205,16 +218,19 @@ export function AdminTicketsPage() {
     }
   };
 
+  const [escalationResult, setEscalationResult] = useState<number | null>(null);
   const handleEscalate = async () => {
     if (!detail) return;
     setEscalateSubmitting(true);
     setActionError(null);
+    setEscalationResult(null);
     try {
       const updated = await authorizedRequest((token) =>
         escalateStaffTicketRequest(detail.id, token),
       );
       applyTicketUpdate(updated);
       setEscalateModalOpen(false);
+      if (updated.disputeId) setEscalationResult(updated.disputeId);
     } catch (err) {
       setActionError(formatAdminApiError(err, t));
     } finally {
@@ -287,7 +303,7 @@ export function AdminTicketsPage() {
                 <button
                   key={tk.id}
                   type="button"
-                  onClick={() => setSelectedId(tk.id)}
+                  onClick={() => selectTicket(tk.id)}
                   aria-pressed={active}
                   className={`eco-admin-record is-clickable text-left px-4 py-3 rounded-xl ${active ? 'is-active' : ''}`}
                   style={{ minHeight: 84 }}
@@ -422,25 +438,42 @@ export function AdminTicketsPage() {
                       </Button>
 
                       {!detail.escalatedToDispute && detail.status !== 'CLOSED' && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setEscalateModalOpen(true)}
-                        >
-                          <ArrowUpRight size={13} /> {t('escalateToDispute')}
-                        </Button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={!detail.roomId}
+                            onClick={() => setEscalateModalOpen(true)}
+                          >
+                            <ArrowUpRight size={13} /> {t('escalateToDispute')}
+                          </Button>
+                          {!detail.roomId && (
+                            <span className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                              {t('escalateNoRoom')}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
 
                     {detail.escalatedToDispute && (
                       <div
-                        className="flex items-center gap-2 p-3 rounded-lg text-[13px]"
+                        className="flex items-center gap-2 p-3 rounded-lg text-[13px] flex-wrap"
                         style={{
                           background: 'var(--eco-danger-100)',
                           color: 'var(--eco-danger-500)',
                         }}
                       >
                         <AlertTriangle size={14} /> {t('escalatedToDisputeReview')}
+                        {(detail.disputeId || escalationResult) && (
+                          <Link
+                            to={`/admin/disputes?selected=${detail.disputeId ?? escalationResult}`}
+                            className="underline font-medium"
+                            style={{ color: 'var(--eco-primary)' }}
+                          >
+                            {t('disputeN', { id: String(detail.disputeId ?? escalationResult) })}
+                          </Link>
+                        )}
                       </div>
                     )}
                   </div>
