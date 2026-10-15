@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { Button, Badge } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n, type Language } from '../i18n-provider';
@@ -276,9 +276,14 @@ export function AdminModerationPage() {
             {t(entityLabelKey(item.entityType))} #{item.entityId}
           </div>
           {(item.roomId || item.roomMemberId) && (
-            <div className="text-[12px] break-all" style={{ color: 'var(--eco-text-tertiary)' }}>
-              {item.roomId ? `R-${item.roomId}` : ''}
-              {item.roomMemberId ? ` · M-${item.roomMemberId}` : ''}
+            <div className="text-[12px] break-all flex flex-wrap items-center gap-x-1" style={{ color: 'var(--eco-text-tertiary)' }}>
+              {item.roomId ? (
+                <Link to={`/admin/rooms?selected=${item.roomId}`} onClick={(e) => e.stopPropagation()} style={{ color: 'var(--eco-primary)' }}>
+                  R-{item.roomId}
+                </Link>
+              ) : null}
+              {item.roomId && item.roomMemberId ? <span>·</span> : null}
+              {item.roomMemberId ? <span>M-{item.roomMemberId}</span> : null}
             </div>
           )}
         </div>
@@ -463,7 +468,14 @@ export function AdminModerationPage() {
                 <div style={{ color: 'var(--eco-text-tertiary)' }}>{t('colEntity')}</div>
                 <div style={{ color: 'var(--eco-text)' }}>
                   {t(entityLabelKey(action.item.entityType))} #{action.item.entityId}
-                  {action.item.roomId ? ` · R-${action.item.roomId}` : ''}
+                  {action.item.roomId ? (
+                    <>
+                      {' · '}
+                      <Link to={`/admin/rooms?selected=${action.item.roomId}`} style={{ color: 'var(--eco-primary)' }}>
+                        R-{action.item.roomId}
+                      </Link>
+                    </>
+                  ) : ''}
                 </div>
               </>
             ) : null
