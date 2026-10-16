@@ -7,7 +7,7 @@ import { useAuth } from './auth-provider';
 import { consumePersistedBanEvent } from './auth-provider';
 import { VerifyCodeStep } from './verify-code-step';
 import { Ban } from 'lucide-react';
-import { ApiError } from '../../lib/api';
+import { ApiError, submitBanAppealRequest } from '../../lib/api';
 import { serverEmailErrorCode } from '../../lib/email-validation';
 import { localizeFieldErrors } from '../../lib/field-errors';
 import { useEmailField } from './use-email-field';
@@ -76,6 +76,38 @@ export function LoginPage() {
   // When set, the account exists but its email isn't verified — show the code
   // step (which resends a fresh code and logs the user in on success).
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+
+  const [appealOpen, setAppealOpen] = useState(false);
+  const [appealMessage, setAppealMessage] = useState('');
+  const [appealSubmitting, setAppealSubmitting] = useState(false);
+  const [appealError, setAppealError] = useState<string | null>(null);
+  const [appealSent, setAppealSent] = useState(false);
+
+  const submitAppeal = async () => {
+    if (appealSubmitting || appealMessage.trim().length < 20) return;
+    setAppealSubmitting(true);
+    setAppealError(null);
+    try {
+      await submitBanAppealRequest(emailField.value, password, appealMessage.trim());
+      setAppealSent(true);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        const code = err.serverCode ?? '';
+        if (code === 'APPEAL_ALREADY_OPEN') {
+          setAppealError(tx(language, 'Апелляция уже отправлена. Ответ придёт на почту.', 'Апелляция жіберілген. Жауап поштаға келеді.', 'An appeal is already open. The response will be sent to your email.'));
+        } else if (code === 'INVALID_CREDENTIALS') {
+          setAppealError(tx(language, 'Неверный email или пароль.', 'Қате email немесе құпия сөз.', 'Invalid email or password.'));
+        } else {
+          setAppealError(err.message);
+        }
+      } else {
+        setAppealError(tx(language, 'Не удалось отправить апелляцию.', 'Апелляцияны жіберу мүмкін болмады.', 'Unable to submit appeal.'));
+      }
+    } finally {
+      setAppealSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     // Order of precedence: query params (just-arrived realtime redirect),
     // then sessionStorage (deep-link survival), then nothing.
@@ -194,6 +226,48 @@ export function LoginPage() {
               <div className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
                 {t('bannedAtLabel')}: {formatDateTime(banInfo.bannedAt, language)}
               </div>
+            )}
+            {appealSent ? (
+              <div className="p-3 rounded-lg text-[13px]" style={{ background: 'var(--eco-success-50)', color: 'var(--eco-success-700)' }}>
+                {tx(language, 'Апелляция отправлена. Ответ придёт на вашу почту.', 'Апелляция жіберілді. Жауап поштаңызға келеді.', 'Appeal submitted. The response will be sent to your email.')}
+              </div>
+            ) : appealOpen ? (
+              <div className="flex flex-col gap-3 pt-2 border-t" style={{ borderColor: 'var(--eco-border)' }}>
+                <label className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+                  {tx(language, 'Обжаловать блокировку', 'Бұғаттауға шағым жасау', 'Appeal ban')}
+                </label>
+                <textarea
+                  className="w-full rounded-lg px-3 py-2 text-[13px] resize-y min-h-[80px]"
+                  style={{
+                    background: 'var(--eco-surface)',
+                    border: '1px solid var(--eco-border)',
+                    color: 'var(--eco-text)',
+                  }}
+                  placeholder={tx(language, 'Опишите причину обжалования (мин. 20 символов)', 'Шағым себебін сипаттаңыз (мин. 20 таңба)', 'Describe the reason for your appeal (min. 20 characters)')}
+                  value={appealMessage}
+                  onChange={(e) => setAppealMessage(e.target.value.slice(0, 2000))}
+                  maxLength={2000}
+                />
+                <span className="text-[11px] text-right" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  {appealMessage.length}/2000
+                </span>
+                {appealError && (
+                  <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>{appealError}</p>
+                )}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  loading={appealSubmitting}
+                  disabled={appealMessage.trim().length < 20}
+                  onClick={submitAppeal}
+                >
+                  {tx(language, 'Отправить апелляцию', 'Апелляция жіберу', 'Submit appeal')}
+                </Button>
+              </div>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={() => setAppealOpen(true)}>
+                {tx(language, 'Обжаловать блокировку', 'Бұғаттауға шағым жасау', 'Appeal ban')}
+              </Button>
             )}
           </Card>
         )}

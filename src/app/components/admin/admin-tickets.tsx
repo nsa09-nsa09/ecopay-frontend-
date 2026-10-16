@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Button, Select, Skeleton } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
-import { useI18n } from '../i18n-provider';
+import { useI18n, type Language } from '../i18n-provider';
+
+const txl = (l: Language, ru: string, kz: string, en: string) =>
+  l === 'ru' ? ru : l === 'kz' ? kz : en;
 import { formatDateTime } from '../../lib/datetime';
 import { useAuth } from '../auth/auth-provider';
 import { parseMessageBody, startRealtime } from '../../lib/realtime';
@@ -317,13 +320,16 @@ export function AdminTicketsPage() {
                       {tk.escalatedToDispute && (
                         <AdminStatusBadge tone="danger">{t('escalatedBadge')}</AdminStatusBadge>
                       )}
+                      {tk.topic === 'BAN_APPEAL' && (
+                        <AdminStatusBadge tone="warning">{txl(language, 'Апелляция', 'Апелляция', 'Appeal')}</AdminStatusBadge>
+                      )}
                     </div>
                   </div>
                   <div
                     className="text-[13px] font-semibold break-words"
                     style={{ color: 'var(--eco-text)' }}
                   >
-                    {tk.subject}
+                    {tk.topic === 'BAN_APPEAL' ? txl(language, 'Апелляция на блокировку', 'Бұғаттауға шағым', 'Ban appeal') : tk.subject}
                   </div>
                   <div className="text-[12px] mt-1" style={{ color: 'var(--eco-text-secondary)' }}>
                     #{tk.userId} ·{' '}
@@ -375,7 +381,7 @@ export function AdminTicketsPage() {
                       )}
                       <span className="block">
                         T-{detail.id} · #{detail.userId}
-                        {detail.topic ? ` · ${detail.topic}` : ''}
+                        {detail.topic === 'BAN_APPEAL' ? ` · ${txl(language, 'Апелляция на блокировку', 'Бұғаттауға шағым', 'Ban appeal')}` : detail.topic ? ` · ${detail.topic}` : ''}
                       </span>
                       {detail.roomId && (
                         <span className="block mt-0.5">

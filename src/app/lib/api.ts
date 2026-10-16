@@ -674,6 +674,16 @@ export function loginRequest(email: string, password: string) {
   });
 }
 
+export function submitBanAppealRequest(email: string, password: string, message: string) {
+  return requestJson<{ success: boolean }>(
+    '/auth/ban-appeal',
+    {
+      method: 'POST',
+      body: JSON.stringify({ email: email.trim(), password, message }),
+    },
+  );
+}
+
 export function registerRequest(
   displayName: string,
   email: string,
