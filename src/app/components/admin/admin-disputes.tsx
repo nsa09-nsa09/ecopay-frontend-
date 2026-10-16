@@ -240,7 +240,7 @@ export function AdminDisputesPage() {
               <div className="flex flex-col gap-4">
                 <AdminCard
                   title={
-                    <span className="break-words">
+                    <span className="user-text">
                       D-{selected.id}
                       {selected.roomId ? ` · ${t('rooms')} #${selected.roomId}` : ''}
                     </span>
@@ -375,7 +375,7 @@ export function AdminDisputesPage() {
 
                     {selected.description && (
                       <AdminField label={t('summaryLabel')}>
-                        <span style={{ color: 'var(--eco-text-secondary)' }}>
+                        <span className="user-text" style={{ color: 'var(--eco-text-secondary)' }}>
                           {selected.description}
                         </span>
                       </AdminField>
@@ -394,7 +394,7 @@ export function AdminDisputesPage() {
                         <AdminField label={t('decision')}>{selected.decision}</AdminField>
                         {selected.decisionComment && (
                           <div
-                            className="text-[12px] mt-1"
+                            className="user-text text-[12px] mt-1"
                             style={{ color: 'var(--eco-text-secondary)' }}
                           >
                             {selected.decisionComment}

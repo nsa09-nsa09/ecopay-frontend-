@@ -326,7 +326,7 @@ export function AdminTicketsPage() {
                     </div>
                   </div>
                   <div
-                    className="text-[13px] font-semibold break-words"
+                    className="user-text text-[13px] font-semibold"
                     style={{ color: 'var(--eco-text)' }}
                   >
                     {tk.topic === 'BAN_APPEAL' ? txl(language, 'Апелляция на блокировку', 'Бұғаттауға шағым', 'Ban appeal') : tk.subject}
@@ -371,7 +371,7 @@ export function AdminTicketsPage() {
             ) : detail ? (
               <div className="flex flex-col gap-4">
                 <AdminCard
-                  title={<span className="break-words">{detail.subject}</span>}
+                  title={<span className="user-text">{detail.subject}</span>}
                   description={
                     <>
                       {assignedAdminLabel && (
@@ -537,11 +537,10 @@ export function AdminTicketsPage() {
                                 </span>
                               </div>
                               <div
-                                className="px-3 py-2 rounded-lg text-[13px] max-w-[80%] break-words"
+                                className="user-text px-3 py-2 rounded-lg text-[13px] max-w-[80%]"
                                 style={{
                                   background: isStaff ? 'var(--eco-brand-50)' : 'var(--eco-surface)',
                                   color: 'var(--eco-text)',
-                                  whiteSpace: 'pre-wrap',
                                 }}
                               >
                                 {m.message}

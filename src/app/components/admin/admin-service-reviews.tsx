@@ -188,7 +188,7 @@ export function AdminServiceReviewsPage() {
                         <StarRating rating={review.rating} size={13} />
                       </div>
                       <p
-                        className="text-[12px] line-clamp-3 m-0 flex-1 break-words"
+                        className="user-text text-[12px] line-clamp-3 m-0 flex-1"
                         style={{ color: 'var(--eco-text-secondary)' }}
                       >
                         {review.text}
@@ -320,7 +320,7 @@ export function AdminServiceReviewsPage() {
                     </div>
                   </div>
                   <p
-                    className="text-[13px] whitespace-pre-wrap break-words"
+                    className="user-text text-[13px]"
                     style={{ color: 'var(--eco-text)' }}
                   >
                     {review.text}

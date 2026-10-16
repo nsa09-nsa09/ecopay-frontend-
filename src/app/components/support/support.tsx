@@ -272,7 +272,7 @@ function TicketListView({
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
                 <div className="min-w-0 flex-1">
                   <div
-                    className="text-[16px] sm:text-[17px] font-semibold break-words"
+                    className="user-text text-[16px] sm:text-[17px] font-semibold"
                     style={{ color: 'var(--eco-text)' }}
                   >
                     {ticket.subject}
@@ -290,7 +290,7 @@ function TicketListView({
                     {ticket.roomId && (
                       <>
                         <span aria-hidden="true">·</span>
-                        <span className="break-words" style={{ color: 'var(--eco-text-secondary)' }}>
+                        <span className="user-text" style={{ color: 'var(--eco-text-secondary)' }}>
                           {ticket.roomTitle ||
                             `${tx(language, 'Комната', 'Бөлме', 'Room')} #${ticket.roomId}`}
                         </span>
@@ -852,7 +852,7 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
                   <span>{formatDateTime(m.createdAt, language)}</span>
                 </div>
                 <div
-                  className="max-w-sm sm:max-w-md px-4 py-3 rounded-xl text-[14px]"
+                  className="user-text max-w-sm sm:max-w-md px-4 py-3 rounded-xl text-[14px]"
                   style={{
                     background: isMine
                       ? 'var(--eco-brand-50)'
@@ -862,7 +862,6 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
                     color: 'var(--eco-text)',
                     borderBottomRightRadius: isMine ? 4 : undefined,
                     borderBottomLeftRadius: !isMine ? 4 : undefined,
-                    whiteSpace: 'pre-wrap',
                   }}
                 >
                   {m.message}

@@ -314,14 +314,14 @@ export function FeedbackPage() {
                 </span>
               </div>
               <p
-                className="text-[13px] whitespace-pre-wrap break-words"
+                className="user-text text-[13px]"
                 style={{ color: 'var(--eco-text-secondary)' }}
               >
                 {item.message}
               </p>
               {item.adminNote && (
                 <div
-                  className="text-[12px] p-2 rounded-lg whitespace-pre-wrap break-words"
+                  className="user-text text-[12px] p-2 rounded-lg"
                   style={{ background: 'var(--eco-brand-50)', color: 'var(--eco-text-secondary)' }}
                 >
                   {item.adminNote}

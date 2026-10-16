@@ -687,7 +687,7 @@ export function MemberDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
         <div className="min-w-0">
           <h1
-            className="text-[22px] sm:text-[26px] mb-1 break-words"
+            className="user-text text-[22px] sm:text-[26px] mb-1"
             style={{ color: 'var(--eco-text)' }}
           >
             {room.title}
@@ -782,7 +782,7 @@ export function MemberDetailPage() {
               >
                 {(room.ownerDisplayName ?? '?').charAt(0).toUpperCase()}
               </div>
-              <span className="text-[14px] break-words">
+              <span className="user-text text-[14px]">
                 {room.ownerDisplayName ?? tx(language, 'Владелец комнаты', 'Бөлме иесі', 'Room owner')}
               </span>
             </Link>

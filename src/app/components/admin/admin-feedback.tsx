@@ -295,7 +295,7 @@ export function AdminFeedbackPage() {
                     </AdminStatusBadge>
                   </div>
                   <div
-                    className="mt-2 text-[13px] font-semibold break-words"
+                    className="user-text mt-2 text-[13px] font-semibold"
                     style={{ color: 'var(--eco-text)' }}
                   >
                     {item.subject || item.message.slice(0, 80)}
@@ -339,7 +339,7 @@ export function AdminFeedbackPage() {
               </AdminCard>
             ) : detail ? (
               <AdminCard
-                title={<span className="break-words">{detail.subject || t(typeKey(detail.type))}</span>}
+                title={<span className="user-text">{detail.subject || t(typeKey(detail.type))}</span>}
                 description={
                   <>
                     F-{detail.id} ·{' '}
@@ -387,12 +387,8 @@ export function AdminFeedbackPage() {
                     <div className="text-[12px] mb-1" style={{ color: 'var(--eco-text-tertiary)' }}>
                       {t('adminFeedbackMessage')}
                     </div>
-                    {/*
-                      Render as plain text (not HTML) — React escapes by default.
-                      `whitespace-pre-wrap` preserves user line breaks safely.
-                    */}
                     <p
-                      className="text-[13px] whitespace-pre-wrap break-words p-3 rounded-lg"
+                      className="user-text text-[13px] p-3 rounded-lg"
                       style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
                     >
                       {detail.message}

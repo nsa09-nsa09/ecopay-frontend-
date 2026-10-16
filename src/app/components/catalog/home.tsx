@@ -1447,7 +1447,7 @@ export function HomePage() {
                     </div>
                   </div>
                   <p
-                    className="text-[13px] leading-relaxed m-0 flex-1"
+                    className="user-text text-[13px] leading-relaxed m-0 flex-1 line-clamp-3"
                     style={{ color: 'var(--eco-text-secondary)' }}
                   >
                     {review.text}

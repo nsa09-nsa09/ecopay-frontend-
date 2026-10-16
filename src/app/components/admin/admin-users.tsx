@@ -486,7 +486,7 @@ export function AdminUsersPage() {
                         </div>
                       </div>
                       <div
-                        className="text-[13px] font-semibold break-words"
+                        className="user-text text-[13px] font-semibold"
                         style={{ color: 'var(--eco-text)' }}
                       >
                         {u.displayName}
@@ -616,7 +616,7 @@ export function AdminUsersPage() {
                             </div>
                             <div className="min-w-0">
                               <h2
-                                className="text-[15px] font-semibold flex items-center gap-2 break-words"
+                                className="user-text text-[15px] font-semibold flex items-center gap-2"
                                 style={{ color: 'var(--eco-text)' }}
                               >
                                 {selected.displayName}
@@ -995,7 +995,7 @@ function DeletedUsersPanel() {
             >
               <div className="min-w-0 flex-1">
                 <div
-                  className="text-[13px] font-semibold break-words"
+                  className="user-text text-[13px] font-semibold"
                   style={{ color: 'var(--eco-text)' }}
                 >
                   {item.displayNameAtDeletion}

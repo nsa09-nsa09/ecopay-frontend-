@@ -44,7 +44,7 @@ function ReviewCard({
         ))}
       </div>
       <p
-        className="text-[14px] whitespace-pre-wrap flex-1 line-clamp-5"
+        className="user-text text-[14px] flex-1 line-clamp-5"
         style={{ color: 'var(--eco-text-secondary)' }}
       >
         {review.text}

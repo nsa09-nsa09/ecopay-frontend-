@@ -159,7 +159,7 @@ export function MyServiceReviewCard() {
         </div>
         <StarRating rating={review.rating} size={16} />
         <p
-          className="text-[13px] whitespace-pre-wrap"
+          className="user-text text-[13px]"
           style={{ color: 'var(--eco-text-secondary)' }}
         >
           {review.text}

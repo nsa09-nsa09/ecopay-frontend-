@@ -234,7 +234,7 @@ export function MyRoomsPage() {
                   <Card className="flex flex-col gap-3 hover:shadow-sm transition-shadow cursor-pointer">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
-                        <div className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
+                        <div className="user-text text-[15px]" style={{ color: 'var(--eco-text)' }}>
                           {room.title}
                         </div>
                         <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
@@ -289,7 +289,7 @@ export function MyRoomsPage() {
                   <Card className="flex flex-col gap-3 hover:shadow-sm transition-shadow cursor-pointer">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
-                        <div className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
+                        <div className="user-text text-[15px]" style={{ color: 'var(--eco-text)' }}>
                           {room.title}
                         </div>
                         <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>

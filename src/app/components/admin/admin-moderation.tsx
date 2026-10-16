@@ -272,7 +272,7 @@ export function AdminModerationPage() {
       minWidth: 220,
       cell: (item) => (
         <div className="min-w-0">
-          <div className="text-[13px] break-words" style={{ color: 'var(--eco-text)' }}>
+          <div className="user-text text-[13px]" style={{ color: 'var(--eco-text)' }}>
             {t(entityLabelKey(item.entityType))} #{item.entityId}
           </div>
           {(item.roomId || item.roomMemberId) && (

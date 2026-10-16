@@ -479,7 +479,7 @@ export function OwnerDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
         <div className="min-w-0">
           <h1
-            className="text-[22px] sm:text-[26px] mb-1 break-words"
+            className="user-text text-[22px] sm:text-[26px] mb-1"
             style={{ color: 'var(--eco-text)' }}
           >
             {room.title}
@@ -593,7 +593,7 @@ export function OwnerDetailPage() {
                             >
                               {(p.userDisplayName || '?').charAt(0).toUpperCase()}
                             </div>
-                            <span className="text-[14px] break-words">{p.userDisplayName}</span>
+                            <span className="user-text text-[14px]">{p.userDisplayName}</span>
                           </Link>
                           <ReputationLevelBadge
                             level={p.userReputationLevel}

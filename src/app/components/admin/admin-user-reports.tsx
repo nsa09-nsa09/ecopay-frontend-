@@ -304,7 +304,7 @@ export function AdminUserReports() {
             >
               <div className="flex items-start justify-between gap-3">
                 <strong
-                  className="text-[13px] font-semibold break-words min-w-0"
+                  className="user-text text-[13px] font-semibold min-w-0"
                   style={{ color: 'var(--eco-text)' }}
                 >
                   {displayTarget(item.target)}
@@ -314,7 +314,7 @@ export function AdminUserReports() {
                 </AdminStatusBadge>
               </div>
               <div
-                className="mt-1.5 text-[12px] break-words"
+                className="user-text mt-1.5 text-[12px]"
                 style={{ color: 'var(--eco-text-secondary)' }}
               >
                 {categoryLabel(item.category, language)} · {t('adminBy')}{' '}
@@ -356,7 +356,7 @@ export function AdminUserReports() {
             <>
               <AdminCard
                 title={
-                  <span className="break-words">
+                  <span className="user-text">
                     {t('adminReportAbout')}{' '}
                     {detail.target.slug ? `@${detail.target.slug}` : detail.target.displayName}
                   </span>
@@ -427,7 +427,7 @@ export function AdminUserReports() {
                 title={t('adminReportDescription')}
               >
                 <p
-                  className="text-[13px] whitespace-pre-wrap break-words"
+                  className="user-text text-[13px]"
                   style={{ color: 'var(--eco-text-secondary)' }}
                 >
                   {detail.description}
@@ -482,7 +482,7 @@ export function AdminUserReports() {
                         <Link
                           key={`owned-${room.roomId}`}
                           to={`/admin/rooms?selected=${room.roomId}`}
-                          className="text-[13px] break-words"
+                          className="user-text text-[13px]"
                           style={{ color: 'var(--eco-primary)' }}
                         >
                           {room.title} · R-{room.roomId}
@@ -492,7 +492,7 @@ export function AdminUserReports() {
                         <Link
                           key={`member-${m.roomId}`}
                           to={`/admin/rooms?selected=${m.roomId}`}
-                          className="text-[13px] break-words"
+                          className="user-text text-[13px]"
                           style={{ color: 'var(--eco-primary)' }}
                         >
                           {m.roomTitle} · R-{m.roomId}

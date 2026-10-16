@@ -219,7 +219,7 @@ export function RoomChat({ roomId }: { roomId: string }) {
                     </span>
                   </div>
                   <div
-                    className="text-[14px] px-3 py-2 rounded-lg break-words whitespace-pre-wrap"
+                    className="user-text text-[14px] px-3 py-2 rounded-lg max-w-full"
                     style={{
                       background: mine ? 'var(--eco-brand-100)' : 'var(--eco-surface)',
                       color: 'var(--eco-text)',

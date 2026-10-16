@@ -183,7 +183,7 @@ export function AdminRoomsPage() {
                     <RoomStatusBadge status={r.status} />
                   </div>
                   <div
-                    className="text-[13px] font-semibold break-words"
+                    className="user-text text-[13px] font-semibold"
                     style={{ color: 'var(--eco-text)' }}
                   >
                     {r.title}
@@ -211,7 +211,7 @@ export function AdminRoomsPage() {
               </AdminCard>
             ) : (
               <AdminCard
-                title={<span className="break-words">{selected.title}</span>}
+                title={<span className="user-text">{selected.title}</span>}
                 description={
                   <>
                     R-{selected.id} · {selected.serviceName}

@@ -235,7 +235,7 @@ export function NotificationsInboxPage() {
                       </Badge>
                     </div>
                     <div
-                      className="text-[13px] mt-1"
+                      className="user-text text-[13px] mt-1"
                       style={{ color: 'var(--eco-text-secondary)' }}
                     >
                       {n.body}

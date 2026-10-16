@@ -308,7 +308,7 @@ export function PublicUserProfilePage() {
 
             <div className="flex-1 min-w-0">
               <h2
-                className="text-[20px] sm:text-[22px] break-words flex items-center gap-2"
+                className="user-text text-[20px] sm:text-[22px] flex items-center gap-2"
                 style={{ color: 'var(--eco-text)' }}
               >
                 {reputation.displayName}
@@ -519,7 +519,7 @@ export function PublicUserProfilePage() {
                       </div>
                       {review.text && (
                         <p
-                          className="text-[13px] mt-2 whitespace-pre-wrap"
+                          className="user-text text-[13px] mt-2"
                           style={{ color: 'var(--eco-text-secondary)' }}
                         >
                           {review.text}

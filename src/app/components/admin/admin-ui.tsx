@@ -1249,7 +1249,7 @@ export function AdminField({
         {label}
       </div>
       <div
-        className={`text-[13px] break-words ${numeric ? 'tabular-nums' : ''}`}
+        className={`user-text text-[13px] ${numeric ? 'tabular-nums' : ''}`}
         style={{ color: 'var(--eco-text)' }}
       >
         {children}

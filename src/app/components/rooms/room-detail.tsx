@@ -327,7 +327,7 @@ export function RoomDetailPage() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                 <h1
-                  className="text-[22px] sm:text-[24px] break-words"
+                  className="user-text text-[22px] sm:text-[24px]"
                   style={{ color: 'var(--eco-text)' }}
                 >
                   {room.title}
@@ -452,7 +452,7 @@ export function RoomDetailPage() {
               />
               <div className="flex flex-col gap-2">
                 {room.description && (
-                  <div className="text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                  <div className="user-text text-[12px]" style={{ color: 'var(--eco-text-secondary)' }}>
                     {room.description}
                   </div>
                 )}
