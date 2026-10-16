@@ -790,6 +790,7 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
             marketplaceCapacity: 3,
             filledSeats: 5,
             freeSeats: 0,
+            joinable: false,
           }),
         ],
         page: 0,
@@ -833,6 +834,7 @@ async function mockApi(page: Page, role: MockRole = 'USER', language = 'en') {
             marketplaceCapacity: 3,
             filledSeats: 5,
             freeSeats: 0,
+            joinable: false,
           }),
         );
       }
@@ -1713,11 +1715,11 @@ test('public profile reports another user with the expected POST contract', asyn
   await page.goto('/u/aidar');
   await page.getByRole('button', { name: 'Report user' }).click();
   await expect(page.getByText('Your report will be sent to EcoPay administrators.')).toBeVisible();
-  await page.getByRole('textbox', { name: 'Describe what happened' }).fill('Suspicious request');
+  await page.getByRole('textbox', { name: 'Describe what happened' }).fill('Suspicious request here');
   await page.getByRole('button', { name: 'Submit report' }).click();
   await expect
     .poll(() => api.reportPayloads)
-    .toEqual([{ category: 'FRAUD', description: 'Suspicious request' }]);
+    .toEqual([{ category: 'FRAUD', description: 'Suspicious request here' }]);
   await expect(page.getByText('Your report was sent and will be reviewed.')).toBeVisible();
 });
 
@@ -1727,7 +1729,7 @@ test('duplicate public report shows a useful message', async ({ page }) => {
   await seedSession(page);
   await page.goto('/u/aidar');
   await page.getByRole('button', { name: 'Report user' }).click();
-  await page.getByRole('textbox', { name: 'Describe what happened' }).fill('Suspicious request');
+  await page.getByRole('textbox', { name: 'Describe what happened' }).fill('Suspicious request here');
   await page.getByRole('button', { name: 'Submit report' }).click();
   await expect(
     page.getByText('You already have an open report about this user for this reason.'),

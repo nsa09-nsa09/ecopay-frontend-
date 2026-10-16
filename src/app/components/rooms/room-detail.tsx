@@ -274,7 +274,7 @@ export function RoomDetailPage() {
           } catch {
             // The normal no-spots state below is still safe if rematching itself fails.
           }
-          setRoom({ ...room, freeSeats: 0 });
+          setRoom({ ...room, freeSeats: 0, joinable: false });
           setJoinOpen(false);
           setJoinError(null);
         } else {
