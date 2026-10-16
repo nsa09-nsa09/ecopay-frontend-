@@ -468,6 +468,9 @@ function CreateTicketView({
               fontSize: 14,
             }}
           />
+          <span className="text-[11px] self-end" style={{ color: 'var(--eco-text-tertiary)' }}>
+            {subject.length}/200
+          </span>
         </div>
 
         <Select
@@ -631,15 +634,18 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
       setTicket(updated);
       setNewMessage('');
     } catch (err) {
+      const is429 = err instanceof ApiError && err.status === 429;
       toast.error(
-        err instanceof ApiError
-          ? err.message
-          : tx(
-              language,
-              'Не удалось отправить сообщение',
-              'Хабарламаны жіберу мүмкін болмады',
-              'Failed to send message',
-            ),
+        is429
+          ? tx(language, 'Слишком много сообщений, подождите минуту.', 'Тым көп хабарлама, бір минут күтіңіз.', 'Too many messages, please wait a minute.')
+          : err instanceof ApiError
+            ? err.message
+            : tx(
+                language,
+                'Не удалось отправить сообщение',
+                'Хабарламаны жіберу мүмкін болмады',
+                'Failed to send message',
+              ),
       );
     } finally {
       setSending(false);
@@ -898,6 +904,11 @@ function TicketDetailView({ ticketId, onBack }: { ticketId: number; onBack: () =
                 maxHeight: 120,
               }}
             />
+            {newMessage.length > 4000 && (
+              <span className="text-[11px] self-end" style={{ color: newMessage.length >= 5000 ? 'var(--eco-negative)' : 'var(--eco-text-tertiary)' }}>
+                {newMessage.length}/5000
+              </span>
+            )}
             <button
               className="cursor-pointer p-2.5 rounded-lg shrink-0 disabled:opacity-40"
               style={{ background: 'var(--eco-primary)', border: 'none' }}

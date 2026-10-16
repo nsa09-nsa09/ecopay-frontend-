@@ -15,8 +15,8 @@ import {
   type FeedbackType,
 } from '../../lib/api';
 
-const MAX_MESSAGE_LENGTH = 2000;
-const MAX_SUBJECT_LENGTH = 120;
+const MAX_MESSAGE_LENGTH = 4000;
+const MAX_SUBJECT_LENGTH = 150;
 
 const STATUS_VARIANT: Record<string, 'default' | 'info' | 'warning' | 'success' | 'danger'> = {
   NEW: 'info',
@@ -215,12 +215,18 @@ export function FeedbackPage() {
           ]}
         />
 
-        <Input
-          label={t('feedbackSubjectLabel')}
-          value={subject}
-          onChange={(e) => setSubject(e.target.value.slice(0, MAX_SUBJECT_LENGTH))}
-          placeholder={t('feedbackSubjectPlaceholder')}
-        />
+        <div className="flex flex-col gap-1">
+          <Input
+            label={t('feedbackSubjectLabel')}
+            value={subject}
+            onChange={(e) => setSubject(e.target.value.slice(0, MAX_SUBJECT_LENGTH))}
+            maxLength={MAX_SUBJECT_LENGTH}
+            placeholder={t('feedbackSubjectPlaceholder')}
+          />
+          <span className="text-[11px] self-end" style={{ color: 'var(--eco-text-tertiary)' }}>
+            {subject.length}/{MAX_SUBJECT_LENGTH}
+          </span>
+        </div>
 
         <div className="flex flex-col gap-1">
           <label className="text-[14px]" style={{ color: 'var(--eco-text)' }}>

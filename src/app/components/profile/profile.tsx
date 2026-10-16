@@ -321,7 +321,8 @@ export function ProfilePage() {
               <Input
                 label={tx(language, 'Отображаемое имя', 'Көрсетілетін ат', 'Display name')}
                 value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
+                onChange={(event) => setDisplayName(event.target.value.slice(0, 50))}
+                maxLength={50}
                 error={fieldErrors.displayName}
               />
               <div className="flex flex-col gap-1.5">

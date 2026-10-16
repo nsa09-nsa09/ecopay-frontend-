@@ -10,6 +10,7 @@ import { formatDateTime } from '../../lib/datetime';
 import { useAuth } from '../auth/auth-provider';
 import { parseMessageBody, startRealtime } from '../../lib/realtime';
 import {
+  ApiError,
   assignStaffTicketToMeRequest,
   escalateStaffTicketRequest,
   getStaffSupportQueueRequest,
@@ -252,7 +253,12 @@ export function AdminTicketsPage() {
       applyTicketUpdate(updated);
       setReplyText('');
     } catch (err) {
-      setActionError(formatAdminApiError(err, t));
+      const is429 = err instanceof ApiError && err.status === 429;
+      setActionError(
+        is429
+          ? txl(language, 'Слишком много сообщений, подождите минуту.', 'Тым көп хабарлама, бір минут күтіңіз.', 'Too many messages, please wait a minute.')
+          : formatAdminApiError(err, t),
+      );
     } finally {
       setReplySending(false);
     }
@@ -565,6 +571,11 @@ export function AdminTicketsPage() {
                           maxLength={5000}
                           className="eco-input flex-1 min-w-0 px-3 py-2 rounded-lg text-[13px] outline-none resize-none"
                         />
+                        {replyText.length > 4000 && (
+                          <span className="text-[11px]" style={{ color: replyText.length >= 5000 ? 'var(--eco-negative)' : 'var(--eco-text-tertiary)' }}>
+                            {replyText.length}/5000
+                          </span>
+                        )}
                         <Button
                           variant="primary"
                           size="sm"

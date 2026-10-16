@@ -126,15 +126,18 @@ export function RoomChat({ roomId }: { roomId: string }) {
       setMessages((prev) => mergeMessage(prev, saved));
       setDraft('');
     } catch (err) {
+      const is429 = err instanceof ApiError && err.status === 429;
       setSendError(
-        err instanceof ApiError
-          ? err.message
-          : tx(
-              language,
-              'Не удалось отправить сообщение.',
-              'Хабарламаны жіберу мүмкін болмады.',
-              'Unable to send the message right now.',
-            ),
+        is429
+          ? tx(language, 'Слишком много сообщений, подождите минуту.', 'Тым көп хабарлама, бір минут күтіңіз.', 'Too many messages, please wait a minute.')
+          : err instanceof ApiError
+            ? err.message
+            : tx(
+                language,
+                'Не удалось отправить сообщение.',
+                'Хабарламаны жіберу мүмкін болмады.',
+                'Unable to send the message right now.',
+              ),
       );
     } finally {
       setSending(false);
@@ -259,6 +262,11 @@ export function RoomChat({ roomId }: { roomId: string }) {
               }
             }}
           />
+          {draft.length > MAX_LENGTH * 0.8 && (
+            <span className="text-[11px] self-end mt-0.5" style={{ color: draft.length >= MAX_LENGTH ? 'var(--eco-negative)' : 'var(--eco-text-tertiary)' }}>
+              {draft.length}/{MAX_LENGTH}
+            </span>
+          )}
         </div>
         <Button
           variant="primary"

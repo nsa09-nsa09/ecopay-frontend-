@@ -1411,7 +1411,8 @@ function CreateUserModal({
         <Input
           label={t('adminDisplayName')}
           value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
+          onChange={(e) => setDisplayName(e.target.value.slice(0, 50))}
+          maxLength={50}
           error={fieldErrors.displayName}
         />
         <div className="flex flex-col gap-1.5">

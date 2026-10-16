@@ -178,7 +178,8 @@ export function RegisterPage() {
               label={t('displayName')}
               placeholder={t('exampleName')}
               value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
+              onChange={(event) => setDisplayName(event.target.value.slice(0, 50))}
+              maxLength={50}
               error={fieldErrors.displayName}
             />
             <Input

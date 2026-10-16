@@ -16,7 +16,7 @@ import {
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
 
-const REVIEW_MAX_LENGTH = 800;
+const REVIEW_MAX_LENGTH = 2000;
 
 export function MyServiceReviewCard() {
   const { t, language } = useI18n();

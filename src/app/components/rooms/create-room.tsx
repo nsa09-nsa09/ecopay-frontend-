@@ -982,7 +982,8 @@ export function CreateRoomPage() {
             <Input
               label={tx(language, 'Название комнаты', 'Бөлме атауы', 'Room Title')}
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => setTitle(e.target.value.slice(0, 150))}
+              maxLength={150}
               placeholder={tx(
                 language,
                 'Например, Семейный тариф',
@@ -990,6 +991,9 @@ export function CreateRoomPage() {
                 'e.g. Family plan',
               )}
             />
+            <span className="text-[11px] self-end" style={{ color: 'var(--eco-text-tertiary)' }}>
+              {title.length}/150
+            </span>
             <div
               className="rounded-lg p-3 flex flex-col gap-2"
               style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)' }}
