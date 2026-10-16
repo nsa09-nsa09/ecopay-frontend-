@@ -28,7 +28,7 @@ import { LeaveReviewModal } from './leave-review-modal';
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
 const REPORT_LIMIT = 2000;
-const REPORT_MIN = 20;
+const REPORT_MIN = 10;
 
 function StarRating({
   rating,

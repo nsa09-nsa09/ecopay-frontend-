@@ -128,8 +128,11 @@ export function LoginPage() {
           setFieldErrors({ email: serverEmailErrorText(emailCode, language) });
           if (err.errors.suggestion) emailField.setValue(err.errors.suggestion);
         } else {
-          setError(err.message);
-          setFieldErrors(localizeFieldErrors(err.errors, language));
+          const localized = localizeFieldErrors(err.errors, language);
+          setFieldErrors(localized);
+          if (Object.keys(localized).length === 0) {
+            setError(err.message);
+          }
         }
       } else {
         setError(t('unableToSignIn'));
