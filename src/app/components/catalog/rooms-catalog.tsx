@@ -99,7 +99,7 @@ export function RoomsCatalogPage() {
     let cancelled = false;
     setLoading(true);
 
-    getRooms({ status: 'OPEN', size: 100 })
+    getRooms({ joinable: 'true', size: 100 })
       .then((response) => {
         if (!cancelled) setRooms(response.items);
       })

@@ -523,7 +523,7 @@ export function RoomDetailPage() {
               size="lg"
               className="w-full"
               onClick={openJoinFlow}
-              disabled={room.status !== 'OPEN' || hasNoFreeSeats}
+              disabled={!room.joinable}
             >
               {ctaLabel}
             </Button>

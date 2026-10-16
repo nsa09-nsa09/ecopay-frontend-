@@ -170,6 +170,10 @@ export interface RoomResponseDto {
   completedAt: string | null;
   blockedAt: string | null;
   blockReason: string | null;
+  joinable?: boolean | null;
+  canEdit?: boolean | null;
+  canCancel?: boolean | null;
+  canComplete?: boolean | null;
   createdAt: string;
   updatedAt: string;
 }

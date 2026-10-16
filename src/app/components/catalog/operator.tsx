@@ -65,7 +65,7 @@ export function OperatorPage() {
         const [serviceResponse, tariffResponse, roomResponse] = await Promise.all([
           getService(serviceId),
           getTariffs(serviceId),
-          getRooms({ status: 'OPEN', size: 100 }),
+          getRooms({ joinable: 'true', size: 100 }),
         ]);
 
         if (!isCancelled) {
