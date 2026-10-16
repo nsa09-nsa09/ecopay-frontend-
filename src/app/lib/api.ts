@@ -1094,11 +1094,12 @@ export function markRoomReadyRequest(roomId: number, accessToken: string) {
   );
 }
 
-export function cancelRoomRequest(roomId: number, accessToken: string) {
+export function cancelRoomRequest(roomId: number, accessToken: string, reason?: string) {
   return requestJson<RoomResponseDto>(
     `/rooms/${roomId}/cancel`,
     {
       method: 'POST',
+      ...(reason ? { body: JSON.stringify({ reason }) } : {}),
     },
     accessToken,
   );

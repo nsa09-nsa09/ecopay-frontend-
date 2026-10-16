@@ -206,6 +206,9 @@ const memberStatusMap: Record<string, BadgeVariant> = {
   ACTIVE: "success",
   REJECTED: "danger",
   BLOCKED: "danger",
+  CANCELLED_BEFORE_PAYMENT: "danger",
+  ROOM_CANCELLED: "danger",
+  EXPIRED: "danger",
 };
 
 const roomStatusMap: Record<string, BadgeVariant> = {
@@ -214,6 +217,8 @@ const roomStatusMap: Record<string, BadgeVariant> = {
   ACTIVE: "success",
   COMPLETED: "default",
   CANCELLED: "danger",
+  ROOM_CANCELLED: "danger",
+  EXPIRED: "danger",
   BLOCKED: "danger",
 };
 

@@ -8,6 +8,7 @@ import {
   RoomStatusBadge,
   Modal,
   Select,
+  Input,
 } from '../ds-primitives';
 import {
   ArrowLeft,
@@ -20,15 +21,21 @@ import {
   Calendar,
   Clock,
   Star,
+  Pencil,
+  XCircle,
+  CheckCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   ApiError,
+  cancelRoomRequest,
+  completeRoomRequest,
   confirmOwnerAccessRequest,
   getRoom,
   getRoomInviteLink,
   getRoomMembers,
   revealIdentifierRequest,
+  updateRoomRequest,
   type RoomMemberDto,
   type RoomResponseDto,
 } from '../../lib/api';
@@ -170,6 +177,84 @@ export function OwnerDetailPage() {
   const [granting, setGranting] = useState(false);
 
   const [reviewTarget, setReviewTarget] = useState<RoomMemberDto | null>(null);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [completeSubmitting, setCompleteSubmitting] = useState(false);
+  const [completeError, setCompleteError] = useState<string | null>(null);
+
+  const openEdit = () => {
+    if (!room) return;
+    setEditTitle(room.title);
+    setEditDesc(room.description ?? '');
+    setEditError(null);
+    setEditOpen(true);
+  };
+  const submitEdit = async () => {
+    if (!room || editSubmitting) return;
+    setEditSubmitting(true);
+    setEditError(null);
+    try {
+      const updated = await authorizedRequest((token) =>
+        updateRoomRequest(room.id, { title: editTitle.trim(), description: editDesc.trim() }, token),
+      );
+      setRoom(updated);
+      setEditOpen(false);
+    } catch (err) {
+      setEditError(err instanceof ApiError ? err.message : tx(language, 'Не удалось сохранить.', 'Сақтау мүмкін болмады.', 'Unable to save.'));
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const openCancel = () => {
+    setCancelReason('');
+    setCancelConfirm(false);
+    setCancelError(null);
+    setCancelOpen(true);
+  };
+  const submitCancel = async () => {
+    if (!room || cancelSubmitting || !cancelConfirm || cancelReason.trim().length < 5) return;
+    setCancelSubmitting(true);
+    setCancelError(null);
+    try {
+      const updated = await authorizedRequest((token) =>
+        cancelRoomRequest(room.id, token, cancelReason.trim()),
+      );
+      setRoom(updated);
+      setCancelOpen(false);
+    } catch (err) {
+      setCancelError(err instanceof ApiError ? err.message : tx(language, 'Не удалось отменить.', 'Бас тарту мүмкін болмады.', 'Unable to cancel.'));
+    } finally {
+      setCancelSubmitting(false);
+    }
+  };
+
+  const submitComplete = async () => {
+    if (!room || completeSubmitting) return;
+    setCompleteSubmitting(true);
+    setCompleteError(null);
+    try {
+      const updated = await authorizedRequest((token) => completeRoomRequest(room.id, token));
+      setRoom(updated);
+      setCompleteOpen(false);
+    } catch (err) {
+      setCompleteError(err instanceof ApiError ? err.message : tx(language, 'Не удалось завершить.', 'Аяқтау мүмкін болмады.', 'Unable to complete.'));
+    } finally {
+      setCompleteSubmitting(false);
+    }
+  };
 
   const loadMembers = useCallback(async () => {
     const result = await authorizedRequest((token) => getRoomMembers(roomId, token, { size: 100 }));
@@ -405,6 +490,26 @@ export function OwnerDetailPage() {
         </div>
         <RoomStatusBadge status={room.status} />
       </div>
+
+      {(room.canEdit || room.canCancel || room.canComplete) && (
+        <div className="flex flex-wrap gap-2 mb-6">
+          {room.canEdit && (
+            <Button variant="secondary" onClick={openEdit}>
+              <Pencil size={14} /> {tx(language, 'Редактировать', 'Өңдеу', 'Edit')}
+            </Button>
+          )}
+          {room.canComplete && (
+            <Button variant="secondary" onClick={() => { setCompleteError(null); setCompleteOpen(true); }}>
+              <CheckCircle size={14} /> {tx(language, 'Завершить', 'Аяқтау', 'Complete')}
+            </Button>
+          )}
+          {room.canCancel && (
+            <Button variant="secondary" onClick={openCancel}>
+              <XCircle size={14} /> {tx(language, 'Отменить', 'Бас тарту', 'Cancel')}
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-6">
@@ -916,6 +1021,123 @@ export function OwnerDetailPage() {
               'Қатынас беруді растау',
               'Confirm Access Granted',
             )}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Edit modal */}
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title={tx(language, 'Редактировать комнату', 'Бөлмені өңдеу', 'Edit Room')}>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+              {tx(language, 'Название', 'Атауы', 'Title')}
+            </label>
+            <Input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value.slice(0, 150))}
+              maxLength={150}
+            />
+            <span className="text-[11px] text-right" style={{ color: 'var(--eco-text-tertiary)' }}>
+              {editTitle.length}/150
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+              {tx(language, 'Описание', 'Сипаттамасы', 'Description')}
+            </label>
+            <textarea
+              className="w-full rounded-lg px-3 py-2 text-[13px] resize-y min-h-[80px]"
+              style={{
+                background: 'var(--eco-surface)',
+                border: '1px solid var(--eco-border)',
+                color: 'var(--eco-text)',
+              }}
+              value={editDesc}
+              onChange={(e) => setEditDesc(e.target.value.slice(0, 2000))}
+              maxLength={2000}
+            />
+            <span className="text-[11px] text-right" style={{ color: 'var(--eco-text-tertiary)' }}>
+              {editDesc.length}/2000
+            </span>
+          </div>
+          {editError && (
+            <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>{editError}</p>
+          )}
+          <Button variant="primary" loading={editSubmitting} onClick={submitEdit} disabled={!editTitle.trim()}>
+            {tx(language, 'Сохранить', 'Сақтау', 'Save')}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Cancel modal */}
+      <Modal open={cancelOpen} onClose={() => setCancelOpen(false)} title={tx(language, 'Отменить комнату', 'Бөлмені тоқтату', 'Cancel Room')}>
+        <div className="flex flex-col gap-4">
+          <div className="rounded-lg p-3 text-[13px]" style={{ background: 'var(--eco-warning-50)', color: 'var(--eco-warning-700)', border: '1px solid var(--eco-warning-200)' }}>
+            {tx(
+              language,
+              'Оплатившим участникам вернутся деньги. Отменить это действие нельзя.',
+              'Төлем жасаған қатысушыларға ақша қайтарылады. Бұл әрекетті кері қайтару мүмкін емес.',
+              'Paid members will be refunded. This action cannot be undone.',
+            )}
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+              {tx(language, 'Причина отмены', 'Бас тарту себебі', 'Cancellation reason')}
+            </label>
+            <textarea
+              className="w-full rounded-lg px-3 py-2 text-[13px] resize-y min-h-[60px]"
+              style={{
+                background: 'var(--eco-surface)',
+                border: '1px solid var(--eco-border)',
+                color: 'var(--eco-text)',
+              }}
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value.slice(0, 500))}
+              maxLength={500}
+            />
+            <span className="text-[11px] text-right" style={{ color: 'var(--eco-text-tertiary)' }}>
+              {cancelReason.trim().length}/500 {cancelReason.trim().length < 5 && tx(language, '(мин. 5)', '(мин. 5)', '(min. 5)')}
+            </span>
+          </div>
+          <label className="flex items-center gap-2 text-[13px] cursor-pointer" style={{ color: 'var(--eco-text)' }}>
+            <input type="checkbox" checked={cancelConfirm} onChange={(e) => setCancelConfirm(e.target.checked)} />
+            {tx(
+              language,
+              'Подтверждаю отмену комнаты',
+              'Бөлменің тоқтатылуын растаймын',
+              'I confirm room cancellation',
+            )}
+          </label>
+          {cancelError && (
+            <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>{cancelError}</p>
+          )}
+          <Button
+            variant="destructive"
+            loading={cancelSubmitting}
+            onClick={submitCancel}
+            disabled={!cancelConfirm || cancelReason.trim().length < 5}
+          >
+            {tx(language, 'Отменить комнату', 'Бөлмені тоқтату', 'Cancel Room')}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Complete modal */}
+      <Modal open={completeOpen} onClose={() => setCompleteOpen(false)} title={tx(language, 'Завершить комнату', 'Бөлмені аяқтау', 'Complete Room')}>
+        <div className="flex flex-col gap-4">
+          <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+            {tx(
+              language,
+              'После завершения участники смогут оставить отзыв.',
+              'Аяқтағаннан кейін қатысушылар пікір қалдыра алады.',
+              'After completion, members will be able to leave reviews.',
+            )}
+          </p>
+          {completeError && (
+            <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>{completeError}</p>
+          )}
+          <Button variant="primary" loading={completeSubmitting} onClick={submitComplete}>
+            {tx(language, 'Завершить', 'Аяқтау', 'Complete')}
           </Button>
         </div>
       </Modal>

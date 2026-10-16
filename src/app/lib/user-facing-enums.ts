@@ -62,6 +62,7 @@ const STATUS_LABELS: Record<string, Labels> = {
   IN_VERIFICATION: { ru: 'На проверке', kz: 'Тексеруде', en: 'In verification' },
   COMPLETED: { ru: 'Завершено', kz: 'Аяқталды', en: 'Completed' },
   CANCELLED: { ru: 'Отменено', kz: 'Бас тартылды', en: 'Cancelled' },
+  ROOM_CANCELLED: { ru: 'Комната отменена', kz: 'Бөлме тоқтатылды', en: 'Room cancelled' },
 
   // ----- Generic positive terminals -----
   SUCCESS: { ru: 'Успешно', kz: 'Сәтті', en: 'Success' },
@@ -202,6 +203,7 @@ const STATUS_VARIANTS: Record<string, StatusVariant> = {
   FAILED: 'danger',
   REJECTED: 'danger',
   CANCELLED: 'danger',
+  ROOM_CANCELLED: 'danger',
   CANCELED: 'danger',
   CANCELLED_BEFORE_PAYMENT: 'danger',
   EXPIRED: 'danger',
@@ -246,7 +248,7 @@ export const KNOWN_BACKEND_STATUSES: readonly string[] = Object.freeze([
   // MemberStatus
   'APPLIED', 'PENDING', 'ACTIVE', 'REJECTED', 'CANCELLED_BEFORE_PAYMENT', 'BLOCKED_BY_ADMIN',
   // RoomStatus
-  'IN_VERIFICATION', 'COMPLETED', 'CANCELLED', 'BLOCKED',
+  'IN_VERIFICATION', 'COMPLETED', 'CANCELLED', 'ROOM_CANCELLED', 'BLOCKED',
   // PaymentIntentStatus
   'UNKNOWN', 'RECONCILING', 'SUCCESS', 'EXPIRED', 'REFUND_REQUIRED', 'REFUND_PENDING',
   'REFUNDED', 'REQUIRES_REVIEW', 'CAPTURE_ANOMALY', 'FAILED',
