@@ -308,10 +308,10 @@ export function PublicUserProfilePage() {
 
             <div className="flex-1 min-w-0">
               <h2
-                className="user-text text-[20px] sm:text-[22px] flex items-center gap-2"
+                className="user-text text-[20px] sm:text-[22px] flex flex-wrap items-center gap-2"
                 style={{ color: 'var(--eco-text)' }}
               >
-                {reputation.displayName}
+                <span className="min-w-0 break-all">{reputation.displayName}</span>
                 {profile?.ownerVerified && (
                   <span
                     className="inline-flex items-center gap-1 text-[13px] font-medium shrink-0"

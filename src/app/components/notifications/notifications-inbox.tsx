@@ -133,7 +133,7 @@ export function NotificationsInboxPage() {
 
   return (
     <div className="max-w-[760px] mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center justify-between gap-3 mb-6">
+      <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <div className="flex items-center gap-2">
           <Bell size={20} style={{ color: 'var(--eco-primary)' }} />
           <h1 className="text-[20px] font-semibold" style={{ color: 'var(--eco-text)' }}>
@@ -209,7 +209,7 @@ export function NotificationsInboxPage() {
                 key={n.id}
                 type="button"
                 onClick={() => handleOpen(n)}
-                className="text-left rounded-xl p-4 cursor-pointer transition-colors hover:opacity-95"
+                className="text-left rounded-xl p-4 cursor-pointer transition-colors hover:opacity-95 overflow-hidden min-w-0"
                 style={{
                   background: n.read ? 'var(--eco-surface)' : 'var(--eco-brand-50)',
                   border: '1px solid var(--eco-border)',
@@ -225,7 +225,7 @@ export function NotificationsInboxPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span
-                        className="text-[14px] font-medium"
+                        className="text-[14px] font-medium break-all"
                         style={{ color: 'var(--eco-text)' }}
                       >
                         {n.title}

@@ -238,7 +238,7 @@ export function RoomStatusBadge({ status }: { status: string }) {
 export function Card({ children, className = "", style }: { children: ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
     <div
-      className={`eco-card rounded-xl p-5 ${className}`}
+      className={`eco-card rounded-xl p-5 overflow-hidden ${className}`}
       style={{
         background: "var(--eco-surface-raised)",
         border: "1px solid var(--eco-border)",
