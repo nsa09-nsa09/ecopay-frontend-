@@ -2047,6 +2047,7 @@ adminAboutApexLink: {
   tabRoomEvents: { ru: 'События комнат', kz: 'Бөлме оқиғалары', en: 'Room events' },
   filterEntityType: { ru: 'Тип объекта', kz: 'Нысан түрі', en: 'Entity type' },
   filterEventType: { ru: 'Тип события', kz: 'Оқиға түрі', en: 'Event type' },
+  filterRoomId: { ru: 'Комната', kz: 'Бөлме', en: 'Room ID' },
   filterDateFrom: { ru: 'С даты', kz: 'Бастап', en: 'From' },
   filterDateTo: { ru: 'По дату', kz: 'Дейін', en: 'To' },
   filterApply: { ru: 'Применить', kz: 'Қолдану', en: 'Apply' },

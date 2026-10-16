@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { Badge, Button, Input } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
 import { useI18n } from '../i18n-provider';
@@ -56,8 +56,12 @@ function toIsoOrUndefined(value: string): string | undefined {
 export function AdminLogsPage() {
   const { t, language } = useI18n();
   const { authorizedRequest } = useAuth();
+  const [searchParams] = useSearchParams();
 
-  const [tab, setTab] = useState<Tab>('admin-actions');
+  const initTab = (searchParams.get('tab') === 'room-events' ? 'room-events' : 'admin-actions') as Tab;
+  const initRoomId = searchParams.get('roomId') ?? '';
+
+  const [tab, setTab] = useState<Tab>(initTab);
   const [adminLogs, setAdminLogs] = useState<AdminActionLogDto[]>([]);
   const [roomLogs, setRoomLogs] = useState<RoomEventLogDto[]>([]);
   const [page, setPage] = useState(0);
@@ -65,8 +69,11 @@ export function AdminLogsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [filters, setFilters] = useState<FilterValues>(emptyFilters);
-  const [appliedFilters, setAppliedFilters] = useState<FilterValues>(emptyFilters);
+  const initFilters: FilterValues = { ...emptyFilters, ...(initRoomId ? { eventType: '' } : {}) };
+  const [filters, setFilters] = useState<FilterValues>(initFilters);
+  const [appliedFilters, setAppliedFilters] = useState<FilterValues>(initFilters);
+  const [roomIdFilter, setRoomIdFilter] = useState(initRoomId);
+  const [appliedRoomId, setAppliedRoomId] = useState(initRoomId);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -90,6 +97,7 @@ export function AdminLogsPage() {
             page,
             size: PAGE_SIZE,
             eventType: appliedFilters.eventType || undefined,
+            roomId: appliedRoomId || undefined,
             dateFrom: toIsoOrUndefined(appliedFilters.dateFrom),
             dateTo: toIsoOrUndefined(appliedFilters.dateTo),
           }),
@@ -102,7 +110,7 @@ export function AdminLogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [authorizedRequest, page, tab, appliedFilters, t]);
+  }, [authorizedRequest, page, tab, appliedFilters, appliedRoomId, t]);
 
   useEffect(() => {
     void load();
@@ -111,11 +119,14 @@ export function AdminLogsPage() {
   const applyFilters = () => {
     setPage(0);
     setAppliedFilters(filters);
+    setAppliedRoomId(roomIdFilter);
   };
 
   const resetFilters = () => {
     setFilters(emptyFilters);
     setAppliedFilters(emptyFilters);
+    setRoomIdFilter('');
+    setAppliedRoomId('');
     setPage(0);
   };
 
@@ -215,7 +226,11 @@ export function AdminLogsPage() {
       header: t('rooms'),
       priority: 'primary',
       nowrap: true,
-      cell: (log) => <AdminId>R-{log.roomId}</AdminId>,
+      cell: (log) => (
+        <Link to={`/admin/rooms?selected=${log.roomId}`} style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}>
+          R-{log.roomId}
+        </Link>
+      ),
     },
     {
       id: 'time',
@@ -299,14 +314,24 @@ export function AdminLogsPage() {
               />
             </div>
           ) : (
-            <div className="flex-[1_1_160px] min-w-0">
-              <Input
-                label={t('filterEventType')}
-                placeholder="room_created"
-                value={filters.eventType}
-                onChange={(e) => setFilters({ ...filters, eventType: e.target.value })}
-              />
-            </div>
+            <>
+              <div className="flex-[1_1_160px] min-w-0">
+                <Input
+                  label={t('filterEventType')}
+                  placeholder="room_created"
+                  value={filters.eventType}
+                  onChange={(e) => setFilters({ ...filters, eventType: e.target.value })}
+                />
+              </div>
+              <div className="flex-[1_1_100px] min-w-0 max-w-[140px]">
+                <Input
+                  label={t('filterRoomId')}
+                  placeholder="123"
+                  value={roomIdFilter}
+                  onChange={(e) => setRoomIdFilter(e.target.value.replace(/\D/g, ''))}
+                />
+              </div>
+            </>
           )}
           <div className="flex-[1_1_140px] min-w-0">
             <Input
