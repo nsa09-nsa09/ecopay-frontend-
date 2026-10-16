@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import {
   ApiError,
+  cancelMyMembershipRequest,
   confirmMemberAccessRequest,
   createRoomComplaintRequest,
   createPaymentIntentRequest,
@@ -192,6 +193,28 @@ export function MemberDetailPage() {
   const [complaintError, setComplaintError] = useState<string | null>(null);
   const [complaintCreated, setComplaintCreated] = useState<number | null>(null);
   const [ownerReviewOpen, setOwnerReviewOpen] = useState(false);
+
+  const [cancellingApplication, setCancellingApplication] = useState(false);
+  const [cancelAppError, setCancelAppError] = useState<string | null>(null);
+  const [cancelAppConfirmOpen, setCancelAppConfirmOpen] = useState(false);
+
+  const handleCancelApplication = async () => {
+    setCancellingApplication(true);
+    setCancelAppError(null);
+    try {
+      const updated = await authorizedRequest((token) => cancelMyMembershipRequest(roomId, token));
+      setMembership(updated);
+      setCancelAppConfirmOpen(false);
+    } catch (err) {
+      setCancelAppError(
+        err instanceof ApiError
+          ? err.message
+          : tx(language, 'Не удалось отменить заявку.', 'Өтінімді бас тарту мүмкін болмады.', 'Unable to cancel application.'),
+      );
+    } finally {
+      setCancellingApplication(false);
+    }
+  };
 
   useEffect(() => {
     if (!isReady) return;
@@ -990,24 +1013,56 @@ export function MemberDetailPage() {
               <CreditCard size={14} /> {tx(language, 'Оплатить', 'Төлеу', 'Pay')}{' '}
               {canStartPayment ? formatCurrency(payTotal, settlementCurrency) : ''}
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={cancellingApplication}
+              onClick={() => setCancelAppConfirmOpen(true)}
+            >
+              {tx(language, 'Отменить заявку', 'Өтінімді бас тарту', 'Cancel Application')}
+            </Button>
           </Card>
         )}
 
         {membership.status === 'APPLIED' && roomPaymentClosed && (
-          <Card className="flex items-start gap-3">
-            <AlertTriangle
-              size={18}
-              className="mt-0.5 shrink-0"
-              style={{ color: 'var(--eco-warning)' }}
-            />
-            <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
-              {tx(
-                language,
-                'Оплата по этой комнате недоступна из-за текущего статуса комнаты.',
-                'Бөлменің ағымдағы мәртебесіне байланысты төлем қолжетімсіз.',
-                'Payment is unavailable because of the current room status.',
-              )}
+          <Card className="flex flex-col gap-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle
+                size={18}
+                className="mt-0.5 shrink-0"
+                style={{ color: 'var(--eco-warning)' }}
+              />
+              <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                {tx(
+                  language,
+                  'Оплата по этой комнате недоступна из-за текущего статуса комнаты.',
+                  'Бөлменің ағымдағы мәртебесіне байланысты төлем қолжетімсіз.',
+                  'Payment is unavailable because of the current room status.',
+                )}
+              </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={cancellingApplication}
+              onClick={() => setCancelAppConfirmOpen(true)}
+            >
+              {tx(language, 'Отменить заявку', 'Өтінімді бас тарту', 'Cancel Application')}
+            </Button>
+          </Card>
+        )}
+
+        {membership.status === 'CANCELLED_BEFORE_PAYMENT' && (
+          <Card className="flex flex-col gap-4 items-center text-center">
+            <MemberStatusBadge status="CANCELLED_BEFORE_PAYMENT" />
+            <p className="text-[14px]" style={{ color: 'var(--eco-text-secondary)' }}>
+              {tx(language, 'Заявка отменена.', 'Өтінім бас тартылды.', 'Application cancelled.')}
+            </p>
+            <Link to={`/room/${roomId}`} style={{ textDecoration: 'none' }}>
+              <Button variant="primary" size="md">
+                {tx(language, 'Подать заявку снова', 'Өтінімді қайта беру', 'Apply again')}
+              </Button>
+            </Link>
           </Card>
         )}
 
@@ -1365,6 +1420,34 @@ export function MemberDetailPage() {
           >
             <Flag size={14} /> {tx(language, 'Отправить жалобу', 'Шағымды жіберу', 'Submit report')}
           </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={cancelAppConfirmOpen}
+        onClose={() => setCancelAppConfirmOpen(false)}
+        title={tx(language, 'Отменить заявку', 'Өтінімді бас тарту', 'Cancel Application')}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+            {tx(
+              language,
+              'Вы уверены, что хотите отменить заявку? Место будет освобождено.',
+              'Өтінімді бас тартқыңыз келетініне сенімдісіз бе? Орын босатылады.',
+              'Are you sure you want to cancel your application? The seat will be released.',
+            )}
+          </p>
+          {cancelAppError && (
+            <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>{cancelAppError}</p>
+          )}
+          <div className="flex gap-2">
+            <Button variant="destructive" loading={cancellingApplication} onClick={handleCancelApplication}>
+              {tx(language, 'Да, отменить', 'Иә, бас тарту', 'Yes, cancel')}
+            </Button>
+            <Button variant="secondary" onClick={() => setCancelAppConfirmOpen(false)}>
+              {tx(language, 'Нет', 'Жоқ', 'No')}
+            </Button>
+          </div>
         </div>
       </Modal>
 

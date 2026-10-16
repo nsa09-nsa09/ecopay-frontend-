@@ -1161,6 +1161,14 @@ export function confirmMemberAccessRequest(roomId: string | number, accessToken:
   );
 }
 
+export function cancelMyMembershipRequest(roomId: string | number, accessToken: string) {
+  return requestJson<MyRoomMembershipDto>(
+    `/rooms/${roomId}/members/me/cancel`,
+    { method: 'POST' },
+    accessToken,
+  );
+}
+
 export type RoomComplaintReason =
   'ACCESS_NOT_PROVIDED' | 'ACCESS_NOT_AS_DESCRIBED' | 'OWNER_STOPPED_FULFILLING' | 'OTHER';
 
