@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, Button } from '../ds-primitives';
+import { Modal, Button, Select } from '../ds-primitives';
 import { toast } from 'sonner';
 import { ApiError, createReviewRequest } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
@@ -18,6 +18,7 @@ interface LeaveReviewModalProps {
   recipientId: number;
   roomId?: string | number;
   recipientName?: string;
+  eligibleRooms?: { roomId: number; title: string }[];
   onSubmitted?: () => void;
 }
 
@@ -27,6 +28,7 @@ export function LeaveReviewModal({
   recipientId,
   roomId,
   recipientName,
+  eligibleRooms,
   onSubmitted,
 }: LeaveReviewModalProps) {
   const { authorizedRequest } = useAuth();
@@ -34,13 +36,23 @@ export function LeaveReviewModal({
   const [rating, setRating] = useState(DEFAULT_RATING);
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [selectedRoomId, setSelectedRoomId] = useState<string>('');
 
   useEffect(() => {
     if (!open) {
       setRating(DEFAULT_RATING);
       setText('');
+      setSelectedRoomId('');
     }
   }, [open]);
+
+  useEffect(() => {
+    if (eligibleRooms?.length === 1 && !roomId) {
+      setSelectedRoomId(String(eligibleRooms[0].roomId));
+    }
+  }, [eligibleRooms, roomId]);
+
+  const resolvedRoomId = roomId !== undefined ? roomId : (selectedRoomId || undefined);
 
   const submit = async () => {
     if (rating < 1) return;
@@ -50,7 +62,7 @@ export function LeaveReviewModal({
         createReviewRequest(
           {
             recipientId,
-            ...(roomId !== undefined ? { roomId } : {}),
+            ...(resolvedRoomId !== undefined ? { roomId: resolvedRoomId } : {}),
             rating,
             text: text.trim() || undefined,
           },
@@ -61,15 +73,14 @@ export function LeaveReviewModal({
       onSubmitted?.();
       onClose();
     } catch (err) {
+      const apiErr = err instanceof ApiError ? err : null;
+      const code = apiErr?.serverCode ?? '';
       const msg =
-        err instanceof ApiError
-          ? err.message
-          : tx(
-              language,
-              'Не удалось отправить отзыв.',
-              'Пікірді жіберу мүмкін болмады.',
-              'Unable to submit review.',
-            );
+        code === 'REVIEW_NOT_ALLOWED'
+          ? tx(language, 'Вы не можете оставить отзыв этому пользователю.', 'Сіз бұл пайдаланушыға пікір қалдыра алмайсыз.', 'You cannot review this user.')
+          : apiErr
+            ? apiErr.message
+            : tx(language, 'Не удалось отправить отзыв.', 'Пікірді жіберу мүмкін болмады.', 'Unable to submit review.');
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -86,6 +97,22 @@ export function LeaveReviewModal({
         {recipientName && (
           <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
             {tx(language, 'Отзыв о', 'Пікір', 'Reviewing')} {recipientName}
+          </div>
+        )}
+
+        {!roomId && eligibleRooms && eligibleRooms.length > 1 && (
+          <div>
+            <label className="block text-[14px] mb-2" style={{ color: 'var(--eco-text)' }}>
+              {tx(language, 'Комната', 'Бөлме', 'Room')}
+            </label>
+            <Select
+              options={[
+                { value: '', label: tx(language, 'Выберите комнату', 'Бөлмені таңдаңыз', 'Select a room') },
+                ...eligibleRooms.map((r) => ({ value: String(r.roomId), label: r.title })),
+              ]}
+              value={selectedRoomId}
+              onChange={(e) => setSelectedRoomId(e.target.value)}
+            />
           </div>
         )}
 
@@ -144,7 +171,7 @@ export function LeaveReviewModal({
             variant="primary"
             size="md"
             loading={submitting}
-            disabled={rating < 1}
+            disabled={rating < 1 || (!roomId && eligibleRooms && eligibleRooms.length > 1 && !selectedRoomId)}
             onClick={submit}
             className="flex-1"
           >

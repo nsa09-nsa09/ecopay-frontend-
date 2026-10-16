@@ -6,6 +6,7 @@ import { Button, Card, Modal, Skeleton } from '../ds-primitives';
 import { Star, AlertCircle, Flag, BadgeCheck } from 'lucide-react';
 import {
   ApiError,
+  checkReviewEligibility,
   createUserReportRequest,
   getPublicProfile,
   getReputationRequest,
@@ -13,6 +14,7 @@ import {
   type PublicProfileDto,
   type ReputationDto,
   type ReviewDto,
+  type ReviewEligibilityDto,
   type UserReportCategory,
 } from '../../lib/api';
 import {
@@ -98,6 +100,7 @@ export function PublicUserProfilePage() {
   const [reportSending, setReportSending] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
   const [reportSuccess, setReportSuccess] = useState(false);
+  const [eligibility, setEligibility] = useState<ReviewEligibilityDto | null>(null);
 
   const loadProfile = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -161,6 +164,15 @@ export function PublicUserProfilePage() {
     void loadProfile();
   }, [loadProfile]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !reputation) return;
+    const userId = reputation.userId;
+    if (String(currentUser?.id) === String(userId)) return;
+    authorizedRequest((token) => checkReviewEligibility(userId, token))
+      .then(setEligibility)
+      .catch(() => setEligibility(null));
+  }, [isAuthenticated, reputation, currentUser, authorizedRequest]);
+
   const filteredReviews = reviews
     .filter((r) => {
       // Ratings are on the 1..10 scale; 8/10 matches the old "4 of 5 stars" cut-off.
@@ -219,7 +231,7 @@ export function PublicUserProfilePage() {
   const slug = profile?.slug ?? null;
   const isSelf =
     isAuthenticated && currentUser != null && String(currentUser.id) === String(reputation.userId);
-  const canRate = isAuthenticated && currentUser != null && !isSelf;
+  const canRate = isAuthenticated && currentUser != null && !isSelf && eligibility?.eligible === true;
   const reportHandle = slug || profile?.publicId || null;
 
   const submitReport = async () => {
@@ -528,6 +540,7 @@ export function PublicUserProfilePage() {
           onClose={() => setReviewOpen(false)}
           recipientId={reputation.userId}
           recipientName={reputation.displayName ?? undefined}
+          eligibleRooms={eligibility?.rooms}
           onSubmitted={() => {
             void loadProfile({ silent: true });
           }}

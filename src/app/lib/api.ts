@@ -2432,6 +2432,19 @@ export function createReviewRequest(payload: CreateReviewPayload, accessToken: s
   );
 }
 
+export interface ReviewEligibilityDto {
+  eligible: boolean;
+  rooms?: { roomId: number; title: string }[];
+}
+
+export function checkReviewEligibility(recipientId: number, accessToken: string) {
+  return requestJson<ReviewEligibilityDto>(
+    `/reviews/eligibility?recipientId=${recipientId}`,
+    {},
+    accessToken,
+  );
+}
+
 // ============================================================
 // Reputation (public)
 // ============================================================
