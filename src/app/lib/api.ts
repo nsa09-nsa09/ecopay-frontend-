@@ -2666,6 +2666,7 @@ export interface PublicProfileDto {
   reviewsCount: number;
   completedRoomsCount: number;
   createdAt: string;
+  ownerVerified?: boolean | null;
 }
 
 export function getPublicProfile(publicId: string) {

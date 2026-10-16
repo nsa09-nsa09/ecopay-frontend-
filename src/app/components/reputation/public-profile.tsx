@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import { useI18n, type Language } from '../i18n-provider';
 import { formatDate } from '../../lib/datetime';
 import { Button, Card, Modal, Skeleton } from '../ds-primitives';
-import { Star, AlertCircle, Flag } from 'lucide-react';
+import { Star, AlertCircle, Flag, BadgeCheck } from 'lucide-react';
 import {
   ApiError,
   createUserReportRequest,
@@ -296,10 +296,19 @@ export function PublicUserProfilePage() {
 
             <div className="flex-1 min-w-0">
               <h2
-                className="text-[20px] sm:text-[22px] break-words"
+                className="text-[20px] sm:text-[22px] break-words flex items-center gap-2"
                 style={{ color: 'var(--eco-text)' }}
               >
                 {reputation.displayName}
+                {profile?.ownerVerified && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[13px] font-medium shrink-0"
+                    style={{ color: 'var(--eco-success-600)' }}
+                    title={tx(language, 'Проверенный владелец', 'Расталған иесі', 'Verified owner')}
+                  >
+                    <BadgeCheck size={18} />
+                  </span>
+                )}
               </h2>
               {slug ? (
                 <div className="text-[13px] mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
