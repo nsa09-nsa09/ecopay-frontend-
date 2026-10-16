@@ -13,7 +13,7 @@ import {
 import { ShieldX, ShieldCheck, Home, MousePointerClick } from 'lucide-react';
 import { ConfirmActionModal, FlashBanner, formatAdminApiError, useFlash } from './admin-action-ui';
 import { AdminRoomSettingsCard } from './admin-room-settings-card';
-import { formatNumber } from '../../lib/datetime';
+import { formatDateTime, formatNumber } from '../../lib/datetime';
 import {
   AdminCard,
   AdminEmptyState,
@@ -246,7 +246,7 @@ export function AdminRoomsPage() {
                     {selected.maxMembers}
                   </AdminField>
                   <AdminField label={t('startLabel')} numeric>
-                    {selected.startDate}
+                    {formatDateTime(selected.startDate)}
                   </AdminField>
                   <AdminField label={t('totalCost')} numeric>
                     <span className="whitespace-nowrap">

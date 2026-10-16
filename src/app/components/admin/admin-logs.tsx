@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Badge, Button, Input } from '../ds-primitives';
 import { AdminLayout } from './admin-layout';
-import { useI18n } from '../i18n-provider';
+import { useI18n, type Language } from '../i18n-provider';
 import { formatDateTime } from '../../lib/datetime';
 import { useAuth } from '../auth/auth-provider';
 import {
@@ -12,7 +12,7 @@ import {
   type RoomEventLogDto,
 } from '../../lib/api';
 import { formatAdminApiError } from './admin-action-ui';
-import { Shield, FileText } from 'lucide-react';
+import { Shield, FileText, ChevronRight, ChevronDown } from 'lucide-react';
 import { userEventLabel } from '../../lib/user-facing-enums';
 import {
   AdminCard,
@@ -30,6 +30,9 @@ import {
 } from './admin-ui';
 
 const PAGE_SIZE = 25;
+
+const txl = (l: Language, ru: string, kz: string, en: string) =>
+  l === 'ru' ? ru : l === 'kz' ? kz : en;
 
 type Tab = 'admin-actions' | 'room-events';
 
@@ -74,6 +77,7 @@ export function AdminLogsPage() {
   const [appliedFilters, setAppliedFilters] = useState<FilterValues>(initFilters);
   const [roomIdFilter, setRoomIdFilter] = useState(initRoomId);
   const [appliedRoomId, setAppliedRoomId] = useState(initRoomId);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -213,13 +217,55 @@ export function AdminLogsPage() {
     },
   ];
 
+  const toggleExpand = (id: number) =>
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const stateEntries = (obj: unknown): [string, string][] => {
+    if (!obj || typeof obj !== 'object') return [];
+    return Object.entries(obj as Record<string, unknown>).map(([k, v]) => [
+      k,
+      v == null ? '—' : String(v),
+    ]);
+  };
+
   const roomColumns: AdminColumn<RoomEventLogDto>[] = [
     {
-      id: 'type',
-      header: t('colType'),
+      id: 'expand',
+      header: '',
+      cell: (log) => {
+        const has = log.oldState || log.newState;
+        if (!has) return null;
+        const open = expandedRows.has(log.id);
+        return (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); toggleExpand(log.id); }}
+            className="p-0.5 rounded hover:bg-[var(--eco-bg-hover)]"
+            aria-label={open ? 'Collapse' : 'Expand'}
+          >
+            {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+        );
+      },
+    },
+    {
+      id: 'event',
+      header: txl(language, 'Событие', 'Оқиға', 'Event'),
       priority: 'primary',
       minWidth: 170,
-      cell: (log) => typeCell(log.eventType),
+      cell: (log) => (
+        <div className="flex flex-col items-start gap-1">
+          <Badge variant="info">{log.eventLabel ?? userEventLabel(log.eventType, language)}</Badge>
+          <code className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+            {log.eventType}
+          </code>
+        </div>
+      ),
     },
     {
       id: 'room',
@@ -228,8 +274,27 @@ export function AdminLogsPage() {
       nowrap: true,
       cell: (log) => (
         <Link to={`/admin/rooms?selected=${log.roomId}`} style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}>
-          R-{log.roomId}
+          {log.roomTitle ?? `R-${log.roomId}`}
         </Link>
+      ),
+    },
+    {
+      id: 'member',
+      header: txl(language, 'Участник', 'Қатысушы', 'Member'),
+      nowrap: true,
+      cell: (log) =>
+        log.memberUserId
+          ? userLink(log.memberUserId, log.memberDisplayName)
+          : log.roomMemberId
+            ? <span style={{ color: 'var(--eco-text-tertiary)' }}>M-{log.roomMemberId}</span>
+            : <span style={{ color: 'var(--eco-text-tertiary)' }}>—</span>,
+    },
+    {
+      id: 'summary',
+      header: txl(language, 'Детали', 'Мәліметтер', 'Details'),
+      minWidth: 200,
+      cell: (log) => (
+        <span style={{ color: 'var(--eco-text-secondary)' }}>{log.summary ?? '—'}</span>
       ),
     },
     {
@@ -238,35 +303,6 @@ export function AdminLogsPage() {
       priority: 'secondary',
       nowrap: true,
       cell: (log) => timeCell(log.createdAt),
-    },
-    {
-      id: 'actor',
-      header: t('colActor'),
-      nowrap: true,
-      cell: (log) => (
-        <>
-          <span style={{ color: 'var(--eco-text-secondary)' }}>{log.actorRole ?? '—'}</span>
-          {log.actorUserId ? <> {userLink(log.actorUserId, log.actorDisplayName)}</> : null}
-        </>
-      ),
-    },
-    {
-      id: 'owner',
-      header: t('logsRoomOwnerLabel'),
-      nowrap: true,
-      cell: (log) => userLink(log.roomOwnerUserId, log.roomOwnerDisplayName),
-    },
-    {
-      id: 'event',
-      header: t('adminColEventId'),
-      cell: (log) => (
-        <span
-          className="text-[12px] break-all"
-          style={{ color: 'var(--eco-text-tertiary)', fontFamily: 'ui-monospace, monospace' }}
-        >
-          {log.eventId}
-        </span>
-      ),
     },
     {
       id: 'ip',
@@ -392,6 +428,10 @@ export function AdminLogsPage() {
             loading={loading}
             error={error}
             onRetry={() => void load()}
+            onRowClick={(log) => {
+              if (log.oldState || log.newState) toggleExpand(log.id);
+            }}
+            isRowActive={(log) => expandedRows.has(log.id)}
             minWidth={1040}
             empty={
               <AdminCard>
@@ -404,6 +444,45 @@ export function AdminLogsPage() {
             }
           />
         )}
+        {tab === 'room-events' && roomLogs.filter((l) => expandedRows.has(l.id)).map((log) => (
+          <AdminCard key={`detail-${log.id}`}>
+            <div className="text-[13px] mb-2 font-medium" style={{ color: 'var(--eco-text)' }}>
+              {log.eventLabel ?? userEventLabel(log.eventType, language)} — R-{log.roomId}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {log.oldState && (
+                <div>
+                  <div className="text-[12px] font-medium mb-1" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {txl(language, 'Прежнее состояние', 'Бұрынғы күй', 'Previous state')}
+                  </div>
+                  <dl className="text-[12px] space-y-0.5">
+                    {stateEntries(log.oldState).map(([k, v]) => (
+                      <div key={k} className="flex gap-2">
+                        <dt className="font-medium shrink-0" style={{ color: 'var(--eco-text-secondary)' }}>{k}:</dt>
+                        <dd style={{ color: 'var(--eco-text)' }}>{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+              {log.newState && (
+                <div>
+                  <div className="text-[12px] font-medium mb-1" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {txl(language, 'Новое состояние', 'Жаңа күй', 'New state')}
+                  </div>
+                  <dl className="text-[12px] space-y-0.5">
+                    {stateEntries(log.newState).map(([k, v]) => (
+                      <div key={k} className="flex gap-2">
+                        <dt className="font-medium shrink-0" style={{ color: 'var(--eco-text-secondary)' }}>{k}:</dt>
+                        <dd style={{ color: 'var(--eco-text)' }}>{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+            </div>
+          </AdminCard>
+        ))}
 
         <AdminPagination
           page={page}

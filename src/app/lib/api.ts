@@ -2291,10 +2291,15 @@ export interface RoomEventLogDto {
   actorDisplayName: string | null;
   actorRole: string | null;
   roomId: number;
+  roomTitle?: string | null;
   roomOwnerUserId: number | null;
   roomOwnerDisplayName: string | null;
   roomMemberId: number | null;
+  memberDisplayName?: string | null;
+  memberUserId?: number | null;
   eventType: string;
+  eventLabel?: string | null;
+  summary?: string | null;
   oldState: unknown;
   newState: unknown;
   ipAddress: string | null;
