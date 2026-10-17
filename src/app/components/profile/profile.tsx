@@ -938,7 +938,7 @@ function AvatarUploader() {
         style={{ background: 'var(--eco-surface)', color: 'var(--eco-text-secondary)' }}
       >
         {displayAvatar ? (
-          <img src={displayAvatar} alt={user.displayName} className="w-full h-full object-cover" />
+          <img src={displayAvatar} alt={user.displayName} className="w-full h-full object-cover" style={{ imageOrientation: 'from-image' }} />
         ) : (
           initials || '?'
         )}

@@ -48,35 +48,37 @@ export function LogoCropModal({
   const [busy, setBusy] = useState(false);
   const [imageError, setImageError] = useState(false);
 
+  const bitmapRef = useRef<ImageBitmap | null>(null);
+
   // Load the picked file into an object URL + read its natural size.
+  // createImageBitmap respects EXIF orientation so rotated phone photos
+  // are drawn correctly on the crop canvas.
   useEffect(() => {
     if (!open || !file) {
       setSrc(null);
       setNat(null);
       imgRef.current = null;
+      bitmapRef.current = null;
       setImageError(false);
       return;
     }
     imgRef.current = null;
+    bitmapRef.current = null;
     setNat(null);
     setImageError(false);
     const url = URL.createObjectURL(file);
     setSrc(url);
-    const image = new Image();
-    image.onload = () => {
-      if (!image.naturalWidth || !image.naturalHeight) {
+    createImageBitmap(file)
+      .then((bmp) => {
+        bitmapRef.current = bmp;
+        setNat({ w: bmp.width, h: bmp.height });
+        const image = new Image();
+        image.onload = () => { imgRef.current = image; };
+        image.src = url;
+      })
+      .catch(() => {
         setImageError(true);
-        return;
-      }
-      imgRef.current = image;
-      setNat({ w: image.naturalWidth, h: image.naturalHeight });
-    };
-    image.onerror = () => {
-      imgRef.current = null;
-      setNat(null);
-      setImageError(true);
-    };
-    image.src = url;
+      });
     return () => URL.revokeObjectURL(url);
   }, [open, file]);
 
@@ -154,11 +156,10 @@ export function LogoCropModal({
   };
 
   const apply = useCallback(() => {
-    const image = imgRef.current;
-    if (!image || !nat || !file) return;
+    const drawable = bitmapRef.current ?? imgRef.current;
+    if (!drawable || !nat || !file) return;
     setBusy(true);
     try {
-      // Frame → natural-image source rectangle.
       const srcX = -pos.x / scale;
       const srcY = -pos.y / scale;
       const srcW = frame.w / scale;
@@ -172,11 +173,10 @@ export function LogoCropModal({
         setBusy(false);
         return;
       }
-      // Transparent areas flatten to white, matching the backend re-encode.
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, outputSize.width, outputSize.height);
       ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(image, srcX, srcY, srcW, srcH, 0, 0, outputSize.width, outputSize.height);
+      ctx.drawImage(drawable, srcX, srcY, srcW, srcH, 0, 0, outputSize.width, outputSize.height);
 
       canvas.toBlob(
         (blob) => {
@@ -235,6 +235,7 @@ export function LogoCropModal({
                 height: nat.h * scale,
                 maxWidth: 'none',
                 pointerEvents: 'none',
+                imageOrientation: 'from-image',
               }}
             />
           )}
