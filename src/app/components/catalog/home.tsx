@@ -46,6 +46,7 @@ import {
   type ServiceAccessType,
   type ServiceDto,
   getService,
+  localizedCategoryName,
 } from '../../lib/api';
 import { AccessTypeTag } from '../access-type';
 
@@ -746,7 +747,12 @@ export function HomePage() {
   // The catalog has a single source of truth: active services returned by the
   // backend. Local showcase cards and local prices are never mixed in.
   const displayServices = useMemo<DisplayService[]>(() => {
-    const combined = services.map(fromApi);
+    const catNames = new Map(categories.map((c) => [c.id, localizedCategoryName(c, language)]));
+    const combined = services.map((s) => {
+      const ds = fromApi(s);
+      ds.categoryName = catNames.get(s.categoryId) ?? ds.categoryName;
+      return ds;
+    });
     const raw = query.trim().toLowerCase();
     if (!raw) return combined;
     const q = normalizeYo(raw);
@@ -761,7 +767,7 @@ export function HomePage() {
       }
       return false;
     });
-  }, [services, query]);
+  }, [services, query, categories, language]);
 
   const scrollToMarketplace = () => {
     document.getElementById('marketplace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1094,7 +1100,7 @@ export function HomePage() {
         <div className="flex gap-2 overflow-x-auto pb-3 mb-5">
           {[
             { id: 'all' as const, name: tx(lang, 'Все', 'Барлығы', 'All') },
-            ...categories.map((c) => ({ id: c.id, name: c.name })),
+            ...categories.map((c) => ({ id: c.id, name: localizedCategoryName(c, language) })),
           ].map((category) => {
             const active = activeCategoryId === category.id;
             return (

@@ -13,12 +13,7 @@ import { Plus, Users, ArrowRight, Filter, ChevronDown, ChevronUp } from 'lucide-
 import { getJoinedRooms, getMyRooms, type JoinedRoomDto, type RoomSummaryDto } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
 import { useI18n } from '../i18n-provider';
-
-const moneyFormatter = new Intl.NumberFormat('ru-RU');
-
-function formatMoney(value: number | null | undefined) {
-  return `₸${moneyFormatter.format(Number(value ?? 0))}`;
-}
+import { formatMoney } from '../../lib/datetime';
 
 const STATUS_VALUES = [
   'ALL',

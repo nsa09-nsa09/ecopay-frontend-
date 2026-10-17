@@ -915,8 +915,20 @@ export function joinRoomRequest(
 export interface CategoryDto {
   id: number;
   name: string;
+  nameRu?: string | null;
+  nameKz?: string | null;
+  nameEn?: string | null;
   slug: string;
   sortOrder: number;
+}
+
+export function localizedCategoryName(
+  cat: { name: string; nameRu?: string | null; nameKz?: string | null; nameEn?: string | null },
+  lang: string,
+): string {
+  if (lang === 'kz') return cat.nameKz || cat.nameRu || cat.name;
+  if (lang === 'en') return cat.nameEn || cat.name;
+  return cat.nameRu || cat.name;
 }
 
 export interface RoomMemberDto {
@@ -2875,6 +2887,9 @@ export function deleteMyAvatar(accessToken: string) {
 export interface AdminCategoryDto {
   id: number;
   name: string;
+  nameRu?: string | null;
+  nameKz?: string | null;
+  nameEn?: string | null;
   slug: string;
   isActive: boolean;
   sortOrder: number;
@@ -2917,6 +2932,9 @@ export interface AdminTariffDto {
 
 export interface CreateCategoryPayload {
   name: string;
+  nameRu?: string;
+  nameKz?: string;
+  nameEn?: string;
   slug?: string;
   sortOrder?: number;
   isActive?: boolean;
@@ -2924,6 +2942,9 @@ export interface CreateCategoryPayload {
 
 export interface UpdateCategoryPayload {
   name?: string;
+  nameRu?: string;
+  nameKz?: string;
+  nameEn?: string;
   slug?: string;
   sortOrder?: number;
   isActive?: boolean;

@@ -44,6 +44,7 @@ import { useI18n, type Language } from '../i18n-provider';
 import {
   formatDate as formatAlmatyDate,
   formatDateTime as formatAlmatyDateTime,
+  formatMoney,
 } from '../../lib/datetime';
 import { LeaveReviewModal } from '../reputation/leave-review-modal';
 import { ReputationLevelBadge } from '../reputation/level-badge';
@@ -51,9 +52,6 @@ import { RoomChat } from './room-chat';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
-
-const moneyFormatter = new Intl.NumberFormat('ru-RU');
-const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
 const numberOrNull = (value: number | string | null | undefined) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;

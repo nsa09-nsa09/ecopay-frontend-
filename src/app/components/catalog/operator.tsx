@@ -12,8 +12,7 @@ import {
   type ServiceDto,
   type TariffPlanDto,
 } from '../../lib/api';
-
-const moneyFormatter = new Intl.NumberFormat('ru-RU');
+import { formatMoney } from '../../lib/datetime';
 
 const operatorColors: Record<string, string> = {
   'beeline-family': '#FFB800',
@@ -29,10 +28,6 @@ function getOperatorColor(service: ServiceDto | null) {
   }
 
   return operatorColors[service.slug] ?? 'var(--eco-primary)';
-}
-
-function formatMoney(value: number | null | undefined) {
-  return `₸${moneyFormatter.format(Number(value ?? 0))}`;
 }
 
 export function OperatorPage() {

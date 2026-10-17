@@ -33,15 +33,10 @@ import {
   validateIdentifier,
   type IdentifierType,
 } from '../../lib/contact-identifier';
+import { formatMoney } from '../../lib/datetime';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
-
-const moneyFormatter = new Intl.NumberFormat('ru-RU');
-
-function formatMoney(value: number | string | null | undefined) {
-  return `₸${moneyFormatter.format(Number(value ?? 0))}`;
-}
 
 function numberOrNull(value: number | string | null | undefined) {
   const n = Number(value);

@@ -71,6 +71,15 @@ export function formatNumber(value: number, language?: Language): string {
   return fmt.format(value);
 }
 
+const moneyFmt = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+
+export function formatMoney(value: number | string | null | undefined, currency?: string | null): string {
+  const n = Number(value ?? 0);
+  const cur = currency ?? 'KZT';
+  const formatted = moneyFmt.format(n);
+  return cur === 'KZT' ? `₸${formatted}` : `${formatted} ${cur}`;
+}
+
 /**
  * Format only the date portion (no time) in Asia/Almaty.
  */

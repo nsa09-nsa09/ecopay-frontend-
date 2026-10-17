@@ -1855,9 +1855,9 @@ adminAboutApexLink: {
   twoFaCode: { ru: 'Код 2FA', kz: '2FA коды', en: '2FA Code' },
   sixDigitCode: { ru: '6-значный код', kz: '6 таңбалы код', en: '6-digit code' },
   enterAuthCode: {
-    ru: 'Введите код из приложения-аутентификатора',
-    kz: 'Аутентификатор қолданбасынан кодты енгізіңіз',
-    en: 'Enter code from your authenticator app',
+    ru: 'Введите код, отправленный на вашу почту',
+    kz: 'Поштаңызға жіберілген кодты енгізіңіз',
+    en: 'Enter the code sent to your email',
   },
   signInToPortal: { ru: 'Войти в портал', kz: 'Порталға кіру', en: 'Sign In to Portal' },
   verifyAndSignIn: { ru: 'Подтвердить и войти', kz: 'Растау және кіру', en: 'Verify and Sign In' },
@@ -2453,6 +2453,9 @@ paymentIntentValid24h: {
   catalogFieldSortOrder: { ru: 'Порядок сортировки', kz: 'Сұрыптау реті', en: 'Sort order' },
   catalogSearchAliases: { ru: 'Поисковые алиасы', kz: 'Іздеу бүркеншіктері', en: 'Search aliases' },
   catalogSearchAliasesHint: { ru: 'Через запятую, напр. Ютуб, YouTube', kz: 'Үтір арқылы, мыс. Ютуб, YouTube', en: 'Comma-separated, e.g. Ютуб, YouTube' },
+  catalogCategoryNameRu: { ru: 'Название (RU)', kz: 'Атауы (RU)', en: 'Name (RU)' },
+  catalogCategoryNameKz: { ru: 'Название (KZ)', kz: 'Атауы (KZ)', en: 'Name (KZ)' },
+  catalogCategoryNameEn: { ru: 'Название (EN)', kz: 'Атауы (EN)', en: 'Name (EN)' },
   catalogFieldProviderType: { ru: 'Тип провайдера', kz: 'Провайдер түрі', en: 'Provider type' },
   catalogFieldPeriodType: { ru: 'Период', kz: 'Кезең', en: 'Period type' },
   catalogFieldMaxMembers: { ru: 'Макс. участников', kz: 'Макс. қатысушылар', en: 'Max members' },
@@ -4222,27 +4225,25 @@ export interface PluralForms {
   many?: string;
 }
 
-/**
- * Picks the correct plural form for the given language and count.
- *
- * Russian follows CLDR: one (n%10=1 & n%100≠11), few (n%10∈2..4 & n%100∉12..14),
- * many (otherwise). Kazakh has a single form. English is singular/plural only.
- * When `few` or `many` are omitted, they fall back to `many`/`few`/`one`.
- */
+const pluralRulesCache = new Map<string, Intl.PluralRules>();
+function getPluralRules(locale: string): Intl.PluralRules {
+  let rules = pluralRulesCache.get(locale);
+  if (!rules) {
+    rules = new Intl.PluralRules(locale);
+    pluralRulesCache.set(locale, rules);
+  }
+  return rules;
+}
+
+const PLURAL_LOCALE: Record<Language, string> = { ru: 'ru', kz: 'kk', en: 'en' };
+
 export function plural(language: Language, count: number, forms: PluralForms): string {
   const many = forms.many ?? forms.few ?? forms.one;
   const few = forms.few ?? many;
-  if (language === 'ru') {
-    const mod10 = count % 10;
-    const mod100 = count % 100;
-    if (mod10 === 1 && mod100 !== 11) return forms.one;
-    if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return few;
-    return many;
-  }
-  if (language === 'kz') {
-    return forms.one;
-  }
-  return count === 1 ? forms.one : many;
+  const category = getPluralRules(PLURAL_LOCALE[language]).select(count);
+  if (category === 'one') return forms.one;
+  if (category === 'few') return few;
+  return many;
 }
 
 interface I18nContextType {

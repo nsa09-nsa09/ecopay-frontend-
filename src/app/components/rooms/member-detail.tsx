@@ -53,6 +53,7 @@ import { useI18n, type Language } from '../i18n-provider';
 import {
   formatDate as formatAlmatyDate,
   formatDateTime as formatAlmatyDateTime,
+  formatMoney,
 } from '../../lib/datetime';
 import { RoomChat } from './room-chat';
 import { LeaveReviewModal } from '../reputation/leave-review-modal';
@@ -61,13 +62,8 @@ import { ReputationLevelBadge } from '../reputation/level-badge';
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
 
-const moneyFormatter = new Intl.NumberFormat('ru-RU');
-const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
-const formatCurrency = (v: number | string | null | undefined, currency = 'KZT') => {
-  const formatted = moneyFormatter.format(Number(v ?? 0));
-  const normalizedCurrency = currency ?? 'KZT';
-  return normalizedCurrency === 'KZT' ? `₸${formatted}` : `${normalizedCurrency} ${formatted}`;
-};
+const formatCurrency = (v: number | string | null | undefined, currency = 'KZT') =>
+  formatMoney(Number(v ?? 0), currency ?? 'KZT');
 const toFiniteNumber = (v: number | string | null | undefined) => {
   const parsed = Number(v);
   return Number.isFinite(parsed) ? parsed : null;

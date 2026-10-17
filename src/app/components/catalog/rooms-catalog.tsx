@@ -4,10 +4,8 @@ import { Card, Select, RoomStatusBadge, Pill, EmptyState, Button } from '../ds-p
 import { Users, Filter, Search, LayoutGrid } from 'lucide-react';
 import { useI18n, type Language } from '../i18n-provider';
 import { getRooms, type RoomSummaryDto } from '../../lib/api';
+import { formatMoney } from '../../lib/datetime';
 import { AccessTypeTag } from '../access-type';
-
-const moneyFormatter = new Intl.NumberFormat('ru-RU');
-const formatMoney = (v: number | null | undefined) => `₸${moneyFormatter.format(Number(v ?? 0))}`;
 const numberOrNull = (value: number | string | null | undefined) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;

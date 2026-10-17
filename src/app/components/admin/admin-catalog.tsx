@@ -321,6 +321,9 @@ function CategoryFormModal({
   const { t } = useI18n();
   const { authorizedRequest } = useAuth();
   const [name, setName] = useState('');
+  const [nameRu, setNameRu] = useState('');
+  const [nameKz, setNameKz] = useState('');
+  const [nameEn, setNameEn] = useState('');
   const [slug, setSlug] = useState('');
   const [sortOrder, setSortOrder] = useState<string>('0');
   const [isActive, setIsActive] = useState(true);
@@ -330,6 +333,9 @@ function CategoryFormModal({
   useEffect(() => {
     if (!open) return;
     setName(existing?.name ?? '');
+    setNameRu(existing?.nameRu ?? '');
+    setNameKz(existing?.nameKz ?? '');
+    setNameEn(existing?.nameEn ?? '');
     setSlug(existing?.slug ?? '');
     setSortOrder(String(existing?.sortOrder ?? 0));
     setIsActive(existing?.isActive ?? true);
@@ -347,6 +353,9 @@ function CategoryFormModal({
       if (existing) {
         const payload: UpdateCategoryPayload = {
           name: name.trim(),
+          nameRu: nameRu.trim() || undefined,
+          nameKz: nameKz.trim() || undefined,
+          nameEn: nameEn.trim() || undefined,
           slug: slug.trim() || undefined,
           sortOrder: Number(sortOrder) || 0,
           isActive,
@@ -355,6 +364,9 @@ function CategoryFormModal({
       } else {
         const payload: CreateCategoryPayload = {
           name: name.trim(),
+          nameRu: nameRu.trim() || undefined,
+          nameKz: nameKz.trim() || undefined,
+          nameEn: nameEn.trim() || undefined,
           slug: slug.trim() || undefined,
           sortOrder: Number(sortOrder) || 0,
           isActive,
@@ -381,6 +393,21 @@ function CategoryFormModal({
           label={t('catalogFieldName')}
           value={name}
           onChange={(e) => setName(e.target.value)}
+        />
+        <Input
+          label={t('catalogCategoryNameRu')}
+          value={nameRu}
+          onChange={(e) => setNameRu(e.target.value)}
+        />
+        <Input
+          label={t('catalogCategoryNameKz')}
+          value={nameKz}
+          onChange={(e) => setNameKz(e.target.value)}
+        />
+        <Input
+          label={t('catalogCategoryNameEn')}
+          value={nameEn}
+          onChange={(e) => setNameEn(e.target.value)}
         />
         <Input
           label={t('adminColSlug')}
