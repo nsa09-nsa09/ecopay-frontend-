@@ -127,6 +127,7 @@ type DisplayService = {
   tariffs?: number;
   logoUrl?: string | null;
   accessType?: ServiceAccessType | null;
+  searchAliases?: string | null;
 };
 
 // Prefer the logo uploaded in the admin catalog. If an old/deleted image URL
@@ -169,7 +170,12 @@ function fromApi(service: ServiceDto): DisplayService {
     currency: service.currency,
     tariffs: service.tariffCount,
     accessType: service.accessType,
+    searchAliases: service.searchAliases,
   };
+}
+
+function normalizeYo(s: string): string {
+  return s.replace(/ё/g, 'е').replace(/Ё/g, 'Е');
 }
 
 // ─── Static home content ───
@@ -741,13 +747,20 @@ export function HomePage() {
   // backend. Local showcase cards and local prices are never mixed in.
   const displayServices = useMemo<DisplayService[]>(() => {
     const combined = services.map(fromApi);
-    const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return combined;
-    return combined.filter(
-      (s) =>
-        s.name.toLowerCase().includes(normalizedQuery) ||
-        s.categoryName.toLowerCase().includes(normalizedQuery),
-    );
+    const raw = query.trim().toLowerCase();
+    if (!raw) return combined;
+    const q = normalizeYo(raw);
+    return combined.filter((s) => {
+      const n = normalizeYo(s.name.toLowerCase());
+      const c = normalizeYo(s.categoryName.toLowerCase());
+      if (n.includes(q) || c.includes(q)) return true;
+      if (s.searchAliases) {
+        return s.searchAliases
+          .split(',')
+          .some((a) => normalizeYo(a.trim().toLowerCase()).includes(q));
+      }
+      return false;
+    });
   }, [services, query]);
 
   const scrollToMarketplace = () => {

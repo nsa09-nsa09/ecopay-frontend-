@@ -51,6 +51,7 @@ export interface ServiceDto {
   currency?: string | null;
   tariffCount?: number;
   logoUrl?: string | null;
+  searchAliases?: string | null;
 }
 
 export type CatalogSort = 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc' | 'newest';
@@ -2893,6 +2894,7 @@ export interface AdminServiceDto {
   isActive: boolean;
   tariffsCount: number;
   logoUrl?: string | null;
+  searchAliases?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -2934,6 +2936,7 @@ export interface CreateServicePayload {
   providerType: string;
   accessType?: ServiceAccessType;
   isActive?: boolean;
+  searchAliases?: string;
 }
 
 export interface UpdateServicePayload {
@@ -2943,6 +2946,7 @@ export interface UpdateServicePayload {
   providerType?: string;
   accessType?: ServiceAccessType;
   isActive?: boolean;
+  searchAliases?: string;
 }
 
 export interface CreateTariffPayload {

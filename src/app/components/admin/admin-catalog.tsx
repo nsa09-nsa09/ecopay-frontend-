@@ -665,6 +665,7 @@ function ServiceFormModal({
   const [providerType, setProviderType] = useState<string>(PROVIDER_TYPES[0]);
   const [accessType, setAccessType] = useState<ServiceAccessType>('EMAIL');
   const [isActive, setIsActive] = useState(true);
+  const [searchAliases, setSearchAliases] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -691,6 +692,7 @@ function ServiceFormModal({
     setProviderType(existing?.providerType ?? PROVIDER_TYPES[0]);
     setAccessType(existing?.accessType ?? 'EMAIL');
     setIsActive(existing?.isActive ?? true);
+    setSearchAliases(existing?.searchAliases ?? '');
     setError(null);
     setCurrent(existing);
     setPendingLogoFile(null);
@@ -770,6 +772,7 @@ function ServiceFormModal({
           providerType,
           accessType,
           isActive,
+          searchAliases: searchAliases.trim() || undefined,
         };
         saved = await authorizedRequest((token) => adminUpdateService(current.id, payload, token));
       } else {
@@ -780,6 +783,7 @@ function ServiceFormModal({
           providerType,
           accessType,
           isActive,
+          searchAliases: searchAliases.trim() || undefined,
         };
         saved = await authorizedRequest((token) => adminCreateService(payload, token));
       }
@@ -879,6 +883,12 @@ function ServiceFormModal({
           value={accessType}
           onChange={(e) => setAccessType(e.target.value as ServiceAccessType)}
           options={ACCESS_TYPES.map((a) => ({ value: a, label: accessTypeLabel(a, t) }))}
+        />
+        <Input
+          label={t('catalogSearchAliases')}
+          hint={t('catalogSearchAliasesHint')}
+          value={searchAliases}
+          onChange={(e) => setSearchAliases(e.target.value)}
         />
         <label className="flex items-center gap-2 text-[13px]" style={{ color: 'var(--eco-text)' }}>
           <input

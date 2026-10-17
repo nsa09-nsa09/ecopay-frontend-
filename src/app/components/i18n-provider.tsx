@@ -2451,6 +2451,8 @@ paymentIntentValid24h: {
   catalogFieldName: { ru: 'Название', kz: 'Атауы', en: 'Name' },
   catalogFieldSlug: { ru: 'Slug (автогенерация)', kz: 'Slug (автоматты)', en: 'Slug (auto)' },
   catalogFieldSortOrder: { ru: 'Порядок сортировки', kz: 'Сұрыптау реті', en: 'Sort order' },
+  catalogSearchAliases: { ru: 'Поисковые алиасы', kz: 'Іздеу бүркеншіктері', en: 'Search aliases' },
+  catalogSearchAliasesHint: { ru: 'Через запятую, напр. Ютуб, YouTube', kz: 'Үтір арқылы, мыс. Ютуб, YouTube', en: 'Comma-separated, e.g. Ютуб, YouTube' },
   catalogFieldProviderType: { ru: 'Тип провайдера', kz: 'Провайдер түрі', en: 'Provider type' },
   catalogFieldPeriodType: { ru: 'Период', kz: 'Кезең', en: 'Period type' },
   catalogFieldMaxMembers: { ru: 'Макс. участников', kz: 'Макс. қатысушылар', en: 'Max members' },
