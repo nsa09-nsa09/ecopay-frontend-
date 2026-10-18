@@ -31,12 +31,14 @@ import {
   deletePayoutMethodRequest,
   getMyPayoutsRequest,
   getMyRefundsRequest,
+  getMyRefundClaimsRequest,
   getPayoutBalanceRequest,
   getPayoutMethodsRequest,
   type PayoutBalanceDto,
   type PayoutDto,
   type PayoutMethodDto,
   type RefundTransactionResponse,
+  type RefundRequestResponse as RefundClaimResponse,
 } from '../../lib/api';
 import { useAuth } from '../auth/auth-provider';
 import { appBrand } from '../../config/brand';
@@ -837,11 +839,12 @@ const refundStatusLabel = (s: string, l: L): string => {
 };
 
 export function RefundStatusPage() {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const l = language as L;
   const { authorizedRequest, isAuthenticated, isReady } = useAuth();
 
   const [refunds, setRefunds] = useState<RefundTransactionResponse[]>([]);
+  const [claims, setClaims] = useState<RefundClaimResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -854,9 +857,15 @@ export function RefundStatusPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    authorizedRequest((token) => getMyRefundsRequest(token))
-      .then((data) => {
-        if (!cancelled) setRefunds(data);
+    Promise.all([
+      authorizedRequest((token) => getMyRefundsRequest(token)),
+      authorizedRequest((token) => getMyRefundClaimsRequest(token)).catch(() => [] as RefundClaimResponse[]),
+    ])
+      .then(([refundData, claimData]) => {
+        if (!cancelled) {
+          setRefunds(refundData);
+          setClaims(claimData);
+        }
       })
       .catch((err) => {
         if (cancelled) return;
@@ -1001,6 +1010,48 @@ export function RefundStatusPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {claims.length > 0 && (
+        <>
+          <h2 className="text-[18px] mt-8 mb-3" style={{ color: 'var(--eco-text)' }}>
+            {t('myRefundClaims')}
+          </h2>
+          <div className="flex flex-col gap-3">
+            {claims.map((c) => {
+              const statusKey = {
+                REQUESTED: 'refundClaimStatusRequested',
+                UNDER_REVIEW: 'refundClaimStatusUnderReview',
+                APPROVED: 'refundClaimStatusApproved',
+                REJECTED: 'refundClaimStatusRejected',
+              }[c.status] ?? 'refundClaimStatusRequested';
+              const variant = c.status === 'APPROVED' ? 'success' : c.status === 'REJECTED' ? 'danger' : 'warning';
+              return (
+                <Card key={c.id} className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge variant={variant}>{t(statusKey as 'refundClaimStatusRequested')}</Badge>
+                    <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                      {formatDateTime(c.createdAt, l)}
+                    </span>
+                  </div>
+                  {c.roomTitle && (
+                    <div className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                      {c.roomTitle}
+                    </div>
+                  )}
+                  <div className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+                    {c.description}
+                  </div>
+                  {c.decisionNote && (
+                    <div className="text-[12px] p-2 rounded" style={{ background: 'var(--eco-surface)', color: 'var(--eco-text-secondary)' }}>
+                      {c.decisionNote}
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </>
       )}
 
       <div

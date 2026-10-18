@@ -12,6 +12,7 @@ import {
   Flag,
   BadgeCheck,
   Star,
+  Undo2,
 } from 'lucide-react';
 import {
   ApiError,
@@ -20,6 +21,7 @@ import {
   createRoomComplaintRequest,
   createPaymentIntentRequest,
   createRenewalIntentRequest,
+  createRefundClaimRequest,
   getCurrentPaymentIntentForMemberRequest,
   getRoom,
   getMyMembership,
@@ -28,6 +30,7 @@ import {
   type MyRoomMembershipDto,
   type RoomResponseDto,
   type PaymentIntentResponseDto,
+  type RefundReasonCode,
   confirmPaymentSuccessRequest,
 } from '../../lib/api';
 import {
@@ -154,7 +157,7 @@ async function fetchCurrentIntent(
 
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   // Keep the id as a string: room ids are 64-bit and Number() would corrupt them.
   const roomId = id ?? '';
   const { authorizedRequest, user, isReady, isAuthenticated } = useAuth();
@@ -189,6 +192,12 @@ export function MemberDetailPage() {
   const [complaintError, setComplaintError] = useState<string | null>(null);
   const [complaintCreated, setComplaintCreated] = useState<number | null>(null);
   const [ownerReviewOpen, setOwnerReviewOpen] = useState(false);
+
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [refundReason, setRefundReason] = useState<RefundReasonCode>('ACCESS_NOT_PROVIDED');
+  const [refundDesc, setRefundDesc] = useState('');
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundError, setRefundError] = useState<string | null>(null);
 
   const [cancellingApplication, setCancellingApplication] = useState(false);
   const [cancelAppError, setCancelAppError] = useState<string | null>(null);
@@ -447,6 +456,39 @@ export function MemberDetailPage() {
         renewInFlightRef.current = false;
         setRenewing(false);
       }
+    }
+  };
+
+  const handleRefundClaim = async () => {
+    const billing = membership?.billing;
+    if (!billing?.chargeTransactionId || refundSubmitting) return;
+    if (!refundDesc.trim()) {
+      setRefundError(t('refundClaimDescRequired'));
+      return;
+    }
+    setRefundSubmitting(true);
+    setRefundError(null);
+    try {
+      await authorizedRequest((token) =>
+        createRefundClaimRequest(token, {
+          paymentTransactionId: billing.chargeTransactionId!,
+          reasonCode: refundReason,
+          description: refundDesc.trim(),
+          idempotencyKey: newIdempotencyKey(),
+        }),
+      );
+      setRefundModalOpen(false);
+      setRefundDesc('');
+      const updated = await authorizedRequest((token) => getMyMembership(roomId, token));
+      setMembership(updated);
+    } catch (err) {
+      setRefundError(
+        err instanceof ApiError
+          ? err.message
+          : tx(language, 'Не удалось отправить заявку.', 'Өтінімді жіберу мүмкін болмады.', 'Unable to submit request.'),
+      );
+    } finally {
+      setRefundSubmitting(false);
     }
   };
 
@@ -1228,6 +1270,90 @@ export function MemberDetailPage() {
             )}
           </Card>
         )}
+
+        {isActive && membership.billing && (() => {
+          const b = membership.billing;
+          const canRequest = !!b.chargeTransactionId && Number(b.refundableAmountKzt ?? 0) > 0 && !b.openRefundRequest;
+          const hasOpen = !!b.openRefundRequest;
+          if (!canRequest && !hasOpen) return null;
+          return (
+            <Card className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <Undo2 size={16} style={{ color: 'var(--eco-primary)' }} />
+                <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
+                  {t('refundClaimButton')}
+                </h3>
+              </div>
+              {hasOpen && (
+                <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+                  <Badge variant="warning">
+                    {b.openRefundRequest!.status === 'REQUESTED' ? t('refundClaimStatusRequested') : t('refundClaimStatusUnderReview')}
+                  </Badge>
+                  <p className="text-[13px] mt-2" style={{ color: 'var(--eco-text-secondary)' }}>
+                    {t('refundClaimPending')}
+                  </p>
+                </div>
+              )}
+              {canRequest && (
+                <Button variant="secondary" size="sm" onClick={() => setRefundModalOpen(true)}>
+                  {t('refundClaimButton')}
+                </Button>
+              )}
+            </Card>
+          );
+        })()}
+
+        <Modal open={refundModalOpen} onClose={() => setRefundModalOpen(false)} title={t('refundClaimTitle')}>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="text-[13px] block mb-1" style={{ color: 'var(--eco-text-secondary)' }}>
+                {t('refundClaimReasonLabel')}
+              </label>
+              <Select
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value as RefundReasonCode)}
+                options={[
+                  { value: 'ACCESS_NOT_PROVIDED', label: t('refundReasonAccessNotProvided') },
+                  { value: 'ACCESS_NOT_WORKING', label: t('refundReasonAccessNotWorking') },
+                  { value: 'ACCESS_REVOKED', label: t('refundReasonAccessRevoked') },
+                  { value: 'MATERIAL_MISMATCH', label: t('refundReasonMaterialMismatch') },
+                  { value: 'DUPLICATE_CHARGE', label: t('refundReasonDuplicateCharge') },
+                  { value: 'WRONG_AMOUNT', label: t('refundReasonWrongAmount') },
+                  { value: 'UNAUTHORIZED_PAYMENT', label: t('refundReasonUnauthorizedPayment') },
+                  { value: 'OTHER', label: t('refundReasonOther') },
+                ]}
+              />
+            </div>
+            <div>
+              <label className="text-[13px] block mb-1" style={{ color: 'var(--eco-text-secondary)' }}>
+                {t('refundClaimDescLabel')}
+              </label>
+              <textarea
+                className="w-full rounded-lg p-3 text-[14px] resize-none"
+                style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)', border: '1px solid var(--eco-border)' }}
+                rows={4}
+                maxLength={1000}
+                value={refundDesc}
+                onChange={(e) => setRefundDesc(e.target.value)}
+                placeholder={t('refundClaimDescPlaceholder')}
+              />
+              <div className="text-[11px] text-right mt-1" style={{ color: 'var(--eco-text-tertiary)' }}>
+                {refundDesc.length}/1000
+              </div>
+            </div>
+            {refundError && (
+              <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>{refundError}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setRefundModalOpen(false)}>
+                {tx(language, 'Отмена', 'Болдырмау', 'Cancel')}
+              </Button>
+              <Button variant="primary" size="sm" loading={refundSubmitting} onClick={handleRefundClaim}>
+                {t('refundClaimSubmit')}
+              </Button>
+            </div>
+          </div>
+        </Modal>
 
         {(room.status === 'BLOCKED' || membership.status === 'BLOCKED_BY_ADMIN') && (
           <Card className="flex items-start gap-3">

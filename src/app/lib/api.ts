@@ -994,6 +994,13 @@ export interface MyRoomMembershipDto {
     renewalShareKzt: number | null;
     renewalCommissionKzt: number | null;
     overdue: boolean;
+    chargeTransactionId: number | null;
+    refundableAmountKzt: number | string | null;
+    openRefundRequest?: {
+      id: number;
+      status: string;
+      createdAt: string;
+    } | null;
   } | null;
 }
 
@@ -2684,6 +2691,168 @@ export function getMyRefundsRequest(accessToken: string) {
 
 export function getRefundRequest(refundId: number, accessToken: string) {
   return requestJson<RefundTransactionResponse>(`/refunds/${refundId}`, {}, accessToken);
+}
+
+// ============================================================
+// Refund requests (member-initiated claims)
+// ============================================================
+
+export type RefundReasonCode =
+  | 'ACCESS_NOT_PROVIDED'
+  | 'ACCESS_NOT_WORKING'
+  | 'ACCESS_REVOKED'
+  | 'MATERIAL_MISMATCH'
+  | 'DUPLICATE_CHARGE'
+  | 'WRONG_AMOUNT'
+  | 'UNAUTHORIZED_PAYMENT'
+  | 'OTHER';
+
+export type RefundRequestStatus = 'REQUESTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';
+
+export interface RefundRequestResponse {
+  id: number;
+  paymentTransactionId: number;
+  reasonCode: RefundReasonCode;
+  description: string;
+  status: RefundRequestStatus;
+  approvedAmount: number | string | null;
+  decisionNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+  decidedAt: string | null;
+  roomId: number | null;
+  roomTitle: string | null;
+  roomMemberId: number | null;
+  requester: { id: number; displayName: string; publicId: string | null } | null;
+  chargedAmountKzt: number | string | null;
+  refundedAmountKzt: number | string | null;
+  refundableAmountKzt: number | string | null;
+}
+
+export function createRefundClaimRequest(
+  accessToken: string,
+  payload: {
+    paymentTransactionId: number;
+    reasonCode: RefundReasonCode;
+    description: string;
+    idempotencyKey: string;
+  },
+) {
+  return requestJson<RefundRequestResponse>(
+    '/refund-requests',
+    { method: 'POST', body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function getMyRefundClaimsRequest(accessToken: string) {
+  return requestJson<RefundRequestResponse[]>('/refund-requests/me', {}, accessToken);
+}
+
+// ---- Admin refund requests ----
+
+export function getAdminRefundRequestsRequest(
+  accessToken: string,
+  params: { status?: string; page?: number; size?: number } = {},
+) {
+  return requestJson<PagedResponse<RefundRequestResponse>>(
+    `/admin/refund-requests${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function approveRefundClaimRequest(
+  requestId: number,
+  payload: { amount?: number; decisionNote: string },
+  accessToken: string,
+) {
+  return requestJson<RefundRequestResponse>(
+    `/admin/refund-requests/${requestId}/approve`,
+    { method: 'POST', body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export function rejectRefundClaimRequest(
+  requestId: number,
+  payload: { decisionNote: string },
+  accessToken: string,
+) {
+  return requestJson<RefundRequestResponse>(
+    `/admin/refund-requests/${requestId}/reject`,
+    { method: 'POST', body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+// ============================================================
+// Admin finance config + overdue renewals
+// ============================================================
+
+export interface AdminFinanceConfigDto {
+  provider: string;
+  testMode: boolean;
+  liveMoneyEnabled: boolean;
+  payoutDispatchEnabled: boolean;
+  refundDispatchEnabled: boolean;
+  postPayoutRefundEnabled: boolean;
+  ownerReceivableEnabled: boolean;
+  recurringEnabled: boolean;
+  payoutHold: string | null;
+  renewalWindowDays: number;
+  renewalGraceDays: number;
+  commission: {
+    tier1Max: number | string | null;
+    tier2Max: number | string | null;
+    tier3Max: number | string | null;
+    tier1Fee: number | string | null;
+    tier2Fee: number | string | null;
+    tier3Fee: number | string | null;
+    tier4Fee: number | string | null;
+    mixedRoomFee: number | string | null;
+  } | null;
+}
+
+export function getAdminFinanceConfigRequest(accessToken: string) {
+  return requestJson<AdminFinanceConfigDto>('/admin/finance/config', {}, accessToken);
+}
+
+export interface AdminOverdueRenewalDto {
+  roomMemberId: number;
+  memberUserId: number | null;
+  memberDisplayName: string | null;
+  memberEmail: string | null;
+  roomId: number | null;
+  roomTitle: string | null;
+  ownerUserId: number | null;
+  ownerDisplayName: string | null;
+  periodEndAt: string | null;
+  daysOverdue: number;
+  renewalAmountKzt: number | string | null;
+}
+
+export function getAdminOverdueRenewalsRequest(
+  accessToken: string,
+  params: { page?: number; size?: number } = {},
+) {
+  return requestJson<PagedResponse<AdminOverdueRenewalDto>>(
+    `/admin/finance/overdue-renewals${toSearchParams(params)}`,
+    {},
+    accessToken,
+  );
+}
+
+export function endOverdueMemberRequest(
+  memberId: number,
+  payload: { reason: string },
+  accessToken: string,
+) {
+  return requestJson<AdminOverdueRenewalDto>(
+    `/admin/finance/overdue-renewals/${memberId}/end`,
+    { method: 'POST', body: JSON.stringify(payload) },
+    accessToken,
+  );
 }
 
 // ============================================================
