@@ -4,7 +4,7 @@ import { AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, RefreshCw } from 'lu
 import { Badge, Button, Card, EmptyState, Select, Skeleton } from '../ds-primitives';
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
-import { formatDateTime, formatNumber, formatShortDmyDate } from '../../lib/datetime';
+import { formatDateTime, formatMoney, formatNumber, formatShortDmyDate } from '../../lib/datetime';
 import {
   ApiError,
   getPaymentHistoryRequest,
@@ -18,12 +18,6 @@ type L = Language;
 const tx = (l: L, ru: string, kz: string, en: string) => (l === 'ru' ? ru : l === 'kz' ? kz : en);
 
 const PAGE_SIZE = 12;
-
-function money(amount: number | string, currency: string): string {
-  const value = Number(amount);
-  const formatted = Number.isFinite(value) ? formatNumber(value) : String(amount);
-  return currency === 'KZT' ? `₸${formatted}` : `${currency} ${formatted}`;
-}
 
 // Single source of truth: lib/user-facing-enums owns every status colour so
 // that payment history, ds-primitives badges and activity feeds never diverge
@@ -91,7 +85,7 @@ function signedAmount(item: PaymentHistoryItemDto): string {
   const direction = normalizeDirection(item.direction);
   const kind = item.kind.toUpperCase();
   const sign = direction === 'INCOMING' || (!direction && kind === 'REFUND') ? '+' : '−';
-  return `${sign}${money(item.amountKzt ?? item.amount, item.settlementCurrency ?? item.currency)}`;
+  return `${sign}${formatMoney(item.amountKzt ?? item.amount, item.settlementCurrency ?? item.currency)}`;
 }
 
 // Labels the payment purpose, when the backend reports it. Older rows / older
@@ -305,11 +299,11 @@ export function PaymentHistoryPage() {
             />
             <SummaryBlock
               label={tx(language, 'Получено на этой странице', 'Осы бетте алынғаны', 'Received on this page')}
-              value={summaryCurrency ? money(currentPageIncoming, summaryCurrency) : '—'}
+              value={summaryCurrency ? formatMoney(currentPageIncoming, summaryCurrency) : '—'}
             />
             <SummaryBlock
               label={tx(language, 'Потрачено на этой странице', 'Осы бетте жұмсалғаны', 'Spent on this page')}
-              value={summaryCurrency ? money(currentPageOutgoing, summaryCurrency) : '—'}
+              value={summaryCurrency ? formatMoney(currentPageOutgoing, summaryCurrency) : '—'}
             />
           </div>
 

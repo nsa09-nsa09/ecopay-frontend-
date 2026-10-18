@@ -1602,7 +1602,7 @@ test('room payment CTA shows KZT settlement breakdown without raw status leaks',
 
   await page.goto('/rooms/member/100');
   await expect(page.getByText(/5\s*250/).first()).toBeVisible();
-  await expect(page.getByText('USD 10')).toBeVisible();
+  await expect(page.getByText('10 USD')).toBeVisible();
   await expect(page.getByText('Стоимость вашего места')).toBeVisible();
   await expect(page.getByText('APPLIED')).toHaveCount(0);
 });
@@ -1624,8 +1624,8 @@ test('payment history normalizes DEBIT/CREDIT and keeps technical IDs in details
   await mockApi(page);
   await seedSession(page);
   await page.goto('/payments/history');
-  await expect(page.getByText('−₸2,500')).toBeVisible();
-  await expect(page.getByText('+₸1,800')).toBeVisible();
+  await expect(page.getByText(/−₸2\s*500/)).toBeVisible();
+  await expect(page.getByText(/\+₸1\s*800/)).toBeVisible();
   await expect(page.getByText('Direction unavailable')).toHaveCount(0);
   const payoutId = page.getByText('PO-payout-2');
   await expect(payoutId).not.toBeVisible();

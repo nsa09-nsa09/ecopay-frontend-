@@ -28,15 +28,10 @@ import {
 } from '../../lib/payment-context';
 import { useAuth } from '../auth/auth-provider';
 import { useI18n, type Language } from '../i18n-provider';
+import { formatMoney } from '../../lib/datetime';
 
 const tx = (l: Language, ru: string, kz: string, en: string) =>
   l === 'ru' ? ru : l === 'kz' ? kz : en;
-
-const moneyFormatter = new Intl.NumberFormat('ru-RU');
-const formatMoney = (v: number | string | null | undefined, currency = 'KZT') => {
-  const formatted = moneyFormatter.format(Number(v ?? 0));
-  return currency === 'KZT' ? `₸${formatted}` : `${currency} ${formatted}`;
-};
 const settlementAmount = (intent: PaymentIntentResponseDto | null) =>
   intent?.payableTotalKzt ?? intent?.amount ?? 0;
 const settlementCurrency = (intent: PaymentIntentResponseDto | null) =>
