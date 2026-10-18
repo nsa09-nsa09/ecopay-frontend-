@@ -121,6 +121,9 @@ const AdminFeedbackPage = lazyRoute(() =>
 const AdminDisputesPage = lazyRoute(() =>
   import('./components/admin/admin-disputes').then((m) => ({ default: m.AdminDisputesPage })),
 );
+const AdminRefundsPage = lazyRoute(() =>
+  import('./components/admin/admin-refunds').then((m) => ({ default: m.AdminRefundsPage })),
+);
 const AdminLogsPage = lazyRoute(() =>
   import('./components/admin/admin-logs').then((m) => ({ default: m.AdminLogsPage })),
 );
@@ -402,7 +405,7 @@ export const router = createBrowserRouter([
           { path: 'tickets', Component: AdminTicketsPage },
           { path: 'feedback', Component: AdminFeedbackPage },
           { path: 'disputes', Component: AdminDisputesPage },
-          { path: 'refunds', Component: AdminDisputesPage },
+          { path: 'refunds', Component: AdminRefundsPage },
           { path: 'finance', Component: AdminFinancePage },
           { path: 'logs', Component: AdminLogsPage },
           { path: 'catalog', Component: AdminCatalogPage },
