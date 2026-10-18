@@ -16,6 +16,8 @@ import {
   getAdminFinancePayoutsRequest,
   getAdminFinanceTransactionsRequest,
   getAdminFinanceWebhooksRequest,
+  getAdminFinanceConfigRequest,
+  type AdminFinanceConfigDto,
   type FinancePayoutDto,
   type FinanceRefundDto,
   type FinanceTransactionDto,
@@ -276,6 +278,14 @@ export function AdminFinancePage() {
   const [refundTarget, setRefundTarget] = useState<FinanceTransactionDto | null>(null);
   const { flash, show: showFlash } = useFlash();
 
+  const [config, setConfig] = useState<AdminFinanceConfigDto | null>(null);
+
+  useEffect(() => {
+    void authorizedRequest((token) => getAdminFinanceConfigRequest(token))
+      .then(setConfig)
+      .catch(() => {});
+  }, [authorizedRequest]);
+
   const setTab = (next: FinanceTab) => {
     if (next === tab) return;
     const params = new URLSearchParams(searchParams);
@@ -394,6 +404,8 @@ export function AdminFinancePage() {
             <RefreshCw size={13} /> {t('retry')}
           </Button>
         </div>
+
+        {config && <FinanceConfigBanner config={config} t={t} />}
 
         <div className="flex items-center gap-2 flex-wrap mb-4">
           {TABS.map((key) => (
@@ -1025,5 +1037,57 @@ function Td({ children, className }: { children: ReactNode; className?: string }
     >
       {children}
     </td>
+  );
+}
+
+// ─── G3: Finance config banner ───────────────────────────────────────────────
+
+function FinanceConfigBanner({
+  config,
+  t,
+}: {
+  config: AdminFinanceConfigDto;
+  t: TFn;
+}) {
+  const onOff = (v: boolean) => (v ? t('financeConfigEnabled') : t('financeConfigDisabled'));
+  return (
+    <div className="mb-4 flex flex-col gap-2">
+      {!config.liveMoneyEnabled && (
+        <div
+          className="flex items-center gap-2 px-4 py-3 rounded-lg text-[13px]"
+          style={{
+            background: 'var(--eco-warning-100)',
+            color: 'var(--eco-warning)',
+            fontWeight: 600,
+          }}
+        >
+          <AlertTriangle size={15} aria-hidden />
+          {t('financeConfigNoDispatch')}
+        </div>
+      )}
+      <Card>
+        <div className="flex flex-wrap gap-x-6 gap-y-2 text-[12px]">
+          <ConfigItem label={t('financeConfigProvider')} value={config.provider} />
+          <ConfigItem label={t('financeConfigTestMode')} value={onOff(config.testMode)} highlight={config.testMode} />
+          <ConfigItem label={t('financeConfigLiveMoney')} value={onOff(config.liveMoneyEnabled)} highlight={!config.liveMoneyEnabled} />
+          <ConfigItem label={t('financeConfigPayouts')} value={onOff(config.payoutDispatchEnabled)} />
+          <ConfigItem label={t('financeConfigRefunds')} value={onOff(config.refundDispatchEnabled)} />
+          {config.payoutHold && (
+            <ConfigItem label={t('financeConfigHold')} value={config.payoutHold} />
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function ConfigItem({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <span>
+      <span style={{ color: 'var(--eco-text-tertiary)' }}>{label}: </span>
+      <span style={{ color: highlight ? 'var(--eco-negative)' : 'var(--eco-text)', fontWeight: 500 }}>
+        {value}
+      </span>
+    </span>
   );
 }
