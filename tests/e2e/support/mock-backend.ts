@@ -12,7 +12,7 @@ import type { Page, Route } from '@playwright/test';
 
 export const PROVIDER_ORIGIN = 'https://pay.freedompay.test';
 
-export type Role = 'ANON' | 'USER' | 'ADMIN';
+export type Role = 'ANON' | 'USER' | 'ADMIN' | 'SUPPORT';
 
 export interface MockState {
   role: Role;
@@ -58,6 +58,13 @@ export const adminFixture = {
   email: 'admin@example.test',
   displayName: 'Admin',
   role: 'ADMIN',
+};
+export const supportFixture = {
+  ...userFixture,
+  id: 99,
+  email: 'support@example.test',
+  displayName: 'Support Agent',
+  role: 'SUPPORT',
 };
 
 export function room(id = 100, overrides: Record<string, unknown> = {}) {
@@ -169,7 +176,11 @@ export async function installMockBackend(
   };
   const language = init.language ?? 'en';
   const seed = init.seedSession ?? state.role !== 'ANON';
-  const sessionUser = () => (state.role === 'ADMIN' ? adminFixture : userFixture);
+  const sessionUser = () => {
+    if (state.role === 'ADMIN') return adminFixture;
+    if (state.role === 'SUPPORT') return supportFixture;
+    return userFixture;
+  };
 
   await page.addInitScript(
     ({ lang, seedUser }) => {

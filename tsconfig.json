@@ -15,5 +15,5 @@
     "allowImportingTsExtensions": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["src"]
+  "include": ["src", "tests"]
 }
