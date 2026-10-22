@@ -458,7 +458,7 @@ test.describe('EcoPay QA Matrix: Формы, Поддержка и Профил�
     await installMockBackend(page, { language: 'ru', role: 'USER' });
 
     let disputeCreated = false;
-    await page.route('**/api/v1/rooms/100/members/me/dispute', async (route) => {
+    await page.route('**/api/v1/rooms/100/members/me/complaints', async (route) => {
       disputeCreated = true;
       await route.fulfill({
         status: 201,
