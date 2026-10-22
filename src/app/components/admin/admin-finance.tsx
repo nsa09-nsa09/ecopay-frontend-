@@ -17,16 +17,19 @@ import {
   getAdminFinanceTransactionsRequest,
   getAdminFinanceWebhooksRequest,
   getAdminFinanceConfigRequest,
+  getAdminOverdueRenewalsRequest,
+  endOverdueMemberRequest,
   type AdminFinanceConfigDto,
+  type AdminOverdueRenewalDto,
   type FinancePayoutDto,
   type FinanceRefundDto,
   type FinanceTransactionDto,
   type FinanceWebhookDto,
 } from '../../lib/api';
 
-type FinanceTab = 'payment-review' | 'refunds' | 'payouts' | 'webhooks';
+type FinanceTab = 'payment-review' | 'refunds' | 'payouts' | 'webhooks' | 'overdue';
 type TFn = (key: string, params?: Record<string, string | number>) => string;
-const TABS: FinanceTab[] = ['payment-review', 'refunds', 'payouts', 'webhooks'];
+const TABS: FinanceTab[] = ['payment-review', 'refunds', 'payouts', 'webhooks', 'overdue'];
 const PAGE_SIZE = 20;
 
 const PAYMENT_REVIEW_STATUSES = [
@@ -55,6 +58,7 @@ const TAB_I18N: Record<FinanceTab, string> = {
   refunds: 'financeTabRefunds',
   payouts: 'financeTabPayouts',
   webhooks: 'financeTabWebhooks',
+  overdue: 'overdueRenewalsTab',
 };
 
 function parseTab(value: string | null): FinanceTab {
@@ -452,7 +456,9 @@ export function AdminFinancePage() {
           </Card>
         )}
 
-        {tab === 'payment-review' ? (
+        {tab === 'overdue' ? (
+          <OverdueRenewalsTab language={language} />
+        ) : tab === 'payment-review' ? (
           <TransactionsTable
             items={txItems}
             language={language}
@@ -467,7 +473,7 @@ export function AdminFinancePage() {
         ) : (
           <WebhooksTable items={webhookItems} language={language} loading={loading} t={t} />
         )}
-        {!loading && (
+        {tab !== 'overdue' && !loading && (
           <p className="text-[11px] mt-2" style={{ color: 'var(--eco-text-tertiary)' }}>
             {tx(
               'Строки с цветной полосой слева требуют внимания: красная — нужно решение, жёлтая — ожидание провайдера.',
@@ -477,7 +483,7 @@ export function AdminFinancePage() {
           </p>
         )}
 
-        {totalItems > 0 && (
+        {tab !== 'overdue' && totalItems > 0 && (
           <div className="flex items-center justify-between mt-4 text-[12px]">
             <Button
               variant="ghost"
@@ -1089,5 +1095,274 @@ function ConfigItem({ label, value, highlight }: { label: string; value: string;
         {value}
       </span>
     </span>
+  );
+}
+
+// ─── G4: Overdue renewals tab ────────────────────────────────────────────────
+
+function OverdueRenewalsTab({ language }: { language: 'ru' | 'kz' | 'en' }) {
+  const { t } = useI18n();
+  const { authorizedRequest } = useAuth();
+  const { flash, show: showFlash } = useFlash();
+
+  const [items, setItems] = useState<AdminOverdueRenewalDto[]>([]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [endTarget, setEndTarget] = useState<AdminOverdueRenewalDto | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await authorizedRequest((token) =>
+        getAdminOverdueRenewalsRequest(token, { page, size: PAGE_SIZE }),
+      );
+      setItems(result.items);
+      setTotalPages(Math.max(1, result.totalPages));
+    } catch (err) {
+      setError(formatAdminApiError(err, t));
+    } finally {
+      setLoading(false);
+    }
+  }, [authorizedRequest, page, t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  return (
+    <>
+      <FlashBanner flash={flash} />
+
+      {error && (
+        <Card className="flex flex-col gap-2 mb-4">
+          <div className="text-[14px]" style={{ color: 'var(--eco-negative)' }}>
+            {t('loadFailedTitle')}
+          </div>
+          <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+            {error}
+          </div>
+        </Card>
+      )}
+
+      {loading && items.length === 0 && <SkeletonRows t={t} />}
+
+      {!loading && items.length === 0 && !error && <EmptyOps t={t} />}
+
+      {items.length > 0 && (
+        <Table>
+          <thead>
+            <tr>
+              <Th>{t('overdueColMember')}</Th>
+              <Th>{t('overdueColRoom')}</Th>
+              <Th className="text-right">{t('overdueColDays')}</Th>
+              <Th className="text-right">{t('overdueColAmount')}</Th>
+              <Th>{t('financeColStatus')}</Th>
+              <Th>{t('financeColAction')}</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.roomMemberId}>
+                <Td>
+                  {item.memberUserId != null ? (
+                    <Link
+                      to={`/admin/users?selected=${item.memberUserId}`}
+                      style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+                    >
+                      {item.memberDisplayName ?? `U-${item.memberUserId}`}
+                    </Link>
+                  ) : (
+                    <span style={{ color: 'var(--eco-text-tertiary)' }}>-</span>
+                  )}
+                  {item.memberEmail && (
+                    <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                      {item.memberEmail}
+                    </div>
+                  )}
+                </Td>
+                <Td>
+                  {item.roomId != null ? (
+                    <Link
+                      to={`/admin/rooms?selected=${item.roomId}`}
+                      style={{ color: 'var(--eco-primary)', textDecoration: 'none' }}
+                    >
+                      {item.roomTitle ? `R-${item.roomId} · ${item.roomTitle}` : `R-${item.roomId}`}
+                    </Link>
+                  ) : (
+                    <span style={{ color: 'var(--eco-text-tertiary)' }}>-</span>
+                  )}
+                  {item.ownerDisplayName && (
+                    <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                      {item.ownerDisplayName}
+                    </div>
+                  )}
+                </Td>
+                <Td className="text-right">
+                  <span
+                    className="tabular-nums font-semibold"
+                    style={{ color: item.daysOverdue > 7 ? 'var(--eco-negative)' : 'var(--eco-text)' }}
+                  >
+                    {item.daysOverdue}
+                  </span>
+                  {item.periodEndAt && (
+                    <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                      {formatDateTime(item.periodEndAt, language)}
+                    </div>
+                  )}
+                </Td>
+                <Td className="text-right tabular-nums">
+                  {formatMoney(item.renewalAmountKzt, null)}
+                </Td>
+                <Td>
+                  <Badge variant="danger">{t('memberStatusExpired')}</Badge>
+                </Td>
+                <Td>
+                  <Button variant="destructive" size="sm" onClick={() => setEndTarget(item)}>
+                    {t('overdueEndAction')}
+                  </Button>
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
+
+      {items.length > 0 && (
+        <div className="flex items-center justify-between mt-4 text-[12px]">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={page <= 0 || loading}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+          >
+            <ChevronLeft size={12} /> {t('prevPage')}
+          </Button>
+          <span style={{ color: 'var(--eco-text-tertiary)' }}>
+            {t('pageOf', { page: page + 1, total: totalPages })}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={page >= totalPages - 1 || loading}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            {t('nextPage')} <ChevronRight size={12} />
+          </Button>
+        </div>
+      )}
+
+      <EndMembershipModal
+        target={endTarget}
+        onClose={() => setEndTarget(null)}
+        onDone={() => {
+          setEndTarget(null);
+          showFlash('success', t('overdueEndSuccess'));
+          void load();
+        }}
+      />
+    </>
+  );
+}
+
+function EndMembershipModal({
+  target,
+  onClose,
+  onDone,
+}: {
+  target: AdminOverdueRenewalDto | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const { t } = useI18n();
+  const { authorizedRequest } = useAuth();
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!target) return;
+    setReason('');
+    setError(null);
+  }, [target]);
+
+  if (!target) return null;
+
+  const reasonTrimmed = reason.trim();
+
+  const submit = async () => {
+    if (!reasonTrimmed) {
+      setError(t('overdueEndReasonRequired'));
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await authorizedRequest((token) =>
+        endOverdueMemberRequest(target.roomMemberId, { reason: reasonTrimmed }, token),
+      );
+      onDone();
+    } catch (err) {
+      setError(formatAdminApiError(err, t));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal open onClose={onClose} title={t('overdueEndTitle')}>
+      <div className="flex flex-col gap-4">
+        <div
+          className="p-3 rounded-lg text-[12px]"
+          style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
+        >
+          <div>{target.memberDisplayName ?? '-'}</div>
+          <div style={{ color: 'var(--eco-text-tertiary)' }}>
+            {target.roomTitle ?? `R-${target.roomId}`} · {target.daysOverdue}d overdue
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+            {t('overdueEndReasonLabel')} <span style={{ color: 'var(--eco-negative)' }}>*</span>
+          </label>
+          <textarea
+            rows={3}
+            maxLength={500}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
+            style={{
+              background: 'var(--eco-surface)',
+              border: '1px solid var(--eco-border)',
+              color: 'var(--eco-text)',
+            }}
+          />
+        </div>
+
+        {error && (
+          <div className="text-[13px]" role="alert" style={{ color: 'var(--eco-negative)' }}>
+            {error}
+          </div>
+        )}
+
+        <div className="flex gap-2 justify-end">
+          <Button variant="ghost" size="sm" disabled={submitting} onClick={onClose}>
+            {t('cancel')}
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={!reasonTrimmed || submitting}
+            loading={submitting}
+            onClick={() => void submit()}
+          >
+            {t('overdueEndAction')}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }
