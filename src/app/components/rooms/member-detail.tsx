@@ -1034,6 +1034,11 @@ export function MemberDetailPage() {
                       </Button>
                     )}
                 </div>
+                {openIntent.userMessageRu && (
+                  <p className="text-[13px] mt-1" style={{ color: 'var(--eco-text)' }}>
+                    {openIntent.userMessageRu}
+                  </p>
+                )}
               </div>
             )}
             {payError && (
@@ -1041,16 +1046,18 @@ export function MemberDetailPage() {
                 {payError}
               </p>
             )}
-            <Button
-              variant="primary"
-              size="md"
-              loading={paying || checkingIntent}
-              disabled={!canStartPayment || openIntent != null}
-              onClick={handlePay}
-            >
-              <CreditCard size={14} /> {tx(language, 'Оплатить', 'Төлеу', 'Pay')}{' '}
-              {canStartPayment ? formatCurrency(payTotal, settlementCurrency) : ''}
-            </Button>
+            {(openIntent == null || !openIntent.nextAction || openIntent.nextAction === 'PAY' || openIntent.nextAction === 'RETRY') && (
+              <Button
+                variant="primary"
+                size="md"
+                loading={paying || checkingIntent}
+                disabled={!canStartPayment || (openIntent != null && openIntent.nextAction !== 'PAY' && openIntent.nextAction !== 'RETRY')}
+                onClick={handlePay}
+              >
+                <CreditCard size={14} /> {tx(language, 'Оплатить', 'Төлеу', 'Pay')}{' '}
+                {canStartPayment ? formatCurrency(payTotal, settlementCurrency) : ''}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"

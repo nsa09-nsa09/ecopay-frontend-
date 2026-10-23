@@ -4005,6 +4005,7 @@ paymentIntentValid24h: {
 
   // ===== G4: Overdue renewals =====
   overdueRenewalsTab: { ru: 'Просрочено продление', kz: 'Мерзімі өткен ұзарту', en: 'Overdue renewals' },
+  stuckTab: { ru: 'Застрявшие', kz: 'Тұрып қалғандар', en: 'Stuck' },
   overdueColMember: { ru: 'Участник', kz: 'Қатысушы', en: 'Member' },
   overdueColRoom: { ru: 'Комната', kz: 'Бөлме', en: 'Room' },
   overdueColDays: { ru: 'Дней просрочки', kz: 'Мерзім өткен күн', en: 'Days overdue' },

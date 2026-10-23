@@ -1297,6 +1297,8 @@ export interface PaymentIntentResponseDto {
   compensationRequired: boolean;
   reviewRequired: boolean;
   reviewReason: string | null;
+  nextAction?: string | null;
+  userMessageRu?: string | null;
 }
 
 export function createPaymentIntentRequest(
@@ -2219,6 +2221,57 @@ export interface FinanceWebhookDto {
   errorMessage: string | null;
 }
 
+export interface StuckMoneyItemDto {
+  type: 'PAYOUT' | 'REFUND';
+  id: number;
+  status: string;
+  reason: string | null;
+  amountKzt: number;
+  currency: string | null;
+  sinceAt: string;
+  minutesInStatus: number;
+}
+
+export function getStuckItemsRequest(
+  accessToken: string,
+  type?: 'PAYOUT' | 'REFUND',
+) {
+  const qs = type ? `?type=${type}` : '';
+  return requestJson<StuckMoneyItemDto[]>(
+    `/admin/finance/stuck${qs}`,
+    { method: 'GET' },
+    accessToken,
+  );
+}
+
+export function retryPayoutRequest(payoutId: number, accessToken: string) {
+  return requestJson<{ id: number; requeued: boolean }>(
+    `/admin/finance/payouts/${payoutId}/retry`,
+    { method: 'POST' },
+    accessToken,
+  );
+}
+
+export function retryRefundRequest(refundId: number, accessToken: string) {
+  return requestJson<{ id: number; requeued: boolean }>(
+    `/admin/finance/refunds/${refundId}/retry`,
+    { method: 'POST' },
+    accessToken,
+  );
+}
+
+export function markRefundSentManuallyRequest(
+  refundId: number,
+  accessToken: string,
+  payload: { providerRef?: string; note: string },
+) {
+  return requestJson<RefundTransactionResponse>(
+    `/admin/finance/refunds/${refundId}/mark-sent-manually`,
+    { method: 'POST', body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
 export function getAdminFinanceTransactionsRequest(
   accessToken: string,
   params: {
@@ -2563,6 +2616,8 @@ export interface PayoutDto {
   releaseAt?: string | null;
   createdAt: string;
   processedAt: string | null;
+  providerFeeKzt?: number | null;
+  deferredReason?: string | null;
 }
 
 export interface PayoutBalanceDto {

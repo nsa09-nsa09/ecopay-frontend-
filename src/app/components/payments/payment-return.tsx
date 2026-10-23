@@ -434,6 +434,8 @@ export function PaymentReturnPage() {
   }
 
   if (state === 'failed') {
+    const canRetryPay =
+      intent?.nextAction === 'PAY' || intent?.nextAction === 'RETRY';
     return shell(
       <>
         <div
@@ -446,6 +448,14 @@ export function PaymentReturnPage() {
           <h1 className="text-[22px]" style={{ color: 'var(--eco-text)' }}>
             {tx(language, 'Платёж не прошёл', 'Төлем өтпеді', 'Payment Failed')}
           </h1>
+          {intent?.userMessageRu && (
+            <p
+              className="text-[14px] mt-2 max-w-sm mx-auto"
+              style={{ color: 'var(--eco-text)' }}
+            >
+              {intent.userMessageRu}
+            </p>
+          )}
           <p
             className="text-[14px] mt-2 max-w-sm mx-auto"
             style={{ color: 'var(--eco-text-secondary)' }}
@@ -459,9 +469,17 @@ export function PaymentReturnPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3 justify-center">
-          <Button variant="primary" size="lg" onClick={goToMembership}>
-            {tx(language, 'Вернуться к участию', 'Қатысуға оралу', 'Back to Membership')}
-          </Button>
+          {canRetryPay && intent?.paymentUrl ? (
+            <a href={intent.paymentUrl} style={{ textDecoration: 'none' }}>
+              <Button variant="primary" size="lg">
+                {tx(language, 'Оплатить', 'Төлеу', 'Pay')}
+              </Button>
+            </a>
+          ) : (
+            <Button variant="primary" size="lg" onClick={goToMembership}>
+              {tx(language, 'Вернуться к участию', 'Қатысуға оралу', 'Back to Membership')}
+            </Button>
+          )}
           {supportLink}
         </div>
       </>,
@@ -507,6 +525,8 @@ export function PaymentReturnPage() {
 
   // 'checking' and 'review': not final, never success, never an invitation to pay again.
   const review = state === 'review';
+  const canPayAgain =
+    intent?.nextAction === 'PAY' || intent?.nextAction === 'RETRY';
   return shell(
     <>
       <Clock size={32} style={{ color: 'var(--eco-warning)' }} />
@@ -516,12 +536,22 @@ export function PaymentReturnPage() {
             ? tx(language, 'Платёж на проверке', 'Төлем тексерілуде', 'Payment Under Review')
             : tx(language, 'Платёж обрабатывается', 'Төлем өңделуде', 'Payment Processing')}
         </h1>
-        <p
-          className="text-[14px] mt-2 max-w-sm mx-auto"
-          style={{ color: 'var(--eco-text-secondary)' }}
-        >
-          {doNotPayAgain}
-        </p>
+        {intent?.userMessageRu && (
+          <p
+            className="text-[14px] mt-2 max-w-sm mx-auto"
+            style={{ color: 'var(--eco-text)' }}
+          >
+            {intent.userMessageRu}
+          </p>
+        )}
+        {!canPayAgain && (
+          <p
+            className="text-[14px] mt-2 max-w-sm mx-auto"
+            style={{ color: 'var(--eco-text-secondary)' }}
+          >
+            {doNotPayAgain}
+          </p>
+        )}
         <p
           className="text-[13px] mt-2 max-w-sm mx-auto"
           style={{ color: 'var(--eco-text-tertiary)' }}
@@ -549,6 +579,13 @@ export function PaymentReturnPage() {
         )}
       </div>
       <div className="flex flex-wrap gap-3 justify-center">
+        {canPayAgain && intent?.paymentUrl && (
+          <a href={intent.paymentUrl} style={{ textDecoration: 'none' }}>
+            <Button variant="primary" size="lg">
+              {tx(language, 'Оплатить', 'Төлеу', 'Pay')}
+            </Button>
+          </a>
+        )}
         {refreshButton}
         {review ? supportLink : historyLink}
         <Button variant="secondary" size="lg" onClick={goToMembership}>

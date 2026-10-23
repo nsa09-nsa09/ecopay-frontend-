@@ -6,9 +6,9 @@ type Labels = Record<Language, string>;
 export type StatusVariant = 'success' | 'warning' | 'info' | 'danger' | 'default';
 
 const UNKNOWN: Labels = {
-  ru: 'Статус уточняется',
-  kz: 'Мәртебесі анықталуда',
-  en: 'Status unavailable',
+  ru: 'Обрабатывается',
+  kz: 'Өңделуде',
+  en: 'Processing',
 };
 
 const UNKNOWN_EVENT: Labels = {
@@ -117,12 +117,19 @@ const STATUS_LABELS: Record<string, Labels> = {
     kz: 'Банкке жіберілді',
     en: 'Sent to the bank',
   },
+  PENDING_MANUAL: {
+    ru: 'Возврат оформлен, деньги поступят в течение нескольких дней',
+    kz: 'Қайтарым рәсімделді, ақша бірнеше күн ішінде түседі',
+    en: 'Refund registered, funds will arrive within a few days',
+  },
+  SUCCESS_MANUAL: { ru: 'Возвращено', kz: 'Қайтарылды', en: 'Refunded' },
 
   // RefundRequestStatus / DisputeStatus — admin is looking at it.
   UNDER_REVIEW: { ru: 'На рассмотрении', kz: 'Қарастырылуда', en: 'Under review' },
   RESOLVED: { ru: 'Решено', kz: 'Шешілді', en: 'Resolved' },
 
-  // Payout free-form statuses.
+  // Payout statuses.
+  ON_HOLD: { ru: 'В очереди на выплату', kz: 'Аударым кезегінде', en: 'Queued for payout' },
   PENDING_METHOD: {
     ru: 'Ожидает привязки карты для выплаты',
     kz: 'Төлем картасын байланыстыруды күтуде',
@@ -171,6 +178,7 @@ const STATUS_VARIANTS: Record<string, StatusVariant> = {
   REFUNDED_FULL: 'success',
   RELEASED: 'success',
   RESOLVED: 'success',
+  SUCCESS_MANUAL: 'success',
 
   // info — being looked at / informational, not an error and not final-good
   PROCESSING: 'info',
@@ -190,6 +198,8 @@ const STATUS_VARIANTS: Record<string, StatusVariant> = {
   QUEUED: 'warning',
   HOLD: 'warning',
   FROZEN: 'warning',
+  PENDING_MANUAL: 'warning',
+  ON_HOLD: 'warning',
   REFUND_REQUIRED: 'warning',
   REFUND_PENDING: 'warning',
   APPLIED: 'warning',
@@ -255,13 +265,13 @@ export const KNOWN_BACKEND_STATUSES: readonly string[] = Object.freeze([
   // PaymentTransactionStatus
   'REFUNDED_PARTIAL', 'REFUNDED_FULL',
   // RefundStatus
-  'PENDING_PROVIDER',
+  'PENDING_PROVIDER', 'PENDING_MANUAL', 'SUCCESS_MANUAL',
   // RefundRequestStatus / DisputeStatus
   'REQUESTED', 'UNDER_REVIEW', 'APPROVED', 'RESOLVED',
   // ModerationQueueStatus
   'IN_REVIEW',
-  // Payout free-form strings
-  'PROCESSING', 'PENDING_METHOD', 'FROZEN', 'REVERSED', 'CANCELED', 'RELEASED', 'SENT',
+  // PayoutStatus
+  'PROCESSING', 'PENDING_METHOD', 'FROZEN', 'REVERSED', 'CANCELED', 'RELEASED', 'SENT', 'ON_HOLD',
   // SavedCardStatus
   'REVOKED',
   // UserStatus

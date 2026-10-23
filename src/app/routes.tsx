@@ -306,7 +306,7 @@ const internalStaticRoutes =
         {
           path: 'payment/confirmation-demo',
           Component: lazyRoute(() =>
-            import('./components/payments/payments').then((m) => ({
+            import('./components/payments/payments-demo').then((m) => ({
               default: m.PaymentConfirmationPage,
             })),
           ),

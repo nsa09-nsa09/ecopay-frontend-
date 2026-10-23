@@ -19,17 +19,22 @@ import {
   getAdminFinanceConfigRequest,
   getAdminOverdueRenewalsRequest,
   endOverdueMemberRequest,
+  getStuckItemsRequest,
+  retryPayoutRequest,
+  retryRefundRequest,
+  markRefundSentManuallyRequest,
   type AdminFinanceConfigDto,
   type AdminOverdueRenewalDto,
   type FinancePayoutDto,
   type FinanceRefundDto,
   type FinanceTransactionDto,
   type FinanceWebhookDto,
+  type StuckMoneyItemDto,
 } from '../../lib/api';
 
-type FinanceTab = 'payment-review' | 'refunds' | 'payouts' | 'webhooks' | 'overdue';
+type FinanceTab = 'payment-review' | 'refunds' | 'payouts' | 'webhooks' | 'overdue' | 'stuck';
 type TFn = (key: string, params?: Record<string, string | number>) => string;
-const TABS: FinanceTab[] = ['payment-review', 'refunds', 'payouts', 'webhooks', 'overdue'];
+const TABS: FinanceTab[] = ['payment-review', 'refunds', 'payouts', 'webhooks', 'overdue', 'stuck'];
 const PAGE_SIZE = 20;
 
 const PAYMENT_REVIEW_STATUSES = [
@@ -39,7 +44,7 @@ const PAYMENT_REVIEW_STATUSES = [
   'REFUNDED_PARTIAL',
   'REFUNDED_FULL',
 ];
-const REFUND_STATUSES = ['PENDING', 'PENDING_PROVIDER', 'REQUIRES_REVIEW', 'SUCCESS', 'FAILED'];
+const REFUND_STATUSES = ['PENDING', 'PENDING_PROVIDER', 'REQUIRES_REVIEW', 'PENDING_MANUAL', 'SUCCESS', 'SUCCESS_MANUAL', 'FAILED'];
 const PAYOUT_STATUSES = [
   'PENDING',
   'PENDING_METHOD',
@@ -51,6 +56,7 @@ const PAYOUT_STATUSES = [
   'FAILED',
   'REVERSED',
   'CANCELED',
+  'ON_HOLD',
 ];
 const WEBHOOK_STATUSES = ['PENDING', 'PROCESSING', 'FAILED', 'PROCESSED', 'DEAD_LETTER'];
 const TAB_I18N: Record<FinanceTab, string> = {
@@ -59,6 +65,7 @@ const TAB_I18N: Record<FinanceTab, string> = {
   payouts: 'financeTabPayouts',
   webhooks: 'financeTabWebhooks',
   overdue: 'overdueRenewalsTab',
+  stuck: 'stuckTab',
 };
 
 function parseTab(value: string | null): FinanceTab {
@@ -429,19 +436,21 @@ export function AdminFinancePage() {
           ))}
         </div>
 
-        <Card className="mb-4">
-          <div className="max-w-[280px]">
-            <Select
-              label={t('financeFilterStatus')}
-              value={status}
-              onChange={(event) => {
-                setStatus(event.target.value);
-                setPage(0);
-              }}
-              options={statusOptions}
-            />
-          </div>
-        </Card>
+        {tab !== 'overdue' && tab !== 'stuck' && (
+          <Card className="mb-4">
+            <div className="max-w-[280px]">
+              <Select
+                label={t('financeFilterStatus')}
+                value={status}
+                onChange={(event) => {
+                  setStatus(event.target.value);
+                  setPage(0);
+                }}
+                options={statusOptions}
+              />
+            </div>
+          </Card>
+        )}
 
         <FlashBanner flash={flash} />
 
@@ -458,6 +467,8 @@ export function AdminFinancePage() {
 
         {tab === 'overdue' ? (
           <OverdueRenewalsTab language={language} />
+        ) : tab === 'stuck' ? (
+          <StuckTab language={language} />
         ) : tab === 'payment-review' ? (
           <TransactionsTable
             items={txItems}
@@ -467,13 +478,13 @@ export function AdminFinancePage() {
             onRefund={setRefundTarget}
           />
         ) : tab === 'refunds' ? (
-          <RefundsTable items={refundItems} language={language} loading={loading} t={t} />
+          <RefundsTable items={refundItems} language={language} loading={loading} t={t} onReload={load} />
         ) : tab === 'payouts' ? (
           <PayoutsTable items={payoutItems} language={language} loading={loading} t={t} />
         ) : (
           <WebhooksTable items={webhookItems} language={language} loading={loading} t={t} />
         )}
-        {tab !== 'overdue' && !loading && (
+        {tab !== 'overdue' && tab !== 'stuck' && !loading && (
           <p className="text-[11px] mt-2" style={{ color: 'var(--eco-text-tertiary)' }}>
             {tx(
               'Строки с цветной полосой слева требуют внимания: красная — нужно решение, жёлтая — ожидание провайдера.',
@@ -483,7 +494,7 @@ export function AdminFinancePage() {
           </p>
         )}
 
-        {tab !== 'overdue' && totalItems > 0 && (
+        {tab !== 'overdue' && tab !== 'stuck' && totalItems > 0 && (
           <div className="flex items-center justify-between mt-4 text-[12px]">
             <Button
               variant="ghost"
@@ -765,56 +776,85 @@ function RefundsTable({
   language,
   loading,
   t,
+  onReload,
 }: {
   items: FinanceRefundDto[];
   language: 'ru' | 'kz' | 'en';
   loading: boolean;
   t: TFn;
+  onReload: () => void;
 }) {
   const tx = txFor(language);
+  const [markTarget, setMarkTarget] = useState<FinanceRefundDto | null>(null);
+  const showAction = items.some((i) => (i.status ?? '').toUpperCase() === 'PENDING_MANUAL');
   if (loading && items.length === 0) return <SkeletonRows t={t} />;
   if (items.length === 0) return <EmptyOps t={t} />;
   return (
-    <Table>
-      <thead>
-        <tr>
-          <Th>{t('financeColDateIds')}</Th>
-          <Th>{t('financeColStatus')}</Th>
-          <Th className="text-right">{t('financeColAmount')}</Th>
-          <Th>{t('financeColRoomMember')}</Th>
-          <Th>{t('financeColProviderRef')}</Th>
-          <Th>{t('financeColSafeReason')}</Th>
-        </tr>
-      </thead>
-      <tbody>
-        {items.map((item) => {
-          const flags = [statusAttention(item.status, tx)].filter(Boolean) as Attention[];
-          return (
-            <tr key={item.id} style={rowStyle(flags)}>
-              <Td>
-                <PublicId label={item.publicId ?? `RF-${item.id}`} />
-                <div>{formatDateTime(item.createdAt, language)}</div>
-              </Td>
-              <Td>
-                <StatusBadge status={item.status} language={language} />
-                <AttentionChips flags={flags} />
-              </Td>
-              <Td className="text-right">{formatMoney(item.amount, item.currency)}</Td>
-              <Td>
-                <RoomRef id={item.roomId} title={item.roomTitle} />
-                <div>
-                  <UserRef id={item.memberUserId} name={item.memberDisplayName} />
-                </div>
-              </Td>
-              <Td>
-                <PublicId label={item.providerReference ?? '-'} />
-              </Td>
-              <Td>{item.safeErrorReason ?? item.reason ?? '-'}</Td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </Table>
+    <>
+      <Table>
+        <thead>
+          <tr>
+            <Th>{t('financeColDateIds')}</Th>
+            <Th>{t('financeColStatus')}</Th>
+            <Th className="text-right">{t('financeColAmount')}</Th>
+            <Th>{t('financeColRoomMember')}</Th>
+            <Th>{t('financeColProviderRef')}</Th>
+            <Th>{t('financeColSafeReason')}</Th>
+            {showAction && <Th>{t('financeColAction')}</Th>}
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => {
+            const flags = [statusAttention(item.status, tx)].filter(Boolean) as Attention[];
+            const isPendingManual = (item.status ?? '').toUpperCase() === 'PENDING_MANUAL';
+            return (
+              <tr key={item.id} style={rowStyle(flags)}>
+                <Td>
+                  <PublicId label={item.publicId ?? `RF-${item.id}`} />
+                  <div>{formatDateTime(item.createdAt, language)}</div>
+                </Td>
+                <Td>
+                  <StatusBadge status={item.status} language={language} />
+                  <AttentionChips flags={flags} />
+                </Td>
+                <Td className="text-right">{formatMoney(item.amount, item.currency)}</Td>
+                <Td>
+                  <RoomRef id={item.roomId} title={item.roomTitle} />
+                  <div>
+                    <UserRef id={item.memberUserId} name={item.memberDisplayName} />
+                  </div>
+                </Td>
+                <Td>
+                  <PublicId label={item.providerReference ?? '-'} />
+                </Td>
+                <Td>{item.safeErrorReason ?? item.reason ?? '-'}</Td>
+                {showAction && (
+                  <Td>
+                    {isPendingManual ? (
+                      <Button variant="secondary" size="sm" onClick={() => setMarkTarget(item)}>
+                        {tx('Отметить возвращённым', 'Қайтарылды деп белгілеу', 'Mark refunded')}
+                      </Button>
+                    ) : (
+                      <span style={{ color: 'var(--eco-text-tertiary)' }}>-</span>
+                    )}
+                  </Td>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </Table>
+      <MarkSentManuallyModal
+        target={markTarget}
+        language={language}
+        t={t}
+        onClose={() => setMarkTarget(null)}
+        onDone={() => {
+          setMarkTarget(null);
+          onReload();
+        }}
+      />
+    </>
   );
 }
 
@@ -1043,6 +1083,282 @@ function Td({ children, className }: { children: ReactNode; className?: string }
     >
       {children}
     </td>
+  );
+}
+
+// ─── B5: Mark refund sent manually modal ────────────────────────────────────
+
+function MarkSentManuallyModal({
+  target,
+  language,
+  t,
+  onClose,
+  onDone,
+}: {
+  target: FinanceRefundDto | null;
+  language: 'ru' | 'kz' | 'en';
+  t: TFn;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const tx = txFor(language);
+  const { authorizedRequest } = useAuth();
+  const [providerRef, setProviderRef] = useState('');
+  const [note, setNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!target) return;
+    setProviderRef('');
+    setNote('');
+    setError(null);
+  }, [target]);
+
+  if (!target) return null;
+
+  const noteTrimmed = note.trim();
+  const canSubmit = noteTrimmed.length > 0 && !submitting;
+
+  const submit = async () => {
+    if (!noteTrimmed) {
+      setError(tx('Укажите примечание.', 'Жазба көрсетіңіз.', 'Note is required.'));
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await authorizedRequest((token) =>
+        markRefundSentManuallyRequest(target.id, token, {
+          providerRef: providerRef.trim() || undefined,
+          note: noteTrimmed,
+        }),
+      );
+      onDone();
+    } catch (err) {
+      setError(formatAdminApiError(err, t));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={tx('Отметить возвращённым вручную', 'Қолмен қайтарылды деп белгілеу', 'Mark as manually refunded')}
+    >
+      <div className="flex flex-col gap-4">
+        <div
+          className="p-3 rounded-lg text-[12px] flex flex-col gap-1"
+          style={{ background: 'var(--eco-surface)', color: 'var(--eco-text)' }}
+        >
+          <div>
+            <PublicId label={target.publicId ?? `RF-${target.id}`} />{' '}
+            <StatusBadge status={target.status} language={language} />
+          </div>
+          <div>{formatMoney(target.amount, target.currency)}</div>
+        </div>
+
+        <Input
+          label={tx('Ссылка провайдера (необязательно)', 'Провайдер сілтемесі (міндетті емес)', 'Provider ref (optional)')}
+          value={providerRef}
+          onChange={(e) => setProviderRef(e.target.value)}
+          maxLength={150}
+        />
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[13px]" style={{ color: 'var(--eco-text)' }}>
+            {tx('Примечание', 'Жазба', 'Note')} <span style={{ color: 'var(--eco-negative)' }}>*</span>
+          </label>
+          <textarea
+            rows={3}
+            maxLength={500}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
+            style={{
+              background: 'var(--eco-surface)',
+              border: '1px solid var(--eco-border)',
+              color: 'var(--eco-text)',
+            }}
+          />
+        </div>
+
+        {error && (
+          <div className="text-[13px]" role="alert" style={{ color: 'var(--eco-negative)' }}>
+            {error}
+          </div>
+        )}
+
+        <div className="flex gap-2 justify-end">
+          <Button variant="ghost" size="sm" disabled={submitting} onClick={onClose}>
+            {t('cancel')}
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={!canSubmit}
+            loading={submitting}
+            onClick={() => void submit()}
+          >
+            {tx('Подтвердить', 'Растау', 'Confirm')}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── B8: Stuck money tab ────────────────────────────────────────────────────
+
+function StuckTab({ language }: { language: 'ru' | 'kz' | 'en' }) {
+  const { t } = useI18n();
+  const tx = txFor(language);
+  const { authorizedRequest } = useAuth();
+  const { flash, show: showFlash } = useFlash();
+
+  const [items, setItems] = useState<StuckMoneyItemDto[]>([]);
+  const [typeFilter, setTypeFilter] = useState<'' | 'PAYOUT' | 'REFUND'>('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState<number | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await authorizedRequest((token) =>
+        getStuckItemsRequest(token, typeFilter || undefined),
+      );
+      setItems(result);
+    } catch (err) {
+      setError(formatAdminApiError(err, t));
+    } finally {
+      setLoading(false);
+    }
+  }, [authorizedRequest, typeFilter, t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const handleRetry = async (item: StuckMoneyItemDto) => {
+    setRetrying(item.id);
+    try {
+      if (item.type === 'PAYOUT') {
+        await authorizedRequest((token) => retryPayoutRequest(item.id, token));
+      } else {
+        await authorizedRequest((token) => retryRefundRequest(item.id, token));
+      }
+      showFlash('success', tx('Повторная отправка запущена', 'Қайта жіберу басталды', 'Retry initiated'));
+      void load();
+    } catch (err) {
+      showFlash('error', formatAdminApiError(err, t));
+    } finally {
+      setRetrying(null);
+    }
+  };
+
+  const filterOptions = [
+    { value: '', label: tx('Все', 'Барлығы', 'All') },
+    { value: 'PAYOUT', label: tx('Выплаты', 'Аударымдар', 'Payouts') },
+    { value: 'REFUND', label: tx('Возвраты', 'Қайтарулар', 'Refunds') },
+  ];
+
+  return (
+    <>
+      <Card className="mb-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="max-w-[280px]">
+            <Select
+              label={tx('Тип', 'Түрі', 'Type')}
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as '' | 'PAYOUT' | 'REFUND')}
+              options={filterOptions}
+            />
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
+            <RefreshCw size={13} /> {t('retry')}
+          </Button>
+        </div>
+      </Card>
+
+      <FlashBanner flash={flash} />
+
+      {error && (
+        <Card className="flex flex-col gap-2 mb-4">
+          <div className="text-[14px]" style={{ color: 'var(--eco-negative)' }}>
+            {t('loadFailedTitle')}
+          </div>
+          <div className="text-[13px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+            {error}
+          </div>
+        </Card>
+      )}
+
+      {loading && items.length === 0 && <SkeletonRows t={t} />}
+
+      {!loading && items.length === 0 && !error && <EmptyOps t={t} />}
+
+      {items.length > 0 && (
+        <Table>
+          <thead>
+            <tr>
+              <Th>ID</Th>
+              <Th>{tx('Тип', 'Түрі', 'Type')}</Th>
+              <Th>{t('financeColStatus')}</Th>
+              <Th className="text-right">{t('financeColAmount')}</Th>
+              <Th>{tx('С какого времени', 'Қашаннан бері', 'Since')}</Th>
+              <Th>{tx('Причина', 'Себебі', 'Reason')}</Th>
+              <Th>{t('financeColAction')}</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={`${item.type}-${item.id}`}>
+                <Td>
+                  <PublicId label={`${item.type === 'PAYOUT' ? 'P' : 'RF'}-${item.id}`} />
+                </Td>
+                <Td>
+                  <Badge variant={item.type === 'PAYOUT' ? 'info' : 'warning'}>
+                    {item.type === 'PAYOUT'
+                      ? tx('Выплата', 'Аударым', 'Payout')
+                      : tx('Возврат', 'Қайтару', 'Refund')}
+                  </Badge>
+                </Td>
+                <Td>
+                  <StatusBadge status={item.status} language={language} />
+                </Td>
+                <Td className="text-right tabular-nums">
+                  {formatMoney(item.amountKzt, item.currency)}
+                </Td>
+                <Td>
+                  <div>{formatDateTime(item.sinceAt, language)}</div>
+                  <div className="text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                    {item.minutesInStatus} {tx('мин', 'мин', 'min')}
+                  </div>
+                </Td>
+                <Td>
+                  <ShortText value={item.reason ?? '-'} />
+                </Td>
+                <Td>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={retrying === item.id}
+                    disabled={retrying != null}
+                    onClick={() => void handleRetry(item)}
+                  >
+                    {tx('Повторить', 'Қайталау', 'Retry')}
+                  </Button>
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
+    </>
   );
 }
 
