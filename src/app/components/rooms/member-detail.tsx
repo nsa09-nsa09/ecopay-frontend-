@@ -26,6 +26,7 @@ import {
   getRoom,
   getMyMembership,
   getMyRoomHoldRequest,
+  submitDisputeStatementRequest,
   type MemberHoldDto,
   type MyRoomMembershipDto,
   type RoomResponseDto,
@@ -199,6 +200,11 @@ export function MemberDetailPage() {
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [refundError, setRefundError] = useState<string | null>(null);
 
+  const [disputeStatement, setDisputeStatement] = useState('');
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false);
+  const [disputeStatementError, setDisputeStatementError] = useState<string | null>(null);
+  const [disputeStatementSent, setDisputeStatementSent] = useState(false);
+
   const [cancellingApplication, setCancellingApplication] = useState(false);
   const [cancelAppError, setCancelAppError] = useState<string | null>(null);
   const [cancelAppConfirmOpen, setCancelAppConfirmOpen] = useState(false);
@@ -218,6 +224,28 @@ export function MemberDetailPage() {
       );
     } finally {
       setCancellingApplication(false);
+    }
+  };
+
+  const handleDisputeStatement = async () => {
+    const d = membership?.dispute;
+    if (!d || disputeSubmitting || disputeStatement.trim().length < 10) return;
+    setDisputeSubmitting(true);
+    setDisputeStatementError(null);
+    try {
+      await authorizedRequest((token) =>
+        submitDisputeStatementRequest(d.id, { text: disputeStatement.trim() }, token),
+      );
+      setDisputeStatementSent(true);
+      setDisputeStatement('');
+    } catch (err) {
+      setDisputeStatementError(
+        err instanceof ApiError
+          ? err.message
+          : tx(language, 'Не удалось отправить.', 'Жіберу мүмкін болмады.', 'Unable to submit.'),
+      );
+    } finally {
+      setDisputeSubmitting(false);
     }
   };
 
@@ -1455,6 +1483,66 @@ export function MemberDetailPage() {
             <Button variant="secondary" size="md" onClick={() => setComplaintOpen(true)}>
               <Flag size={14} /> {tx(language, 'Пожаловаться', 'Шағымдану', 'Report a problem')}
             </Button>
+          </Card>
+        )}
+
+        {membership.dispute && (
+          <Card className="flex flex-col gap-4" style={{ border: '1px solid var(--eco-warning)' }}>
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={16} style={{ color: 'var(--eco-warning)' }} />
+              <h3 className="text-[15px]" style={{ color: 'var(--eco-text)' }}>
+                {tx(language, `Открыт спор #${membership.dispute.id}`, `#${membership.dispute.id} дау ашылды`, `Dispute #${membership.dispute.id} opened`)}
+              </h3>
+              <Badge variant="warning">{membership.dispute.status}</Badge>
+            </div>
+            {membership.dispute.status === 'OPEN' && !disputeStatementSent && (
+              <div className="flex flex-col gap-2">
+                <label className="text-[13px]" style={{ color: 'var(--eco-text-secondary)' }}>
+                  {tx(language, 'Ваше объяснение', 'Сіздің түсіндірмеңіз', 'Your explanation')}
+                </label>
+                <textarea
+                  rows={4}
+                  maxLength={2000}
+                  value={disputeStatement}
+                  onChange={(e) => setDisputeStatement(e.target.value.slice(0, 2000))}
+                  className="px-3 py-2 rounded-lg outline-none resize-none text-[13px] user-text"
+                  style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', color: 'var(--eco-text)', overflowWrap: 'anywhere', minWidth: 0 }}
+                />
+                <div className="flex justify-between text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  <span>{disputeStatement.trim().length < 10 && tx(language, 'Минимум 10 символов', 'Кемінде 10 таңба', 'At least 10 characters')}</span>
+                  <span>{disputeStatement.length}/2000</span>
+                </div>
+                {disputeStatementError && (
+                  <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>{disputeStatementError}</p>
+                )}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  loading={disputeSubmitting}
+                  disabled={disputeStatement.trim().length < 10}
+                  onClick={() => void handleDisputeStatement()}
+                >
+                  {tx(language, 'Отправить', 'Жіберу', 'Submit')}
+                </Button>
+              </div>
+            )}
+            {disputeStatementSent && (
+              <p className="text-[13px]" style={{ color: 'var(--eco-positive)' }}>
+                {tx(language, 'Объяснение отправлено.', 'Түсіндірме жіберілді.', 'Statement submitted.')}
+              </p>
+            )}
+            {membership.dispute.decision && (
+              <div className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+                <div className="text-[13px] mb-1" style={{ color: 'var(--eco-text)' }}>
+                  {tx(language, 'Решение', 'Шешім', 'Decision')}: <strong>{membership.dispute.decision}</strong>
+                </div>
+                {membership.dispute.decisionComment && (
+                  <p className="user-text text-[13px]" style={{ color: 'var(--eco-text-secondary)', overflowWrap: 'anywhere', minWidth: 0 }}>
+                    {membership.dispute.decisionComment}
+                  </p>
+                )}
+              </div>
+            )}
           </Card>
         )}
 

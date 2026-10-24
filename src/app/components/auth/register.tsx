@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { Button, Input, Card } from '../ds-primitives';
+import { Button, Input, PasswordInput, Card } from '../ds-primitives';
 import { Checkbox } from '../ui/checkbox';
-import { Eye, EyeOff, Check, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { useI18n, type Language } from '../i18n-provider';
 import { useAuth } from './auth-provider';
 import { VerifyCodeStep } from './verify-code-step';
@@ -54,7 +54,6 @@ export function RegisterPage() {
 
   const [displayName, setDisplayName] = useState('');
   const emailField = useEmailField();
-  const [show, setShow] = useState(false);
   const [pw, setPw] = useState('');
   const [confirm, setConfirm] = useState('');
   const [terms, setTerms] = useState<LegalDocumentDto | null>(null);
@@ -205,52 +204,13 @@ export function RegisterPage() {
               />
             )}
             <div className="flex flex-col gap-1.5">
-              <label style={{ color: 'var(--eco-text)', fontSize: 14 }}>{t('password')}</label>
-              <div className="relative">
-                <input
-                  type={show ? 'text' : 'password'}
-                  value={pw}
-                  onChange={(event) => setPw(event.target.value)}
-                  placeholder={t('pwMin8')}
-                  className="w-full px-3 py-2 pr-10 rounded-lg outline-none"
-                  style={{
-                    background: 'var(--eco-surface)',
-                    border: `1px solid ${fieldErrors.password ? 'var(--eco-negative)' : 'var(--eco-border)'}`,
-                    color: 'var(--eco-text)',
-                    fontSize: 14,
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShow(!show)}
-                  aria-label={
-                    show
-                      ? language === 'ru'
-                        ? 'Скрыть пароль'
-                        : language === 'kz'
-                          ? 'Құпия сөзді жасыру'
-                          : 'Hide password'
-                      : language === 'ru'
-                        ? 'Показать пароль'
-                        : language === 'kz'
-                          ? 'Құпия сөзді көрсету'
-                          : 'Show password'
-                  }
-                  aria-pressed={show}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer w-8 h-8 flex items-center justify-center rounded-md"
-                >
-                  {show ? (
-                    <EyeOff size={16} aria-hidden="true" style={{ color: 'var(--eco-text-tertiary)' }} />
-                  ) : (
-                    <Eye size={16} aria-hidden="true" style={{ color: 'var(--eco-text-tertiary)' }} />
-                  )}
-                </button>
-              </div>
-              {fieldErrors.password && (
-                <span style={{ color: 'var(--eco-negative)', fontSize: 12 }}>
-                  {fieldErrors.password}
-                </span>
-              )}
+              <PasswordInput
+                label={t('password')}
+                value={pw}
+                onChange={(event) => setPw(event.target.value)}
+                placeholder={t('pwMin8')}
+                error={fieldErrors.password}
+              />
               <div className="flex flex-col gap-1 mt-1">
                 {rules.map((rule) => (
                   <div
@@ -264,9 +224,8 @@ export function RegisterPage() {
                 ))}
               </div>
             </div>
-            <Input
+            <PasswordInput
               label={t('confirmPassword')}
-              type="password"
               value={confirm}
               onChange={(event) => setConfirm(event.target.value)}
               error={fieldErrors.confirmPassword}

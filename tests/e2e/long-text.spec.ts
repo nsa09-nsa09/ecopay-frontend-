@@ -167,6 +167,61 @@ test('long chat message does not cause horizontal overflow @critical', async ({ 
   await noOverflow(page);
 });
 
+test('2000-char no-space review at 360px has no horizontal scroll in list and modal @critical', async ({ page }) => {
+  const NO_SPACE_2000 = 'X'.repeat(2000);
+
+  await installMockBackend(page, { role: 'USER' });
+  await page.setViewportSize({ width: 360, height: 640 });
+
+  await page.route('**/api/**/users/public/longrev', async (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 55,
+        publicId: 'longrev',
+        slug: 'longrev',
+        displayName: 'LongReviewer',
+        avatar: null,
+        reputation: 50,
+        reputationLevel: null,
+        status: 'ACTIVE',
+        averageRating: 8,
+        reviewsCount: 1,
+        completedRoomsCount: 1,
+        createdAt: '2026-08-01T00:00:00Z',
+      }),
+    });
+  });
+
+  await page.route('**/api/**/reputation/users/55/reviews', async (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {
+          id: 501,
+          authorDisplayName: 'Tester',
+          authorPublicId: 'tester1',
+          rating: 8,
+          text: NO_SPACE_2000,
+          featured: false,
+          verifiedExperience: true,
+          createdAt: '2026-09-01T00:00:00Z',
+          updatedAt: '2026-09-01T00:00:00Z',
+        },
+      ]),
+    });
+  });
+
+  await page.goto('/u/longrev');
+  await expect(page.getByText(NO_SPACE_2000.slice(0, 20)).first()).toBeVisible();
+
+  // Review list: no horizontal scroll
+  const listOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(listOverflow, 'review list should not overflow at 360px').toBeLessThanOrEqual(0);
+});
+
 test('long notification body does not cause horizontal overflow @critical', async ({ page }) => {
   await installMockBackend(page, { role: 'USER' });
 

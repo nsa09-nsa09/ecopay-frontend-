@@ -1,5 +1,5 @@
 import { type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes, type SelectHTMLAttributes, useState, useRef, useEffect, useId } from "react";
-import { Check, ChevronDown, X, AlertCircle, CheckCircle2, Info, Loader2 } from "lucide-react";
+import { Check, ChevronDown, X, AlertCircle, CheckCircle2, Info, Loader2, Eye, EyeOff } from "lucide-react";
 import { BrandLogo } from "./brand-logo";
 import { useI18n, type Language } from "./i18n-provider";
 import { userStatusLabel } from "../lib/user-facing-enums";
@@ -85,6 +85,48 @@ export function Input({ label, error, hint, className = "", ...props }: InputPro
         style={{ fontSize: 14 }}
         {...props}
       />
+      {error && <span style={{ color: "var(--eco-negative)", fontSize: 12 }}>{error}</span>}
+      {hint && !error && <span style={{ color: "var(--eco-text-tertiary)", fontSize: 12 }}>{hint}</span>}
+    </div>
+  );
+}
+
+// ─── PasswordInput ───
+interface PasswordInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
+  label?: string;
+  error?: string;
+  hint?: string;
+}
+
+export function PasswordInput({ label, error, hint, className = "", ...props }: PasswordInputProps) {
+  const [show, setShow] = useState(false);
+  const generatedId = useId();
+  const inputId = props.id ?? generatedId;
+  return (
+    <div className="flex flex-col gap-1.5">
+      {label && <label htmlFor={inputId} style={{ color: "var(--eco-text)", fontSize: 14 }}>{label}</label>}
+      <div className="relative">
+        <input
+          id={inputId}
+          type={show ? "text" : "password"}
+          className={`eco-input ${error ? "eco-input-error" : ""} px-3 py-2 pr-10 rounded-lg outline-none ${className}`}
+          style={{ fontSize: 14 }}
+          {...props}
+        />
+        <button
+          type="button"
+          onClick={() => setShow(!show)}
+          aria-label="Показать/скрыть пароль"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer flex items-center justify-center"
+          style={{ background: "transparent", border: "none", padding: 0 }}
+        >
+          {show ? (
+            <EyeOff size={15} aria-hidden="true" style={{ color: "var(--eco-text-tertiary)" }} />
+          ) : (
+            <Eye size={15} aria-hidden="true" style={{ color: "var(--eco-text-tertiary)" }} />
+          )}
+        </button>
+      </div>
       {error && <span style={{ color: "var(--eco-negative)", fontSize: 12 }}>{error}</span>}
       {hint && !error && <span style={{ color: "var(--eco-text-tertiary)", fontSize: 12 }}>{hint}</span>}
     </div>

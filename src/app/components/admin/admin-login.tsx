@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router';
-import { Button, Input } from '../ds-primitives';
+import { Button, Input, PasswordInput } from '../ds-primitives';
 import { BrandLogo } from '../brand-logo';
 import { useI18n } from '../i18n-provider';
 import { useAuth } from '../auth/auth-provider';
 import { ApiError, type TwoFactorChallenge } from '../../lib/api';
-import { Shield, Lock, Eye, EyeOff, ArrowLeft, LogOut } from 'lucide-react';
+import { Shield, Lock, ArrowLeft, LogOut } from 'lucide-react';
 import { defaultLandingForRole } from './admin-nav';
 import { localizeFieldErrors } from '../../lib/field-errors';
 import { useRobotsMeta } from '../../lib/robots';
@@ -58,7 +58,6 @@ export function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
-  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -187,11 +186,11 @@ export function AdminLoginPage() {
       if (err instanceof ApiError) {
         setError(translateApiError(err));
         setFieldErrors(localizeFieldErrors(err.errors, language));
-        if (err.status === 410) {
-          // expired challenge → user must restart
+        if (err.status === 410 || err.errors?.code === 'TWO_FACTOR_EXPIRED') {
           setStage('credentials');
           setChallenge(null);
           setCode('');
+          setError(t('twoFactorExpiredRetry'));
         }
       } else {
         setError(t('networkError'));
@@ -210,8 +209,10 @@ export function AdminLoginPage() {
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 404 || err.status === 405) {
-          // Backend does not implement resend — hide the button going forward.
           setResendSupported(false);
+        } else if (err.status === 503) {
+          setResendCooldown(60);
+          setError(null);
         } else {
           setError(translateApiError(err));
         }
@@ -274,45 +275,15 @@ export function AdminLoginPage() {
               required
             />
 
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="admin-login-password"
-                style={{ color: 'var(--eco-text)', fontSize: 14 }}
-              >
-                {t('password')}
-              </label>
-              <div className="relative">
-                <input
-                  id="admin-login-password"
-                  type={showPass ? 'text' : 'password'}
-                  placeholder="••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="eco-input w-full px-3 py-2 pr-10 rounded-lg outline-none"
-                  style={{ fontSize: 14 }}
-                  autoComplete="current-password"
-                  required
-                />
-                <button
-                  type="button"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer"
-                  onClick={() => setShowPass(!showPass)}
-                  style={{ background: 'transparent', border: 'none' }}
-                  aria-label={showPass ? t('hide') : t('show')}
-                >
-                  {showPass ? (
-                    <EyeOff size={15} style={{ color: 'var(--eco-text-tertiary)' }} />
-                  ) : (
-                    <Eye size={15} style={{ color: 'var(--eco-text-tertiary)' }} />
-                  )}
-                </button>
-              </div>
-              {fieldErrors.password && (
-                <span className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>
-                  {fieldErrors.password}
-                </span>
-              )}
-            </div>
+            <PasswordInput
+              label={t('password')}
+              placeholder="••••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+              error={fieldErrors.password}
+            />
 
             {error && (
               <div className="text-[13px]" role="alert" style={{ color: 'var(--eco-negative)' }}>

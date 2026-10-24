@@ -1892,6 +1892,11 @@ adminAboutApexLink: {
     kz: 'Кодтың мерзімі бітті. Қайта кіріңіз.',
     en: 'Verification code expired. Please sign in again.',
   },
+  twoFactorExpiredRetry: {
+    ru: 'Код истёк, войдите снова.',
+    kz: 'Код мерзімі бітті, қайта кіріңіз.',
+    en: 'Code expired, please sign in again.',
+  },
   invalidTwoFactorCodeError: {
     ru: 'Неверный код подтверждения.',
     kz: 'Растау коды дұрыс емес.',

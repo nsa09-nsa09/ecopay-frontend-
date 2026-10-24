@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
-import { Button, Card, Input } from '../ds-primitives';
+import { Button, Card, PasswordInput } from '../ds-primitives';
 import { useAuth } from './auth-provider';
 import { ApiError } from '../../lib/api';
 import { useI18n, type Language } from '../i18n-provider';
@@ -133,21 +133,19 @@ export function ResetPasswordConfirmPage() {
             </div>
           ) : (
             <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-              <Input
+              <PasswordInput
                 label={tx(language, 'Новый пароль', 'Жаңа құпия сөз', 'New password')}
-                type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 error={fieldErrors.newPassword}
               />
-              <Input
+              <PasswordInput
                 label={tx(
                   language,
                   'Подтвердите пароль',
                   'Құпия сөзді растаңыз',
                   'Confirm password',
                 )}
-                type="password"
                 value={confirm}
                 onChange={(event) => setConfirm(event.target.value)}
                 error={fieldErrors.confirmPassword}

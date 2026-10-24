@@ -24,6 +24,7 @@ import {
   Pencil,
   XCircle,
   CheckCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -35,6 +36,7 @@ import {
   getRoomInviteLink,
   getRoomMembers,
   revealIdentifierRequest,
+  submitDisputeStatementRequest,
   updateRoomRequest,
   type RoomMemberDto,
   type RoomResponseDto,
@@ -175,6 +177,31 @@ export function OwnerDetailPage() {
   const [granting, setGranting] = useState(false);
 
   const [reviewTarget, setReviewTarget] = useState<RoomMemberDto | null>(null);
+  const [disputeStatements, setDisputeStatements] = useState<Record<number, string>>({});
+  const [disputeSubmitting, setDisputeSubmitting] = useState<number | null>(null);
+  const [disputeErrors, setDisputeErrors] = useState<Record<number, string>>({});
+  const [disputeSent, setDisputeSent] = useState<Set<number>>(new Set());
+
+  const handleOwnerDisputeStatement = async (disputeId: number) => {
+    const text = (disputeStatements[disputeId] ?? '').trim();
+    if (text.length < 10 || disputeSubmitting != null) return;
+    setDisputeSubmitting(disputeId);
+    setDisputeErrors((prev) => ({ ...prev, [disputeId]: '' }));
+    try {
+      await authorizedRequest((token) =>
+        submitDisputeStatementRequest(disputeId, { text }, token),
+      );
+      setDisputeSent((prev) => new Set(prev).add(disputeId));
+      setDisputeStatements((prev) => ({ ...prev, [disputeId]: '' }));
+    } catch (err) {
+      setDisputeErrors((prev) => ({
+        ...prev,
+        [disputeId]: err instanceof ApiError ? err.message : tx(language, 'Не удалось отправить.', 'Жіберу мүмкін болмады.', 'Unable to submit.'),
+      }));
+    } finally {
+      setDisputeSubmitting(null);
+    }
+  };
 
   const [editOpen, setEditOpen] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -726,6 +753,64 @@ export function OwnerDetailPage() {
                             <Star size={13} />{' '}
                             {tx(language, 'Оставить отзыв', 'Пікір қалдыру', 'Leave a review')}
                           </Button>
+                        </div>
+                      )}
+
+                      {p.dispute && (
+                        <div className="mt-2 p-3 rounded-lg flex flex-col gap-2" style={{ border: '1px solid var(--eco-warning)', background: 'var(--eco-warning-100)' }}>
+                          <div className="flex items-center gap-2 text-[13px]">
+                            <AlertTriangle size={14} style={{ color: 'var(--eco-warning)' }} />
+                            <span style={{ color: 'var(--eco-text)' }}>
+                              {tx(language, `Спор #${p.dispute.id}`, `#${p.dispute.id} дау`, `Dispute #${p.dispute.id}`)}
+                            </span>
+                            <Badge variant="warning">{p.dispute.status}</Badge>
+                          </div>
+                          {p.dispute.status === 'OPEN' && !disputeSent.has(p.dispute.id) && (
+                            <div className="flex flex-col gap-1.5">
+                              <textarea
+                                rows={3}
+                                maxLength={2000}
+                                value={disputeStatements[p.dispute.id] ?? ''}
+                                onChange={(e) => setDisputeStatements((prev) => ({ ...prev, [p.dispute!.id]: e.target.value.slice(0, 2000) }))}
+                                placeholder={tx(language, 'Ваше объяснение (мин. 10 символов)', 'Түсіндірмеңіз (кемінде 10 таңба)', 'Your explanation (min. 10 chars)')}
+                                className="px-3 py-2 rounded-lg outline-none resize-none text-[13px]"
+                                style={{ background: 'var(--eco-surface)', border: '1px solid var(--eco-border)', color: 'var(--eco-text)' }}
+                              />
+                              <div className="flex justify-between text-[11px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                                <span />
+                                <span>{(disputeStatements[p.dispute.id] ?? '').length}/2000</span>
+                              </div>
+                              {disputeErrors[p.dispute.id] && (
+                                <p className="text-[12px]" style={{ color: 'var(--eco-negative)' }}>{disputeErrors[p.dispute.id]}</p>
+                              )}
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                loading={disputeSubmitting === p.dispute.id}
+                                disabled={(disputeStatements[p.dispute.id] ?? '').trim().length < 10}
+                                onClick={() => void handleOwnerDisputeStatement(p.dispute!.id)}
+                              >
+                                {tx(language, 'Отправить', 'Жіберу', 'Submit')}
+                              </Button>
+                            </div>
+                          )}
+                          {disputeSent.has(p.dispute.id) && (
+                            <p className="text-[12px]" style={{ color: 'var(--eco-positive)' }}>
+                              {tx(language, 'Объяснение отправлено.', 'Түсіндірме жіберілді.', 'Statement submitted.')}
+                            </p>
+                          )}
+                          {p.dispute.decision && (
+                            <div className="p-2 rounded" style={{ background: 'var(--eco-surface)' }}>
+                              <div className="text-[12px]" style={{ color: 'var(--eco-text)' }}>
+                                {tx(language, 'Решение', 'Шешім', 'Decision')}: <strong>{p.dispute.decision}</strong>
+                              </div>
+                              {p.dispute.decisionComment && (
+                                <p className="user-text text-[12px] mt-1" style={{ color: 'var(--eco-text-secondary)', overflowWrap: 'anywhere', minWidth: 0 }}>
+                                  {p.dispute.decisionComment}
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

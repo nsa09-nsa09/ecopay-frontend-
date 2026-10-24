@@ -329,11 +329,15 @@ export function PublicUserProfilePage() {
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2 shrink-0">
-              {canRate && (
+              {canRate ? (
                 <Button variant="secondary" size="sm" onClick={() => setReviewOpen(true)}>
                   <Star size={14} /> {t('rateUserAction')}
                 </Button>
-              )}
+              ) : isAuthenticated && !isSelf && eligibility && !eligibility.eligible ? (
+                <span className="text-[12px]" style={{ color: 'var(--eco-text-tertiary)' }}>
+                  {tx(language, 'Оценить можно участника вашей комнаты после подтверждения доступа', 'Қол жеткізуді растағаннан кейін бөлме қатысушысын бағалай аласыз', 'You can rate a room member after access is confirmed')}
+                </span>
+              ) : null}
               {!isSelf && reportHandle && (
                 <Button
                   variant="ghost"
@@ -520,7 +524,7 @@ export function PublicUserProfilePage() {
                       {review.text && (
                         <p
                           className="user-text text-[13px] mt-2"
-                          style={{ color: 'var(--eco-text-secondary)' }}
+                          style={{ color: 'var(--eco-text-secondary)', overflowWrap: 'anywhere', minWidth: 0 }}
                         >
                           {review.text}
                         </p>

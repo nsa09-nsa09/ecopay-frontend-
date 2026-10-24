@@ -953,6 +953,14 @@ export interface RoomMemberDto {
   endedAt: string | null;
   consentAcceptedAt: string | null;
   createdAt: string;
+  dispute?: {
+    id: number;
+    status: string;
+    decision: string | null;
+    decisionComment: string | null;
+    resolvedAt: string | null;
+    createdAt: string;
+  } | null;
 }
 
 export interface RoomSettingsDto {
@@ -1001,6 +1009,14 @@ export interface MyRoomMembershipDto {
       status: string;
       createdAt: string;
     } | null;
+  } | null;
+  dispute?: {
+    id: number;
+    status: string;
+    decision: string | null;
+    decisionComment: string | null;
+    resolvedAt: string | null;
+    createdAt: string;
   } | null;
 }
 
@@ -2067,6 +2083,36 @@ export function assignDisputeToMeRequest(disputeId: number, accessToken: string)
   return requestJson<DisputeResponse>(
     `/admin/disputes/${disputeId}/assign`,
     { method: 'PATCH' },
+    accessToken,
+  );
+}
+
+export function submitDisputeStatementRequest(
+  disputeId: number,
+  payload: { text: string },
+  accessToken: string,
+) {
+  return requestJson<{ id: number; disputeId: number; text: string; createdAt: string }>(
+    `/disputes/${disputeId}/statements`,
+    { method: 'POST', body: JSON.stringify(payload) },
+    accessToken,
+  );
+}
+
+export interface DisputeStatementDto {
+  id: number;
+  disputeId: number;
+  userId: number;
+  userDisplayName?: string | null;
+  role?: string | null;
+  text: string;
+  createdAt: string;
+}
+
+export function getAdminDisputeStatementsRequest(disputeId: number, accessToken: string) {
+  return requestJson<DisputeStatementDto[]>(
+    `/admin/disputes/${disputeId}/statements`,
+    {},
     accessToken,
   );
 }

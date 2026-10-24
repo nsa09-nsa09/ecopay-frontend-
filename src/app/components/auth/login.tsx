@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { Button, Input, Card } from '../ds-primitives';
+import { Button, Input, PasswordInput, Card } from '../ds-primitives';
 import { useI18n, type Language } from '../i18n-provider';
 import { formatDateTime } from '../../lib/datetime';
 import { useAuth } from './auth-provider';
@@ -295,9 +295,8 @@ export function LoginPage() {
                 onDismiss={emailField.dismissSuggestion}
               />
             )}
-            <Input
+            <PasswordInput
               label={t('password')}
-              type="password"
               placeholder={t('enterPassword')}
               value={password}
               onChange={(event) => setPassword(event.target.value)}

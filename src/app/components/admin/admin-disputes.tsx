@@ -10,10 +10,14 @@ import {
   assignDisputeToMeRequest,
   decideDisputeRequest,
   getAdminDisputesRequest,
+  getAdminDisputeStatementsRequest,
   getRefundsByDisputeRequest,
+  getStaffSupportTicketRequest,
   markRefundFailRequest,
   type DisputeResponse,
+  type DisputeStatementDto,
   type RefundTransactionResponse,
+  type SupportTicketResponse,
 } from '../../lib/api';
 import {
   RefreshCw,
@@ -416,6 +420,10 @@ export function AdminDisputesPage() {
                 </AdminCard>
 
                 <DisputeRefundsPanel disputeId={selected.id} />
+                {selected.ticketId && (
+                  <TicketConversationPanel ticketId={selected.ticketId} />
+                )}
+                <DisputeStatementsPanel disputeId={selected.id} />
               </div>
             )}
           </div>
@@ -925,6 +933,90 @@ function DisputeRefundsPanel({ disputeId }: { disputeId: number }) {
           </div>
         )}
       </Modal>
+    </AdminCard>
+  );
+}
+
+function TicketConversationPanel({ ticketId }: { ticketId: number }) {
+  const { t, language } = useI18n();
+  const { authorizedRequest } = useAuth();
+  const [ticket, setTicket] = useState<SupportTicketResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    authorizedRequest((token) => getStaffSupportTicketRequest(ticketId, token))
+      .then((data) => { if (!cancelled) setTicket(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [ticketId, authorizedRequest]);
+
+  if (loading) return <AdminCard title={t('ticketConversation')}><Skeleton height={60} rounded={8} /></AdminCard>;
+  if (!ticket || ticket.messages.length === 0) return null;
+
+  return (
+    <AdminCard title={<span>{t('ticketConversation')} · T-{ticketId}</span>}>
+      <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto">
+        {ticket.messages.map((m) => (
+          <div key={m.id} className="p-3 rounded-lg" style={{ background: m.senderRole === 'STAFF' || m.senderRole === 'ADMIN' ? 'var(--eco-brand-50)' : 'var(--eco-surface)' }}>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-[12px] font-semibold" style={{ color: 'var(--eco-text)' }}>
+                #{m.senderUserId} · {m.senderRole}
+              </span>
+              <span className="text-[11px] tabular-nums" style={{ color: 'var(--eco-text-tertiary)' }}>
+                {formatDateTime(m.createdAt, language)}
+              </span>
+            </div>
+            <p className="user-text text-[13px]" style={{ color: 'var(--eco-text-secondary)', overflowWrap: 'anywhere', minWidth: 0 }}>
+              {m.message}
+            </p>
+          </div>
+        ))}
+      </div>
+    </AdminCard>
+  );
+}
+
+function DisputeStatementsPanel({ disputeId }: { disputeId: number }) {
+  const { t, language } = useI18n();
+  const { authorizedRequest } = useAuth();
+  const [statements, setStatements] = useState<DisputeStatementDto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    authorizedRequest((token) => getAdminDisputeStatementsRequest(disputeId, token))
+      .then((data) => { if (!cancelled) setStatements(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [disputeId, authorizedRequest]);
+
+  if (loading) return <AdminCard title={t('disputeStatements')}><Skeleton height={60} rounded={8} /></AdminCard>;
+  if (statements.length === 0) return null;
+
+  return (
+    <AdminCard title={t('disputeStatements')}>
+      <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto">
+        {statements.map((s) => (
+          <div key={s.id} className="p-3 rounded-lg" style={{ background: 'var(--eco-surface)' }}>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-[12px] font-semibold" style={{ color: 'var(--eco-text)' }}>
+                {s.userDisplayName ?? `#${s.userId}`}{s.role ? ` · ${s.role}` : ''}
+              </span>
+              <span className="text-[11px] tabular-nums" style={{ color: 'var(--eco-text-tertiary)' }}>
+                {formatDateTime(s.createdAt, language)}
+              </span>
+            </div>
+            <p className="user-text text-[13px]" style={{ color: 'var(--eco-text-secondary)', overflowWrap: 'anywhere', minWidth: 0 }}>
+              {s.text}
+            </p>
+          </div>
+        ))}
+      </div>
     </AdminCard>
   );
 }
